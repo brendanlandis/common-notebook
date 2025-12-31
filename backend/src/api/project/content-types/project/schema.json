@@ -1,0 +1,47 @@
+{
+  "kind": "collectionType",
+  "collectionName": "projects",
+  "info": {
+    "singularName": "project",
+    "pluralName": "projects",
+    "displayName": "Project"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "title": {
+      "type": "string",
+      "required": true
+    },
+    "description": {
+      "type": "blocks"
+    },
+    "todos": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::todo.todo",
+      "mappedBy": "project"
+    },
+    "world": {
+      "type": "enumeration",
+      "enum": [
+        "life stuff",
+        "music admin",
+        "make music",
+        "day job",
+        "computer"
+      ]
+    },
+    "importance": {
+      "type": "enumeration",
+      "default": "normal",
+      "enum": [
+        "normal",
+        "top of mind",
+        "later"
+      ]
+    }
+  }
+}

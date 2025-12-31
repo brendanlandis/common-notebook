@@ -1,0 +1,48 @@
+{
+  "kind": "collectionType",
+  "collectionName": "favs",
+  "info": {
+    "singularName": "fav",
+    "pluralName": "favs",
+    "displayName": "Fav",
+    "description": ""
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "type": {
+      "type": "enumeration",
+      "required": true,
+      "enum": [
+        "music",
+        "book",
+        "movie",
+        "podcast",
+        "show"
+      ]
+    },
+    "title": {
+      "type": "string"
+    },
+    "creator": {
+      "type": "string"
+    },
+    "cover": {
+      "type": "media",
+      "multiple": false,
+      "required": false,
+      "allowedTypes": [
+        "images",
+        "files"
+      ]
+    },
+    "about": {
+      "type": "blocks"
+    },
+    "url": {
+      "type": "string"
+    }
+  }
+}

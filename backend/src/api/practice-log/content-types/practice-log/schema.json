@@ -1,0 +1,41 @@
+{
+  "kind": "collectionType",
+  "collectionName": "practice_logs",
+  "info": {
+    "singularName": "practice-log",
+    "pluralName": "practice-logs",
+    "displayName": "Practice Log"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "start": {
+      "type": "datetime"
+    },
+    "stop": {
+      "type": "datetime"
+    },
+    "type": {
+      "type": "enumeration",
+      "enum": [
+        "guitar",
+        "voice",
+        "drums",
+        "writing",
+        "composing",
+        "ear training"
+      ]
+    },
+    "notes": {
+      "type": "blocks"
+    },
+    "duration": {
+      "type": "integer"
+    },
+    "date": {
+      "type": "date"
+    }
+  }
+}

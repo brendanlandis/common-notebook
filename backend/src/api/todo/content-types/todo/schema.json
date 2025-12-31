@@ -1,0 +1,128 @@
+{
+  "kind": "collectionType",
+  "collectionName": "todos",
+  "info": {
+    "singularName": "todo",
+    "pluralName": "todos",
+    "displayName": "Todo"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "title": {
+      "type": "string",
+      "required": true
+    },
+    "description": {
+      "type": "blocks"
+    },
+    "completed": {
+      "type": "boolean",
+      "required": true,
+      "default": false
+    },
+    "completedAt": {
+      "type": "datetime"
+    },
+    "dueDate": {
+      "type": "date"
+    },
+    "isRecurring": {
+      "type": "boolean",
+      "default": false
+    },
+    "recurrenceType": {
+      "type": "enumeration",
+      "required": true,
+      "default": "none",
+      "enum": [
+        "none",
+        "daily",
+        "every x days",
+        "weekly",
+        "biweekly",
+        "monthly date",
+        "monthly day",
+        "annually",
+        "full moon",
+        "new moon",
+        "every season",
+        "winter solstice",
+        "spring equinox",
+        "summer solstice",
+        "autumn equinox"
+      ]
+    },
+    "recurrenceInterval": {
+      "type": "integer"
+    },
+    "recurrenceDayOfWeek": {
+      "type": "integer"
+    },
+    "recurrenceDayOfMonth": {
+      "type": "integer"
+    },
+    "recurrenceWeekOfMonth": {
+      "type": "integer"
+    },
+    "recurrenceDayOfWeekMonthly": {
+      "type": "integer"
+    },
+    "project": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::project.project",
+      "inversedBy": "todos"
+    },
+    "category": {
+      "type": "enumeration",
+      "enum": [
+        "home chores",
+        "studio chores",
+        "band chores",
+        "life chores",
+        "work chores",
+        "web chores",
+        "data chores",
+        "computer chores",
+        "in the mail",
+        "buy stuff",
+        "errands",
+        "wishlist"
+      ]
+    },
+    "recurrenceMonth": {
+      "type": "integer"
+    },
+    "displayDate": {
+      "type": "date"
+    },
+    "displayDateOffset": {
+      "type": "integer"
+    },
+    "trackingUrl": {
+      "type": "string"
+    },
+    "purchaseUrl": {
+      "type": "string"
+    },
+    "price": {
+      "type": "integer"
+    },
+    "wishListCategory": {
+      "type": "string"
+    },
+    "soon": {
+      "type": "boolean",
+      "default": false
+    },
+    "long": {
+      "type": "boolean"
+    },
+    "workSessions": {
+      "type": "json"
+    }
+  }
+}
