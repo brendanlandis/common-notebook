@@ -10,7 +10,6 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  this is not valid typescript syntax
 };
 
 export default nextConfig;
