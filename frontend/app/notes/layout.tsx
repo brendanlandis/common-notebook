@@ -1,16 +1,92 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import "@/app/css/rich-text.css";
 
-export const metadata: Metadata = {
-  title: "notes",
-  description: "notes",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return {
+    title: "notes",
+    description: "notes",
+    manifest: '/notes/site.webmanifest',
+    icons: {
+      icon: [
+        { url: '/notes/icon.png', sizes: '32x32', type: 'image/png' },
+        { url: '/notes/icon-192.png', sizes: '192x192', type: 'image/png' },
+        { url: '/notes/icon-512.png', sizes: '512x512', type: 'image/png' },
+      ],
+      apple: [
+        { url: '/notes/apple-icon.png', sizes: '180x180', type: 'image/png' }
+      ],
+      other: [
+        {
+          rel: 'apple-touch-icon-precomposed',
+          url: '/notes/apple-touch-icon-precomposed.png',
+        },
+      ],
+    },
+  };
+}
 
 export default function NotesLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  return <>{children}</>;
+  return (
+    <>
+      <Script
+        id="notes-icons"
+        strategy="beforeInteractive"
+        dangerouslySetInnerHTML={{
+          __html: `
+            (function() {
+              var links = document.querySelectorAll('link[rel*="icon"]');
+              links.forEach(function(l) { l.remove(); });
+              
+              var icon = document.createElement('link');
+              icon.rel = 'icon';
+              icon.href = '/notes/icon.png';
+              icon.sizes = '32x32';
+              icon.type = 'image/png';
+              document.head.appendChild(icon);
+              
+              var apple = document.createElement('link');
+              apple.rel = 'apple-touch-icon';
+              apple.href = '/notes/apple-icon.png';
+              apple.sizes = '180x180';
+              apple.type = 'image/png';
+              document.head.appendChild(apple);
+              
+              var precomposed = document.createElement('link');
+              precomposed.rel = 'apple-touch-icon-precomposed';
+              precomposed.href = '/notes/apple-touch-icon-precomposed.png';
+              precomposed.sizes = '180x180';
+              precomposed.type = 'image/png';
+              document.head.appendChild(precomposed);
+              
+              var icon192 = document.createElement('link');
+              icon192.rel = 'icon';
+              icon192.href = '/notes/icon-192.png';
+              icon192.sizes = '192x192';
+              icon192.type = 'image/png';
+              document.head.appendChild(icon192);
+              
+              var icon512 = document.createElement('link');
+              icon512.rel = 'icon';
+              icon512.href = '/notes/icon-512.png';
+              icon512.sizes = '512x512';
+              icon512.type = 'image/png';
+              document.head.appendChild(icon512);
+              
+              var manifest = document.createElement('link');
+              manifest.rel = 'manifest';
+              manifest.href = '/notes/site.webmanifest';
+              document.head.appendChild(manifest);
+            })();
+          `,
+        }}
+      />
+      {children}
+    </>
+  );
 }
 
