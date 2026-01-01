@@ -46,8 +46,8 @@ export default function LoginPage() {
       const result = await response.json();
 
       if (result.success) {
-        // Redirect to admin dashboard
-        router.push("/admin");
+        // Redirect to home
+        router.push("/");
       } else {
         setErrorMessage(result.error || "Login failed");
         if (typeof result.remaining === "number") {
