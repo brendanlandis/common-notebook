@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import type { Note } from "@/app/types/admin";
+import FaviconManager from "@/app/components/FaviconManager";
 import NoteForm from "./components/NoteForm";
 import NoteItem from "./components/NoteItem";
 import { useTodoActions } from "@/app/contexts/TodoActionsContext";
@@ -111,6 +112,7 @@ export default function NotesPage() {
   if (loading) {
     return (
       <>
+        <FaviconManager type="pencil" />
         <main id="admin-notes">
           <p>loading...</p>
         </main>
@@ -121,6 +123,7 @@ export default function NotesPage() {
   if (error) {
     return (
       <>
+        <FaviconManager type="pencil" />
         <main id="admin-notes">
           <p>error: {error}</p>
         </main>
@@ -140,6 +143,7 @@ export default function NotesPage() {
 
   return (
     <>
+      <FaviconManager type="pencil" />
       <main id="admin-notes">
         {notes.length === 0 ? (
           <p>no notes found</p>

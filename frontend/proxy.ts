@@ -28,6 +28,6 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon|apple-touch-icon|android-chrome|site.webmanifest).*)'],
+  matcher: ['/((?!_next/static|_next/image|favicon.svg|favicon.ico).*)'],
 };
 
