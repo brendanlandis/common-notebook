@@ -8,7 +8,6 @@ import PracticeSessionItem from "./components/PracticeSessionItem";
 import RichTextEditor from "@/app/components/admin/RichTextEditor";
 import PracticeCharts from "./components/PracticeCharts";
 import { toISODateInEST, getTodayInEST } from "@/app/lib/dateUtils";
-import FaviconManager from "@/app/components/FaviconManager";
 
 export default function PracticePage() {
   const { selectedPracticeType } = usePractice();
@@ -241,7 +240,6 @@ export default function PracticePage() {
 
   return (
     <>
-      <FaviconManager type="metronome" />
       <main id="admin-practice">
         <div className="practice-controls">
           {activeSession ? (

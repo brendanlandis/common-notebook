@@ -11,7 +11,6 @@ import TodoActionsDrawer from "./components/admin/TodoActionsDrawer";
 import { LayoutRulesetProvider } from "./contexts/LayoutRulesetContext";
 import { PracticeContextProvider } from "./contexts/PracticeContext";
 import { TodoActionsProvider } from "./contexts/TodoActionsContext";
-import FaviconManager from "./components/FaviconManager";
 import AdminHeaderIcon from "./components/admin/AdminHeaderIcon";
 import EscapeKeyHandler from "./components/admin/EscapeKeyHandler";
 import TimezoneManager from "./components/admin/TimezoneManager";
@@ -39,6 +38,25 @@ export default function AdminLayout({
     <html lang="en" suppressHydrationWarning>
       <head>
         <meta name="apple-mobile-web-app-title" content="Notebook" />
+        <link
+          rel="apple-touch-icon"
+          sizes="180x180"
+          href="/apple-touch-icon.png"
+          type="image/png"
+        />
+        <link
+          rel="icon"
+          type="image/png"
+          sizes="32x32"
+          href="/favicon-32x32.png"
+        />
+        <link
+          rel="icon"
+          type="image/png"
+          sizes="16x16"
+          href="/favicon-16x16.png"
+        />
+        <link rel="manifest" href="/site.webmanifest" />
         <script
           dangerouslySetInnerHTML={{
             __html: `
@@ -81,71 +99,73 @@ export default function AdminLayout({
           ${fontChillax.variable}
         `}
       >
-        <FaviconManager type="bird" />
         <TimezoneProvider>
           <LayoutRulesetProvider>
             <PracticeContextProvider>
               <TodoActionsProvider>
                 <EscapeKeyHandler />
-              <div className="drawer">
-                <input
-                  id="todoActionsDrawer"
-                  type="checkbox"
-                  className="drawer-toggle"
-                />
-                <div className="drawer-content">
-                  <div className="drawer drawer-end">
-                    <input
-                      id="adminMenu"
-                      type="checkbox"
-                      className="drawer-toggle"
-                    />
-                    <div className="drawer-content">
-                      <header>
-                        <div>
-                          <HeaderContent />
-                        </div>
-                        <div>
-                          <AdminHeaderIcon />
-                        </div>
-                        <div>
-                          <label htmlFor="adminMenu" className="drawer-button">
-                            <ListIcon size={40} weight="regular" />
-                          </label>
-                        </div>
-                      </header>
-                      <main className="container" id="admin-container">
-                        {children}
-                      </main>
-                      <footer></footer>
-                    </div>
-                    <div className="drawer-side">
-                      <label
-                        htmlFor="adminMenu"
-                        aria-label="close sidebar"
-                        className="drawer-overlay"
-                      ></label>
-                      <ul className="menu bg-base-200 text-base-content min-h-full w-auto p-4">
-                        <li className="admin-menu-header">
-                          <MenuClose />
-                          <ThemeToggle />
-                        </li>
-                        <MenuItems />
-                        <li>
-                          <TimezoneManager />
-                        </li>
-                        <li>
-                          <LogoutButton />
-                        </li>
-                      </ul>
+                <div className="drawer">
+                  <input
+                    id="todoActionsDrawer"
+                    type="checkbox"
+                    className="drawer-toggle"
+                  />
+                  <div className="drawer-content">
+                    <div className="drawer drawer-end">
+                      <input
+                        id="adminMenu"
+                        type="checkbox"
+                        className="drawer-toggle"
+                      />
+                      <div className="drawer-content">
+                        <header>
+                          <div>
+                            <HeaderContent />
+                          </div>
+                          <div>
+                            <AdminHeaderIcon />
+                          </div>
+                          <div>
+                            <label
+                              htmlFor="adminMenu"
+                              className="drawer-button"
+                            >
+                              <ListIcon size={40} weight="regular" />
+                            </label>
+                          </div>
+                        </header>
+                        <main className="container" id="admin-container">
+                          {children}
+                        </main>
+                        <footer></footer>
+                      </div>
+                      <div className="drawer-side">
+                        <label
+                          htmlFor="adminMenu"
+                          aria-label="close sidebar"
+                          className="drawer-overlay"
+                        ></label>
+                        <ul className="menu bg-base-200 text-base-content min-h-full w-auto p-4">
+                          <li className="admin-menu-header">
+                            <MenuClose />
+                            <ThemeToggle />
+                          </li>
+                          <MenuItems />
+                          <li>
+                            <TimezoneManager />
+                          </li>
+                          <li>
+                            <LogoutButton />
+                          </li>
+                        </ul>
+                      </div>
                     </div>
                   </div>
+                  <TodoActionsDrawer />
                 </div>
-                <TodoActionsDrawer />
-              </div>
-            </TodoActionsProvider>
-          </PracticeContextProvider>
-        </LayoutRulesetProvider>
+              </TodoActionsProvider>
+            </PracticeContextProvider>
+          </LayoutRulesetProvider>
         </TimezoneProvider>
       </body>
     </html>
