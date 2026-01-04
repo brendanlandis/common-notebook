@@ -1136,6 +1136,13 @@ export default function AdminDashboard() {
 
       const method = editingTodo ? "PUT" : "POST";
 
+      // Store editingTodo reference before clearing
+      const wasEditingTodo = editingTodo;
+
+      // Close drawer and reset form immediately (optimistic update)
+      closeDrawer();
+      setEditingTodo(null);
+
       const response = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
@@ -1148,21 +1155,21 @@ export default function AdminDashboard() {
 
         // Check if the todo being edited is in completedTodos (from "done" layout)
         const isInCompletedTodos =
-          editingTodo &&
-          completedTodos.some((t) => t.documentId === editingTodo.documentId);
+          wasEditingTodo &&
+          completedTodos.some((t) => t.documentId === wasEditingTodo.documentId);
 
         // Check if the todo being edited is in longTodosWithSessions (from "done" layout)
         const isInLongTodos =
-          editingTodo &&
+          wasEditingTodo &&
           longTodosWithSessions.some(
-            (t) => t.documentId === editingTodo.documentId
+            (t) => t.documentId === wasEditingTodo.documentId
           );
 
         if (isInCompletedTodos && updatedTodo) {
           // Update completedTodos state directly
           setCompletedTodos((prev) =>
             prev.map((t) =>
-              t.documentId === editingTodo.documentId ? updatedTodo : t
+              t.documentId === wasEditingTodo.documentId ? updatedTodo : t
             )
           );
         }
@@ -1171,7 +1178,7 @@ export default function AdminDashboard() {
           // Update longTodosWithSessions state directly
           setLongTodosWithSessions((prev) =>
             prev.map((t) =>
-              t.documentId === editingTodo.documentId ? updatedTodo : t
+              t.documentId === wasEditingTodo.documentId ? updatedTodo : t
             )
           );
         }
@@ -1180,9 +1187,6 @@ export default function AdminDashboard() {
           // For todos not in done view, refresh the regular todos
           await fetchTodos();
         }
-
-        closeDrawer();
-        setEditingTodo(null);
       }
     } catch (err) {
       console.error("Error saving todo:", err);
@@ -1202,6 +1206,10 @@ export default function AdminDashboard() {
 
       const method = editingProject ? "PUT" : "POST";
 
+      // Close drawer and reset form immediately (optimistic update)
+      closeDrawer();
+      setEditingProject(null);
+
       const response = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
@@ -1209,8 +1217,6 @@ export default function AdminDashboard() {
       });
 
       if (response.ok) {
-        closeDrawer();
-        setEditingProject(null);
         await fetchTodos();
       }
     } catch (err) {
@@ -1326,6 +1332,7 @@ export default function AdminDashboard() {
           drawerContent === "todo" &&
           createPortal(
             <TodoForm
+              key={editingTodo?.documentId || "new"}
               todo={editingTodo || undefined}
               onSubmit={handleFormSubmit}
               onCancel={handleCancelForm}
@@ -1337,6 +1344,7 @@ export default function AdminDashboard() {
           drawerContent === "project" &&
           createPortal(
             <ProjectForm
+              key={editingProject?.documentId || "new"}
               project={editingProject || undefined}
               onSubmit={handleProjectFormSubmit}
               onCancel={handleCancelProjectForm}
