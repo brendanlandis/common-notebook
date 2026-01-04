@@ -1,8 +1,8 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import LayoutSelector from "../../todo/components/LayoutSelector";
-import PracticeSelector from "../../practice/components/PracticeSelector";
+import LayoutSelector from "../../(main)/todo/components/LayoutSelector";
+import PracticeSelector from "../../(main)/practice/components/PracticeSelector";
 import { useLayoutRuleset } from "../../contexts/LayoutRulesetContext";
 import { usePractice } from "../../contexts/PracticeContext";
 import { useTodoActions } from "../../contexts/TodoActionsContext";
