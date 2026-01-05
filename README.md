@@ -19,7 +19,7 @@ Right now the only way to use this is to download and install it yourself, but i
 
 We all have a lot going on, and it's easy to feel overwhelmed. Uncluttered software is good, yes, but more lacking in our lives is *humane* software.
 
-I started building this because I need to stop thinking about ten other things while I'm trying to write music, or focus on a coding problem, or hang out with friends. Whatever I'm doing on any given day, I just want to be doing that thing, without thinking about the myriad other things I "should" be doing.
+I started building this because I needed to stop thinking about ten other things while I was trying to write music, or focus on a coding problem, or hang out with friends. Whatever I was doing on any given day, I just wanted to be doing that thing, without thinking about the myriad other things I "should" be doing.
 
 I've always needed a place where I could put all my *stuff* - one that I could actually trust and use without having to click too much. There are a lot of todo list apps out there, but it always felt weird trying to fit my stuff into them - some were simpler than what I needed, others more complex. And they were all so concerned with *productivity*.
 
@@ -33,7 +33,7 @@ The idea is: If it's something that's useful to me, it might be useful to other 
 
 - Make something I personally want to use, and make it so other people can use it as well.
 - Make two versions: An open-source version you can download and self-host, and down the road, a hosted version you can make an account on and use for maybe something like $5 / month.
-- No ads, no AI anything, no branding, no extra buttons, no tracking, no nagging, no clutter, no app version, no popups, no stupid emails, just a little web site. A little web site is enough.
+- No ads, no AI "features," no branding, no extra buttons, no tracking, no nagging, no clutter, no app version, no popups, no stupid emails, just a little web site. A little web site is enough.
 - Open formats, easy to export your data and delete your account, etc.
 - Just generally treat people that use this web site with respect and dignity.
 
