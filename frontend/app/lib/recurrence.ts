@@ -51,7 +51,7 @@ export function calculateNextRecurrence(todo: Todo, isInitialCreation: boolean =
   // Validate that todo has required fields for its recurrence type
   const validation = validateRecurrenceFields(todo);
   if (!validation.valid) {
-    console.error('Invalid recurrence fields:', validation.errors);
+    // Silently return null - validation should be enforced at the form level
     return { dueDate: null, displayDate: null };
   }
 

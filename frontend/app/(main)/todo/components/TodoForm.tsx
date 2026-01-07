@@ -42,6 +42,63 @@ const schema = z.object({
   wishListCategory: z.string().nullable().optional(),
   soon: z.boolean(),
   long: z.boolean(),
+}).superRefine((data, ctx) => {
+  // Validate recurrence fields based on recurrence type
+  if (data.isRecurring && data.recurrenceType) {
+    if (data.recurrenceType === 'every x days' && !data.recurrenceInterval) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Interval is required for 'every x days' recurrence",
+        path: ['recurrenceInterval'],
+      });
+    }
+    if ((data.recurrenceType === 'weekly' || data.recurrenceType === 'biweekly') && !data.recurrenceDayOfWeek) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Day of week is required for weekly/biweekly recurrence",
+        path: ['recurrenceDayOfWeek'],
+      });
+    }
+    if (data.recurrenceType === 'monthly date' && !data.recurrenceDayOfMonth) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Day of month is required for monthly date recurrence",
+        path: ['recurrenceDayOfMonth'],
+      });
+    }
+    if (data.recurrenceType === 'monthly day' && (!data.recurrenceWeekOfMonth || !data.recurrenceDayOfWeekMonthly)) {
+      if (!data.recurrenceWeekOfMonth) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Week of month is required for monthly day recurrence",
+          path: ['recurrenceWeekOfMonth'],
+        });
+      }
+      if (!data.recurrenceDayOfWeekMonthly) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Day of week is required for monthly day recurrence",
+          path: ['recurrenceDayOfWeekMonthly'],
+        });
+      }
+    }
+    if (data.recurrenceType === 'annually' && (!data.recurrenceMonth || !data.recurrenceDayOfMonth)) {
+      if (!data.recurrenceMonth) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Month is required for annual recurrence",
+          path: ['recurrenceMonth'],
+        });
+      }
+      if (!data.recurrenceDayOfMonth) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Day of month is required for annual recurrence",
+          path: ['recurrenceDayOfMonth'],
+        });
+      }
+    }
+  }
 });
 
 type TodoFormInputs = z.infer<typeof schema>;

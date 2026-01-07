@@ -55,8 +55,19 @@ export function parseInEST(dateString: string): Date {
  */
 export function formatInEST(date: Date, formatString: string): string {
   const tz = getTimezone();
-  const estDate = toZonedTime(date, tz);
-  return formatTz(estDate, formatString, { timeZone: tz });
+  const zonedDate = toZonedTime(date, tz);
+  
+  // For date-only formats (yyyy-MM-dd), use the zoned Date directly
+  // This avoids IANA timezone database issues in CI environments
+  if (formatString === 'yyyy-MM-dd') {
+    const year = zonedDate.getFullYear();
+    const month = String(zonedDate.getMonth() + 1).padStart(2, '0');
+    const day = String(zonedDate.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+  
+  // For other formats, use formatTz (may require IANA database)
+  return formatTz(zonedDate, formatString, { timeZone: tz });
 }
 
 /**
@@ -83,28 +94,33 @@ export function getISOTimestampInEST(date?: Date): string {
  * 
  * Example: If day boundary is 4am and it's 2am Tuesday, this returns Monday
  * 
- * @returns Date object representing "today" for recurrence calculations
+ * @returns Date object representing "today" for recurrence calculations at the boundary hour
  */
 export function getTodayForRecurrence(): Date {
-  const now = getNowInEST();
+  const tz = getTimezone();
+  const now = toZonedTime(new Date(), tz);
   const dayBoundaryHour = getDayBoundaryHour();
   
-  // Get the hour in the configured timezone
-  const currentHour = parseInt(formatInEST(now, 'H'), 10);
+  // Get today's date string in the configured timezone
+  const todayDateStr = formatTz(now, 'yyyy-MM-dd', { timeZone: tz });
+  
+  // Create today's date at the boundary hour in the configured timezone
+  const todayAtBoundary = fromZonedTime(
+    `${todayDateStr}T${String(dayBoundaryHour).padStart(2, '0')}:00:00`,
+    tz
+  );
+  
+  // Get the current hour in the configured timezone
+  const currentHour = parseInt(formatTz(now, 'H', { timeZone: tz }), 10);
   
   // If we're before the day boundary, count as previous day
   if (currentHour < dayBoundaryHour) {
-    // Get midnight of today, then subtract to get previous day
-    const todayMidnight = getTodayInEST();
-    return subHours(todayMidnight, 24 - dayBoundaryHour);
+    // Return yesterday at the boundary hour
+    return addDaysFn(todayAtBoundary, -1);
   }
   
-  // After day boundary - use current day at the boundary hour
-  const todayMidnight = getTodayInEST();
-  const dayBoundaryTime = new Date(todayMidnight);
-  dayBoundaryTime.setHours(dayBoundaryHour, 0, 0, 0);
-  
-  return dayBoundaryTime;
+  // After or at day boundary - return today at the boundary hour
+  return todayAtBoundary;
 }
 
 /**
@@ -118,17 +134,22 @@ export function getCompletionDateForRecurrence(completionTime: Date): string {
   const dayBoundaryHour = getDayBoundaryHour();
   const tz = getTimezone();
   
-  // Get the hour in the configured timezone
-  const completionHour = parseInt(formatTz(completionTime, 'H', { timeZone: tz }), 10);
+  // Convert to the target timezone to get the local date/time
+  const zonedTime = toZonedTime(completionTime, tz);
+  
+  // Get the hour in the target timezone by reading from the zoned Date object
+  // toZonedTime returns a Date that represents the local time in the target timezone
+  const completionHour = zonedTime.getHours();
   
   // If completed before day boundary, use previous calendar day
   if (completionHour < dayBoundaryHour) {
-    const completionDate = toZonedTime(completionTime, tz);
-    const previousDay = addDaysFn(completionDate, -1);
-    return formatTz(previousDay, 'yyyy-MM-dd', { timeZone: tz });
+    const previousDay = addDaysFn(zonedTime, -1);
+    const result = formatTz(previousDay, 'yyyy-MM-dd', { timeZone: tz });
+    return result;
   }
   
   // After day boundary - use current calendar day
-  return formatTz(completionTime, 'yyyy-MM-dd', { timeZone: tz });
+  const result = formatTz(zonedTime, 'yyyy-MM-dd', { timeZone: tz });
+  return result;
 }
 
