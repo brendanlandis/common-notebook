@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getTodayInEST, toISODateInEST } from '@/app/lib/dateUtils';
+import { getTodayForRecurrence, toISODateInEST } from '@/app/lib/dateUtils';
 
 const STRAPI_API_URL = process.env.STRAPI_API_URL;
 
@@ -15,8 +15,8 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Calculate the date 30 days ago to filter work sessions
-    const today = getTodayInEST();
+    // Calculate the date 30 days ago to filter work sessions, respecting day boundary hour
+    const today = getTodayForRecurrence();
     const thirtyDaysAgo = new Date(today);
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
     const thirtyDaysAgoString = toISODateInEST(thirtyDaysAgo);

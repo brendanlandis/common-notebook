@@ -1,4 +1,5 @@
-import { ListIcon } from "@phosphor-icons/react/dist/ssr";
+import { ListIcon, GearIcon } from "@phosphor-icons/react/dist/ssr";
+import Link from "next/link";
 import ThemeToggle from "../components/ThemeToggle";
 import MenuClose from "../components/MenuClose";
 import LogoutButton from "../components/admin/LogoutButton";
@@ -10,7 +11,6 @@ import { PracticeContextProvider } from "../contexts/PracticeContext";
 import { TodoActionsProvider } from "../contexts/TodoActionsContext";
 import AdminHeaderIcon from "../components/admin/AdminHeaderIcon";
 import EscapeKeyHandler from "../components/admin/EscapeKeyHandler";
-import TimezoneManager from "../components/admin/TimezoneManager";
 
 export default function MainLayout({
   children,
@@ -67,7 +67,10 @@ export default function MainLayout({
                     </li>
                     <MenuItems />
                     <li>
-                      <TimezoneManager />
+                      <Link id="settings-link" href="/settings">
+                        <GearIcon size={30} weight="thin" />
+                        <span>settings</span>
+                      </Link>
                     </li>
                     <li>
                       <LogoutButton />

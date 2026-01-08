@@ -131,70 +131,19 @@ hr {
     position: absolute;
     bottom: 1rem;
     right: 1rem;
-  }
-
-  li:has(#timezone-manager) {
-    position: absolute;
-    bottom: 1rem;
-    left: 1rem;
-  }
-
-  #timezone-manager {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0;
-    &:hover {
-      background: transparent;
-    }
-  }
-
-  .timezone-select {
-    flex: 1;
-    padding: 0;
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    &:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-  }
-
-  .timezone-detect-button {
+    height: 30px;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 0;
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    &:hover:not(:disabled) {
-      background: transparent;
+  }
+
+  li:has(#settings-link) {
+    position: absolute;
+    bottom: 1rem;
+    left: 1rem;
+    #settings-link {
+      padding: 0;
     }
-    &:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-  }
-
-  .timezone-icon-wrapper {
-    transform-origin: center center;
-  }
-
-  .timezone-icon-wrapper.detecting,
-  .timezone-icon-wrapper.completing {
-    animation: spin-counterclockwise 0.75s linear infinite;
-  }
-
-}
-
-@keyframes spin-counterclockwise {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(-360deg);
   }
 }
 
@@ -202,3 +151,4 @@ hr {
 @import "./page-todo.css";
 @import "./page-practice.css";
 @import "./page-notes.css";
+@import "./settings.css";

@@ -9,6 +9,7 @@ import RecentStats from "./components/RecentStats";
 import type { Project, Todo, TodoCategory } from "@/app/types/admin";
 import {
   getTodayInEST,
+  getTodayForRecurrence,
   parseInEST,
   getISOTimestampInEST,
   toISODateInEST,
@@ -126,11 +127,14 @@ export default function AdminDashboard() {
         // Also filter out completed todos that are older than visibility window
         const today = getTodayInEST();
         const now = getNowInEST();
-        const todayDateString = toISODateInEST(today);
+        // Use day boundary-aware date for checking work sessions
+        const todayForWorkSessions = getTodayForRecurrence();
+        const todayDateString = toISODateInEST(todayForWorkSessions);
         const visibilityMinutes = getCompletedTaskVisibilityMinutes();
         
         const visibleTodos = allTodos.filter((todo: Todo) => {
           // If it's a long todo and has been worked on today, hide it
+          // "Today" respects the day boundary hour setting
           if (
             todo.long &&
             todo.workSessions &&

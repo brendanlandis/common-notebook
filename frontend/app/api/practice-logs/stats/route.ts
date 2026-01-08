@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getTodayInEST, toISODateInEST } from '@/app/lib/dateUtils';
+import { getTodayForRecurrence, toISODateInEST } from '@/app/lib/dateUtils';
 import type { PracticeType } from '@/app/types/admin';
 
 const STRAPI_API_URL = process.env.STRAPI_API_URL;
@@ -27,8 +27,8 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Calculate date range for past 30 days
-    const today = getTodayInEST();
+    // Calculate date range for past 30 days, respecting day boundary hour
+    const today = getTodayForRecurrence();
     const thirtyDaysAgo = new Date(today);
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 29); // 29 days ago + today = 30 days total
     const startDate = toISODateInEST(thirtyDaysAgo);

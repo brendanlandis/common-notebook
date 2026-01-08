@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getTodayInEST, toISODateInEST } from '@/app/lib/dateUtils';
+import { getTodayForRecurrence, toISODateInEST } from '@/app/lib/dateUtils';
 
 const STRAPI_API_URL = process.env.STRAPI_API_URL;
 
@@ -25,8 +25,8 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const days = parseInt(searchParams.get('days') || '7', 10);
 
-    // Calculate the date range
-    const today = getTodayInEST();
+    // Calculate the date range, respecting day boundary hour
+    const today = getTodayForRecurrence();
     const daysAgo = new Date(today);
     daysAgo.setDate(daysAgo.getDate() - days);
     const daysAgoString = toISODateInEST(daysAgo);

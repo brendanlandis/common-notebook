@@ -47,6 +47,7 @@ export function setCachedDayBoundaryHour(hour: number): void {
 
 /**
  * Fetch day boundary hour from Strapi system settings
+ * Creates the setting with default value if it doesn't exist
  * @returns Promise with hour number or null
  */
 export async function fetchDayBoundaryHourFromStrapi(): Promise<number | null> {
@@ -60,6 +61,12 @@ export async function fetchDayBoundaryHourFromStrapi(): Promise<number | null> {
       if (!isNaN(hour) && hour >= 0 && hour <= 23) {
         setCachedDayBoundaryHour(hour);
         return hour;
+      }
+    } else if (data.success && !data.value) {
+      // Setting doesn't exist, create it with default value
+      const success = await saveDayBoundaryHourToStrapi(DEFAULT_DAY_BOUNDARY_HOUR);
+      if (success) {
+        return DEFAULT_DAY_BOUNDARY_HOUR;
       }
     }
     return null;

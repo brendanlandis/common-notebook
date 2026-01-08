@@ -5,7 +5,8 @@ import {
   BirdIcon,
   BroomIcon,
   MetronomeIcon,
-  PencilIcon
+  PencilIcon,
+  GearIcon
 } from '@phosphor-icons/react';
 
 export default function AdminHeaderIcon() {
@@ -26,6 +27,11 @@ export default function AdminHeaderIcon() {
   // Notes page
   if (pathname === '/notes') {
     return <PencilIcon {...iconProps} />;
+  }
+
+  // Settings page
+  if (pathname === '/settings') {
+    return <GearIcon {...iconProps} />;
   }
 
   // Home or other pages

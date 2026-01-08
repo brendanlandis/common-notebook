@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import type { Todo } from '@/app/types/admin';
 import { toZonedTime } from 'date-fns-tz';
 import { format as formatTz } from 'date-fns-tz';
+import { addDays } from 'date-fns';
 
 const STRAPI_API_URL = process.env.STRAPI_API_URL;
 
@@ -23,6 +24,27 @@ export async function POST(
     // Get timezone from request body
     const body = await req.json();
     const timezone = body.timezone || 'America/New_York';
+
+    // Fetch day boundary hour setting
+    const dayBoundaryResponse = await fetch(
+      `${req.nextUrl.origin}/api/system-settings?title=dayBoundaryHour`,
+      {
+        headers: {
+          Cookie: req.headers.get('cookie') || '',
+        },
+      }
+    );
+
+    let dayBoundaryHour = 0; // Default to midnight
+    if (dayBoundaryResponse.ok) {
+      const dayBoundaryData = await dayBoundaryResponse.json();
+      if (dayBoundaryData.success && dayBoundaryData.value) {
+        const parsedHour = parseInt(dayBoundaryData.value, 10);
+        if (!isNaN(parsedHour) && parsedHour >= 0 && parsedHour <= 23) {
+          dayBoundaryHour = parsedHour;
+        }
+      }
+    }
 
     // Get the todo
     const getTodoResponse = await fetch(
@@ -56,7 +78,15 @@ export async function POST(
     // Use a single Date object for both to ensure consistency
     const now = new Date();
     const nowInTimezone = toZonedTime(now, timezone);
-    const todayDate = formatTz(nowInTimezone, 'yyyy-MM-dd', { timeZone: timezone });
+    
+    // Apply day boundary logic: if before the day boundary hour, use previous calendar day
+    const currentHour = nowInTimezone.getHours();
+    let effectiveDate = nowInTimezone;
+    if (currentHour < dayBoundaryHour) {
+      effectiveDate = addDays(nowInTimezone, -1);
+    }
+    
+    const todayDate = formatTz(effectiveDate, 'yyyy-MM-dd', { timeZone: timezone });
     const timestamp = formatTz(nowInTimezone, "yyyy-MM-dd'T'HH:mm:ss.SSSxxx", { timeZone: timezone });
 
     // Get existing workSessions or initialize as empty array

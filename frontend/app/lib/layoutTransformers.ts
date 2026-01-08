@@ -2,6 +2,7 @@ import type { Project, Todo, TodoCategory, World } from "@/app/types/admin";
 import type { LayoutRuleset } from "@/app/types/layoutRuleset";
 import { getTodayInEST, parseInEST, formatInEST, toISODateInEST, toZonedTime } from "@/app/lib/dateUtils";
 import { getTimezone } from "@/app/lib/timezoneConfig";
+import { getDayBoundaryHour } from "@/app/lib/dayBoundaryConfig";
 import { addDays } from "date-fns";
 
 export interface TodoGroup {
@@ -1386,9 +1387,9 @@ export function transformLayout(data: RawTodoData, ruleset: LayoutRuleset): Tran
         // Get the hour in EST (0-23)
         const hour = completedDate.getHours();
         
-        // If before 4am, group with previous day
+        // If before day boundary hour, group with previous day
         let adjustedDate = new Date(completedDate);
-        if (hour < 4) {
+        if (hour < getDayBoundaryHour()) {
           adjustedDate.setDate(adjustedDate.getDate() - 1);
         }
         
@@ -1430,8 +1431,8 @@ export function transformLayout(data: RawTodoData, ruleset: LayoutRuleset): Tran
     const nowInEST = toZonedTime(new Date(), getTimezone());
     const hour = nowInEST.getHours();
     let todayDate = new Date(getTodayInEST());
-    if (hour < 4) {
-      // If before 4am, "today" is actually yesterday's date
+    if (hour < getDayBoundaryHour()) {
+      // If before day boundary hour, "today" is actually yesterday's date
       todayDate.setDate(todayDate.getDate() - 1);
     }
     

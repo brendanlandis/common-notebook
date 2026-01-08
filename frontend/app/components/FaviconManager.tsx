@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 
-type FaviconType = 'potted-plant' | 'bird' | 'broom' | 'metronome' | 'pencil';
+type FaviconType = 'potted-plant' | 'bird' | 'broom' | 'metronome' | 'pencil' | 'gear';
 
 interface FaviconManagerProps {
   type: FaviconType;

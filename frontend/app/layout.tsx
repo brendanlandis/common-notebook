@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./css/screen.css";
-import FaviconManager from "./components/FaviconManager";
 import { TimezoneProvider } from "./contexts/TimezoneContext";
 
 export const metadata: Metadata = {
@@ -70,7 +69,6 @@ export default function RootLayout({
           ${fontChillax.variable}
         `}
       >
-        <FaviconManager type="bird" />
         <TimezoneProvider>
           {children}
         </TimezoneProvider>
