@@ -1,8 +1,8 @@
 {
-  "name": "good-enough-notebook-api",
+  "name": "common-notebook-api",
   "version": "0.1.0",
   "private": true,
-  "description": "backend for good enough notebook",
+  "description": "backend for common notebook",
   "scripts": {
     "build": "strapi build",
     "deploy": "strapi deploy",

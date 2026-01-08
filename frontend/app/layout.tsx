@@ -4,7 +4,7 @@ import "./css/screen.css";
 import { TimezoneProvider } from "./contexts/TimezoneContext";
 
 export const metadata: Metadata = {
-  title: "good enough notebook",
+  title: "common notebook",
   description: "minimal, no-brand personal utilities",
 };
 
