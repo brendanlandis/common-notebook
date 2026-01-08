@@ -1,13 +1,13 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import LayoutSelector from "../../(main)/todo/components/LayoutSelector";
-import PracticeSelector from "../../(main)/practice/components/PracticeSelector";
-import { useLayoutRuleset } from "../../contexts/LayoutRulesetContext";
-import { usePractice } from "../../contexts/PracticeContext";
-import { useTodoActions } from "../../contexts/TodoActionsContext";
+import LayoutSelector from "../(main)/todo/components/LayoutSelector";
+import PracticeSelector from "../(main)/practice/components/PracticeSelector";
+import { useLayoutRuleset } from "../contexts/LayoutRulesetContext";
+import { usePractice } from "../contexts/PracticeContext";
+import { useTodoActions } from "../contexts/TodoActionsContext";
 import { PlusCircleIcon, FolderSimplePlusIcon } from "@phosphor-icons/react";
-import MoonPhaseIcon from "../MoonPhaseIcon";
+import MoonPhaseIcon from "./MoonPhaseIcon";
 
 export default function HeaderContent() {
   const pathname = usePathname();

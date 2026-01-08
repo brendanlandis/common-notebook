@@ -5,7 +5,7 @@ import { PlayIcon, StopIcon } from "@phosphor-icons/react";
 import type { PracticeLog, StrapiBlock } from "@/app/types/admin";
 import PracticeTimer from "./components/PracticeTimer";
 import PracticeSessionItem from "./components/PracticeSessionItem";
-import RichTextEditor from "@/app/components/admin/RichTextEditor";
+import RichTextEditor from "@/app/components/RichTextEditor";
 import PracticeCharts from "./components/PracticeCharts";
 import { toISODateInEST, getTodayInEST } from "@/app/lib/dateUtils";
 import FaviconManager from "@/app/components/FaviconManager";

@@ -5,7 +5,7 @@ import { PencilIcon, TrashIcon } from "@phosphor-icons/react";
 import type { PracticeLog } from "@/app/types/admin";
 import { formatInEST } from "@/app/lib/dateUtils";
 import PracticeForm from "./PracticeForm";
-import RichTextDisplay from "@/app/components/admin/RichTextDisplay";
+import RichTextDisplay from "@/app/components/RichTextDisplay";
 
 interface PracticeSessionItemProps {
   practiceLog: PracticeLog;

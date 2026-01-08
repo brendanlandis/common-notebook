@@ -2,7 +2,7 @@
 
 import { usePathname } from 'next/navigation';
 import { XIcon } from '@phosphor-icons/react';
-import { useTodoActions } from '../../contexts/TodoActionsContext';
+import { useTodoActions } from '../contexts/TodoActionsContext';
 
 export default function TodoActionsDrawer() {
   const pathname = usePathname();

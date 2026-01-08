@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import TimezoneManager from "@/app/components/admin/TimezoneManager";
+import TimezoneManager from "@/app/components/TimezoneManager";
 import FaviconManager from "@/app/components/FaviconManager";
 import {
   fetchVisibilityMinutesFromStrapi,

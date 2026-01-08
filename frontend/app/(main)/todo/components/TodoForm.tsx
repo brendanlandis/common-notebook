@@ -8,7 +8,7 @@ import ProjectSelector from "./ProjectSelector";
 import type { Todo, RecurrenceType, TodoCategory, StrapiBlock } from "@/app/types/admin";
 import { getNowInEST, toISODateInEST } from "@/app/lib/dateUtils";
 import { calculateNextRecurrence } from "@/app/lib/recurrence";
-import RichTextEditor from "@/app/components/admin/RichTextEditor";
+import RichTextEditor from "@/app/components/RichTextEditor";
 import {
   showTrackingUrl,
   showPurchaseUrl,

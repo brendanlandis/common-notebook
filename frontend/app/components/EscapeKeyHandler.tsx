@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useTodoActions } from '../../contexts/TodoActionsContext';
+import { useTodoActions } from '../contexts/TodoActionsContext';
 
 export default function EscapeKeyHandler() {
   const { closeDrawer } = useTodoActions();

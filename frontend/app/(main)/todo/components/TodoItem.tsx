@@ -10,7 +10,7 @@ import { useState, useEffect } from "react";
 import type { Todo } from "@/app/types/admin";
 import { PencilIcon, TrashIcon, MapPinIcon, LinkIcon, CookieIcon, ArrowClockwiseIcon } from "@phosphor-icons/react";
 import { getNowInEST, parseInEST, formatInEST } from "@/app/lib/dateUtils";
-import RichTextDisplay from "@/app/components/admin/RichTextDisplay";
+import RichTextDisplay from "@/app/components/RichTextDisplay";
 
 interface TodoItemProps {
   todo: Todo;

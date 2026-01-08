@@ -2,15 +2,15 @@ import { ListIcon, GearIcon } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
 import ThemeToggle from "../components/ThemeToggle";
 import MenuClose from "../components/MenuClose";
-import LogoutButton from "../components/admin/LogoutButton";
+import LogoutButton from "../components/LogoutButton";
 import MenuItems from "../components/MenuItems";
-import HeaderContent from "../components/admin/HeaderContent";
-import TodoActionsDrawer from "../components/admin/TodoActionsDrawer";
+import HeaderContent from "../components/HeaderContent";
+import TodoActionsDrawer from "../components/TodoActionsDrawer";
 import { LayoutRulesetProvider } from "../contexts/LayoutRulesetContext";
 import { PracticeContextProvider } from "../contexts/PracticeContext";
 import { TodoActionsProvider } from "../contexts/TodoActionsContext";
-import AdminHeaderIcon from "../components/admin/AdminHeaderIcon";
-import EscapeKeyHandler from "../components/admin/EscapeKeyHandler";
+import AdminHeaderIcon from "../components/AdminHeaderIcon";
+import EscapeKeyHandler from "../components/EscapeKeyHandler";
 
 export default function MainLayout({
   children,

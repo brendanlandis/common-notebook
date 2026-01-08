@@ -5,7 +5,7 @@ import { PencilIcon, TrashIcon } from "@phosphor-icons/react";
 import type { Note } from "@/app/types/admin";
 import { formatInEST } from "@/app/lib/dateUtils";
 import { useTodoActions } from "@/app/contexts/TodoActionsContext";
-import RichTextDisplay from "@/app/components/admin/RichTextDisplay";
+import RichTextDisplay from "@/app/components/RichTextDisplay";
 
 interface NoteItemProps {
   note: Note;

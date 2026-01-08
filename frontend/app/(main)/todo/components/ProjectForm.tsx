@@ -5,7 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useState } from "react";
 import type { Project, World, ProjectImportance, StrapiBlock } from "@/app/types/admin";
-import RichTextEditor from "@/app/components/admin/RichTextEditor";
+import RichTextEditor from "@/app/components/RichTextEditor";
 
 const schema = z.object({
   title: z.string().min(1, "Title is required"),
