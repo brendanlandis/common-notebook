@@ -1,20 +1,20 @@
-'use client';
-import Link from 'next/link';
+"use client";
+import Link from "next/link";
 import {
   BirdIcon,
   BroomIcon,
   MetronomeIcon,
   PencilIcon,
   GearIcon,
-} from '@phosphor-icons/react/dist/ssr';
-import MenuClose from './MenuClose';
-import ThemeToggle from './ThemeToggle';
-import LogoutButton from './LogoutButton';
+} from "@phosphor-icons/react/dist/ssr";
+import MenuClose from "./MenuClose";
+import ThemeToggle from "./ThemeToggle";
+import LogoutButton from "./LogoutButton";
 
 export default function MenuItems() {
   const closeDrawer = () => {
     const drawerCheckbox = document.getElementById(
-      'mainMenu'
+      "mainMenu"
     ) as HTMLInputElement;
     if (drawerCheckbox) drawerCheckbox.checked = false;
   };
@@ -22,7 +22,6 @@ export default function MenuItems() {
     <>
       <li className="main-menu-header">
         <MenuClose />
-        <ThemeToggle />
       </li>
       <li>
         <Link href="/" onClick={closeDrawer}>
@@ -49,12 +48,17 @@ export default function MenuItems() {
         </Link>
       </li>
       <li>
-        <Link id="settings-link" href="/settings" onClick={closeDrawer}>
-          <GearIcon size={30} weight="thin" />
-          <span>settings</span>
+        <ThemeToggle />
+        <Link
+          id="settings-link"
+          href="/settings"
+          onClick={closeDrawer}
+          className="tooltip"
+          data-tip="settings"
+          aria-label="settings"
+        >
+          <GearIcon size={30} weight="regular" />
         </Link>
-      </li>
-      <li>
         <LogoutButton />
       </li>
     </>

@@ -15,18 +15,24 @@ export default function ThemeToggle() {
   if (!mounted) {
     // Return a placeholder with the same size to avoid layout shift
     return (
-      <button id="themeToggle" title="toggle theme" style={{ width: 40, height: 40 }}>
+      <button id="themeToggle">
         <div style={{ width: 40, height: 40 }} />
       </button>
     );
   }
 
   return (
-    <button onClick={toggleTheme} id="themeToggle" title="toggle theme">
+    <button
+      onClick={toggleTheme}
+      id="themeToggle"
+      aria-label="toggle theme"
+      className="tooltip"
+      data-tip="toggle theme"
+    >
       {theme === "light" ? (
-        <SunHorizonIcon size={40} weight="regular" />
+        <SunHorizonIcon size={30} weight="regular" />
       ) : (
-        <MoonStarsIcon size={40} weight="regular" />
+        <MoonStarsIcon size={30} weight="regular" />
       )}
     </button>
   );
