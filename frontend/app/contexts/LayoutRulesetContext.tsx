@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState, useLayoutEffect, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useLayoutEffect, useEffect, ReactNode, Suspense } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { LAYOUT_PRESETS } from '@/app/lib/layoutPresets';
 
@@ -51,7 +51,8 @@ function getInitialRulesetId(): string {
   }
 }
 
-export function LayoutRulesetProvider({ children }: { children: ReactNode }) {
+// Internal provider that uses searchParams
+function LayoutRulesetProviderInternal({ children }: { children: ReactNode }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const pathname = usePathname();
@@ -106,6 +107,15 @@ export function LayoutRulesetProvider({ children }: { children: ReactNode }) {
     <LayoutRulesetContext.Provider value={{ selectedRulesetId, setSelectedRulesetId, isHydrated }}>
       {children}
     </LayoutRulesetContext.Provider>
+  );
+}
+
+// Wrapper with Suspense boundary for Next.js static generation
+export function LayoutRulesetProvider({ children }: { children: ReactNode }) {
+  return (
+    <Suspense fallback={null}>
+      <LayoutRulesetProviderInternal>{children}</LayoutRulesetProviderInternal>
+    </Suspense>
   );
 }
 
