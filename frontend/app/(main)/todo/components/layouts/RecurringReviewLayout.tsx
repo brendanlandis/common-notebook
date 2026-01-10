@@ -1,11 +1,11 @@
 "use client";
 
-import TodoItem from "../TodoItem";
+import TodoItemRecurringReview from "../TodoItemRecurringReview";
 import type { LayoutRendererProps } from "./types";
 import type { RecurrenceType, Project } from "@/app/types/index";
 
 // Helper function to get human-readable label for recurrence type
-function getRecurrenceTypeLabel(recurrenceType: RecurrenceType, todos: any[]): string {
+function getRecurrenceTypeLabel(recurrenceType: RecurrenceType | "monthly"): string {
   switch (recurrenceType) {
     case "daily":
       return "every day";
@@ -15,6 +15,8 @@ function getRecurrenceTypeLabel(recurrenceType: RecurrenceType, todos: any[]): s
       return "weekly";
     case "biweekly":
       return "biweekly";
+    case "monthly":
+      return "monthly";
     case "monthly date":
       return "monthly (by date)";
     case "monthly day":
@@ -42,13 +44,8 @@ function getRecurrenceTypeLabel(recurrenceType: RecurrenceType, todos: any[]): s
 
 export default function RecurringReviewLayout({
   transformedData,
-  onComplete,
   onEdit,
   onDelete,
-  onWorkSession,
-  onRemoveWorkSession,
-  onSkipRecurring,
-  onEditProject,
 }: LayoutRendererProps) {
   const { recurringReviewSections, recurringReviewIncidentals } = transformedData;
 
@@ -60,14 +57,13 @@ export default function RecurringReviewLayout({
     return <p>no recurring tasks</p>;
   }
 
-  // Define the order of recurrence types
-  const recurrenceTypeOrder: RecurrenceType[] = [
+  // Define the order of recurrence types (with "monthly" instead of separate entries)
+  const recurrenceTypeOrder: (RecurrenceType | "monthly")[] = [
     "daily",
     "every x days",
     "weekly",
     "biweekly",
-    "monthly date",
-    "monthly day",
+    "monthly",
     "annually",
     "full moon",
     "new moon",
@@ -88,20 +84,7 @@ export default function RecurringReviewLayout({
           return null;
         }
 
-        // Get all todos to determine the label (for "every x days")
-        const allTodos: any[] = [];
-        sections?.forEach((section) => {
-          if ("documentId" in section) {
-            allTodos.push(...(section.todos || []));
-          } else {
-            allTodos.push(...section.todos);
-          }
-        });
-        if (incidentals) {
-          allTodos.push(...incidentals);
-        }
-
-        const label = getRecurrenceTypeLabel(recurrenceType, allTodos);
+        const label = getRecurrenceTypeLabel(recurrenceType);
 
         return (
           <div key={recurrenceType} className="todo-section">
@@ -118,16 +101,11 @@ export default function RecurringReviewLayout({
                   <h4>{sectionTitle}</h4>
                   <ul className="todos-list">
                     {todos.map((todo) => (
-                      <TodoItem
+                      <TodoItemRecurringReview
                         key={todo.documentId}
                         todo={todo}
-                        onComplete={onComplete}
                         onEdit={onEdit}
                         onDelete={onDelete}
-                        onWorkSession={onWorkSession}
-                        onRemoveWorkSession={onRemoveWorkSession}
-                        onSkipRecurring={onSkipRecurring}
-                        showProjectName={false}
                       />
                     ))}
                   </ul>
@@ -141,16 +119,11 @@ export default function RecurringReviewLayout({
                 <h4>incidentals</h4>
                 <ul className="todos-list">
                   {incidentals.map((todo) => (
-                    <TodoItem
+                    <TodoItemRecurringReview
                       key={todo.documentId}
                       todo={todo}
-                      onComplete={onComplete}
                       onEdit={onEdit}
                       onDelete={onDelete}
-                      onWorkSession={onWorkSession}
-                      onRemoveWorkSession={onRemoveWorkSession}
-                      onSkipRecurring={onSkipRecurring}
-                      showProjectName={false}
                     />
                   ))}
                 </ul>

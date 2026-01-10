@@ -32,8 +32,8 @@ export interface TransformedLayout {
   nonRecurringNoProjectIncidentals?: Todo[];
   rouletteTodos?: Todo[];
   upcomingTodosByDay?: TodoGroup[];
-  recurringReviewSections?: Map<RecurrenceType, Section[]>;
-  recurringReviewIncidentals?: Map<RecurrenceType, Todo[]>;
+  recurringReviewSections?: Map<RecurrenceType | "monthly", Section[]>;
+  recurringReviewIncidentals?: Map<RecurrenceType | "monthly", Todo[]>;
 }
 
 export interface RawTodoData {
@@ -298,23 +298,27 @@ export function transformLayout(data: RawTodoData, ruleset: LayoutRuleset): Tran
       }
     });
     
-    // Group by recurrence type
-    const todosByRecurrenceType = new Map<RecurrenceType, Todo[]>();
+    // Group by recurrence type, but merge monthly date and monthly day
+    const todosByRecurrenceType = new Map<RecurrenceType | "monthly", Todo[]>();
     allRecurringTodos.forEach((todo) => {
-      if (!todosByRecurrenceType.has(todo.recurrenceType)) {
-        todosByRecurrenceType.set(todo.recurrenceType, []);
+      // Merge monthly date and monthly day into "monthly"
+      const key = (todo.recurrenceType === "monthly date" || todo.recurrenceType === "monthly day") 
+        ? "monthly" as const
+        : todo.recurrenceType;
+      
+      if (!todosByRecurrenceType.has(key)) {
+        todosByRecurrenceType.set(key, []);
       }
-      todosByRecurrenceType.get(todo.recurrenceType)!.push(todo);
+      todosByRecurrenceType.get(key)!.push(todo);
     });
     
-    // Define the order of recurrence types
-    const recurrenceTypeOrder: RecurrenceType[] = [
+    // Define the order of recurrence types (with "monthly" instead of separate entries)
+    const recurrenceTypeOrder: (RecurrenceType | "monthly")[] = [
       "daily",
       "every x days",
       "weekly",
       "biweekly",
-      "monthly date",
-      "monthly day",
+      "monthly",
       "annually",
       "full moon",
       "new moon",
@@ -326,18 +330,26 @@ export function transformLayout(data: RawTodoData, ruleset: LayoutRuleset): Tran
     ];
     
     // For each recurrence type, organize todos by project, category, then incidentals
-    const recurringReviewSectionsMap = new Map<RecurrenceType, Section[]>();
-    const recurringReviewIncidentalsMap = new Map<RecurrenceType, Todo[]>();
+    const recurringReviewSectionsMap = new Map<RecurrenceType | "monthly", Section[]>();
+    const recurringReviewIncidentalsMap = new Map<RecurrenceType | "monthly", Todo[]>();
     
     recurrenceTypeOrder.forEach((recurrenceType) => {
       const todosForType = todosByRecurrenceType.get(recurrenceType);
       if (!todosForType || todosForType.length === 0) return;
       
+      // For monthly, separate and sort by type first (monthly date, then monthly day)
+      let sortedTodosForType = todosForType;
+      if (recurrenceType === "monthly") {
+        const monthlyDateTodos = todosForType.filter(t => t.recurrenceType === "monthly date");
+        const monthlyDayTodos = todosForType.filter(t => t.recurrenceType === "monthly day");
+        sortedTodosForType = [...monthlyDateTodos, ...monthlyDayTodos];
+      }
+      
       // Group by project
       const projectMap = new Map<string, Project>();
       const todosWithoutProjects: Todo[] = [];
       
-      todosForType.forEach((todo) => {
+      sortedTodosForType.forEach((todo) => {
         if (todo.project) {
           const project = todo.project as any;
           if (!projectMap.has(project.documentId)) {
@@ -367,24 +379,50 @@ export function transformLayout(data: RawTodoData, ruleset: LayoutRuleset): Tran
         }
       });
       
+      // For monthly, we need to maintain the order (monthly date first, then monthly day)
+      // within each project/category/incidental group
+      // For "every x days", sort by interval first, then alphabetically
+      const sortFunction = (todos: Todo[]) => {
+        if (recurrenceType === "monthly") {
+          const monthlyDateTodos = todos.filter(t => t.recurrenceType === "monthly date");
+          const monthlyDayTodos = todos.filter(t => t.recurrenceType === "monthly day");
+          return [
+            ...sortTodos(monthlyDateTodos, "alphabetical"),
+            ...sortTodos(monthlyDayTodos, "alphabetical"),
+          ];
+        }
+        if (recurrenceType === "every x days") {
+          // Sort by interval first, then alphabetically
+          return [...todos].sort((a, b) => {
+            const intervalA = a.recurrenceInterval || 0;
+            const intervalB = b.recurrenceInterval || 0;
+            if (intervalA !== intervalB) {
+              return intervalA - intervalB;
+            }
+            return a.title.toLowerCase().localeCompare(b.title.toLowerCase());
+          });
+        }
+        return sortTodos(todos, "alphabetical");
+      };
+      
       // Sort projects alphabetically
       const projectsArray = Array.from(projectMap.values());
       const sortedProjects = projectsArray.map((project) => ({
         ...project,
-        todos: sortTodos(project.todos || [], "alphabetical"),
+        todos: sortFunction(project.todos || []),
       })).sort((a, b) => a.title.toLowerCase().localeCompare(b.title.toLowerCase()));
       
       // Sort categories alphabetically
       const categoriesArray = Array.from(categoryMap.entries()).map(([category, todos]) => ({
         title: category,
-        todos: sortTodos(todos, "alphabetical"),
+        todos: sortFunction(todos),
       })).sort((a, b) => a.title.toLowerCase().localeCompare(b.title.toLowerCase()));
       
       // Combine: projects first, then categories
       const sections: Section[] = [...sortedProjects, ...categoriesArray];
       
-      // Sort incidentals alphabetically
-      const sortedIncidentals = sortTodos(incidentalTodos, "alphabetical");
+      // Sort incidentals
+      const sortedIncidentals = sortFunction(incidentalTodos);
       
       // Only add to maps if there's content
       if (sections.length > 0) {

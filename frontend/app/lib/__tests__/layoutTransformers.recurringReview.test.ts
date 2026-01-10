@@ -278,15 +278,16 @@ describe('layoutTransformers - recurring-review', () => {
   });
 
   describe('recurrence type coverage', () => {
-    const recurrenceTypes: Array<{ type: RecurrenceType; extraFields?: Partial<Todo> }> = [
+    const recurrenceTypes: Array<{ type: RecurrenceType; extraFields?: Partial<Todo>; expectedKey?: RecurrenceType | "monthly" }> = [
       { type: 'daily' },
       { type: 'every x days', extraFields: { recurrenceInterval: 3 } },
       { type: 'weekly', extraFields: { recurrenceDayOfWeek: 1 } },
       { type: 'biweekly', extraFields: { recurrenceDayOfWeek: 1 } },
-      { type: 'monthly date', extraFields: { recurrenceDayOfMonth: 15 } },
+      { type: 'monthly date', extraFields: { recurrenceDayOfMonth: 15 }, expectedKey: 'monthly' },
       {
         type: 'monthly day',
         extraFields: { recurrenceWeekOfMonth: 2, recurrenceDayOfWeekMonthly: 1 },
+        expectedKey: 'monthly',
       },
       { type: 'annually', extraFields: { recurrenceMonth: 3, recurrenceDayOfMonth: 15 } },
       { type: 'full moon' },
@@ -298,7 +299,7 @@ describe('layoutTransformers - recurring-review', () => {
       { type: 'autumn equinox' },
     ];
 
-    recurrenceTypes.forEach(({ type, extraFields }) => {
+    recurrenceTypes.forEach(({ type, extraFields, expectedKey }) => {
       it(`should handle ${type} recurrence type`, () => {
         const todo = createTodo({
           documentId: 'todo-1',
@@ -320,10 +321,11 @@ describe('layoutTransformers - recurring-review', () => {
 
         const result = transformLayout(rawData, recurringReviewRuleset);
 
-        expect(result.recurringReviewIncidentals?.has(type)).toBe(true);
-        const incidentals = result.recurringReviewIncidentals?.get(type);
-        expect(incidentals?.length).toBe(1);
-        expect(incidentals?.[0].documentId).toBe('todo-1');
+        const keyToCheck = expectedKey || type;
+        expect(result.recurringReviewIncidentals?.has(keyToCheck)).toBe(true);
+        const incidentals = result.recurringReviewIncidentals?.get(keyToCheck);
+        expect(incidentals?.length).toBeGreaterThanOrEqual(1);
+        expect(incidentals?.some(t => t.documentId === 'todo-1')).toBe(true);
       });
     });
   });
@@ -490,6 +492,279 @@ describe('layoutTransformers - recurring-review', () => {
 
       expect(result.recurringReviewSections?.get('daily')?.length).toBe(2); // project + category
       expect(result.recurringReviewIncidentals?.get('daily')?.length).toBe(1);
+    });
+  });
+
+  describe('monthly merge behavior', () => {
+    it('should merge monthly date and monthly day into single monthly section', () => {
+      const monthlyDateTodo = createTodo({
+        documentId: 'todo-date',
+        title: 'Monthly date task',
+        isRecurring: true,
+        recurrenceType: 'monthly date',
+        recurrenceDayOfMonth: 15,
+        completed: false,
+      });
+
+      const monthlyDayTodo = createTodo({
+        documentId: 'todo-day',
+        title: 'Monthly day task',
+        isRecurring: true,
+        recurrenceType: 'monthly day',
+        recurrenceWeekOfMonth: 2,
+        recurrenceDayOfWeekMonthly: 1,
+        completed: false,
+      });
+
+      const rawData: RawTodoData = {
+        projects: [],
+        categoryGroups: [],
+        incidentals: [],
+        recurringProjects: [],
+        recurringCategoryGroups: [],
+        recurringIncidentals: [monthlyDateTodo, monthlyDayTodo],
+      };
+
+      const result = transformLayout(rawData, recurringReviewRuleset);
+
+      // Both should be under "monthly" key
+      expect(result.recurringReviewIncidentals?.has('monthly')).toBe(true);
+      expect(result.recurringReviewIncidentals?.has('monthly date')).toBe(false);
+      expect(result.recurringReviewIncidentals?.has('monthly day')).toBe(false);
+
+      const monthlyIncidentals = result.recurringReviewIncidentals?.get('monthly');
+      expect(monthlyIncidentals?.length).toBe(2);
+    });
+
+    it('should order monthly date todos before monthly day todos', () => {
+      const monthlyDateTodo1 = createTodo({
+        documentId: 'todo-date-1',
+        title: 'Zebra monthly date',
+        isRecurring: true,
+        recurrenceType: 'monthly date',
+        recurrenceDayOfMonth: 15,
+        completed: false,
+      });
+
+      const monthlyDateTodo2 = createTodo({
+        documentId: 'todo-date-2',
+        title: 'Apple monthly date',
+        isRecurring: true,
+        recurrenceType: 'monthly date',
+        recurrenceDayOfMonth: 1,
+        completed: false,
+      });
+
+      const monthlyDayTodo1 = createTodo({
+        documentId: 'todo-day-1',
+        title: 'Zebra monthly day',
+        isRecurring: true,
+        recurrenceType: 'monthly day',
+        recurrenceWeekOfMonth: 2,
+        recurrenceDayOfWeekMonthly: 1,
+        completed: false,
+      });
+
+      const monthlyDayTodo2 = createTodo({
+        documentId: 'todo-day-2',
+        title: 'Apple monthly day',
+        isRecurring: true,
+        recurrenceType: 'monthly day',
+        recurrenceWeekOfMonth: 1,
+        recurrenceDayOfWeekMonthly: 3,
+        completed: false,
+      });
+
+      const rawData: RawTodoData = {
+        projects: [],
+        categoryGroups: [],
+        incidentals: [],
+        recurringProjects: [],
+        recurringCategoryGroups: [],
+        recurringIncidentals: [monthlyDayTodo1, monthlyDateTodo1, monthlyDayTodo2, monthlyDateTodo2],
+      };
+
+      const result = transformLayout(rawData, recurringReviewRuleset);
+
+      const monthlyIncidentals = result.recurringReviewIncidentals?.get('monthly');
+      expect(monthlyIncidentals?.length).toBe(4);
+
+      // First two should be monthly date (alphabetically sorted)
+      expect(monthlyIncidentals?.[0].recurrenceType).toBe('monthly date');
+      expect(monthlyIncidentals?.[0].title).toBe('Apple monthly date');
+      expect(monthlyIncidentals?.[1].recurrenceType).toBe('monthly date');
+      expect(monthlyIncidentals?.[1].title).toBe('Zebra monthly date');
+
+      // Last two should be monthly day (alphabetically sorted)
+      expect(monthlyIncidentals?.[2].recurrenceType).toBe('monthly day');
+      expect(monthlyIncidentals?.[2].title).toBe('Apple monthly day');
+      expect(monthlyIncidentals?.[3].recurrenceType).toBe('monthly day');
+      expect(monthlyIncidentals?.[3].title).toBe('Zebra monthly day');
+    });
+
+    it('should maintain monthly merge within projects', () => {
+      const project = createProject({
+        documentId: 'project-1',
+        title: 'Test Project',
+      });
+
+      const monthlyDateTodo = createTodo({
+        documentId: 'todo-date',
+        title: 'Zebra date',
+        isRecurring: true,
+        recurrenceType: 'monthly date',
+        recurrenceDayOfMonth: 15,
+        completed: false,
+        project,
+      });
+
+      const monthlyDayTodo = createTodo({
+        documentId: 'todo-day',
+        title: 'Apple day',
+        isRecurring: true,
+        recurrenceType: 'monthly day',
+        recurrenceWeekOfMonth: 2,
+        recurrenceDayOfWeekMonthly: 1,
+        completed: false,
+        project,
+      });
+
+      const rawData: RawTodoData = {
+        projects: [],
+        categoryGroups: [],
+        incidentals: [],
+        recurringProjects: [{ ...project, todos: [monthlyDayTodo, monthlyDateTodo] }],
+        recurringCategoryGroups: [],
+        recurringIncidentals: [],
+      };
+
+      const result = transformLayout(rawData, recurringReviewRuleset);
+
+      const monthlySections = result.recurringReviewSections?.get('monthly');
+      expect(monthlySections?.length).toBe(1);
+
+      const projectSection = monthlySections?.[0] as Project;
+      expect(projectSection.todos?.length).toBe(2);
+
+      // Monthly date should come first
+      expect(projectSection.todos?.[0].recurrenceType).toBe('monthly date');
+      expect(projectSection.todos?.[0].title).toBe('Zebra date');
+      expect(projectSection.todos?.[1].recurrenceType).toBe('monthly day');
+      expect(projectSection.todos?.[1].title).toBe('Apple day');
+    });
+  });
+
+  describe('every x days sorting', () => {
+    it('should sort every x days todos by interval first, then alphabetically', () => {
+      const todo2Days = createTodo({
+        documentId: 'todo-2',
+        title: 'Zebra task',
+        isRecurring: true,
+        recurrenceType: 'every x days',
+        recurrenceInterval: 2,
+        completed: false,
+      });
+
+      const todo7Days = createTodo({
+        documentId: 'todo-7',
+        title: 'Apple task',
+        isRecurring: true,
+        recurrenceType: 'every x days',
+        recurrenceInterval: 7,
+        completed: false,
+      });
+
+      const todo2DaysB = createTodo({
+        documentId: 'todo-2b',
+        title: 'Apple task',
+        isRecurring: true,
+        recurrenceType: 'every x days',
+        recurrenceInterval: 2,
+        completed: false,
+      });
+
+      const todo14Days = createTodo({
+        documentId: 'todo-14',
+        title: 'Beta task',
+        isRecurring: true,
+        recurrenceType: 'every x days',
+        recurrenceInterval: 14,
+        completed: false,
+      });
+
+      const rawData: RawTodoData = {
+        projects: [],
+        categoryGroups: [],
+        incidentals: [],
+        recurringProjects: [],
+        recurringCategoryGroups: [],
+        recurringIncidentals: [todo7Days, todo2Days, todo14Days, todo2DaysB],
+      };
+
+      const result = transformLayout(rawData, recurringReviewRuleset);
+
+      const everyXDaysIncidentals = result.recurringReviewIncidentals?.get('every x days');
+      expect(everyXDaysIncidentals?.length).toBe(4);
+
+      // Should be ordered: 2 days (Apple), 2 days (Zebra), 7 days (Apple), 14 days (Beta)
+      expect(everyXDaysIncidentals?.[0].recurrenceInterval).toBe(2);
+      expect(everyXDaysIncidentals?.[0].title).toBe('Apple task');
+      expect(everyXDaysIncidentals?.[1].recurrenceInterval).toBe(2);
+      expect(everyXDaysIncidentals?.[1].title).toBe('Zebra task');
+      expect(everyXDaysIncidentals?.[2].recurrenceInterval).toBe(7);
+      expect(everyXDaysIncidentals?.[2].title).toBe('Apple task');
+      expect(everyXDaysIncidentals?.[3].recurrenceInterval).toBe(14);
+      expect(everyXDaysIncidentals?.[3].title).toBe('Beta task');
+    });
+
+    it('should apply interval sorting within projects', () => {
+      const project = createProject({
+        documentId: 'project-1',
+        title: 'Test Project',
+      });
+
+      const todo7Days = createTodo({
+        documentId: 'todo-7',
+        title: 'Seven days',
+        isRecurring: true,
+        recurrenceType: 'every x days',
+        recurrenceInterval: 7,
+        completed: false,
+        project,
+      });
+
+      const todo2Days = createTodo({
+        documentId: 'todo-2',
+        title: 'Two days',
+        isRecurring: true,
+        recurrenceType: 'every x days',
+        recurrenceInterval: 2,
+        completed: false,
+        project,
+      });
+
+      const rawData: RawTodoData = {
+        projects: [],
+        categoryGroups: [],
+        incidentals: [],
+        recurringProjects: [{ ...project, todos: [todo7Days, todo2Days] }],
+        recurringCategoryGroups: [],
+        recurringIncidentals: [],
+      };
+
+      const result = transformLayout(rawData, recurringReviewRuleset);
+
+      const everyXDaysSections = result.recurringReviewSections?.get('every x days');
+      expect(everyXDaysSections?.length).toBe(1);
+
+      const projectSection = everyXDaysSections?.[0] as Project;
+      expect(projectSection.todos?.length).toBe(2);
+
+      // Should be ordered by interval: 2 days first, then 7 days
+      expect(projectSection.todos?.[0].recurrenceInterval).toBe(2);
+      expect(projectSection.todos?.[0].title).toBe('Two days');
+      expect(projectSection.todos?.[1].recurrenceInterval).toBe(7);
+      expect(projectSection.todos?.[1].title).toBe('Seven days');
     });
   });
 });

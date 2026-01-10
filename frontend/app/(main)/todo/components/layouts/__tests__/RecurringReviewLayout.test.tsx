@@ -5,17 +5,12 @@ import type { TransformedLayout } from '@/app/lib/layoutTransformers';
 import type { LayoutRendererProps } from '../types';
 import type { Todo, Project, RecurrenceType } from '@/app/types/index';
 
-// Mock TodoSections component
-vi.mock('../../TodoSections', () => ({
-  default: ({ sections, incidentals }: any) => (
-    <div data-testid="todo-sections">
-      {sections && sections.length > 0 && (
-        <div data-testid="sections">Sections: {sections.length}</div>
-      )}
-      {incidentals && incidentals.length > 0 && (
-        <div data-testid="incidentals">Incidentals: {incidentals.length}</div>
-      )}
-    </div>
+// Mock TodoItemRecurringReview component
+vi.mock('../../TodoItemRecurringReview', () => ({
+  default: ({ todo }: any) => (
+    <li data-testid="todo-item-recurring-review" data-todo-id={todo.documentId}>
+      {todo.title}
+    </li>
   ),
 }));
 
@@ -74,14 +69,15 @@ function createProject(overrides: Partial<Project>): Project {
 
 describe('RecurringReviewLayout', () => {
   const mockProps = {
-    onComplete: vi.fn(),
     onEdit: vi.fn(),
     onDelete: vi.fn(),
+    onEditProject: vi.fn(),
+    selectedRulesetId: 'recurring',
+    // These are still in LayoutRendererProps but not used by RecurringReviewLayout
+    onComplete: vi.fn(),
     onWorkSession: vi.fn(),
     onRemoveWorkSession: vi.fn(),
     onSkipRecurring: vi.fn(),
-    onEditProject: vi.fn(),
-    selectedRulesetId: 'recurring',
   };
 
   describe('empty states', () => {
@@ -205,7 +201,7 @@ describe('RecurringReviewLayout', () => {
       expect(screen.getByText('weekly')).toBeDefined();
     });
 
-    it('should display "monthly (by date)" for monthly date recurrence', () => {
+    it('should display "monthly" for monthly recurrence', () => {
       const todo = createTodo({
         documentId: 'todo-1',
         title: 'Monthly task',
@@ -214,11 +210,11 @@ describe('RecurringReviewLayout', () => {
         recurrenceDayOfMonth: 15,
       });
 
-      const sections = new Map<RecurrenceType, any[]>();
-      sections.set('monthly date', []);
+      const sections = new Map<RecurrenceType | "monthly", any[]>();
+      sections.set('monthly', []);
 
-      const incidentals = new Map<RecurrenceType, Todo[]>();
-      incidentals.set('monthly date', [todo]);
+      const incidentals = new Map<RecurrenceType | "monthly", Todo[]>();
+      incidentals.set('monthly', [todo]);
 
       const transformedData: TransformedLayout = {
         recurringReviewSections: sections,
@@ -232,7 +228,7 @@ describe('RecurringReviewLayout', () => {
 
       render(<RecurringReviewLayout {...props} />);
 
-      expect(screen.getByText('monthly (by date)')).toBeDefined();
+      expect(screen.getByText('monthly')).toBeDefined();
     });
 
     it('should display "full moon" for full moon recurrence', () => {
@@ -403,15 +399,15 @@ describe('RecurringReviewLayout', () => {
         recurrenceDayOfMonth: 15,
       });
 
-      const sections = new Map<RecurrenceType, any[]>();
+      const sections = new Map<RecurrenceType | "monthly", any[]>();
       sections.set('daily', []);
       sections.set('weekly', []);
-      sections.set('monthly date', []);
+      sections.set('monthly', []);
 
-      const incidentals = new Map<RecurrenceType, Todo[]>();
+      const incidentals = new Map<RecurrenceType | "monthly", Todo[]>();
       incidentals.set('daily', [dailyTodo]);
       incidentals.set('weekly', [weeklyTodo]);
-      incidentals.set('monthly date', [monthlyTodo]);
+      incidentals.set('monthly', [monthlyTodo]);
 
       const transformedData: TransformedLayout = {
         recurringReviewSections: sections,
@@ -427,7 +423,7 @@ describe('RecurringReviewLayout', () => {
 
       expect(screen.getByText('every day')).toBeDefined();
       expect(screen.getByText('weekly')).toBeDefined();
-      expect(screen.getByText('monthly (by date)')).toBeDefined();
+      expect(screen.getByText('monthly')).toBeDefined();
     });
 
     it('should not render sections for recurrence types with no tasks', () => {
@@ -522,6 +518,107 @@ describe('RecurringReviewLayout', () => {
 
       const todoSection = container.querySelector('.todo-section');
       expect(todoSection).toBeDefined();
+    });
+  });
+
+  describe('monthly merge rendering', () => {
+    it('should render monthly section with both monthly date and monthly day todos', () => {
+      const monthlyDateTodo = createTodo({
+        documentId: 'todo-date',
+        title: 'Monthly date task',
+        isRecurring: true,
+        recurrenceType: 'monthly date',
+        recurrenceDayOfMonth: 15,
+      });
+
+      const monthlyDayTodo = createTodo({
+        documentId: 'todo-day',
+        title: 'Monthly day task',
+        isRecurring: true,
+        recurrenceType: 'monthly day',
+        recurrenceWeekOfMonth: 2,
+        recurrenceDayOfWeekMonthly: 1,
+      });
+
+      const sections = new Map<RecurrenceType | "monthly", any[]>();
+      sections.set('monthly', []);
+
+      const incidentals = new Map<RecurrenceType | "monthly", Todo[]>();
+      incidentals.set('monthly', [monthlyDateTodo, monthlyDayTodo]);
+
+      const transformedData: TransformedLayout = {
+        recurringReviewSections: sections,
+        recurringReviewIncidentals: incidentals,
+      };
+
+      const props: LayoutRendererProps = {
+        ...mockProps,
+        transformedData,
+      };
+
+      render(<RecurringReviewLayout {...props} />);
+
+      // Should have one "monthly" section header
+      expect(screen.getByText('monthly')).toBeDefined();
+
+      // Should render both todos
+      const todoItems = screen.getAllByTestId('todo-item-recurring-review');
+      expect(todoItems).toHaveLength(2);
+    });
+
+    it('should render monthly section with projects containing mixed monthly types', () => {
+      const project = createProject({
+        documentId: 'project-1',
+        title: 'Test Project',
+      });
+
+      const monthlyDateTodo = createTodo({
+        documentId: 'todo-date',
+        title: 'Monthly date task',
+        isRecurring: true,
+        recurrenceType: 'monthly date',
+        recurrenceDayOfMonth: 15,
+        project,
+      });
+
+      const monthlyDayTodo = createTodo({
+        documentId: 'todo-day',
+        title: 'Monthly day task',
+        isRecurring: true,
+        recurrenceType: 'monthly day',
+        recurrenceWeekOfMonth: 2,
+        recurrenceDayOfWeekMonthly: 1,
+        project,
+      });
+
+      const projectWithTodos = {
+        ...project,
+        todos: [monthlyDateTodo, monthlyDayTodo],
+      };
+
+      const sections = new Map<RecurrenceType | "monthly", any[]>();
+      sections.set('monthly', [projectWithTodos]);
+
+      const transformedData: TransformedLayout = {
+        recurringReviewSections: sections,
+      };
+
+      const props: LayoutRendererProps = {
+        ...mockProps,
+        transformedData,
+      };
+
+      render(<RecurringReviewLayout {...props} />);
+
+      // Should have one "monthly" section header
+      expect(screen.getByText('monthly')).toBeDefined();
+
+      // Should have project name as h4
+      expect(screen.getByText('Test Project')).toBeDefined();
+
+      // Should render both todos
+      const todoItems = screen.getAllByTestId('todo-item-recurring-review');
+      expect(todoItems).toHaveLength(2);
     });
   });
 });

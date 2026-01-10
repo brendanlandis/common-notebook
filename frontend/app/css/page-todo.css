@@ -198,6 +198,15 @@
   }
 }
 
+.todo-item-recurring-review {
+  .recurrence-prefix {
+    font-weight: 600;
+  }
+  .todo-actions {
+    opacity: 1;
+  }
+}
+
 @media (hover: none) and (pointer: coarse) {
   .todo-item-main {
     gap: 1rem;
