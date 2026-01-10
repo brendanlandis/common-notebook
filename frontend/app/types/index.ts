@@ -136,6 +136,7 @@ export interface Todo {
   long: boolean;
   workSessions: WorkSession[] | null;
   project?: Project | null;
+  workedOnPhase?: 1 | 2 | 3; // Added for worked-on state tracking
   createdAt: string;
   updatedAt: string;
   publishedAt: string;

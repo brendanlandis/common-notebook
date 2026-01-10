@@ -1,14 +1,16 @@
 "use client";
 
-import {
-  differenceInDays,
-  isPast,
-  isToday,
-  isTomorrow,
-} from "date-fns";
+import { differenceInDays, isPast, isToday, isTomorrow } from "date-fns";
 import { useState, useEffect } from "react";
 import type { Todo } from "@/app/types/index";
-import { PencilIcon, TrashIcon, MapPinIcon, LinkIcon, CookieIcon, ArrowClockwiseIcon } from "@phosphor-icons/react";
+import {
+  PencilIcon,
+  TrashIcon,
+  MapPinIcon,
+  LinkIcon,
+  CookieIcon,
+  ArrowClockwiseIcon,
+} from "@phosphor-icons/react";
 import { getNowInEST, parseInEST, formatInEST } from "@/app/lib/dateUtils";
 import RichTextDisplay from "@/app/components/RichTextDisplay";
 
@@ -37,20 +39,25 @@ export default function TodoItem({
   const hasDescription = todo.description && todo.description.length > 0;
 
   const [themeKey, setThemeKey] = useState(0);
-  
+
   useEffect(() => {
     // Listen for theme changes and force button remount
     const root = document.documentElement;
     const observer = new MutationObserver(() => {
-      setThemeKey(prev => prev + 1);
+      setThemeKey((prev) => prev + 1);
     });
-    observer.observe(root, { attributes: true, attributeFilter: ['data-theme', 'class'] });
+    observer.observe(root, {
+      attributes: true,
+      attributeFilter: ["data-theme", "class"],
+    });
     return () => observer.disconnect();
   }, []);
 
   // Check if this is a "worked on" virtual entry
   // Pattern: originalDocumentId-worked-YYYY-MM-DD
-  const workedOnMatch = todo.documentId.match(/^(.+)-worked-(\d{4}-\d{2}-\d{2})$/);
+  const workedOnMatch = todo.documentId.match(
+    /^(.+)-worked-(\d{4}-\d{2}-\d{2})$/
+  );
   const isWorkedOnEntry = workedOnMatch !== null;
   const originalDocumentId = workedOnMatch ? workedOnMatch[1] : null;
   const workSessionDate = workedOnMatch ? workedOnMatch[2] : null;
@@ -108,7 +115,17 @@ export default function TodoItem({
   };
 
   return (
-    <li className={isChecked ? 'completed' : ''}>
+    <li
+      className={
+        isWorkedOnEntry
+          ? "worked-on"
+          : isChecked
+          ? "completed"
+          : (todo as any).workedOnPhase === 1
+          ? "worked-on"
+          : ""
+      }
+    >
       <div className="todo-item-main">
         <input
           type="checkbox"
@@ -132,16 +149,21 @@ export default function TodoItem({
             <CookieIcon size={25} />
           </button>
         )}
-        {isWorkedOnEntry && onRemoveWorkSession && originalDocumentId && workSessionDate && (
-          <button
-            className="cookie-icon"
-            onClick={() => onRemoveWorkSession(originalDocumentId, workSessionDate)}
-            title="remove work session"
-            aria-label="remove work session"
-          >
-            <CookieIcon size={25} />
-          </button>
-        )}
+        {isWorkedOnEntry &&
+          onRemoveWorkSession &&
+          originalDocumentId &&
+          workSessionDate && (
+            <button
+              className="cookie-icon"
+              onClick={() =>
+                onRemoveWorkSession(originalDocumentId, workSessionDate)
+              }
+              title="remove work session"
+              aria-label="remove work session"
+            >
+              <CookieIcon size={25} />
+            </button>
+          )}
         {todo.isRecurring && !isWorkedOnEntry && (
           <button
             className="skip-recurring-icon"
@@ -153,10 +175,8 @@ export default function TodoItem({
           </button>
         )}
         <label htmlFor={`todo-${todo.documentId}`}>
-          {isWorkedOnEntry && todo.completedAt && (
-            <span className="todo-completed-time">
-              {formatCompletedTime(todo.completedAt)}{" "}
-            </span>
+          {isWorkedOnEntry && (
+            <span>worked on </span>
           )}
           {showProjectName && todo.project && (
             <span>{(todo.project as any).title}: </span>
@@ -172,11 +192,12 @@ export default function TodoItem({
               (due {formatDueDate(todo.dueDate)})
             </span>
           )}
-          {(todo.category === "buy stuff" || todo.category === "wishlist" || todo.category === "errands") && todo.price !== null && (
-            <span className="todo-due-date">
-              (${todo.price})
-            </span>
-          )}
+          {(todo.category === "buy stuff" ||
+            todo.category === "wishlist" ||
+            todo.category === "errands") &&
+            todo.price !== null && (
+              <span className="todo-due-date">(${todo.price})</span>
+            )}
         </label>
         <span className="todo-actions">
           {todo.trackingUrl && (
@@ -204,7 +225,10 @@ export default function TodoItem({
           <button onClick={() => onEdit(todo)} key={`edit-${themeKey}`}>
             <PencilIcon size={18} />
           </button>
-          <button onClick={() => onDelete(todo.documentId)} key={`delete-${themeKey}`}>
+          <button
+            onClick={() => onDelete(todo.documentId)}
+            key={`delete-${themeKey}`}
+          >
             <TrashIcon size={18} />
           </button>
         </span>
@@ -218,4 +242,3 @@ export default function TodoItem({
     </li>
   );
 }
-

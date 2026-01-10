@@ -16,6 +16,8 @@ import {
   getNowInEST,
 } from "@/app/lib/dateUtils";
 import { getCompletedTaskVisibilityMinutes, fetchVisibilityMinutesFromStrapi } from "@/app/lib/completedTaskVisibilityConfig";
+import { getWorkedOnPhase } from "@/app/lib/dayBoundaryHelpers";
+import { getDayBoundaryHour } from "@/app/lib/timezoneConfig";
 import {
   transformLayout,
   type RawTodoData,
@@ -135,23 +137,33 @@ export default function TodoPage() {
         const allTodos: Todo[] = result.data;
 
         // Filter out long todos that have been worked on today
-        // Also filter out completed todos that are older than visibility window
+        // Filter out completed todos and worked-on todos that are older than visibility window
         const today = getTodayInEST();
         const now = getNowInEST();
-        // Use day boundary-aware date for checking work sessions
-        const todayForWorkSessions = getTodayForRecurrence();
-        const todayDateString = toISODateInEST(todayForWorkSessions);
         const visibilityMinutes = getCompletedTaskVisibilityMinutes();
+        const dayBoundaryHour = getDayBoundaryHour();
         
         const visibleTodos = allTodos.filter((todo: Todo) => {
-          // If it's a long todo and has been worked on today, hide it
-          // "Today" respects the day boundary hour setting
-          if (
-            todo.long &&
-            todo.workSessions &&
-            todo.workSessions.find((ws) => ws.date === todayDateString)
-          ) {
-            return false;
+          // If it's a long todo with recent work sessions, use phase-based logic
+          if (todo.long && todo.workSessions && todo.workSessions.length > 0) {
+            // Find the most recent work session
+            const mostRecentSession = todo.workSessions
+              .slice()
+              .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
+            
+            if (mostRecentSession) {
+              const phase = getWorkedOnPhase(
+                mostRecentSession.timestamp,
+                now,
+                visibilityMinutes,
+                dayBoundaryHour
+              );
+              
+              // Hide in Phase 2 only
+              if (phase === 2) {
+                return false;
+              }
+            }
           }
           
           // If it's completed, check if it's within visibility window
@@ -168,18 +180,42 @@ export default function TodoPage() {
           return true;
         });
 
+        // Add phase information to todos for CSS class application
+        const todosWithPhaseInfo = visibleTodos.map((todo: Todo) => {
+          if (todo.long && todo.workSessions && todo.workSessions.length > 0) {
+            const mostRecentSession = todo.workSessions
+              .slice()
+              .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
+            
+            if (mostRecentSession) {
+              const phase = getWorkedOnPhase(
+                mostRecentSession.timestamp,
+                now,
+                visibilityMinutes,
+                dayBoundaryHour
+              );
+              
+              return {
+                ...todo,
+                workedOnPhase: phase
+              };
+            }
+          }
+          return todo;
+        });
+
         // Separate recurring and non-recurring todos
         // Keep both filtered and unfiltered recurring todos
-        const allRecurringTodosUnfiltered = visibleTodos.filter((todo: Todo) => todo.isRecurring);
+        const allRecurringTodosUnfiltered = todosWithPhaseInfo.filter((todo: Todo) => todo.isRecurring);
         
         // Only show recurring todos whose display date has arrived (for most views)
-        const recurringTodos = visibleTodos.filter((todo: Todo) => {
+        const recurringTodos = todosWithPhaseInfo.filter((todo: Todo) => {
           if (!todo.isRecurring) return false;
           if (!todo.displayDate) return true; // Show if no date set (legacy)
           const startDate = parseInEST(todo.displayDate);
           return startDate <= today;
         });
-        const nonRecurringTodos = visibleTodos.filter(
+        const nonRecurringTodos = todosWithPhaseInfo.filter(
           (todo: Todo) => !todo.isRecurring
         );
 
@@ -858,52 +894,8 @@ export default function TodoPage() {
       });
 
       if (response.ok) {
-        // Remove the todo from all state arrays (it's now hidden for the day)
-        setProjects((prev) =>
-          prev
-            .map((project) => ({
-              ...project,
-              todos:
-                project.todos?.filter((t) => t.documentId !== documentId) || [],
-            }))
-            .filter((project) => (project.todos?.length || 0) > 0)
-        );
-
-        setCategoryGroups((prev) =>
-          prev
-            .map((group) => ({
-              ...group,
-              todos: group.todos.filter((t) => t.documentId !== documentId),
-            }))
-            .filter((group) => group.todos.length > 0)
-        );
-
-        setIncidentals((prev) =>
-          prev.filter((t) => t.documentId !== documentId)
-        );
-
-        setRecurringProjects((prev) =>
-          prev
-            .map((project) => ({
-              ...project,
-              todos:
-                project.todos?.filter((t) => t.documentId !== documentId) || [],
-            }))
-            .filter((project) => (project.todos?.length || 0) > 0)
-        );
-
-        setRecurringCategoryGroups((prev) =>
-          prev
-            .map((group) => ({
-              ...group,
-              todos: group.todos.filter((t) => t.documentId !== documentId),
-            }))
-            .filter((group) => group.todos.length > 0)
-        );
-
-        setRecurringIncidentals((prev) =>
-          prev.filter((t) => t.documentId !== documentId)
-        );
+        // Refresh todos to apply phase-based visibility logic
+        await fetchTodos(false);
       }
     } catch (err) {
       console.error("Error adding work session:", err);

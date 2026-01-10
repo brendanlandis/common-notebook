@@ -1561,8 +1561,9 @@ export function transformLayout(data: RawTodoData, ruleset: LayoutRuleset): Tran
         // Parse the completedAt timestamp in configured timezone
         const completedDate = toZonedTime(new Date(todo.completedAt), getTimezone());
         
-        // Get the hour in EST (0-23)
-        const hour = completedDate.getHours();
+        // Get the hour in the configured timezone (0-23)
+        // After toZonedTime, use UTC methods to access timezone-adjusted values
+        const hour = completedDate.getUTCHours();
         
         // If before day boundary hour, group with previous day
         let adjustedDate = new Date(completedDate);
@@ -1591,7 +1592,7 @@ export function transformLayout(data: RawTodoData, ruleset: LayoutRuleset): Tran
             ...todo,
             id: -1, // Use negative ID to indicate this is a virtual entry
             documentId: `${todo.documentId}-worked-${session.date}`,
-            title: `worked on ${todo.title}`,
+            title: todo.title, // Keep original title, "worked on" prefix added in display
             completed: false, // Mark as not completed to differentiate from actual completions
             completedAt: session.timestamp, // Use the actual timestamp from the work session
           };
@@ -1606,7 +1607,8 @@ export function transformLayout(data: RawTodoData, ruleset: LayoutRuleset): Tran
 
     // Calculate the cutoff date (30 days ago from today)
     const nowInEST = toZonedTime(new Date(), getTimezone());
-    const hour = nowInEST.getHours();
+    // After toZonedTime, use UTC methods to access timezone-adjusted values
+    const hour = nowInEST.getUTCHours();
     let todayDate = new Date(getTodayInEST());
     if (hour < getDayBoundaryHour()) {
       // If before day boundary hour, "today" is actually yesterday's date

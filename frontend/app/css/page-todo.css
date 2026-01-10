@@ -144,6 +144,13 @@
   li.completed {
     opacity: 0.3;
   }
+  li.worked-on {
+    opacity: 0.3;
+    text-decoration: line-through;
+    .cookie-icon {
+      display: none;
+    }
+  }
   .layout-roulette &:has(li:only-of-type) {
     display: block;
     text-align: center;
