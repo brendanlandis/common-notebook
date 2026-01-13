@@ -8,6 +8,12 @@
     align-items: center;
     justify-content: center;
   }
+  .error {
+    display: none;
+  }
+  form > div:has(.error) input {
+    border: 0.1rem solid #f34700;
+  }
   label {
     display: none;
   }

@@ -95,7 +95,7 @@ export default function LoginPage() {
 
         {errorMessage && (
           <div className="error-message">
-            {errorMessage}
+            {errorMessage.toLowerCase()}
             {remainingAttempts !== null && remainingAttempts > 0 && (
               <span> ({remainingAttempts} attempts remaining)</span>
             )}
