@@ -21,10 +21,10 @@
     "react-dom": "^18.0.0",
     "react-router-dom": "^6.30.1",
     "strapi-v5-plugin-populate-deep": "^4.0.5",
-    "styled-components": "^6.3.1"
+    "styled-components": "^6.3.5"
   },
   "devDependencies": {
-    "@types/node": "^25.0.3",
+    "@types/node": "^25.0.7",
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "typescript": "^5.9.3"
