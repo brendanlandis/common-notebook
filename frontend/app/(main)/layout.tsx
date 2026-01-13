@@ -5,6 +5,7 @@ import TodoActionsDrawer from "../components/TodoActionsDrawer";
 import { LayoutRulesetProvider } from "../contexts/LayoutRulesetContext";
 import { PracticeContextProvider } from "../contexts/PracticeContext";
 import { TodoActionsProvider } from "../contexts/TodoActionsContext";
+import { TimezoneProvider } from "../contexts/TimezoneContext";
 import HeaderIcon from "../components/HeaderIcon";
 import EscapeKeyHandler from "../components/EscapeKeyHandler";
 
@@ -14,11 +15,12 @@ export default function MainLayout({
   children: React.ReactNode;
 }) {
   return (
-    <LayoutRulesetProvider>
-      <PracticeContextProvider>
-        <TodoActionsProvider>
-          <EscapeKeyHandler />
-          <div className="drawer">
+    <TimezoneProvider>
+      <LayoutRulesetProvider>
+        <PracticeContextProvider>
+          <TodoActionsProvider>
+            <EscapeKeyHandler />
+            <div className="drawer">
             <input
               id="todoActionsDrawer"
               type="checkbox"
@@ -67,5 +69,6 @@ export default function MainLayout({
         </TodoActionsProvider>
       </PracticeContextProvider>
     </LayoutRulesetProvider>
+    </TimezoneProvider>
   );
 }

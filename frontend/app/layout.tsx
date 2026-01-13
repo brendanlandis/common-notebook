@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./css/screen.css";
-import { TimezoneProvider } from "./contexts/TimezoneContext";
 
 export const metadata: Metadata = {
   title: "common notebook",
@@ -87,7 +86,7 @@ export default function RootLayout({
           ${fontChillax.variable}
         `}
       >
-        <TimezoneProvider>{children}</TimezoneProvider>
+        {children}
       </body>
     </html>
   );
