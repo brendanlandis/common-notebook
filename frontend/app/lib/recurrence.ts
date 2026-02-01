@@ -1,4 +1,4 @@
-import { addDays, addMonths, addYears, nextDay, setDate, setMonth, getDay, startOfMonth, lastDayOfMonth, subDays, addWeeks, isAfter, startOfDay, type Day } from 'date-fns';
+import { addDays, addMonths, addYears, nextDay, setDate, setMonth, getDay, startOfMonth, lastDayOfMonth, subDays, addWeeks, type Day } from 'date-fns';
 import * as Astronomy from 'astronomy-engine';
 import type { Todo } from '../types/index';
 import { getNowInEST, getTodayInEST, toISODateInEST, parseInEST, getTodayForRecurrence } from './dateUtils';
@@ -130,7 +130,9 @@ function calculateEventDate(todo: Todo): string | null {
       let targetDate = setDayOfMonth(comparisonDate, todo.recurrenceDayOfMonth);
       
       // Always move to the next month after comparisonDate
-      if (!isAfter(targetDate, startOfDay(comparisonDate))) {
+      // Compare ISO date strings in configured timezone instead of using startOfDay()
+      // which uses system timezone and causes issues on UTC servers
+      if (toISODateInEST(targetDate) <= toISODateInEST(comparisonDate)) {
         const monthAdded = addMonths(comparisonDate, 1);
         targetDate = setDayOfMonth(monthAdded, todo.recurrenceDayOfMonth);
       }
@@ -180,7 +182,8 @@ function calculateEventDate(todo: Todo): string | null {
       let targetMonthlyDate = findNthWeekdayOfMonth(comparisonDate);
       
       // Always move to the next month after comparisonDate
-      if (!isAfter(targetMonthlyDate, startOfDay(comparisonDate))) {
+      // Compare ISO date strings in configured timezone (startOfDay uses system timezone)
+      if (toISODateInEST(targetMonthlyDate) <= toISODateInEST(comparisonDate)) {
         targetMonthlyDate = findNthWeekdayOfMonth(addMonths(comparisonDate, 1));
       }
       
@@ -211,7 +214,8 @@ function calculateEventDate(todo: Todo): string | null {
       let annualDate = setAnnualDate(comparisonDate, todo.recurrenceMonth, todo.recurrenceDayOfMonth);
       
       // Always move to the next year after comparisonDate
-      if (!isAfter(annualDate, startOfDay(comparisonDate))) {
+      // Compare ISO date strings in configured timezone (startOfDay uses system timezone)
+      if (toISODateInEST(annualDate) <= toISODateInEST(comparisonDate)) {
         const nextYear = addYears(comparisonDate, 1);
         annualDate = setAnnualDate(nextYear, todo.recurrenceMonth, todo.recurrenceDayOfMonth);
       }
@@ -235,8 +239,8 @@ function calculateEventDate(todo: Todo): string | null {
     case 'spring equinox':
       const springYear = comparisonDate.getFullYear();
       let springEquinox = Astronomy.Seasons(springYear).mar_equinox;
-      // Normalize to start of day for comparison
-      if (!isAfter(startOfDay(springEquinox.date), startOfDay(comparisonDate))) {
+      // Compare ISO date strings in configured timezone (startOfDay uses system timezone)
+      if (toISODateInEST(springEquinox.date) <= toISODateInEST(comparisonDate)) {
         springEquinox = Astronomy.Seasons(springYear + 1).mar_equinox;
       }
       return toISODateInEST(springEquinox.date);
@@ -244,8 +248,8 @@ function calculateEventDate(todo: Todo): string | null {
     case 'summer solstice':
       const summerYear = comparisonDate.getFullYear();
       let summerSolstice = Astronomy.Seasons(summerYear).jun_solstice;
-      // Normalize to start of day for comparison
-      if (!isAfter(startOfDay(summerSolstice.date), startOfDay(comparisonDate))) {
+      // Compare ISO date strings in configured timezone (startOfDay uses system timezone)
+      if (toISODateInEST(summerSolstice.date) <= toISODateInEST(comparisonDate)) {
         summerSolstice = Astronomy.Seasons(summerYear + 1).jun_solstice;
       }
       return toISODateInEST(summerSolstice.date);
@@ -253,8 +257,8 @@ function calculateEventDate(todo: Todo): string | null {
     case 'autumn equinox':
       const autumnYear = comparisonDate.getFullYear();
       let autumnEquinox = Astronomy.Seasons(autumnYear).sep_equinox;
-      // Normalize to start of day for comparison
-      if (!isAfter(startOfDay(autumnEquinox.date), startOfDay(comparisonDate))) {
+      // Compare ISO date strings in configured timezone (startOfDay uses system timezone)
+      if (toISODateInEST(autumnEquinox.date) <= toISODateInEST(comparisonDate)) {
         autumnEquinox = Astronomy.Seasons(autumnYear + 1).sep_equinox;
       }
       return toISODateInEST(autumnEquinox.date);
@@ -262,8 +266,8 @@ function calculateEventDate(todo: Todo): string | null {
     case 'winter solstice':
       const winterYear = comparisonDate.getFullYear();
       let winterSolstice = Astronomy.Seasons(winterYear).dec_solstice;
-      // Normalize to start of day for comparison
-      if (!isAfter(startOfDay(winterSolstice.date), startOfDay(comparisonDate))) {
+      // Compare ISO date strings in configured timezone (startOfDay uses system timezone)
+      if (toISODateInEST(winterSolstice.date) <= toISODateInEST(comparisonDate)) {
         winterSolstice = Astronomy.Seasons(winterYear + 1).dec_solstice;
       }
       return toISODateInEST(winterSolstice.date);
@@ -281,9 +285,9 @@ function calculateEventDate(todo: Todo): string | null {
         nextYearSeasons.mar_equinox.date,
       ];
       
-      // Normalize to start of day for comparison and find the next season after comparisonDate
-      const comparisonDay = startOfDay(comparisonDate);
-      const nextSeason = allSeasons.find(date => isAfter(startOfDay(date), comparisonDay));
+      // Compare ISO date strings in configured timezone (startOfDay uses system timezone)
+      const comparisonDayISO = toISODateInEST(comparisonDate);
+      const nextSeason = allSeasons.find(date => toISODateInEST(date) > comparisonDayISO);
       return nextSeason ? toISODateInEST(nextSeason) : null;
 
     default:
