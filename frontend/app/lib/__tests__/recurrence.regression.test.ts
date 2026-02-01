@@ -302,6 +302,140 @@ describe('Regression Tests - Fixed Bugs', () => {
     });
   });
 
+  describe('Bug: Timezone-aware date comparison (completing on due date)', () => {
+    // This bug occurred when completing a monthly recurring todo ON its due date.
+    // The old code used startOfDay() which uses system timezone, causing incorrect
+    // comparisons on UTC servers. The fix uses ISO date string comparison instead.
+    
+    it('should advance to next month when completing monthly date todo ON the due date', () => {
+      // Feb 1, 2026 - completing a Feb 1st monthly todo on Feb 1st
+      vi.mocked(dateUtils.getTodayForRecurrence).mockReturnValue(
+        new Date('2026-02-01T00:00:00')
+      );
+
+      const todo = createTodo({
+        isRecurring: true,
+        recurrenceType: 'monthly date',
+        recurrenceDayOfMonth: 1,
+        displayDate: '2026-02-01',
+      });
+
+      const result = calculateNextRecurrence(todo, false);
+
+      // Should be March 1, NOT Feb 1 (same date - the bug!)
+      expect(result.displayDate).toBe('2026-03-01');
+    });
+
+    it('should advance to next month when completing monthly date todo ON the due date (with boundary hour time)', () => {
+      // Simulates production scenario: Feb 1 at 9 AM UTC (4 AM EST boundary hour)
+      // This was the exact scenario causing the bug on UTC servers
+      vi.mocked(dateUtils.getTodayForRecurrence).mockReturnValue(
+        new Date('2026-02-01T09:00:00Z') // 4 AM EST = 9 AM UTC
+      );
+
+      const todo = createTodo({
+        isRecurring: true,
+        recurrenceType: 'monthly date',
+        recurrenceDayOfMonth: 1,
+        displayDate: '2026-02-01',
+      });
+
+      const result = calculateNextRecurrence(todo, false);
+
+      // Should still be March 1, regardless of time component
+      expect(result.displayDate).toBe('2026-03-01');
+    });
+
+    it('should advance to next month when completing monthly day todo ON the due date', () => {
+      // Jan 13, 2026 is the 2nd Tuesday of January
+      vi.mocked(dateUtils.getTodayForRecurrence).mockReturnValue(
+        new Date('2026-01-13T00:00:00')
+      );
+
+      const todo = createTodo({
+        isRecurring: true,
+        recurrenceType: 'monthly day',
+        recurrenceWeekOfMonth: 2, // 2nd week
+        recurrenceDayOfWeekMonthly: 2, // Tuesday
+        displayDate: '2026-01-13',
+        dueDate: '2026-01-13',
+      });
+
+      const result = calculateNextRecurrence(todo, false);
+
+      // Should be Feb 10 (2nd Tuesday of Feb), NOT Jan 13
+      expect(result.displayDate).toBe('2026-02-10');
+    });
+
+    it('should advance to next year when completing annual todo ON the due date', () => {
+      // Mar 15, 2026 - completing annual todo on its date
+      vi.mocked(dateUtils.getTodayForRecurrence).mockReturnValue(
+        new Date('2026-03-15T00:00:00')
+      );
+
+      const todo = createTodo({
+        isRecurring: true,
+        recurrenceType: 'annually',
+        recurrenceMonth: 3, // March
+        recurrenceDayOfMonth: 15,
+        displayDate: '2026-03-15',
+      });
+
+      const result = calculateNextRecurrence(todo, false);
+
+      // Should be March 15, 2027, NOT March 15, 2026
+      expect(result.displayDate).toBe('2027-03-15');
+    });
+
+    it('should handle monthly date at end of month (31st)', () => {
+      // Jan 31, 2026 - completing on the 31st
+      vi.mocked(dateUtils.getTodayForRecurrence).mockReturnValue(
+        new Date('2026-01-31T00:00:00')
+      );
+
+      const todo = createTodo({
+        isRecurring: true,
+        recurrenceType: 'monthly date',
+        recurrenceDayOfMonth: 31,
+        displayDate: '2026-01-31',
+      });
+
+      const result = calculateNextRecurrence(todo, false);
+
+      // Feb doesn't have 31 days, should use Feb 28 (last day of Feb 2026)
+      expect(result.displayDate).toBe('2026-02-28');
+    });
+
+    it('should handle monthly date on 1st when today equals displayDate with various times (UTC)', () => {
+      // Test multiple time scenarios to ensure time component doesn't affect date comparison
+      // All times are explicitly UTC to avoid local timezone ambiguity in tests
+      const timeScenarios = [
+        '2026-02-01T00:00:00.000Z',  // Midnight UTC
+        '2026-02-01T04:00:00.000Z',  // 4 AM UTC
+        '2026-02-01T09:00:00.000Z',  // 9 AM UTC (4 AM EST)
+        '2026-02-01T12:00:00.000Z',  // Noon UTC
+        '2026-02-01T18:00:00.000Z',  // 6 PM UTC
+      ];
+
+      for (const timeStr of timeScenarios) {
+        vi.mocked(dateUtils.getTodayForRecurrence).mockReturnValue(
+          new Date(timeStr)
+        );
+
+        const todo = createTodo({
+          isRecurring: true,
+          recurrenceType: 'monthly date',
+          recurrenceDayOfMonth: 1,
+          displayDate: '2026-02-01',
+        });
+
+        const result = calculateNextRecurrence(todo, false);
+
+        expect(result.displayDate).toBe('2026-03-01');
+      }
+    });
+  });
+
   describe('Bug: Max Date Logic for Event-Based Types', () => {
     it('should use event date when completing before event', () => {
       // Jan 10 - completing before Jan 15 event
