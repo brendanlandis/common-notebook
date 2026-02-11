@@ -15,11 +15,13 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Calculate the date 30 days ago to filter work sessions, respecting day boundary hour
+    // Calculate the cutoff date to filter work sessions, respecting day boundary hour
+    const daysParam = req.nextUrl.searchParams.get('days');
+    const days = daysParam ? parseInt(daysParam, 10) : 30;
     const today = getTodayForRecurrence();
-    const thirtyDaysAgo = new Date(today);
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    const thirtyDaysAgoString = toISODateInEST(thirtyDaysAgo);
+    const cutoffDate = new Date(today);
+    cutoffDate.setDate(cutoffDate.getDate() - days);
+    const cutoffDateString = toISODateInEST(cutoffDate);
 
     // Fetch incomplete long todos with their project relationship populated
     // Filter for: completed=false AND long=true
@@ -56,15 +58,15 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // Filter client-side for only those with work sessions from the last 30 days
+    // Filter client-side for only those with work sessions from the cutoff date
     const todosWithSessions = allTodos
       .map((todo) => {
         if (!todo.workSessions || todo.workSessions.length === 0) {
           return null;
         }
-        // Filter work sessions to only include those from the last 30 days
+        // Filter work sessions to only include those from the cutoff date
         const recentSessions = todo.workSessions.filter(
-          (session: any) => session.date >= thirtyDaysAgoString
+          (session: any) => session.date >= cutoffDateString
         );
         if (recentSessions.length === 0) {
           return null;

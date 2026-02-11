@@ -1643,6 +1643,106 @@ export function transformLayout(data: RawTodoData, ruleset: LayoutRuleset): Tran
       allSections: finalDateSections,
       upcomingTodosByDay: upcomingDaySections,
     };
+  } else if (ruleset.groupBy === "invoicing") {
+    // Like "done" but scoped to "day job" world, 60-day window, no upcoming
+    const completedTodos = (data.completedTodos || []).filter((todo) => {
+      if (todo.category === "in the mail" || todo.category === "errands") return false;
+      return getTodoWorld(todo) === "day job";
+    });
+
+    // Group todos by completion date (day)
+    const todosByDate = new Map<string, Todo[]>();
+
+    completedTodos.forEach((todo) => {
+      if (todo.completedAt) {
+        const completedDate = toZonedTime(new Date(todo.completedAt), getTimezone());
+        const hour = completedDate.getUTCHours();
+        let adjustedDate = new Date(completedDate);
+        if (hour < getDayBoundaryHour()) {
+          adjustedDate.setDate(adjustedDate.getDate() - 1);
+        }
+        const dateKey = toISODateInEST(adjustedDate);
+        if (!todosByDate.has(dateKey)) {
+          todosByDate.set(dateKey, []);
+        }
+        todosByDate.get(dateKey)!.push(todo);
+      }
+    });
+
+    // Add "worked on" entries for long todos with work sessions (day job only)
+    const longTodos = (data.longTodosWithSessions || []).filter((todo) => getTodoWorld(todo) === "day job");
+
+    longTodos.forEach((todo) => {
+      if (todo.workSessions && todo.workSessions.length > 0) {
+        todo.workSessions.forEach((session) => {
+          const workedOnEntry: Todo = {
+            ...todo,
+            id: -1,
+            documentId: `${todo.documentId}-worked-${session.date}`,
+            title: todo.title,
+            completed: false,
+            completedAt: session.timestamp,
+          };
+          if (!todosByDate.has(session.date)) {
+            todosByDate.set(session.date, []);
+          }
+          todosByDate.get(session.date)!.push(workedOnEntry);
+        });
+      }
+    });
+
+    // Calculate the cutoff date (60 days ago from today)
+    const nowInEST = toZonedTime(new Date(), getTimezone());
+    const hour = nowInEST.getUTCHours();
+    let todayDate = new Date(getTodayInEST());
+    if (hour < getDayBoundaryHour()) {
+      todayDate.setDate(todayDate.getDate() - 1);
+    }
+
+    const sixtyDaysAgo = new Date(todayDate);
+    sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 59); // 59 days ago + today = 60 days total
+    const cutoffDateISO = toISODateInEST(sixtyDaysAgo);
+
+    const dateSections = Array.from(todosByDate.entries())
+      .filter(([dateKey]) => dateKey >= cutoffDateISO)
+      .sort(([dateA], [dateB]) => dateB.localeCompare(dateA));
+
+    const finalDateSections: TodoGroup[] = dateSections.map(([dateKey, todos]) => {
+      const date = parseInEST(dateKey);
+      const yesterdayDate = new Date(todayDate);
+      yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+
+      let dateTitle: string;
+      const dateISO = toISODateInEST(date);
+      const todayISO = toISODateInEST(todayDate);
+      const yesterdayISO = toISODateInEST(yesterdayDate);
+
+      if (dateISO === todayISO) {
+        dateTitle = "today";
+      } else if (dateISO === yesterdayISO) {
+        dateTitle = "yesterday";
+      } else {
+        dateTitle = formatInEST(date, "EEE MM/d").toLowerCase();
+      }
+
+      const sortedTodos = todos.sort((a, b) => {
+        const dateA = a.completedAt ? new Date(a.completedAt).getTime() : 0;
+        const dateB = b.completedAt ? new Date(b.completedAt).getTime() : 0;
+        if (!a.completedAt && !b.completedAt) return 0;
+        if (!a.completedAt) return 1;
+        if (!b.completedAt) return -1;
+        return dateA - dateB;
+      });
+
+      return {
+        title: dateTitle,
+        todos: sortedTodos,
+      };
+    });
+
+    return {
+      allSections: finalDateSections,
+    };
   }
 
   // Fallback

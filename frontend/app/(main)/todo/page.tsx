@@ -393,6 +393,9 @@ export default function TodoPage() {
       fetchLongTodosWithSessions();
       fetchRecentStats();
       fetchRecentStats30Days();
+    } else if (selectedRulesetId === "invoicing") {
+      fetchCompletedTodos(60);
+      fetchLongTodosWithSessions(60);
     }
   }, [selectedRulesetId]);
 
@@ -672,9 +675,9 @@ export default function TodoPage() {
     }
   };
 
-  const fetchCompletedTodos = async () => {
+  const fetchCompletedTodos = async (days: number = 30) => {
     try {
-      const response = await fetch("/api/todos/completed");
+      const response = await fetch(`/api/todos/completed?days=${days}`);
       const result = await response.json();
 
       if (result.success) {
@@ -706,9 +709,9 @@ export default function TodoPage() {
     }
   };
 
-  const fetchLongTodosWithSessions = async () => {
+  const fetchLongTodosWithSessions = async (days: number = 30) => {
     try {
-      const response = await fetch("/api/todos/long-with-sessions");
+      const response = await fetch(`/api/todos/long-with-sessions?days=${days}`);
       const result = await response.json();
 
       if (result.success) {
@@ -899,9 +902,9 @@ export default function TodoPage() {
             prev.filter((t) => t.documentId !== documentId)
           );
 
-          // Only add back to regular state if we're in the "done" view
+          // Only add back to regular state if we're in the "done" or "invoicing" view
           // (meaning the todo was ONLY in completedTodos, not in regular arrays)
-          const todoWasOnlyInCompletedTodos = selectedRulesetId === "done";
+          const todoWasOnlyInCompletedTodos = selectedRulesetId === "done" || selectedRulesetId === "invoicing";
 
           if (todoWasOnlyInCompletedTodos) {
             // Use the updated todo from API response, or fall back to currentTodo
@@ -997,8 +1000,8 @@ export default function TodoPage() {
               }
             }
           }
-        } else if (selectedRulesetId === "done") {
-          // Completing and in "done" layout: add to completedTodos
+        } else if (selectedRulesetId === "done" || selectedRulesetId === "invoicing") {
+          // Completing and in "done"/"invoicing" layout: add to completedTodos
           // The complete endpoint doesn't return the completed todo, so use currentTodo with updated fields
           const completedTodo = {
             ...currentTodo,
@@ -1172,8 +1175,8 @@ export default function TodoPage() {
           prev.filter((t) => t.documentId !== actualDocumentId)
         );
 
-        // If in "done" view, also update the completed, upcoming, and long todos state
-        if (selectedRulesetId === "done") {
+        // If in "done" or "invoicing" view, also update the completed, upcoming, and long todos state
+        if (selectedRulesetId === "done" || selectedRulesetId === "invoicing") {
           setCompletedTodos((prev) =>
             prev.filter((t) => t.documentId !== actualDocumentId)
           );
@@ -1223,7 +1226,7 @@ export default function TodoPage() {
 
       if (response.ok) {
         // Optimistically remove the "worked on" entry from longTodosWithSessions
-        if (selectedRulesetId === "done") {
+        if (selectedRulesetId === "done" || selectedRulesetId === "invoicing") {
           setLongTodosWithSessions(
             (prev) =>
               prev
@@ -1452,10 +1455,10 @@ export default function TodoPage() {
       recurringProjects: useUnfilteredRecurring ? allRecurringProjects : recurringProjects,
       recurringCategoryGroups: useUnfilteredRecurring ? allRecurringCategoryGroups : recurringCategoryGroups,
       recurringIncidentals: useUnfilteredRecurring ? allRecurringIncidentals : recurringIncidentals,
-      completedTodos: selectedRulesetId === "done" ? completedTodos : undefined,
+      completedTodos: (selectedRulesetId === "done" || selectedRulesetId === "invoicing") ? completedTodos : undefined,
       upcomingTodos: selectedRulesetId === "done" ? upcomingTodos : undefined,
       longTodosWithSessions:
-        selectedRulesetId === "done" ? longTodosWithSessions : undefined,
+        (selectedRulesetId === "done" || selectedRulesetId === "invoicing") ? longTodosWithSessions : undefined,
     };
     const result = transformLayout(rawData, ruleset);
     return result;

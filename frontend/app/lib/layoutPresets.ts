@@ -123,6 +123,16 @@ export const LAYOUT_PRESETS: LayoutRuleset[] = [
     groupBy: "done",
   },
   {
+    id: "invoicing",
+    name: "invoicing",
+    showRecurring: true,
+    showNonRecurring: true,
+    visibleWorlds: ["day job"],
+    visibleCategories: null,
+    sortBy: "completedAt",
+    groupBy: "invoicing",
+  },
+  {
     id: "recurring",
     name: "recurring",
     showRecurring: true,

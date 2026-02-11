@@ -19,7 +19,7 @@ export default function LayoutSelector({ value, onChange }: LayoutSelectorProps)
     return indexA - indexB;
   });
   const byWorldPresets = LAYOUT_PRESETS.filter((preset) => preset.groupBy === "world");
-  const reviewPresets = LAYOUT_PRESETS.filter((preset) => preset.id === "done" || preset.id === "recurring");
+  const reviewPresets = LAYOUT_PRESETS.filter((preset) => preset.id === "done" || preset.id === "invoicing" || preset.id === "recurring");
 
   return (
     <select

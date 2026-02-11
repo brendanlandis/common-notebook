@@ -214,5 +214,5 @@ export interface LayoutRuleset {
   visibleWorlds: World[] | null; // null = show all worlds
   visibleCategories: TodoCategory[] | null; // null = show all categories
   sortBy: "alphabetical" | "creationDate" | "dueDate" | "completedAt";
-  groupBy: "recurring-separate" | "recurring-separate-world" | "merged" | "single-section" | "world" | "project" | "category" | "good-morning" | "roulette" | "stuff" | "later" | "done" | "chores" | "recurring-review";
+  groupBy: "recurring-separate" | "recurring-separate-world" | "merged" | "single-section" | "world" | "project" | "category" | "good-morning" | "roulette" | "stuff" | "later" | "done" | "invoicing" | "chores" | "recurring-review";
 }

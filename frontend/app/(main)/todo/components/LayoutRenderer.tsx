@@ -42,6 +42,7 @@ const LAYOUT_COMPONENTS: Record<string, React.ComponentType<LayoutRendererProps>
   "later": DefaultLayout,
   "chores": ChoresLayout,
   "done": SingleSectionLayout,
+  "invoicing": SingleSectionLayout,
   "recurring-review": RecurringReviewLayout,
 };
 

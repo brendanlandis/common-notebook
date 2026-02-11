@@ -15,11 +15,13 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Calculate the date 30 days ago to limit the query, respecting day boundary hour
+    // Calculate the cutoff date to limit the query, respecting day boundary hour
+    const daysParam = req.nextUrl.searchParams.get('days');
+    const days = daysParam ? parseInt(daysParam, 10) : 30;
     const today = getTodayForRecurrence();
-    const thirtyDaysAgo = new Date(today);
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    const thirtyDaysAgoString = toISODateInEST(thirtyDaysAgo);
+    const cutoffDate = new Date(today);
+    cutoffDate.setDate(cutoffDate.getDate() - days);
+    const cutoffDateString = toISODateInEST(cutoffDate);
 
     // Fetch completed todos from the last 30 days with their project relationship populated
     // Fetch all pages to ensure we get all todos
@@ -29,7 +31,7 @@ export async function GET(req: NextRequest) {
 
     while (hasMore) {
       const response = await fetch(
-        `${STRAPI_API_URL}/api/todos?filters[completed][$eq]=true&filters[completedAt][$gte]=${thirtyDaysAgoString}&pLevel=2&pagination[pageSize]=100&pagination[page]=${page}&sort=completedAt:desc`,
+        `${STRAPI_API_URL}/api/todos?filters[completed][$eq]=true&filters[completedAt][$gte]=${cutoffDateString}&pLevel=2&pagination[pageSize]=100&pagination[page]=${page}&sort=completedAt:desc`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
