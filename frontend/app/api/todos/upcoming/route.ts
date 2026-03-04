@@ -36,7 +36,7 @@ export async function GET(req: NextRequest) {
 
     while (hasMore) {
       const response = await fetch(
-        `${STRAPI_API_URL}/api/todos?filters[completed][$eq]=false&filters[displayDate][$gte]=${tomorrowString}&filters[displayDate][$lte]=${fourDaysOutString}&pLevel=2&pagination[pageSize]=100&pagination[page]=${page}&sort=displayDate:asc`,
+        `${STRAPI_API_URL}/api/todos?filters[completed][$eq]=false&filters[displayDate][$gte]=${tomorrowString}&filters[displayDate][$lte]=${fourDaysOutString}&populate=project&pagination[pageSize]=100&pagination[page]=${page}&sort=displayDate:asc`,
         {
           headers: {
             Authorization: `Bearer ${token}`,

@@ -38,7 +38,7 @@ export async function GET(req: NextRequest) {
 
     while (hasMore) {
       const response = await fetch(
-        `${STRAPI_API_URL}/api/todos?filters[completed][$eq]=true&filters[completedAt][$gte]=${daysAgoString}&pLevel=2&pagination[pageSize]=100&pagination[page]=${page}`,
+        `${STRAPI_API_URL}/api/todos?filters[completed][$eq]=true&filters[completedAt][$gte]=${daysAgoString}&populate=project&pagination[pageSize]=100&pagination[page]=${page}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -71,7 +71,7 @@ export async function GET(req: NextRequest) {
 
     while (hasMore) {
       const response = await fetch(
-        `${STRAPI_API_URL}/api/todos?filters[long][$eq]=true&pLevel=2&pagination[pageSize]=100&pagination[page]=${page}`,
+        `${STRAPI_API_URL}/api/todos?filters[long][$eq]=true&populate=project&pagination[pageSize]=100&pagination[page]=${page}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,

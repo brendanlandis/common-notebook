@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { NextRequest } from 'next/server';
 import { POST as workSessionRoute } from '../[documentId]/work-session/route';
 import type { Todo } from '@/app/types/index';
+import { toZonedTime, format as formatTz } from 'date-fns-tz';
 
 // Mock environment variables
 process.env.STRAPI_API_URL = 'http://localhost:1337';
@@ -218,9 +219,10 @@ describe('Work Session API Route Tests', () => {
     });
 
     it('should prevent duplicate work sessions for same day', async () => {
-      // Use current date to match what the API will calculate
+      // Use current date in EST to match what the API will calculate
       const now = new Date();
-      const dateStr = now.toISOString().split('T')[0]; // YYYY-MM-DD
+      const nowInTimezone = toZonedTime(now, 'America/New_York');
+      const dateStr = formatTz(nowInTimezone, 'yyyy-MM-dd', { timeZone: 'America/New_York' });
       
       const todoWithSession = createTodo({
         documentId: 'task-with-session',
