@@ -23,6 +23,17 @@ export const LAYOUT_PRESETS: LayoutRuleset[] = [
     groupBy: "single-section",
   },
   {
+    id: "chipping-away",
+    name: "chipping away",
+    showRecurring: true,
+    showNonRecurring: true,
+    visibleWorlds: ["life stuff", "music admin", "make music", "computer"],
+    visibleCategories: null,
+    sortBy: "creationDate",
+    groupBy: "single-section",
+    longOnly: true,
+  },
+  {
     id: "day-job",
     name: "day job",
     showRecurring: true,

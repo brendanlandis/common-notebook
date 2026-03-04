@@ -112,6 +112,11 @@ function shouldIncludeTodo(todo: Todo, ruleset: LayoutRuleset, getWorld: (todo: 
     }
   }
 
+  // Filter by long only
+  if (ruleset.longOnly && !todo.long) {
+    return false;
+  }
+
   return true;
 }
 

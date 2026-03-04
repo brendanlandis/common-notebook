@@ -9,10 +9,10 @@ interface LayoutSelectorProps {
 export default function LayoutSelector({ value, onChange }: LayoutSelectorProps) {
   // Organize presets into groups
   const specialPresets = LAYOUT_PRESETS.filter(
-    (preset) => preset.id === "good-morning" || preset.id === "everything" || preset.id === "roulette" || preset.id === "stuff" || preset.id === "later" || preset.id === "chores"
+    (preset) => preset.id === "good-morning" || preset.id === "everything" || preset.id === "chipping-away" || preset.id === "roulette" || preset.id === "stuff" || preset.id === "later" || preset.id === "chores"
   );
   // Sort special presets to ensure correct order: good-morning, chores, everything, roulette, stuff, later
-  const specialPresetOrder = ["good-morning", "chores", "everything", "roulette", "stuff", "later"];
+  const specialPresetOrder = ["good-morning", "chores", "everything", "chipping-away", "roulette", "stuff", "later"];
   const sortedSpecialPresets = specialPresets.sort((a, b) => {
     const indexA = specialPresetOrder.indexOf(a.id);
     const indexB = specialPresetOrder.indexOf(b.id);

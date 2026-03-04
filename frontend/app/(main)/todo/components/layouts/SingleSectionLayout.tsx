@@ -34,7 +34,7 @@ export default function SingleSectionLayout({
 
   // Group tasks by month for the "everything" view
   const groupedByMonth = useMemo(() => {
-    if (selectedRulesetId !== "everything") {
+    if (selectedRulesetId !== "everything" && selectedRulesetId !== "chipping-away") {
       return null;
     }
 
@@ -94,7 +94,7 @@ export default function SingleSectionLayout({
   }, [transformedData.allSections, transformedData.incidentals, selectedRulesetId]);
 
   // Render custom layout for "everything" view
-  if (selectedRulesetId === "everything" && groupedByMonth && groupedByMonth.length > 0) {
+  if ((selectedRulesetId === "everything" || selectedRulesetId === "chipping-away") && groupedByMonth && groupedByMonth.length > 0) {
     return (
       <div className="todos-container">
         {upcomingSection}
