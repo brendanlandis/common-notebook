@@ -115,7 +115,8 @@
     word-break: break-word;
   }
   .layout-everything &,
-  .layout-recurring & {
+  .layout-recurring &,
+  .layout-chipping-away & {
     grid-row: auto;
     grid-template-rows: none;
   }
