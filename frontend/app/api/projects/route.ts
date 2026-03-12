@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const response = await fetch(`${STRAPI_API_URL}/api/projects`, {
+    const response = await fetch(`${STRAPI_API_URL}/api/projects?pagination[pageSize]=100`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
