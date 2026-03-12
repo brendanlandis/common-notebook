@@ -430,70 +430,6 @@ export interface AdminUser extends Struct.CollectionTypeSchema {
   };
 }
 
-export interface ApiDailyDaily extends Struct.CollectionTypeSchema {
-  collectionName: 'dailies';
-  info: {
-    displayName: 'Daily';
-    pluralName: 'dailies';
-    singularName: 'daily';
-  };
-  options: {
-    draftAndPublish: true;
-  };
-  attributes: {
-    createdAt: Schema.Attribute.DateTime;
-    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
-      Schema.Attribute.Private;
-    date: Schema.Attribute.Date;
-    files: Schema.Attribute.Media<
-      'images' | 'files' | 'videos' | 'audios',
-      true
-    >;
-    locale: Schema.Attribute.String & Schema.Attribute.Private;
-    localizations: Schema.Attribute.Relation<'oneToMany', 'api::daily.daily'> &
-      Schema.Attribute.Private;
-    publishedAt: Schema.Attribute.DateTime;
-    text: Schema.Attribute.Blocks;
-    updatedAt: Schema.Attribute.DateTime;
-    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
-      Schema.Attribute.Private;
-  };
-}
-
-export interface ApiFavFav extends Struct.CollectionTypeSchema {
-  collectionName: 'favs';
-  info: {
-    description: '';
-    displayName: 'Fav';
-    pluralName: 'favs';
-    singularName: 'fav';
-  };
-  options: {
-    draftAndPublish: false;
-  };
-  attributes: {
-    about: Schema.Attribute.Blocks;
-    cover: Schema.Attribute.Media<'images' | 'files'>;
-    createdAt: Schema.Attribute.DateTime;
-    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
-      Schema.Attribute.Private;
-    creator: Schema.Attribute.String;
-    locale: Schema.Attribute.String & Schema.Attribute.Private;
-    localizations: Schema.Attribute.Relation<'oneToMany', 'api::fav.fav'> &
-      Schema.Attribute.Private;
-    publishedAt: Schema.Attribute.DateTime;
-    title: Schema.Attribute.String;
-    type: Schema.Attribute.Enumeration<
-      ['music', 'book', 'movie', 'podcast', 'show']
-    > &
-      Schema.Attribute.Required;
-    updatedAt: Schema.Attribute.DateTime;
-    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
-      Schema.Attribute.Private;
-    url: Schema.Attribute.String;
-  };
-}
-
 export interface ApiNoteNote extends Struct.CollectionTypeSchema {
   collectionName: 'notes';
   info: {
@@ -621,38 +557,6 @@ export interface ApiSystemSettingSystemSetting
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
     value: Schema.Attribute.String;
-  };
-}
-
-export interface ApiTabTab extends Struct.CollectionTypeSchema {
-  collectionName: 'tabs';
-  info: {
-    description: '';
-    displayName: 'Tab';
-    pluralName: 'tabs';
-    singularName: 'tab';
-  };
-  options: {
-    draftAndPublish: false;
-  };
-  attributes: {
-    createdAt: Schema.Attribute.DateTime;
-    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
-      Schema.Attribute.Private;
-    description: Schema.Attribute.Blocks;
-    linkText: Schema.Attribute.String & Schema.Attribute.Required;
-    locale: Schema.Attribute.String & Schema.Attribute.Private;
-    localizations: Schema.Attribute.Relation<'oneToMany', 'api::tab.tab'> &
-      Schema.Attribute.Private;
-    publishedAt: Schema.Attribute.DateTime;
-    tags: Schema.Attribute.Enumeration<
-      ['general', 'music', 'these curious machines', 'day to day']
-    > &
-      Schema.Attribute.DefaultTo<'general'>;
-    updatedAt: Schema.Attribute.DateTime;
-    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
-      Schema.Attribute.Private;
-    url: Schema.Attribute.String & Schema.Attribute.Required;
   };
 }
 
@@ -1004,6 +908,7 @@ export interface PluginUploadFile extends Struct.CollectionTypeSchema {
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
     ext: Schema.Attribute.String;
+    focalPoint: Schema.Attribute.JSON;
     folder: Schema.Attribute.Relation<'manyToOne', 'plugin::upload.folder'> &
       Schema.Attribute.Private;
     folderPath: Schema.Attribute.String &
@@ -1251,13 +1156,10 @@ declare module '@strapi/strapi' {
       'admin::transfer-token': AdminTransferToken;
       'admin::transfer-token-permission': AdminTransferTokenPermission;
       'admin::user': AdminUser;
-      'api::daily.daily': ApiDailyDaily;
-      'api::fav.fav': ApiFavFav;
       'api::note.note': ApiNoteNote;
       'api::practice-log.practice-log': ApiPracticeLogPracticeLog;
       'api::project.project': ApiProjectProject;
       'api::system-setting.system-setting': ApiSystemSettingSystemSetting;
-      'api::tab.tab': ApiTabTab;
       'api::todo.todo': ApiTodoTodo;
       'plugin::content-releases.release': PluginContentReleasesRelease;
       'plugin::content-releases.release-action': PluginContentReleasesReleaseAction;
