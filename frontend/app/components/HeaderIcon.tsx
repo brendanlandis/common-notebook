@@ -1,11 +1,10 @@
 'use client';
 
 import { usePathname } from 'next/navigation';
-import { 
+import {
   BirdIcon,
   BroomIcon,
   MetronomeIcon,
-  PencilIcon,
   GearIcon
 } from '@phosphor-icons/react';
 
@@ -22,11 +21,6 @@ export default function HeaderIcon() {
   // Todo page
   if (pathname === '/todo') {
     return <BroomIcon {...iconProps} />;
-  }
-
-  // Notes page
-  if (pathname === '/notes') {
-    return <PencilIcon {...iconProps} />;
   }
 
   // Settings page

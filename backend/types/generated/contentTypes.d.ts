@@ -430,33 +430,6 @@ export interface AdminUser extends Struct.CollectionTypeSchema {
   };
 }
 
-export interface ApiNoteNote extends Struct.CollectionTypeSchema {
-  collectionName: 'notes';
-  info: {
-    displayName: 'Note';
-    pluralName: 'notes';
-    singularName: 'note';
-  };
-  options: {
-    draftAndPublish: false;
-  };
-  attributes: {
-    context: Schema.Attribute.String;
-    createdAt: Schema.Attribute.DateTime;
-    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
-      Schema.Attribute.Private;
-    locale: Schema.Attribute.String & Schema.Attribute.Private;
-    localizations: Schema.Attribute.Relation<'oneToMany', 'api::note.note'> &
-      Schema.Attribute.Private;
-    noteCategory: Schema.Attribute.String;
-    publishedAt: Schema.Attribute.DateTime;
-    text: Schema.Attribute.Blocks;
-    updatedAt: Schema.Attribute.DateTime;
-    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
-      Schema.Attribute.Private;
-  };
-}
-
 export interface ApiPracticeLogPracticeLog extends Struct.CollectionTypeSchema {
   collectionName: 'practice_logs';
   info: {
@@ -1156,7 +1129,6 @@ declare module '@strapi/strapi' {
       'admin::transfer-token': AdminTransferToken;
       'admin::transfer-token-permission': AdminTransferTokenPermission;
       'admin::user': AdminUser;
-      'api::note.note': ApiNoteNote;
       'api::practice-log.practice-log': ApiPracticeLogPracticeLog;
       'api::project.project': ApiProjectProject;
       'api::system-setting.system-setting': ApiSystemSettingSystemSetting;

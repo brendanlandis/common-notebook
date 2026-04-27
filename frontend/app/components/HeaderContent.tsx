@@ -14,7 +14,7 @@ export default function HeaderContent() {
   const { selectedRulesetId, setSelectedRulesetId, isHydrated } =
     useLayoutRuleset();
   const { selectedPracticeType, setSelectedPracticeType } = usePractice();
-  const { openTodoForm, openProjectForm, openNoteForm } = useTodoActions();
+  const { openTodoForm, openProjectForm } = useTodoActions();
 
   const handleResetMoonPhase = async () => {
     try {
@@ -78,14 +78,6 @@ export default function HeaderContent() {
         value={selectedPracticeType}
         onChange={setSelectedPracticeType}
       />
-    );
-  }
-
-  if (pathname === "/notes") {
-    return (
-      <button onClick={openNoteForm}>
-        <PlusCircleIcon size={25} />
-      </button>
     );
   }
 

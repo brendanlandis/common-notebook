@@ -4,7 +4,6 @@ import {
   BirdIcon,
   BroomIcon,
   MetronomeIcon,
-  PencilIcon,
   GearIcon,
 } from "@phosphor-icons/react/dist/ssr";
 import MenuClose from "./MenuClose";
@@ -39,12 +38,6 @@ export default function MenuItems() {
         <Link href="/practice" onClick={closeDrawer}>
           <MetronomeIcon size={30} weight="thin" />
           <span>practice</span>
-        </Link>
-      </li>
-      <li>
-        <Link href="/notes" onClick={closeDrawer}>
-          <PencilIcon size={30} weight="thin" />
-          <span>notes</span>
         </Link>
       </li>
       <li>

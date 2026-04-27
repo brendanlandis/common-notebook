@@ -184,26 +184,12 @@ export interface PracticeLog {
   publishedAt: string;
 }
 
-// Note interface
-export interface Note {
-  id: number;
-  documentId: string;
-  text: StrapiBlock[];
-  noteCategory: string;
-  context: string | null;
-  createdAt: string;
-  updatedAt: string;
-  publishedAt: string;
-}
-
 export type ProjectsResponse = StrapiResponse<Project[]>;
 export type ProjectResponse = StrapiResponse<Project>;
 export type TodosResponse = StrapiResponse<Todo[]>;
 export type TodoResponse = StrapiResponse<Todo>;
 export type PracticeLogsResponse = StrapiResponse<PracticeLog[]>;
 export type PracticeLogResponse = StrapiResponse<PracticeLog>;
-export type NotesResponse = StrapiResponse<Note[]>;
-export type NoteResponse = StrapiResponse<Note>;
 
 // Layout Ruleset interface  
 export interface LayoutRuleset {

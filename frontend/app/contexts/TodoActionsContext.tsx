@@ -2,13 +2,12 @@
 
 import { createContext, useContext, useState, ReactNode } from 'react';
 
-type DrawerContent = 'todo' | 'project' | 'note' | null;
+type DrawerContent = 'todo' | 'project' | null;
 
 interface TodoActionsContextType {
   drawerContent: DrawerContent;
   openTodoForm: () => void;
   openProjectForm: () => void;
-  openNoteForm: () => void;
   closeDrawer: () => void;
 }
 
@@ -35,15 +34,6 @@ export function TodoActionsProvider({ children }: { children: ReactNode }) {
     }
   };
   
-  const openNoteForm = () => {
-    setDrawerContent('note');
-    // Open drawer
-    const checkbox = document.getElementById('todoActionsDrawer') as HTMLInputElement;
-    if (checkbox) {
-      checkbox.checked = true;
-    }
-  };
-  
   const closeDrawer = () => {
     // Close drawer immediately
     const checkbox = document.getElementById('todoActionsDrawer') as HTMLInputElement;
@@ -57,7 +47,7 @@ export function TodoActionsProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <TodoActionsContext.Provider value={{ drawerContent, openTodoForm, openProjectForm, openNoteForm, closeDrawer }}>
+    <TodoActionsContext.Provider value={{ drawerContent, openTodoForm, openProjectForm, closeDrawer }}>
       {children}
     </TodoActionsContext.Provider>
   );
