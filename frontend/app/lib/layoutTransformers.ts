@@ -79,8 +79,8 @@ function shouldIncludeTodo(todo: Todo, ruleset: LayoutRuleset, getWorld: (todo: 
     return false;
   }
 
-  // "data chores" should not appear in the "chores" view
-  if (todo.category === "data chores" && ruleset.id === "chores") {
+  // "data chores" should not appear in the "chores" or "chipping away" views
+  if (todo.category === "data chores" && (ruleset.id === "chores" || ruleset.id === "chipping-away")) {
     return false;
   }
 
