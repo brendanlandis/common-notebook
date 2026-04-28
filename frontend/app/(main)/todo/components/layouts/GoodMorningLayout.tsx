@@ -15,13 +15,13 @@ export default function GoodMorningLayout({
 }: LayoutRendererProps) {
   return (
     <>
-      {(transformedData.combinedSections && transformedData.combinedSections.length > 0) ||
-      (transformedData.combinedIncidentals && transformedData.combinedIncidentals.length > 0) ? (
+      {(transformedData.topOfMindSections && transformedData.topOfMindSections.length > 0) ||
+      (transformedData.topOfMindIncidentals && transformedData.topOfMindIncidentals.length > 0) ? (
         <div className="group-section">
-          <h2>recurring</h2>
+          <h2>top of mind</h2>
           <TodoSections
-            sections={transformedData.combinedSections || []}
-            incidentals={transformedData.combinedIncidentals}
+            sections={transformedData.topOfMindSections || []}
+            incidentals={transformedData.topOfMindIncidentals}
             onComplete={onComplete}
             onEdit={onEdit}
             onDelete={onDelete}
@@ -33,18 +33,18 @@ export default function GoodMorningLayout({
         </div>
       ) : null}
 
-      {((transformedData.combinedSections && transformedData.combinedSections.length > 0) ||
-        (transformedData.combinedIncidentals && transformedData.combinedIncidentals.length > 0)) &&
-      ((transformedData.topOfMindSections && transformedData.topOfMindSections.length > 0) ||
-        (transformedData.topOfMindIncidentals && transformedData.topOfMindIncidentals.length > 0)) && <hr />}
+      {((transformedData.topOfMindSections && transformedData.topOfMindSections.length > 0) ||
+        (transformedData.topOfMindIncidentals && transformedData.topOfMindIncidentals.length > 0)) &&
+      ((transformedData.combinedSections && transformedData.combinedSections.length > 0) ||
+        (transformedData.combinedIncidentals && transformedData.combinedIncidentals.length > 0)) && <hr />}
 
-      {(transformedData.topOfMindSections && transformedData.topOfMindSections.length > 0) ||
-      (transformedData.topOfMindIncidentals && transformedData.topOfMindIncidentals.length > 0) ? (
+      {(transformedData.combinedSections && transformedData.combinedSections.length > 0) ||
+      (transformedData.combinedIncidentals && transformedData.combinedIncidentals.length > 0) ? (
         <div className="group-section">
-          <h2>top of mind</h2>
+          <h2>recurring</h2>
           <TodoSections
-            sections={transformedData.topOfMindSections || []}
-            incidentals={transformedData.topOfMindIncidentals}
+            sections={transformedData.combinedSections || []}
+            incidentals={transformedData.combinedIncidentals}
             onComplete={onComplete}
             onEdit={onEdit}
             onDelete={onDelete}
