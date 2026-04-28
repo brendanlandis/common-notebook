@@ -34,7 +34,11 @@ export default function SingleSectionLayout({
 
   // Group tasks by month for the "everything" view
   const groupedByMonth = useMemo(() => {
-    if (selectedRulesetId !== "everything" && selectedRulesetId !== "chipping-away") {
+    if (
+      selectedRulesetId !== "everything" &&
+      selectedRulesetId !== "chipping-away" &&
+      selectedRulesetId !== "data-chores"
+    ) {
       return null;
     }
 
@@ -61,13 +65,13 @@ export default function SingleSectionLayout({
 
     // Group todos by creation month
     const todosByMonth = new Map<string, { date: Date; todos: Todo[] }>();
-    
+
     allTodos.forEach((todo) => {
       try {
         const createdDate = parseISO(todo.createdAt);
         // Format as "YYYY-MM" for grouping, but keep the date for sorting
         const monthKey = format(createdDate, "yyyy-MM");
-        
+
         if (!todosByMonth.has(monthKey)) {
           todosByMonth.set(monthKey, { date: createdDate, todos: [] });
         }
@@ -78,8 +82,9 @@ export default function SingleSectionLayout({
     });
 
     // Convert map to array and sort by date (oldest first)
-    const sortedMonths = Array.from(todosByMonth.entries())
-      .sort(([, a], [, b]) => a.date.getTime() - b.date.getTime());
+    const sortedMonths = Array.from(todosByMonth.entries()).sort(
+      ([, a], [, b]) => a.date.getTime() - b.date.getTime(),
+    );
 
     // Create month groups with sorted todos
     return sortedMonths.map(([monthKey, { date, todos }]) => ({
@@ -91,10 +96,20 @@ export default function SingleSectionLayout({
         return dateA - dateB;
       }),
     }));
-  }, [transformedData.allSections, transformedData.incidentals, selectedRulesetId]);
+  }, [
+    transformedData.allSections,
+    transformedData.incidentals,
+    selectedRulesetId,
+  ]);
 
   // Render custom layout for "everything" view
-  if ((selectedRulesetId === "everything" || selectedRulesetId === "chipping-away") && groupedByMonth && groupedByMonth.length > 0) {
+  if (
+    (selectedRulesetId === "everything" ||
+      selectedRulesetId === "chipping-away" ||
+      selectedRulesetId === "data-chores") &&
+    groupedByMonth &&
+    groupedByMonth.length > 0
+  ) {
     return (
       <div className="todos-container">
         {upcomingSection}

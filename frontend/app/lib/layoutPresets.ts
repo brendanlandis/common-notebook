@@ -34,6 +34,17 @@ export const LAYOUT_PRESETS: LayoutRuleset[] = [
     longOnly: true,
   },
   {
+    id: "data-chores",
+    name: "data chores",
+    showRecurring: true,
+    showNonRecurring: true,
+    visibleWorlds: ["life stuff", "music admin", "make music", "computer"],
+    visibleCategories: ["data chores"],
+    sortBy: "creationDate",
+    groupBy: "single-section",
+    longOnly: false,
+  },
+  {
     id: "day-job",
     name: "day job",
     showRecurring: true,
