@@ -79,6 +79,11 @@ function shouldIncludeTodo(todo: Todo, ruleset: LayoutRuleset, getWorld: (todo: 
     return false;
   }
 
+  // "data chores" should not appear in the "chores" view
+  if (todo.category === "data chores" && ruleset.id === "chores") {
+    return false;
+  }
+
   // Filter by recurring/non-recurring
   if (todo.isRecurring && !ruleset.showRecurring) {
     return false;
