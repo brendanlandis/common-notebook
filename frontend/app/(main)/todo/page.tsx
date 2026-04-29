@@ -7,33 +7,31 @@ import ProjectForm from "./components/ProjectForm";
 import LayoutRenderer from "./components/LayoutRenderer";
 import RecentStats from "./components/RecentStats";
 import type { Project, Todo } from "@/app/types/index";
-import {
-  getTodayInEST,
-  getISOTimestampInEST,
-  getNowInEST,
-} from "@/app/lib/dateUtils";
-import { getCompletedTaskVisibilityMinutes, fetchVisibilityMinutesFromStrapi } from "@/app/lib/completedTaskVisibilityConfig";
-import { getWorkedOnPhase } from "@/app/lib/dayBoundaryHelpers";
-import { getDayBoundaryHour } from "@/app/lib/timezoneConfig";
+import { getISOTimestampInEST } from "@/app/lib/dateUtils";
 import {
   transformLayout,
   type RawTodoData,
 } from "@/app/lib/layoutTransformers";
-import { groupTodosForLayout } from "@/app/lib/groupTodos";
 import { getPresetById, getDefaultPreset } from "@/app/lib/layoutPresets";
 import { useLayoutRuleset } from "@/app/contexts/LayoutRulesetContext";
 import { useTodoActions } from "@/app/contexts/TodoActionsContext";
 import { useTimezoneContext } from "@/app/contexts/TimezoneContext";
 import FaviconManager from "@/app/components/FaviconManager";
-import { createTodosFromShows } from "@/app/lib/showsTodoCreator";
+import { useTodos } from "./hooks/useTodos";
 
 export default function TodoPage() {
-  // Single source of truth for active (non-completed) todos. All groupings are
-  // derived from this via `grouped` (useMemo on groupTodosForLayout).
-  const [todos, setTodos] = useState<Todo[]>([]);
-  // Empty projects the user has just created (no todos yet). Cleared on every
-  // fetchTodos so behavior matches the prior implementation.
-  const [manualProjects, setManualProjects] = useState<Project[]>([]);
+  const {
+    todos,
+    grouped,
+    loading,
+    error,
+    addTodo,
+    removeTodo,
+    updateTodo,
+    updateProject,
+    addManualProject,
+    refetch: fetchTodos,
+  } = useTodos();
   const [completedTodos, setCompletedTodos] = useState<Todo[]>([]);
   const [upcomingTodos, setUpcomingTodos] = useState<Todo[]>([]);
   const [longTodosWithSessions, setLongTodosWithSessions] = useState<Todo[]>(
@@ -47,10 +45,8 @@ export default function TodoPage() {
     Array<{ type: "project" | "category"; name: string; count: number }>
   >([]);
   const [statsLoading30Days, setStatsLoading30Days] = useState(false);
-  const [loading, setLoading] = useState(true);
   const [editingTodo, setEditingTodo] = useState<Todo | null>(null);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [drawerContainer, setDrawerContainer] = useState<HTMLElement | null>(
     null
   );
@@ -58,54 +54,6 @@ export default function TodoPage() {
   const { drawerContent, openTodoForm, openProjectForm, closeDrawer } =
     useTodoActions();
   const { timezone } = useTimezoneContext();
-
-  // Mutate `todos` directly; all groupings derive from it via `grouped` below.
-  const addTodo = (t: Todo) => setTodos((prev) => [...prev, t]);
-  const removeTodo = (id: string) =>
-    setTodos((prev) => prev.filter((t) => t.documentId !== id));
-  const updateTodo = (t: Todo) =>
-    setTodos((prev) =>
-      prev.map((x) => (x.documentId === t.documentId ? t : x))
-    );
-
-  // Project metadata lives on each todo's `project` relation. When a project's
-  // metadata changes, propagate to every todo that references it. Also update
-  // any matching entry in `manualProjects` (empty projects) so the UI reflects
-  // renames even before any todos are added.
-  const updateProject = (updated: Project) => {
-    setTodos((prev) =>
-      prev.map((t) => {
-        const proj = t.project as any;
-        if (proj && proj.documentId === updated.documentId) {
-          return { ...t, project: { ...proj, ...updated } as any };
-        }
-        return t;
-      })
-    );
-    setManualProjects((prev) =>
-      prev.map((p) =>
-        p.documentId === updated.documentId ? updated : p
-      )
-    );
-  };
-
-  useEffect(() => {
-    // Fetch visibility settings first to populate cache before filtering todos
-    const initializeAndFetchTodos = async () => {
-      await fetchVisibilityMinutesFromStrapi();
-      fetchTodos();
-    };
-    initializeAndFetchTodos();
-  }, []);
-
-  // Listen for moon phase reset events
-  useEffect(() => {
-    const handleMoonPhaseReset = () => {
-      fetchTodos(false); // Refresh without loading state
-    };
-    window.addEventListener('moon-phase-reset', handleMoonPhaseReset);
-    return () => window.removeEventListener('moon-phase-reset', handleMoonPhaseReset);
-  }, []);
 
   useEffect(() => {
     if (selectedRulesetId === "done") {
@@ -133,122 +81,6 @@ export default function TodoPage() {
     }
   }, [drawerContent]);
 
-  // Check for new band shows and create todos
-  useEffect(() => {
-    const checkAndCreateShowTodos = async () => {
-      try {
-        const result = await createTodosFromShows();
-
-        if (result.success && result.todosCreated > 0) {
-          console.log(
-            `Created ${result.todosCreated} todos from ${result.showsProcessed} shows`
-          );
-          // Refresh the todo list to show the new todos
-          fetchTodos(false);
-        } else if (!result.success && result.error) {
-          console.error("Failed to create todos from shows:", result.error);
-        }
-      } catch (error) {
-        console.error("Error checking for show todos:", error);
-      }
-    };
-
-    checkAndCreateShowTodos();
-  }, []);
-
-  const fetchTodos = async (showLoading = true) => {
-    try {
-      if (showLoading) {
-        setLoading(true);
-      }
-      const response = await fetch("/api/todos");
-      const result = await response.json();
-
-      if (result.success) {
-        const allTodos: Todo[] = result.data;
-
-        // Filter out long todos that have been worked on today
-        // Filter out completed todos and worked-on todos that are older than visibility window
-        const now = getNowInEST();
-        const visibilityMinutes = getCompletedTaskVisibilityMinutes();
-        const dayBoundaryHour = getDayBoundaryHour();
-        
-        const visibleTodos = allTodos.filter((todo: Todo) => {
-          // If it's a long todo with recent work sessions, use phase-based logic
-          if (todo.long && todo.workSessions && todo.workSessions.length > 0) {
-            // Find the most recent work session
-            const mostRecentSession = todo.workSessions
-              .slice()
-              .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
-            
-            if (mostRecentSession) {
-              const phase = getWorkedOnPhase(
-                mostRecentSession.timestamp,
-                now,
-                visibilityMinutes,
-                dayBoundaryHour
-              );
-              
-              // Hide in Phase 2 only
-              if (phase === 2) {
-                return false;
-              }
-            }
-          }
-          
-          // If it's completed, check if it's within visibility window
-          if (todo.completed && todo.completedAt) {
-            const completedTime = new Date(todo.completedAt);
-            const minutesSinceCompletion = (now.getTime() - completedTime.getTime()) / (1000 * 60);
-            
-            if (minutesSinceCompletion > visibilityMinutes) {
-              // Completed too long ago, don't show in main list
-              return false;
-            }
-          }
-          
-          return true;
-        });
-
-        // Add phase information to todos for CSS class application
-        const todosWithPhaseInfo = visibleTodos.map((todo: Todo) => {
-          if (todo.long && todo.workSessions && todo.workSessions.length > 0) {
-            const mostRecentSession = todo.workSessions
-              .slice()
-              .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
-            
-            if (mostRecentSession) {
-              const phase = getWorkedOnPhase(
-                mostRecentSession.timestamp,
-                now,
-                visibilityMinutes,
-                dayBoundaryHour
-              );
-              
-              return {
-                ...todo,
-                workedOnPhase: phase
-              };
-            }
-          }
-          return todo;
-        });
-
-        setTodos(todosWithPhaseInfo);
-        setManualProjects([]);
-      } else {
-        setError(result.error);
-      }
-    } catch (err) {
-      setError("Failed to fetch todos");
-      console.error("Error fetching todos:", err);
-    } finally {
-      if (showLoading) {
-        setLoading(false);
-      }
-    }
-  };
-
   const fetchCompletedTodos = async (days: number = 30) => {
     try {
       const response = await fetch(`/api/todos/completed?days=${days}`);
@@ -257,8 +89,6 @@ export default function TodoPage() {
       if (result.success) {
         const allCompletedTodos: Todo[] = result.data;
         setCompletedTodos(allCompletedTodos);
-      } else {
-        setError(result.error);
       }
     } catch (err) {
       console.error("Error fetching completed todos:", err);
@@ -274,8 +104,6 @@ export default function TodoPage() {
       if (result.success) {
         const allUpcomingTodos: Todo[] = result.data;
         setUpcomingTodos(allUpcomingTodos);
-      } else {
-        setError(result.error);
       }
     } catch (err) {
       console.error("Error fetching upcoming todos:", err);
@@ -290,8 +118,6 @@ export default function TodoPage() {
 
       if (result.success) {
         setLongTodosWithSessions(result.data);
-      } else {
-        setError(result.error);
       }
     } catch (err) {
       console.error("Error fetching long todos with sessions:", err);
@@ -339,24 +165,6 @@ export default function TodoPage() {
     }
   };
 
-  // Derive all groupings from `todos`. Empty user-created projects are spliced
-  // in from `manualProjects` so they show until the next fetchTodos clears them
-  // (matches prior behavior where empty projects were lost on refresh).
-  const grouped = useMemo(() => {
-    const today = getTodayInEST();
-    const base = groupTodosForLayout(todos, today);
-    if (manualProjects.length > 0) {
-      const existingIds = new Set(base.projects.map((p) => p.documentId));
-      const extras = manualProjects
-        .filter((p) => !existingIds.has(p.documentId))
-        .map((p) => ({ ...p, todos: [] }));
-      if (extras.length > 0) {
-        return { ...base, projects: [...base.projects, ...extras] };
-      }
-    }
-    return base;
-  }, [todos, manualProjects]);
-
   const handleComplete = async (documentId: string) => {
     try {
       // Look up the todo in the active list first; fall back to completedTodos
@@ -395,19 +203,14 @@ export default function TodoPage() {
 
       if (todoIsInActiveList) {
         // Toggle completed/completedAt on the single source of truth.
-        setTodos((prev) =>
-          prev.map((t) =>
-            t.documentId === documentId
-              ? {
-                  ...t,
-                  completed: newCompletedState,
-                  completedAt: newCompletedState
-                    ? getISOTimestampInEST()
-                    : null,
-                }
-              : t
-          )
-        );
+        const currentInActive = todos.find((t) => t.documentId === documentId);
+        if (currentInActive) {
+          updateTodo({
+            ...currentInActive,
+            completed: newCompletedState,
+            completedAt: newCompletedState ? getISOTimestampInEST() : null,
+          });
+        }
       }
 
       // Maintain the separate `completedTodos` list used only by the "done"
@@ -713,7 +516,7 @@ export default function TodoPage() {
             updatedProject.world === "make music" ||
             updatedProject.world === "computer"
           ) {
-            setManualProjects((prev) => [...prev, updatedProject]);
+            addManualProject(updatedProject);
           }
         }
       }
