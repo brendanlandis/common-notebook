@@ -6,13 +6,10 @@ import TodoForm from "./components/TodoForm";
 import ProjectForm from "./components/ProjectForm";
 import LayoutRenderer from "./components/LayoutRenderer";
 import RecentStats from "./components/RecentStats";
-import type { Project, Todo, TodoCategory } from "@/app/types/index";
+import type { Project, Todo } from "@/app/types/index";
 import {
   getTodayInEST,
-  getTodayForRecurrence,
-  parseInEST,
   getISOTimestampInEST,
-  toISODateInEST,
   getNowInEST,
 } from "@/app/lib/dateUtils";
 import { getCompletedTaskVisibilityMinutes, fetchVisibilityMinutesFromStrapi } from "@/app/lib/completedTaskVisibilityConfig";
@@ -21,7 +18,6 @@ import { getDayBoundaryHour } from "@/app/lib/timezoneConfig";
 import {
   transformLayout,
   type RawTodoData,
-  type TodoGroup,
 } from "@/app/lib/layoutTransformers";
 import { groupTodosForLayout } from "@/app/lib/groupTodos";
 import { getPresetById, getDefaultPreset } from "@/app/lib/layoutPresets";
@@ -32,20 +28,12 @@ import FaviconManager from "@/app/components/FaviconManager";
 import { createTodosFromShows } from "@/app/lib/showsTodoCreator";
 
 export default function TodoPage() {
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [categoryGroups, setCategoryGroups] = useState<TodoGroup[]>([]);
-  const [incidentals, setIncidentals] = useState<Todo[]>([]);
-  const [recurringProjects, setRecurringProjects] = useState<Project[]>([]);
-  const [recurringCategoryGroups, setRecurringCategoryGroups] = useState<
-    TodoGroup[]
-  >([]);
-  const [recurringIncidentals, setRecurringIncidentals] = useState<Todo[]>([]);
-  // Unfiltered recurring data (includes tasks that haven't reached displayDate yet)
-  const [allRecurringProjects, setAllRecurringProjects] = useState<Project[]>([]);
-  const [allRecurringCategoryGroups, setAllRecurringCategoryGroups] = useState<
-    TodoGroup[]
-  >([]);
-  const [allRecurringIncidentals, setAllRecurringIncidentals] = useState<Todo[]>([]);
+  // Single source of truth for active (non-completed) todos. All groupings are
+  // derived from this via `grouped` (useMemo on groupTodosForLayout).
+  const [todos, setTodos] = useState<Todo[]>([]);
+  // Empty projects the user has just created (no todos yet). Cleared on every
+  // fetchTodos so behavior matches the prior implementation.
+  const [manualProjects, setManualProjects] = useState<Project[]>([]);
   const [completedTodos, setCompletedTodos] = useState<Todo[]>([]);
   const [upcomingTodos, setUpcomingTodos] = useState<Todo[]>([]);
   const [longTodosWithSessions, setLongTodosWithSessions] = useState<Todo[]>(
@@ -71,300 +59,32 @@ export default function TodoPage() {
     useTodoActions();
   const { timezone } = useTimezoneContext();
 
-  // Helper function to determine world from category
-  const getTodoWorldFromCategory = (category: TodoCategory | null): string => {
-    if (!category) return "life stuff";
-    if (category === "home chores" || category === "life chores") return "life stuff";
-    if (category === "studio chores" || category === "band chores") return "music admin";
-    if (category === "work chores") return "day job";
-    if (category === "web chores" || category === "data chores" || category === "computer chores") return "computer";
-    return "life stuff";
-  };
+  // Mutate `todos` directly; all groupings derive from it via `grouped` below.
+  const addTodo = (t: Todo) => setTodos((prev) => [...prev, t]);
+  const removeTodo = (id: string) =>
+    setTodos((prev) => prev.filter((t) => t.documentId !== id));
+  const updateTodo = (t: Todo) =>
+    setTodos((prev) =>
+      prev.map((x) => (x.documentId === t.documentId ? t : x))
+    );
 
-  // Helper to check if a state change requires full reorganization
-  const hasComplexStateChange = (oldTodo: Todo, newTodo: Todo): boolean => {
-    return (
-      oldTodo.isRecurring !== newTodo.isRecurring ||
-      oldTodo.project?.documentId !== newTodo.project?.documentId ||
-      oldTodo.category !== newTodo.category ||
-      oldTodo.displayDate !== newTodo.displayDate
+  // Project metadata lives on each todo's `project` relation. When a project's
+  // metadata changes, propagate to every todo that references it. Also update
+  // any matching entry in `manualProjects` (empty projects) so the UI reflects
+  // renames even before any todos are added.
+  const updateProject = (updated: Project) => {
+    setTodos((prev) =>
+      prev.map((t) => {
+        const proj = t.project as any;
+        if (proj && proj.documentId === updated.documentId) {
+          return { ...t, project: { ...proj, ...updated } as any };
+        }
+        return t;
+      })
     );
-  };
-
-  // Add a todo to the appropriate state arrays
-  const addTodoToState = (todo: Todo) => {
-    const today = getTodayInEST();
-    
-    // Determine if this is a recurring todo that should be visible
-    const isVisibleRecurring = todo.isRecurring && (
-      !todo.displayDate || parseInEST(todo.displayDate) <= today
-    );
-    
-    if (todo.project) {
-      const project = todo.project as any;
-      
-      if (todo.isRecurring) {
-        // Add to recurring projects
-        setRecurringProjects((prev) => {
-          const existing = prev.find((p) => p.documentId === project.documentId);
-          if (existing) {
-            return prev.map((p) =>
-              p.documentId === project.documentId
-                ? { ...p, todos: [...(p.todos || []), todo] }
-                : p
-            );
-          }
-          return [...prev, { ...project, todos: [todo] }];
-        });
-        
-        // Also add to allRecurringProjects
-        setAllRecurringProjects((prev) => {
-          const existing = prev.find((p) => p.documentId === project.documentId);
-          if (existing) {
-            return prev.map((p) =>
-              p.documentId === project.documentId
-                ? { ...p, todos: [...(p.todos || []), todo] }
-                : p
-            );
-          }
-          return [...prev, { ...project, todos: [todo] }];
-        });
-      } else {
-        // Add to non-recurring projects
-        setProjects((prev) => {
-          const existing = prev.find((p) => p.documentId === project.documentId);
-          if (existing) {
-            return prev.map((p) =>
-              p.documentId === project.documentId
-                ? { ...p, todos: [...(p.todos || []), todo] }
-                : p
-            );
-          }
-          return [...prev, { ...project, todos: [todo] }];
-        });
-      }
-    } else if (todo.category) {
-      if (todo.isRecurring) {
-        // Add to recurring category groups
-        setRecurringCategoryGroups((prev) => {
-          const existing = prev.find((g) => g.title === todo.category);
-          if (existing) {
-            return prev.map((g) =>
-              g.title === todo.category ? { ...g, todos: [...g.todos, todo] } : g
-            );
-          }
-          return [...prev, { title: todo.category!, todos: [todo] }];
-        });
-        
-        // Also add to allRecurringCategoryGroups
-        setAllRecurringCategoryGroups((prev) => {
-          const existing = prev.find((g) => g.title === todo.category);
-          if (existing) {
-            return prev.map((g) =>
-              g.title === todo.category ? { ...g, todos: [...g.todos, todo] } : g
-            );
-          }
-          return [...prev, { title: todo.category!, todos: [todo] }];
-        });
-      } else {
-        // Add to non-recurring category groups
-        setCategoryGroups((prev) => {
-          const existing = prev.find((g) => g.title === todo.category);
-          if (existing) {
-            return prev.map((g) =>
-              g.title === todo.category ? { ...g, todos: [...g.todos, todo] } : g
-            );
-          }
-          return [...prev, { title: todo.category!, todos: [todo] }];
-        });
-      }
-    } else {
-      // Add to incidentals
-      if (todo.isRecurring) {
-        setRecurringIncidentals((prev) => [...prev, todo]);
-        setAllRecurringIncidentals((prev) => [...prev, todo]);
-      } else {
-        setIncidentals((prev) => [...prev, todo]);
-      }
-    }
-  };
-
-  // Remove a todo from all state arrays
-  const removeTodoFromState = (todo: Todo) => {
-    const documentId = todo.documentId;
-    
-    // Remove from projects
-    setProjects((prev) =>
-      prev
-        .map((project) => ({
-          ...project,
-          todos: project.todos?.filter((t) => t.documentId !== documentId) || [],
-        }))
-        .filter((project) => (project.todos?.length || 0) > 0)
-    );
-    
-    setRecurringProjects((prev) =>
-      prev
-        .map((project) => ({
-          ...project,
-          todos: project.todos?.filter((t) => t.documentId !== documentId) || [],
-        }))
-        .filter((project) => (project.todos?.length || 0) > 0)
-    );
-    
-    setAllRecurringProjects((prev) =>
-      prev
-        .map((project) => ({
-          ...project,
-          todos: project.todos?.filter((t) => t.documentId !== documentId) || [],
-        }))
-        .filter((project) => (project.todos?.length || 0) > 0)
-    );
-    
-    // Remove from category groups
-    setCategoryGroups((prev) =>
-      prev
-        .map((group) => ({
-          ...group,
-          todos: group.todos.filter((t) => t.documentId !== documentId),
-        }))
-        .filter((group) => group.todos.length > 0)
-    );
-    
-    setRecurringCategoryGroups((prev) =>
-      prev
-        .map((group) => ({
-          ...group,
-          todos: group.todos.filter((t) => t.documentId !== documentId),
-        }))
-        .filter((group) => group.todos.length > 0)
-    );
-    
-    setAllRecurringCategoryGroups((prev) =>
-      prev
-        .map((group) => ({
-          ...group,
-          todos: group.todos.filter((t) => t.documentId !== documentId),
-        }))
-        .filter((group) => group.todos.length > 0)
-    );
-    
-    // Remove from incidentals
-    setIncidentals((prev) => prev.filter((t) => t.documentId !== documentId));
-    setRecurringIncidentals((prev) => prev.filter((t) => t.documentId !== documentId));
-    setAllRecurringIncidentals((prev) => prev.filter((t) => t.documentId !== documentId));
-  };
-
-  // Update a todo in place (without moving between arrays)
-  const updateTodoInPlace = (updatedTodo: Todo) => {
-    const documentId = updatedTodo.documentId;
-    
-    // Update in projects
-    setProjects((prev) =>
-      prev.map((project) => ({
-        ...project,
-        todos: project.todos?.map((t) =>
-          t.documentId === documentId ? updatedTodo : t
-        ) || [],
-      }))
-    );
-    
-    setRecurringProjects((prev) =>
-      prev.map((project) => ({
-        ...project,
-        todos: project.todos?.map((t) =>
-          t.documentId === documentId ? updatedTodo : t
-        ) || [],
-      }))
-    );
-    
-    setAllRecurringProjects((prev) =>
-      prev.map((project) => ({
-        ...project,
-        todos: project.todos?.map((t) =>
-          t.documentId === documentId ? updatedTodo : t
-        ) || [],
-      }))
-    );
-    
-    // Update in category groups
-    setCategoryGroups((prev) =>
-      prev.map((group) => ({
-        ...group,
-        todos: group.todos.map((t) =>
-          t.documentId === documentId ? updatedTodo : t
-        ),
-      }))
-    );
-    
-    setRecurringCategoryGroups((prev) =>
-      prev.map((group) => ({
-        ...group,
-        todos: group.todos.map((t) =>
-          t.documentId === documentId ? updatedTodo : t
-        ),
-      }))
-    );
-    
-    setAllRecurringCategoryGroups((prev) =>
-      prev.map((group) => ({
-        ...group,
-        todos: group.todos.map((t) =>
-          t.documentId === documentId ? updatedTodo : t
-        ),
-      }))
-    );
-    
-    // Update in incidentals
-    setIncidentals((prev) =>
-      prev.map((t) => (t.documentId === documentId ? updatedTodo : t))
-    );
-    setRecurringIncidentals((prev) =>
-      prev.map((t) => (t.documentId === documentId ? updatedTodo : t))
-    );
-    setAllRecurringIncidentals((prev) =>
-      prev.map((t) => (t.documentId === documentId ? updatedTodo : t))
-    );
-  };
-
-  // Smart update orchestration
-  const updateTodoInState = (updatedTodo: Todo, originalTodo?: Todo) => {
-    if (originalTodo && hasComplexStateChange(originalTodo, updatedTodo)) {
-      // Remove from old location, add to new location
-      removeTodoFromState(originalTodo);
-      addTodoToState(updatedTodo);
-    } else if (originalTodo) {
-      // Simple in-place update
-      updateTodoInPlace(updatedTodo);
-    } else {
-      // New todo - add to appropriate state array
-      addTodoToState(updatedTodo);
-    }
-  };
-
-  // Update project metadata in state
-  const updateProjectInState = (updatedProject: Project) => {
-    setProjects((prev) =>
+    setManualProjects((prev) =>
       prev.map((p) =>
-        p.documentId === updatedProject.documentId
-          ? { ...updatedProject, todos: p.todos }
-          : p
-      )
-    );
-    
-    setRecurringProjects((prev) =>
-      prev.map((p) =>
-        p.documentId === updatedProject.documentId
-          ? { ...updatedProject, todos: p.todos }
-          : p
-      )
-    );
-    
-    setAllRecurringProjects((prev) =>
-      prev.map((p) =>
-        p.documentId === updatedProject.documentId
-          ? { ...updatedProject, todos: p.todos }
-          : p
+        p.documentId === updated.documentId ? updated : p
       )
     );
   };
@@ -449,7 +169,6 @@ export default function TodoPage() {
 
         // Filter out long todos that have been worked on today
         // Filter out completed todos and worked-on todos that are older than visibility window
-        const today = getTodayInEST();
         const now = getNowInEST();
         const visibilityMinutes = getCompletedTaskVisibilityMinutes();
         const dayBoundaryHour = getDayBoundaryHour();
@@ -515,16 +234,8 @@ export default function TodoPage() {
           return todo;
         });
 
-        const grouped = groupTodosForLayout(todosWithPhaseInfo, today);
-        setProjects(grouped.projects);
-        setCategoryGroups(grouped.categoryGroups);
-        setIncidentals(grouped.incidentals);
-        setRecurringProjects(grouped.recurringProjects);
-        setRecurringCategoryGroups(grouped.recurringCategoryGroups);
-        setRecurringIncidentals(grouped.recurringIncidentals);
-        setAllRecurringProjects(grouped.allRecurringProjects);
-        setAllRecurringCategoryGroups(grouped.allRecurringCategoryGroups);
-        setAllRecurringIncidentals(grouped.allRecurringIncidentals);
+        setTodos(todosWithPhaseInfo);
+        setManualProjects([]);
       } else {
         setError(result.error);
       }
@@ -628,34 +339,31 @@ export default function TodoPage() {
     }
   };
 
+  // Derive all groupings from `todos`. Empty user-created projects are spliced
+  // in from `manualProjects` so they show until the next fetchTodos clears them
+  // (matches prior behavior where empty projects were lost on refresh).
+  const grouped = useMemo(() => {
+    const today = getTodayInEST();
+    const base = groupTodosForLayout(todos, today);
+    if (manualProjects.length > 0) {
+      const existingIds = new Set(base.projects.map((p) => p.documentId));
+      const extras = manualProjects
+        .filter((p) => !existingIds.has(p.documentId))
+        .map((p) => ({ ...p, todos: [] }));
+      if (extras.length > 0) {
+        return { ...base, projects: [...base.projects, ...extras] };
+      }
+    }
+    return base;
+  }, [todos, manualProjects]);
+
   const handleComplete = async (documentId: string) => {
     try {
-      // Find the todo to check its current completed state
-      let currentTodo: Todo | undefined;
-
-      // Search through all state arrays to find the todo
-      for (const project of [...projects, ...recurringProjects]) {
-        currentTodo = project.todos?.find((t) => t.documentId === documentId);
-        if (currentTodo) break;
-      }
-
-      if (!currentTodo) {
-        for (const group of [...categoryGroups, ...recurringCategoryGroups]) {
-          currentTodo = group.todos.find((t) => t.documentId === documentId);
-          if (currentTodo) break;
-        }
-      }
-
-      if (!currentTodo) {
-        currentTodo = [...incidentals, ...recurringIncidentals].find(
-          (t) => t.documentId === documentId
-        );
-      }
-
-      // Also check completedTodos (for "done" layout)
-      if (!currentTodo) {
-        currentTodo = completedTodos.find((t) => t.documentId === documentId);
-      }
+      // Look up the todo in the active list first; fall back to completedTodos
+      // (which is populated only in "done"/"invoicing" views).
+      const currentTodo =
+        todos.find((t) => t.documentId === documentId) ||
+        completedTodos.find((t) => t.documentId === documentId);
 
       if (!currentTodo) {
         console.error("Todo not found");
@@ -664,265 +372,79 @@ export default function TodoPage() {
 
       const isCurrentlyCompleted = currentTodo.completed;
       let response;
-      let result;
+      let result: any;
 
       if (isCurrentlyCompleted) {
-        // Un-complete the todo
         response = await fetch(`/api/todos/${documentId}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            completed: false,
-            completedAt: null,
-          }),
+          body: JSON.stringify({ completed: false, completedAt: null }),
         });
-
-        if (response.ok) {
-          result = await response.json();
-        }
+        if (response.ok) result = await response.json();
       } else {
-        // Complete the todo
         response = await fetch(`/api/todos/${documentId}/complete`, {
           method: "POST",
         });
-
-        if (response.ok) {
-          result = await response.json();
-        }
+        if (response.ok) result = await response.json();
       }
 
-      if (response.ok) {
-        // Optimistically update local state instead of re-fetching everything
-        // Toggle the completed state
-        const newCompletedState = !isCurrentlyCompleted;
+      if (!response.ok) return;
 
-        setProjects((prev) =>
-          prev.map((project) => ({
-            ...project,
-            todos:
-              project.todos?.map((t) =>
-                t.documentId === documentId
-                  ? { ...t, completed: newCompletedState }
-                  : t
-              ) || [],
-          }))
-        );
+      const newCompletedState = !isCurrentlyCompleted;
+      const todoIsInActiveList = todos.some((t) => t.documentId === documentId);
 
-        setCategoryGroups((prev) =>
-          prev.map((group) => ({
-            ...group,
-            todos: group.todos.map((t) =>
-              t.documentId === documentId
-                ? { ...t, completed: newCompletedState }
-                : t
-            ),
-          }))
-        );
-
-        setIncidentals((prev) =>
+      if (todoIsInActiveList) {
+        // Toggle completed/completedAt on the single source of truth.
+        setTodos((prev) =>
           prev.map((t) =>
             t.documentId === documentId
-              ? { ...t, completed: newCompletedState }
+              ? {
+                  ...t,
+                  completed: newCompletedState,
+                  completedAt: newCompletedState
+                    ? getISOTimestampInEST()
+                    : null,
+                }
               : t
           )
         );
+      }
 
-        setRecurringProjects((prev) =>
-          prev.map((project) => ({
-            ...project,
-            todos:
-              project.todos?.map((t) =>
-                t.documentId === documentId
-                  ? { ...t, completed: newCompletedState }
-                  : t
-              ) || [],
-          }))
+      // Maintain the separate `completedTodos` list used only by the "done"
+      // and "invoicing" views.
+      if (isCurrentlyCompleted) {
+        // Uncompleting: drop from completedTodos.
+        setCompletedTodos((prev) =>
+          prev.filter((t) => t.documentId !== documentId)
         );
-
-        setRecurringCategoryGroups((prev) =>
-          prev.map((group) => ({
-            ...group,
-            todos: group.todos.map((t) =>
-              t.documentId === documentId
-                ? { ...t, completed: newCompletedState }
-                : t
-            ),
-          }))
-        );
-
-        setRecurringIncidentals((prev) =>
-          prev.map((t) =>
-            t.documentId === documentId
-              ? { ...t, completed: newCompletedState }
-              : t
-          )
-        );
-
-        // Handle completedTodos state
-        if (isCurrentlyCompleted) {
-          // Uncompleting: remove from completedTodos
-          setCompletedTodos((prev) =>
-            prev.filter((t) => t.documentId !== documentId)
-          );
-
-          // Only add back to regular state if we're in the "done" or "invoicing" view
-          // (meaning the todo was ONLY in completedTodos, not in regular arrays)
-          const todoWasOnlyInCompletedTodos = selectedRulesetId === "done" || selectedRulesetId === "invoicing";
-
-          if (todoWasOnlyInCompletedTodos) {
-            // Use the updated todo from API response, or fall back to currentTodo
-            const uncompletedTodo = result.data || {
-              ...currentTodo,
-              completed: false,
-              completedAt: null,
-            };
-
-            if (uncompletedTodo.isRecurring) {
-              // Handle recurring todo
-              if (uncompletedTodo.project) {
-                const project = uncompletedTodo.project as any;
-                setRecurringProjects((prev) => {
-                  const existingProject = prev.find(
-                    (p) => p.documentId === project.documentId
-                  );
-                  if (existingProject) {
-                    return prev.map((p) =>
-                      p.documentId === project.documentId
-                        ? { ...p, todos: [...(p.todos || []), uncompletedTodo] }
-                        : p
-                    );
-                  } else {
-                    return [...prev, { ...project, todos: [uncompletedTodo] }];
-                  }
-                });
-              } else if (uncompletedTodo.category) {
-                setRecurringCategoryGroups((prev) => {
-                  const existingGroup = prev.find(
-                    (g) => g.title === uncompletedTodo.category
-                  );
-                  if (existingGroup) {
-                    return prev.map((g) =>
-                      g.title === uncompletedTodo.category
-                        ? { ...g, todos: [...g.todos, uncompletedTodo] }
-                        : g
-                    );
-                  } else {
-                    return [
-                      ...prev,
-                      {
-                        title: uncompletedTodo.category,
-                        todos: [uncompletedTodo],
-                      },
-                    ];
-                  }
-                });
-              } else {
-                setRecurringIncidentals((prev) => [...prev, uncompletedTodo]);
-              }
-            } else {
-              // Handle non-recurring todo
-              if (uncompletedTodo.project) {
-                const project = uncompletedTodo.project as any;
-                setProjects((prev) => {
-                  const existingProject = prev.find(
-                    (p) => p.documentId === project.documentId
-                  );
-                  if (existingProject) {
-                    return prev.map((p) =>
-                      p.documentId === project.documentId
-                        ? { ...p, todos: [...(p.todos || []), uncompletedTodo] }
-                        : p
-                    );
-                  } else {
-                    return [...prev, { ...project, todos: [uncompletedTodo] }];
-                  }
-                });
-              } else if (uncompletedTodo.category) {
-                setCategoryGroups((prev) => {
-                  const existingGroup = prev.find(
-                    (g) => g.title === uncompletedTodo.category
-                  );
-                  if (existingGroup) {
-                    return prev.map((g) =>
-                      g.title === uncompletedTodo.category
-                        ? { ...g, todos: [...g.todos, uncompletedTodo] }
-                        : g
-                    );
-                  } else {
-                    return [
-                      ...prev,
-                      {
-                        title: uncompletedTodo.category,
-                        todos: [uncompletedTodo],
-                      },
-                    ];
-                  }
-                });
-              } else {
-                setIncidentals((prev) => [...prev, uncompletedTodo]);
-              }
-            }
-          }
-        } else if (selectedRulesetId === "done" || selectedRulesetId === "invoicing") {
-          // Completing and in "done"/"invoicing" layout: add to completedTodos
-          // The complete endpoint doesn't return the completed todo, so use currentTodo with updated fields
-          const completedTodo = {
+        // If the todo was visible only in completedTodos (not in active
+        // todos), splice it back into the active list so it appears once the
+        // user switches views.
+        if (!todoIsInActiveList) {
+          const uncompletedTodo: Todo = result?.data || {
             ...currentTodo,
-            completed: true,
-            completedAt: getISOTimestampInEST(),
+            completed: false,
+            completedAt: null,
           };
-          setCompletedTodos((prev) => [completedTodo, ...prev]);
+          addTodo(uncompletedTodo);
         }
+      } else if (
+        selectedRulesetId === "done" ||
+        selectedRulesetId === "invoicing"
+      ) {
+        // Completing while viewing "done"/"invoicing": add to completedTodos
+        // so it appears in the completed list immediately.
+        const completedTodo: Todo = {
+          ...currentTodo,
+          completed: true,
+          completedAt: getISOTimestampInEST(),
+        };
+        setCompletedTodos((prev) => [completedTodo, ...prev]);
+      }
 
-        // If a new recurring todo was created, add to list if appropriate
-        if (result.newTodo) {
-          const newTodo = result.newTodo;
-
-          // Check if the new todo should be shown yet (same logic as initial fetch)
-          const shouldShow =
-            !newTodo.displayDate ||
-            parseInEST(newTodo.displayDate) <= getTodayInEST();
-
-          if (shouldShow) {
-            if (newTodo.project) {
-              const project = newTodo.project as any;
-              setRecurringProjects((prev) => {
-                const existingProject = prev.find(
-                  (p) => p.documentId === project.documentId
-                );
-                if (existingProject) {
-                  return prev.map((p) =>
-                    p.documentId === project.documentId
-                      ? { ...p, todos: [...(p.todos || []), newTodo] }
-                      : p
-                  );
-                } else {
-                  return [...prev, { ...project, todos: [newTodo] }];
-                }
-              });
-            } else if (newTodo.category) {
-              setRecurringCategoryGroups((prev) => {
-                const existingGroup = prev.find(
-                  (g) => g.title === newTodo.category
-                );
-                if (existingGroup) {
-                  return prev.map((g) =>
-                    g.title === newTodo.category
-                      ? { ...g, todos: [...g.todos, newTodo] }
-                      : g
-                  );
-                } else {
-                  return [
-                    ...prev,
-                    { title: newTodo.category, todos: [newTodo] },
-                  ];
-                }
-              });
-            } else {
-              setRecurringIncidentals((prev) => [...prev, newTodo]);
-            }
-          }
-        }
+      // If completing a recurring todo created the next occurrence, add it.
+      if (result?.newTodo) {
+        addTodo(result.newTodo);
       }
     } catch (err) {
       console.error("Error completing todo:", err);
@@ -970,8 +492,7 @@ export default function TodoPage() {
     if (!confirm("Are you sure you want to delete this todo?")) return;
 
     try {
-      // Check if this is a "worked on" virtual entry
-      // Pattern: originalDocumentId-worked-YYYY-MM-DD
+      // Pattern: originalDocumentId-worked-YYYY-MM-DD (a "worked on" virtual entry)
       const workedOnMatch = documentId.match(
         /^(.+)-worked-(\d{4}-\d{2}-\d{2})$/
       );
@@ -982,63 +503,8 @@ export default function TodoPage() {
       });
 
       if (response.ok) {
-        // Optimistically update local state instead of re-fetching everything
-        // Remove from all state arrays
-        setProjects((prev) =>
-          prev
-            .map((project) => ({
-              ...project,
-              todos:
-                project.todos?.filter(
-                  (t) => t.documentId !== actualDocumentId
-                ) || [],
-            }))
-            .filter((project) => (project.todos?.length || 0) > 0)
-        );
+        removeTodo(actualDocumentId);
 
-        setCategoryGroups((prev) =>
-          prev
-            .map((group) => ({
-              ...group,
-              todos: group.todos.filter(
-                (t) => t.documentId !== actualDocumentId
-              ),
-            }))
-            .filter((group) => group.todos.length > 0)
-        );
-
-        setIncidentals((prev) =>
-          prev.filter((t) => t.documentId !== actualDocumentId)
-        );
-
-        setRecurringProjects((prev) =>
-          prev
-            .map((project) => ({
-              ...project,
-              todos:
-                project.todos?.filter(
-                  (t) => t.documentId !== actualDocumentId
-                ) || [],
-            }))
-            .filter((project) => (project.todos?.length || 0) > 0)
-        );
-
-        setRecurringCategoryGroups((prev) =>
-          prev
-            .map((group) => ({
-              ...group,
-              todos: group.todos.filter(
-                (t) => t.documentId !== actualDocumentId
-              ),
-            }))
-            .filter((group) => group.todos.length > 0)
-        );
-
-        setRecurringIncidentals((prev) =>
-          prev.filter((t) => t.documentId !== actualDocumentId)
-        );
-
-        // If in "done" or "invoicing" view, also update the completed, upcoming, and long todos state
         if (selectedRulesetId === "done" || selectedRulesetId === "invoicing") {
           setCompletedTodos((prev) =>
             prev.filter((t) => t.documentId !== actualDocumentId)
@@ -1123,39 +589,14 @@ export default function TodoPage() {
 
   const handleSkipRecurring = async (documentId: string) => {
     try {
-      // Skip logic is now simple: call the API which handles everything
       const response = await fetch(`/api/todos/${documentId}/skip`, {
         method: "POST",
       });
 
       if (response.ok) {
-        const result = await response.json();
-        
-        // Remove the skipped todo from visible state
-        setRecurringProjects((prev) =>
-          prev
-            .map((project) => ({
-              ...project,
-              todos:
-                project.todos?.filter((t) => t.documentId !== documentId) || [],
-            }))
-            .filter((project) => (project.todos?.length || 0) > 0)
-        );
-
-        setRecurringCategoryGroups((prev) =>
-          prev
-            .map((group) => ({
-              ...group,
-              todos: group.todos.filter((t) => t.documentId !== documentId),
-            }))
-            .filter((group) => group.todos.length > 0)
-        );
-
-        setRecurringIncidentals((prev) =>
-          prev.filter((t) => t.documentId !== documentId)
-        );
-        
-        // The new todo will appear when its displayDate arrives (on page refresh)
+        // The skipped occurrence is gone; the new occurrence will appear on
+        // the next fetchTodos when its displayDate arrives.
+        removeTodo(documentId);
       }
     } catch (err) {
       console.error("Error skipping recurring todo:", err);
@@ -1185,14 +626,15 @@ export default function TodoPage() {
 
       if (response.ok) {
         const result = await response.json();
-        const updatedTodo = result.data;
+        const updatedTodo: Todo = result.data;
 
-        // Check if the todo being edited is in completedTodos (from "done" layout)
+        // The todo may live in the "done" view's separate state arrays. Update
+        // those directly so the user sees their edit reflected there too.
         const isInCompletedTodos =
           wasEditingTodo &&
-          completedTodos.some((t) => t.documentId === wasEditingTodo.documentId);
-
-        // Check if the todo being edited is in longTodosWithSessions (from "done" layout)
+          completedTodos.some(
+            (t) => t.documentId === wasEditingTodo.documentId
+          );
         const isInLongTodos =
           wasEditingTodo &&
           longTodosWithSessions.some(
@@ -1200,7 +642,6 @@ export default function TodoPage() {
           );
 
         if (isInCompletedTodos && updatedTodo) {
-          // Update completedTodos state directly
           setCompletedTodos((prev) =>
             prev.map((t) =>
               t.documentId === wasEditingTodo.documentId ? updatedTodo : t
@@ -1209,7 +650,6 @@ export default function TodoPage() {
         }
 
         if (isInLongTodos && updatedTodo) {
-          // Update longTodosWithSessions state directly
           setLongTodosWithSessions((prev) =>
             prev.map((t) =>
               t.documentId === wasEditingTodo.documentId ? updatedTodo : t
@@ -1218,23 +658,10 @@ export default function TodoPage() {
         }
 
         if (!isInCompletedTodos && !isInLongTodos) {
-          // Check if this change requires full refresh
-          const needsFullRefresh = 
-            // New recurring todo was created (from completion)
-            (result.newTodo && result.newTodo.isRecurring) ||
-            // displayDate changed (affects visibility)
-            (wasEditingTodo && wasEditingTodo.displayDate !== updatedTodo.displayDate) ||
-            // Recurring status changed
-            (wasEditingTodo && wasEditingTodo.isRecurring !== updatedTodo.isRecurring) ||
-            // Complex project/category/world change
-            (wasEditingTodo && hasComplexStateChange(wasEditingTodo, updatedTodo));
-
-          if (needsFullRefresh) {
-            // Refresh without showing loading state
-            await fetchTodos(false);
+          if (wasEditingTodo) {
+            updateTodo(updatedTodo);
           } else {
-            // Smart update - just update the specific todo in state
-            updateTodoInState(updatedTodo, wasEditingTodo || undefined);
+            addTodo(updatedTodo);
           }
         }
       }
@@ -1271,28 +698,22 @@ export default function TodoPage() {
 
       if (response.ok) {
         const result = await response.json();
-        const updatedProject = result.data;
+        const updatedProject: Project = result.data;
 
-        // Check if project's importance or world changed (affects layout placement)
-        const needsFullRefresh = 
-          wasEditingProject && (
-            wasEditingProject.importance !== updatedProject.importance ||
-            wasEditingProject.world !== updatedProject.world
-          );
-
-        if (needsFullRefresh) {
-          // Full refresh needed because layout placement changed
-          await fetchTodos(false);
-        } else if (wasEditingProject) {
-          // Just update project metadata (title, description)
-          updateProjectInState(updatedProject);
+        if (wasEditingProject) {
+          // Propagate metadata to every todo that references this project; the
+          // grouping useMemo will recompute layout placement automatically.
+          updateProject(updatedProject);
         } else {
-          // New project created - add empty project to state
-          if (updatedProject.world === "life stuff" || 
-              updatedProject.world === "music admin" || 
-              updatedProject.world === "make music" || 
-              updatedProject.world === "computer") {
-            setProjects((prev) => [...prev, { ...updatedProject, todos: [] }]);
+          // New project created with no todos yet. Show it in the layout
+          // until the next fetchTodos clears the manualProjects overlay.
+          if (
+            updatedProject.world === "life stuff" ||
+            updatedProject.world === "music admin" ||
+            updatedProject.world === "make music" ||
+            updatedProject.world === "computer"
+          ) {
+            setManualProjects((prev) => [...prev, updatedProject]);
           }
         }
       }
@@ -1309,33 +730,35 @@ export default function TodoPage() {
   // Transform layout using selected ruleset
   const transformedData = useMemo(() => {
     const ruleset = getPresetById(selectedRulesetId) || getDefaultPreset();
-    // Use unfiltered recurring data for the recurring-review view
     const useUnfilteredRecurring = selectedRulesetId === "recurring";
     const rawData: RawTodoData = {
-      projects,
-      categoryGroups,
-      incidentals,
-      recurringProjects: useUnfilteredRecurring ? allRecurringProjects : recurringProjects,
-      recurringCategoryGroups: useUnfilteredRecurring ? allRecurringCategoryGroups : recurringCategoryGroups,
-      recurringIncidentals: useUnfilteredRecurring ? allRecurringIncidentals : recurringIncidentals,
-      completedTodos: (selectedRulesetId === "done" || selectedRulesetId === "invoicing") ? completedTodos : undefined,
-      upcomingTodos: selectedRulesetId === "done" ? upcomingTodos : undefined,
+      projects: grouped.projects,
+      categoryGroups: grouped.categoryGroups,
+      incidentals: grouped.incidentals,
+      recurringProjects: useUnfilteredRecurring
+        ? grouped.allRecurringProjects
+        : grouped.recurringProjects,
+      recurringCategoryGroups: useUnfilteredRecurring
+        ? grouped.allRecurringCategoryGroups
+        : grouped.recurringCategoryGroups,
+      recurringIncidentals: useUnfilteredRecurring
+        ? grouped.allRecurringIncidentals
+        : grouped.recurringIncidentals,
+      completedTodos:
+        selectedRulesetId === "done" || selectedRulesetId === "invoicing"
+          ? completedTodos
+          : undefined,
+      upcomingTodos:
+        selectedRulesetId === "done" ? upcomingTodos : undefined,
       longTodosWithSessions:
-        (selectedRulesetId === "done" || selectedRulesetId === "invoicing") ? longTodosWithSessions : undefined,
+        selectedRulesetId === "done" || selectedRulesetId === "invoicing"
+          ? longTodosWithSessions
+          : undefined,
     };
-    const result = transformLayout(rawData, ruleset);
-    return result;
+    return transformLayout(rawData, ruleset);
   }, [
     selectedRulesetId,
-    projects,
-    categoryGroups,
-    incidentals,
-    recurringProjects,
-    recurringCategoryGroups,
-    allRecurringProjects,
-    allRecurringCategoryGroups,
-    allRecurringIncidentals,
-    recurringIncidentals,
+    grouped,
     completedTodos,
     upcomingTodos,
     longTodosWithSessions,
@@ -1361,11 +784,13 @@ export default function TodoPage() {
   }
 
   const hasAnyTodos =
-    projects.length > 0 || categoryGroups.length > 0 || incidentals.length > 0;
+    grouped.projects.length > 0 ||
+    grouped.categoryGroups.length > 0 ||
+    grouped.incidentals.length > 0;
   const hasRecurringTodos =
-    recurringProjects.length > 0 ||
-    recurringCategoryGroups.length > 0 ||
-    recurringIncidentals.length > 0;
+    grouped.recurringProjects.length > 0 ||
+    grouped.recurringCategoryGroups.length > 0 ||
+    grouped.recurringIncidentals.length > 0;
   const hasCompletedTodos = completedTodos.length > 0;
 
   return (
