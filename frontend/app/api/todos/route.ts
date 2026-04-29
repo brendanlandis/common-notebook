@@ -201,7 +201,7 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json();
 
-    const response = await fetch(`${STRAPI_API_URL}/api/todos`, {
+    const response = await fetch(`${STRAPI_API_URL}/api/todos?populate=project`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

@@ -110,26 +110,13 @@ interface TodoFormProps {
 }
 
 export default function TodoForm({ todo, onSubmit, onCancel }: TodoFormProps) {
-  const [isRecurring, setIsRecurring] = useState(todo?.isRecurring || false);
   const [recurrenceType, setRecurrenceType] = useState<RecurrenceType>(
     todo?.recurrenceType || "none"
-  );
-  const [selectedProject, setSelectedProject] = useState<string | null>(
-    (todo?.project as any)?.documentId || null
-  );
-  const [selectedCategory, setSelectedCategory] = useState<TodoCategory | null>(
-    todo?.category || null
   );
   const [description, setDescription] = useState<StrapiBlock[]>(
     todo?.description || []
   );
 
-  // Compute unified value for ProjectSelector (handles both projects and categories)
-  const unifiedValue = selectedProject
-    ? selectedProject
-    : selectedCategory
-    ? `category:${selectedCategory}`
-    : null;
   const [selectedMonth, setSelectedMonth] = useState<number>(
     todo?.recurrenceMonth || 1
   );
@@ -167,6 +154,7 @@ export default function TodoForm({ todo, onSubmit, onCancel }: TodoFormProps) {
     register,
     handleSubmit,
     setValue,
+    watch,
     formState: { errors },
   } = useForm<TodoFormInputs>({
     resolver: zodResolver(schema),
@@ -194,6 +182,16 @@ export default function TodoForm({ todo, onSubmit, onCancel }: TodoFormProps) {
       long: todo?.long || false,
     },
   });
+
+  // Single source of truth: react-hook-form. Watch the fields the UI conditions on.
+  const selectedProject = watch("projectDocumentId");
+  const selectedCategory = watch("category") as TodoCategory | null;
+  const isRecurring = watch("isRecurring");
+  const unifiedValue = selectedProject
+    ? selectedProject
+    : selectedCategory
+    ? `category:${selectedCategory}`
+    : null;
 
   // Fetch wishlist category suggestions when category is "wishlist"
   useEffect(() => {
@@ -361,27 +359,16 @@ export default function TodoForm({ todo, onSubmit, onCancel }: TodoFormProps) {
           value={unifiedValue}
           onChange={(value) => {
             if (value?.startsWith("category:")) {
-              // It's a category
               const category = value.replace("category:", "") as TodoCategory;
-              setSelectedCategory(category);
-              setSelectedProject(null);
               setValue("category", category);
               setValue("projectDocumentId", null);
-              // Disable recurring for categories that don't allow it
               if (!allowsRecurring(category)) {
-                setIsRecurring(false);
                 setValue("isRecurring", false);
               }
             } else if (value) {
-              // It's a project documentId
-              setSelectedProject(value);
-              setSelectedCategory(null);
               setValue("projectDocumentId", value);
               setValue("category", null);
             } else {
-              // Clear both
-              setSelectedProject(null);
-              setSelectedCategory(null);
               setValue("projectDocumentId", null);
               setValue("category", null);
             }
@@ -499,7 +486,6 @@ export default function TodoForm({ todo, onSubmit, onCancel }: TodoFormProps) {
                 checked={isRecurring}
                 className="checkbox"
                 onChange={(e) => {
-                  setIsRecurring(e.target.checked);
                   setValue("isRecurring", e.target.checked);
                 }}
               />

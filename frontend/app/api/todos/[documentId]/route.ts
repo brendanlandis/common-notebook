@@ -20,7 +20,7 @@ export async function PUT(
     const body = await req.json();
 
     const response = await fetch(
-      `${STRAPI_API_URL}/api/todos/${documentId}`,
+      `${STRAPI_API_URL}/api/todos/${documentId}?populate=project`,
       {
         method: 'PUT',
         headers: {
