@@ -23,6 +23,7 @@ import {
   type RawTodoData,
   type TodoGroup,
 } from "@/app/lib/layoutTransformers";
+import { groupTodosForLayout } from "@/app/lib/groupTodos";
 import { getPresetById, getDefaultPreset } from "@/app/lib/layoutPresets";
 import { useLayoutRuleset } from "@/app/contexts/LayoutRulesetContext";
 import { useTodoActions } from "@/app/contexts/TodoActionsContext";
@@ -514,154 +515,16 @@ export default function TodoPage() {
           return todo;
         });
 
-        // Separate recurring and non-recurring todos
-        // Keep both filtered and unfiltered recurring todos
-        const allRecurringTodosUnfiltered = todosWithPhaseInfo.filter((todo: Todo) => todo.isRecurring);
-        
-        // Only show recurring todos whose display date has arrived (for most views)
-        const recurringTodos = todosWithPhaseInfo.filter((todo: Todo) => {
-          if (!todo.isRecurring) return false;
-          if (!todo.displayDate) return true; // Show if no date set (legacy)
-          const startDate = parseInEST(todo.displayDate);
-          return startDate <= today;
-        });
-        const nonRecurringTodos = todosWithPhaseInfo.filter(
-          (todo: Todo) => !todo.isRecurring
-        );
-
-        // Process non-recurring todos
-        const projectMap = new Map<string, Project>();
-        const todosWithoutProjects: Todo[] = [];
-
-        nonRecurringTodos.forEach((todo: Todo) => {
-          if (todo.project) {
-            const project = todo.project as any;
-            if (!projectMap.has(project.documentId)) {
-              projectMap.set(project.documentId, {
-                ...project,
-                todos: [],
-              });
-            }
-            projectMap.get(project.documentId)!.todos!.push(todo);
-          } else {
-            todosWithoutProjects.push(todo);
-          }
-        });
-
-        const categoryMap = new Map<TodoCategory, Todo[]>();
-        const incidentalTodos: Todo[] = [];
-
-        todosWithoutProjects.forEach((todo: Todo) => {
-          if (todo.category) {
-            if (!categoryMap.has(todo.category)) {
-              categoryMap.set(todo.category, []);
-            }
-            categoryMap.get(todo.category)!.push(todo);
-          } else {
-            incidentalTodos.push(todo);
-          }
-        });
-
-        // Process recurring todos
-        const recurringProjectMap = new Map<string, Project>();
-        const recurringTodosWithoutProjects: Todo[] = [];
-
-        recurringTodos.forEach((todo: Todo) => {
-          if (todo.project) {
-            const project = todo.project as any;
-            if (!recurringProjectMap.has(project.documentId)) {
-              recurringProjectMap.set(project.documentId, {
-                ...project,
-                todos: [],
-              });
-            }
-            recurringProjectMap.get(project.documentId)!.todos!.push(todo);
-          } else {
-            recurringTodosWithoutProjects.push(todo);
-          }
-        });
-
-        const recurringCategoryMap = new Map<TodoCategory, Todo[]>();
-        const recurringIncidentalTodos: Todo[] = [];
-
-        recurringTodosWithoutProjects.forEach((todo: Todo) => {
-          if (todo.category) {
-            if (!recurringCategoryMap.has(todo.category)) {
-              recurringCategoryMap.set(todo.category, []);
-            }
-            recurringCategoryMap.get(todo.category)!.push(todo);
-          } else {
-            recurringIncidentalTodos.push(todo);
-          }
-        });
-
-        // Convert maps to arrays
-        const projectsArray = Array.from(projectMap.values());
-        const groups: TodoGroup[] = Array.from(categoryMap.entries()).map(
-          ([category, todos]) => ({
-            title: category,
-            todos,
-          })
-        );
-
-        const recurringProjectsArray = Array.from(recurringProjectMap.values());
-        const recurringGroups: TodoGroup[] = Array.from(
-          recurringCategoryMap.entries()
-        ).map(([category, todos]) => ({
-          title: category,
-          todos,
-        }));
-
-        // Process ALL recurring todos (unfiltered by displayDate) for recurring-review view
-        const allRecurringProjectMap = new Map<string, Project>();
-        const allRecurringTodosWithoutProjects: Todo[] = [];
-
-        allRecurringTodosUnfiltered.forEach((todo: Todo) => {
-          if (todo.project) {
-            const project = todo.project as any;
-            if (!allRecurringProjectMap.has(project.documentId)) {
-              allRecurringProjectMap.set(project.documentId, {
-                ...project,
-                todos: [],
-              });
-            }
-            allRecurringProjectMap.get(project.documentId)!.todos!.push(todo);
-          } else {
-            allRecurringTodosWithoutProjects.push(todo);
-          }
-        });
-
-        const allRecurringCategoryMap = new Map<TodoCategory, Todo[]>();
-        const allRecurringIncidentalTodos: Todo[] = [];
-
-        allRecurringTodosWithoutProjects.forEach((todo: Todo) => {
-          if (todo.category) {
-            if (!allRecurringCategoryMap.has(todo.category)) {
-              allRecurringCategoryMap.set(todo.category, []);
-            }
-            allRecurringCategoryMap.get(todo.category)!.push(todo);
-          } else {
-            allRecurringIncidentalTodos.push(todo);
-          }
-        });
-
-        const allRecurringProjectsArray = Array.from(allRecurringProjectMap.values());
-        const allRecurringGroups: TodoGroup[] = Array.from(
-          allRecurringCategoryMap.entries()
-        ).map(([category, todos]) => ({
-          title: category,
-          todos,
-        }));
-
-        setProjects(projectsArray);
-        setCategoryGroups(groups);
-        setIncidentals(incidentalTodos);
-        setRecurringProjects(recurringProjectsArray);
-        setRecurringCategoryGroups(recurringGroups);
-        setRecurringIncidentals(recurringIncidentalTodos);
-        setAllRecurringProjects(allRecurringProjectsArray);
-        setAllRecurringCategoryGroups(allRecurringGroups);
-        setAllRecurringIncidentals(allRecurringIncidentalTodos);
+        const grouped = groupTodosForLayout(todosWithPhaseInfo, today);
+        setProjects(grouped.projects);
+        setCategoryGroups(grouped.categoryGroups);
+        setIncidentals(grouped.incidentals);
+        setRecurringProjects(grouped.recurringProjects);
+        setRecurringCategoryGroups(grouped.recurringCategoryGroups);
+        setRecurringIncidentals(grouped.recurringIncidentals);
+        setAllRecurringProjects(grouped.allRecurringProjects);
+        setAllRecurringCategoryGroups(grouped.allRecurringCategoryGroups);
+        setAllRecurringIncidentals(grouped.allRecurringIncidentals);
       } else {
         setError(result.error);
       }
