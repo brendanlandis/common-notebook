@@ -61,15 +61,13 @@ function LayoutRulesetProviderInternal({ children }: { children: ReactNode }) {
   const [selectedRulesetId, setSelectedRulesetId] = useState<string>(getInitialRulesetId);
   const [isHydrated, setIsHydrated] = useState(false);
 
-  // Mark as hydrated synchronously before paint (client-side only)
-  // Also check URL parameter and use it if valid
+  // Read URL parameter once on mount; after that, React state is canonical
+  // and any URL changes for `view=*` are driven by the write effect below.
   useLayoutEffect(() => {
     setIsHydrated(true);
-    
-    // Check for URL parameter - it takes precedence over localStorage
+
     const viewParam = searchParams.get('view');
     if (viewParam && isValidPresetId(viewParam)) {
-      // URL parameter is valid, use it and save to localStorage
       setSelectedRulesetId(viewParam);
       const layoutData = {
         rulesetId: viewParam,
@@ -77,7 +75,8 @@ function LayoutRulesetProviderInternal({ children }: { children: ReactNode }) {
       };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(layoutData));
     }
-  }, [searchParams]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Persist to localStorage and sync URL whenever selectedRulesetId changes (but only after hydration)
   useEffect(() => {
@@ -87,18 +86,13 @@ function LayoutRulesetProviderInternal({ children }: { children: ReactNode }) {
         timestamp: Date.now()
       };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(layoutData));
-      
-      // Only update URL on todo page
+
       if (pathname === '/todo') {
-        // Update URL with current view parameter
+        // Read live URL (not React's searchParams) so we don't refire on router.replace.
+        // Safe because the read effect above only runs once on mount, so this can't loop.
         const currentParams = new URLSearchParams(window.location.search);
-        const currentView = currentParams.get('view');
-        
-        // Only update if the view parameter is different to avoid infinite loops
-        if (currentView !== selectedRulesetId) {
-          currentParams.set('view', selectedRulesetId);
-          router.replace(`${pathname}?${currentParams.toString()}`, { scroll: false });
-        }
+        currentParams.set('view', selectedRulesetId);
+        router.replace(`${pathname}?${currentParams.toString()}`, { scroll: false });
       }
     }
   }, [selectedRulesetId, isHydrated, pathname, router]);
