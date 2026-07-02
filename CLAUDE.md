@@ -48,7 +48,19 @@ Content types under `backend/src/api/*/content-types/*/schema.json`: `todo`, `pr
 `practice-log`, `system-setting`. Strapi 5 style — `documentId` is the stable identifier used
 throughout the frontend. Node engine constraint: `>=18 <=22.x`.
 
-## Conventions
+# Domain model (todo app)
+
+- **World** — a top-level bucket: `day job`, `life stuff`, `music admin`, `make music`, `computer`
+  (`app/types/index.ts`). A project belongs to one world.
+- **Importance** — project tier: `top of mind`, `normal`, `later`. World views order projects
+  top-of-mind → priority (`pN` title marker) → normal → later, creation-date within each.
+- **View / preset / ruleset** — todo views are presets in `app/lib/layoutPresets.ts`, chosen via the
+  `?view=<id>` URL param (`app/contexts/LayoutRulesetContext.tsx`). Each preset sets
+  `groupBy`/`sortBy`/`visibleWorlds`/`visibleCategories`, consumed by `transformLayout`
+  (`app/lib/layoutTransformers.ts`) → `LayoutRenderer` → a per-layout component.
+- **Incidentals** — todos with no project. **Categories** — grouping for project-less todos.
+
+# Conventions
 
 - **Feature-colocation:** feature code under its route folder; shared code in top-level
   `app/{components,lib,hooks,contexts}`.
@@ -63,7 +75,14 @@ throughout the frontend. Node engine constraint: `>=18 <=22.x`.
   plus configurable day-boundary hour; keep date logic pure and unit-tested.
 - Naming: PascalCase components, camelCase lib/util files, `use*` hooks, `__tests__/` for tests.
 
-## Gotchas
+# Gotchas
+- Run tests with `npm run test:run` (one-shot) — plain `npm test` is Vitest **watch mode** and will
+  hang a non-interactive run. Single file: `npx vitest run <path>`.
+- CI runs only `npm run build` (both apps) + frontend `npm run test:run`. **Lint and `tsc` are not
+  CI-gated.** `npm run lint` (`eslint .`) reports ~168 pre-existing findings and `tsc --noEmit` has
+  pre-existing errors in some test files — don't chase these as if new; scope checks to files you touched.
+- Tests colocate in `__tests__/`; `layoutTransformers`/date tests mock `../dateUtils` and
+  `../timezoneConfig` via `vi.mock` (see `app/lib/__tests__/layoutTransformers.*.test.ts`).
 - CI Node versions differ from the backend's `<=22.x` cap (frontend CI uses Node 25) — watch for
   engine mismatches.
 - `.npmrc` sets `ignore-scripts=true`.
