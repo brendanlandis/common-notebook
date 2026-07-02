@@ -11,8 +11,9 @@ interface TodoGroup {
 type Section = Project | TodoGroup;
 
 interface WorldSectionsProps {
-  worldSections: Map<World, { 
+  worldSections: Map<World, {
     topOfMindAndCategories: Section[];
+    priority: Section[];
     normal: Section[];
     later: Section[];
     incidentals: Todo[];
@@ -43,9 +44,10 @@ export default function WorldSections({
   const worlds = WORLD_ORDER.filter(world => {
     const data = worldSections.get(world);
     return data && (
-      data.topOfMindAndCategories.length > 0 || 
-      data.normal.length > 0 || 
-      data.later.length > 0 || 
+      data.topOfMindAndCategories.length > 0 ||
+      data.priority.length > 0 ||
+      data.normal.length > 0 ||
+      data.later.length > 0 ||
       (data.incidentals && data.incidentals.length > 0)
     );
   });
@@ -59,15 +61,17 @@ export default function WorldSections({
       {worlds.map((world, index) => {
         const data = worldSections.get(world);
         if (!data || (
-          data.topOfMindAndCategories.length === 0 && 
-          data.normal.length === 0 && 
-          data.later.length === 0 && 
+          data.topOfMindAndCategories.length === 0 &&
+          data.priority.length === 0 &&
+          data.normal.length === 0 &&
+          data.later.length === 0 &&
           (!data.incidentals || data.incidentals.length === 0)
         )) {
           return null;
         }
 
         const hasTopOfMindOrCategories = data.topOfMindAndCategories.length > 0;
+        const hasPriority = data.priority.length > 0;
         const hasNormal = data.normal.length > 0;
         const hasLater = data.later.length > 0;
         const hasIncidentals = data.incidentals.length > 0;
@@ -92,8 +96,25 @@ export default function WorldSections({
               />
             )}
 
-            {/* Divider before normal if first section exists */}
-            {hasFirstSection && hasNormal && <hr />}
+            {/* Divider before priority if first section exists */}
+            {hasFirstSection && hasPriority && <hr />}
+
+            {/* Priority projects (p1, p2, …) */}
+            {hasPriority && (
+              <TodoSections
+                sections={data.priority}
+                onComplete={onComplete}
+                onEdit={onEdit}
+                onDelete={onDelete}
+                onWorkSession={onWorkSession}
+                onRemoveWorkSession={onRemoveWorkSession}
+                onSkipRecurring={onSkipRecurring}
+                onEditProject={onEditProject}
+              />
+            )}
+
+            {/* Divider before normal if a previous section exists */}
+            {(hasFirstSection || hasPriority) && hasNormal && <hr />}
 
             {/* Normal projects */}
             {hasNormal && (
@@ -110,7 +131,7 @@ export default function WorldSections({
             )}
 
             {/* Divider before later if any previous section exists */}
-            {(hasFirstSection || hasNormal) && hasLater && <hr />}
+            {(hasFirstSection || hasPriority || hasNormal) && hasLater && <hr />}
 
             {/* Later projects */}
             {hasLater && (

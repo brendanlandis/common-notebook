@@ -2,6 +2,7 @@ import type { Project, Todo, TodoCategory, World, LayoutRuleset, RecurrenceType 
 import { getTodayInEST, parseInEST, formatInEST, toISODateInEST, toZonedTime } from "@/app/lib/dateUtils";
 import { getTimezone } from "@/app/lib/timezoneConfig";
 import { getDayBoundaryHour } from "@/app/lib/dayBoundaryConfig";
+import { getProjectPriority } from "@/app/lib/projectPriority";
 import { addDays } from "date-fns";
 
 export interface TodoGroup {
@@ -18,8 +19,9 @@ export interface TransformedLayout {
   nonRecurringIncidentals?: Todo[];
   allSections?: Section[];
   incidentals?: Todo[];
-  worldSections?: Map<World, { 
+  worldSections?: Map<World, {
     topOfMindAndCategories: Section[];
+    priority: Section[];
     normal: Section[];
     later: Section[];
     incidentals: Todo[];
@@ -518,8 +520,9 @@ export function transformLayout(data: RawTodoData, ruleset: LayoutRuleset): Tran
     );
 
     // Group non-recurring by world
-    const nonRecurringWorldMap = new Map<World, { 
+    const nonRecurringWorldMap = new Map<World, {
       topOfMindAndCategories: Section[];
+      priority: Section[];
       normal: Section[];
       later: Section[];
       incidentals: Todo[];
@@ -528,11 +531,12 @@ export function transformLayout(data: RawTodoData, ruleset: LayoutRuleset): Tran
     // Initialize worlds
     const worlds: World[] = ["make music", "music admin", "life stuff", "day job", "computer"];
     worlds.forEach((world) => {
-      nonRecurringWorldMap.set(world, { 
+      nonRecurringWorldMap.set(world, {
         topOfMindAndCategories: [],
+        priority: [],
         normal: [],
         later: [],
-        incidentals: [] 
+        incidentals: []
       });
     });
 
@@ -547,6 +551,8 @@ export function transformLayout(data: RawTodoData, ruleset: LayoutRuleset): Tran
             worldData.topOfMindAndCategories.push(project);
           } else if (importance === "later") {
             worldData.later.push(project);
+          } else if (getProjectPriority(project.title) !== null) {
+            worldData.priority.push(project);
           } else {
             worldData.normal.push(project);
           }
@@ -602,6 +608,12 @@ export function transformLayout(data: RawTodoData, ruleset: LayoutRuleset): Tran
       const worldIncidentals = incidentalsByWorld.get(world) || [];
       worldData.incidentals = sortTodos(worldIncidentals, ruleset.sortBy);
       
+      // Sort priority sections by priority number ascending, creation date as tiebreaker
+      // (sortSections gives the tiebreaker order; Array.sort is stable so pN groups keep it)
+      worldData.priority = sortSections(worldData.priority, ruleset.sortBy).sort(
+        (a, b) => getProjectPriority((a as Project).title)! - getProjectPriority((b as Project).title)!
+      );
+
       // Sort normal and later sections
       worldData.normal = sortSections(worldData.normal, ruleset.sortBy);
       worldData.later = sortSections(worldData.later, ruleset.sortBy);
@@ -700,8 +712,9 @@ export function transformLayout(data: RawTodoData, ruleset: LayoutRuleset): Tran
     };
   } else if (ruleset.groupBy === "world") {
     // Group by world, merging recurring and non-recurring
-    const worldMap = new Map<World, { 
+    const worldMap = new Map<World, {
       topOfMindAndCategories: Section[];
+      priority: Section[];
       normal: Section[];
       later: Section[];
       incidentals: Todo[];
@@ -710,11 +723,12 @@ export function transformLayout(data: RawTodoData, ruleset: LayoutRuleset): Tran
     // Initialize worlds
     const worlds: World[] = ["life stuff", "music admin", "make music", "day job", "computer"];
     worlds.forEach((world) => {
-      worldMap.set(world, { 
+      worldMap.set(world, {
         topOfMindAndCategories: [],
+        priority: [],
         normal: [],
         later: [],
-        incidentals: [] 
+        incidentals: []
       });
     });
 
@@ -761,6 +775,8 @@ export function transformLayout(data: RawTodoData, ruleset: LayoutRuleset): Tran
           worldData.topOfMindAndCategories.push(project);
         } else if (importance === "later") {
           worldData.later.push(project);
+        } else if (getProjectPriority(project.title) !== null) {
+          worldData.priority.push(project);
         } else {
           worldData.normal.push(project);
         }
@@ -815,6 +831,12 @@ export function transformLayout(data: RawTodoData, ruleset: LayoutRuleset): Tran
       const worldIncidentals = incidentalsByWorld.get(world) || [];
       worldData.incidentals = sortTodos(worldIncidentals, ruleset.sortBy);
       
+      // Sort priority sections by priority number ascending, creation date as tiebreaker
+      // (sortSections gives the tiebreaker order; Array.sort is stable so pN groups keep it)
+      worldData.priority = sortSections(worldData.priority, ruleset.sortBy).sort(
+        (a, b) => getProjectPriority((a as Project).title)! - getProjectPriority((b as Project).title)!
+      );
+
       // Sort normal and later sections
       worldData.normal = sortSections(worldData.normal, ruleset.sortBy);
       worldData.later = sortSections(worldData.later, ruleset.sortBy);
