@@ -58,7 +58,7 @@ export default function WorldSections({
 
   return (
     <>
-      {worlds.map((world, index) => {
+      {worlds.map((world) => {
         const data = worldSections.get(world);
         if (!data || (
           data.topOfMindAndCategories.length === 0 &&
