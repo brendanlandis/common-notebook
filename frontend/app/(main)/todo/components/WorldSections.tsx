@@ -96,30 +96,13 @@ export default function WorldSections({
               />
             )}
 
-            {/* Divider before priority if first section exists */}
-            {hasFirstSection && hasPriority && <hr />}
+            {/* Divider before the main container if top-of-mind/incidentals precede it */}
+            {hasFirstSection && (hasPriority || hasNormal) && <hr />}
 
-            {/* Priority projects (p1, p2, …) */}
-            {hasPriority && (
+            {/* Priority (p1, p2, …) then normal projects — one shared todos-container */}
+            {(hasPriority || hasNormal) && (
               <TodoSections
-                sections={data.priority}
-                onComplete={onComplete}
-                onEdit={onEdit}
-                onDelete={onDelete}
-                onWorkSession={onWorkSession}
-                onRemoveWorkSession={onRemoveWorkSession}
-                onSkipRecurring={onSkipRecurring}
-                onEditProject={onEditProject}
-              />
-            )}
-
-            {/* Divider before normal if a previous section exists */}
-            {(hasFirstSection || hasPriority) && hasNormal && <hr />}
-
-            {/* Normal projects */}
-            {hasNormal && (
-              <TodoSections
-                sections={data.normal}
+                sections={[...data.priority, ...data.normal]}
                 onComplete={onComplete}
                 onEdit={onEdit}
                 onDelete={onDelete}
