@@ -1,0 +1,25 @@
+@media print {
+  header {
+    display: none;
+  }
+  * {
+    color: #000;
+  }
+  .todos-container {
+    grid-template-columns: 1fr;
+    input.checkbox {
+      display: none;
+    }
+    label::before {
+      content: "- ";
+    }
+    .todos-list {
+      display: block;
+    }
+    .todos-list li {
+      display: block;
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+  }
+}

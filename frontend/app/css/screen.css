@@ -145,3 +145,5 @@ hr {
 @import "./page-todo.css";
 @import "./page-practice.css";
 @import "./settings.css";
+
+@import "./print.css";
