@@ -117,6 +117,13 @@ throughout the frontend. Node engine constraint: `>=18 <=22.x`.
 - **Strapi has no compare-and-set.** Anything read-then-write (invite redemption, the moon-phase reset)
   needs an in-process guard keyed by the thing being mutated. Correct on the single-process droplet; the
   same caveat as `app/api/auth/rate-limiter.ts`.
+- **A local Strapi will send real email unless stopped.** `backend/.env` holds the *production* SMTP
+  credentials, and any local boot — `strapi develop`, a forgotten `strapi start`, a script — picks them up.
+  `config/plugins.ts` therefore forces a nodemailer `jsonTransport` **sink** whenever `NODE_ENV !==
+  'production'`, unless `ALLOW_DEV_EMAIL=true`. Do not "fix" this by falling back to Strapi's default
+  `sendmail` provider: that calls `sendDirectSmtp` and delivers straight to the recipient's MX.
+  Only `scripts/test-email.js` opts in. Seed users live at `@example.com`, which publishes an RFC 7505
+  null MX, so a stray send is refused permanently instead of being retried for days.
 - `backend/tsconfig.json`'s `include` is `"./"`, so it type-checks root files too. `vitest.config.ts` is
   explicitly excluded: it imports a devDependency that production installs omit, and Strapi type-checks on
   boot, so leaving it in fails on prod with `TS2307`.

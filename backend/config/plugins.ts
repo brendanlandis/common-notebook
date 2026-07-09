@@ -7,8 +7,45 @@ const YEAR = 365 * 24 * 60 * 60; // seconds — every lifespan below is in secon
  * and lands in spam. Configure real SMTP by setting SMTP_HOST; without it we
  * leave the default in place and `bootstrap()` warns, rather than booting into a
  * config that silently drops mail.
+ *
+ * ⚠ Outside production this requires an explicit opt-in, because `backend/.env`
+ * holds the *production* SMTP credentials. Without the guard, any local Strapi —
+ * `strapi develop`, a stale `strapi start`, a script that boots the app — will
+ * cheerfully deliver real password-reset emails to whatever addresses the local
+ * seed data happens to contain. That has already happened: two live emails went
+ * out to `alice@seed.local` from a forgotten background process, and bounced.
+ *
+ * `scripts/test-email.js` opts in deliberately. Nothing else should.
  */
 const emailConfig = ({ env }) => {
+  const isProduction = env("NODE_ENV") === "production";
+  const allowDevEmail = env.bool("ALLOW_DEV_EMAIL", false);
+
+  if (!isProduction && !allowDevEmail) {
+    // A sink, not a relay. Nodemailer's jsonTransport serialises the message and
+    // returns it; no socket is ever opened.
+    //
+    // Note we do NOT simply fall through to Strapi's default `sendmail` provider:
+    // that one calls `sendDirectSmtp` and tries to deliver straight to the
+    // recipient's MX, so a dev machine really can put mail on the wire.
+    console.warn(
+      "[email] Not production — using a no-op mail transport. Nothing will be sent. " +
+        "Set ALLOW_DEV_EMAIL=true to send for real (scripts/test-email.js does this)."
+    );
+    return {
+      email: {
+        config: {
+          provider: "nodemailer",
+          providerOptions: { jsonTransport: true },
+          settings: {
+            defaultFrom: env("EMAIL_FROM", "dev@localhost"),
+            defaultReplyTo: env("EMAIL_FROM", "dev@localhost"),
+          },
+        },
+      },
+    };
+  }
+
   const host = env("SMTP_HOST");
   if (!host) return {};
 

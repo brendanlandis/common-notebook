@@ -30,6 +30,14 @@ async function main() {
     process.exit(1);
   }
 
+  // This script exists to send a real email, so it opts into the guard in
+  // config/plugins.ts that otherwise stops non-production Strapi from using the
+  // real SMTP credentials in backend/.env. Must be set before the app boots.
+  process.env.ALLOW_DEV_EMAIL = 'true';
+  if (process.env.NODE_ENV !== 'production') {
+    console.log('\n⚠ This will send a real email using the credentials in backend/.env.');
+  }
+
   const { createStrapi, compileStrapi } = require('@strapi/strapi');
   const app = await createStrapi(await compileStrapi()).load();
   app.log.level = 'error';

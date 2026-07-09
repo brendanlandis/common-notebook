@@ -24,9 +24,20 @@
 const SEED_TAG = '[seed]';
 const SEED_PASSWORD = 'seedpassword123';
 
+/**
+ * `example.com` publishes an RFC 7505 "null MX" (`0 .`), so any mail addressed
+ * here is refused immediately and permanently.
+ *
+ * The previous `@seed.local` addresses merely failed to resolve, which relays
+ * treat as a *temporary* DNS error: Forward Email queued real password-reset
+ * emails and retried them for five days, bouncing DSNs into the inbox. That only
+ * happened because a stray local Strapi picked up the production SMTP credentials
+ * from `backend/.env` — now guarded in `config/plugins.ts` — but a seed address
+ * that cannot generate a retry queue is cheap insurance.
+ */
 const USERS = [
-  { username: 'seed_alice', email: 'alice@seed.local' },
-  { username: 'seed_bob', email: 'bob@seed.local' },
+  { username: 'seed_alice', email: 'alice@example.com' },
+  { username: 'seed_bob', email: 'bob@example.com' },
 ];
 
 const OWNED_TYPES = [
@@ -57,7 +68,18 @@ async function ensureUser(strapi, { username, email }, roleId) {
   const existing = await strapi
     .query('plugin::users-permissions.user')
     .findOne({ where: { username } });
-  if (existing) return existing;
+
+  if (existing) {
+    // Migrate addresses left over from an earlier seed domain, so a stray send
+    // can't queue against a domain that merely fails to resolve.
+    if (existing.email !== email) {
+      await strapi
+        .query('plugin::users-permissions.user')
+        .update({ where: { id: existing.id }, data: { email } });
+      return { ...existing, email };
+    }
+    return existing;
+  }
 
   // user.add() routes through the document service, which hashes `password`.
   return strapi.plugin('users-permissions').service('user').add({
