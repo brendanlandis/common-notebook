@@ -1,4 +1,62 @@
+const os = require("os");
+
 const YEAR = 365 * 24 * 60 * 60; // seconds — every lifespan below is in seconds
+
+/** True if this host has an IPv6 address that could actually route off-link. */
+const hasGlobalIPv6 = () =>
+  Object.values(os.networkInterfaces())
+    .flat()
+    .some(
+      (i: any) =>
+        i &&
+        !i.internal &&
+        (i.family === "IPv6" || i.family === 6) &&
+        !i.address.startsWith("fe80") && // link-local
+        !i.address.startsWith("fc") && // unique-local
+        !i.address.startsWith("fd")
+    );
+
+/**
+ * Stop nodemailer from trying IPv6 on a host that cannot route it.
+ *
+ * Nodemailer resolves A *and* AAAA itself, then picks one **at random**
+ * (`shared/index.js`: `addresses[Math.floor(Math.random() * addresses.length)]`).
+ * It decides whether to resolve AAAA by looking for any non-internal interface
+ * with an IPv6 address — and a link-local `fe80::` counts. So a DigitalOcean
+ * droplet with IPv6 switched off still advertises "IPv6 support", and roughly half
+ * of all sends die with `ENETUNREACH`. Intermittently, which is worse than always.
+ *
+ * `isFamilySupported()` reads `module.exports.networkInterfaces` at call time, so
+ * swapping in an IPv4-only view is enough. It must happen before the first DNS
+ * lookup, which is why this lives in config rather than `bootstrap()`.
+ *
+ * Set SMTP_FORCE_IPV4=false to opt out if you really do have working IPv6.
+ */
+let ipv4PinApplied = false; // Strapi evaluates this config more than once per boot.
+
+const restrictNodemailerToIPv4 = (env) => {
+  if (ipv4PinApplied) return;
+
+  const forced = env("SMTP_FORCE_IPV4");
+  const shouldForce = forced === undefined ? !hasGlobalIPv6() : forced === "true";
+  if (!shouldForce) return;
+
+  try {
+    const shared = require("nodemailer/lib/shared");
+    const ipv4Only = {};
+    for (const [name, addresses] of Object.entries(os.networkInterfaces())) {
+      const kept = ((addresses as any[]) || []).filter(
+        (a) => a.family === "IPv4" || a.family === 4
+      );
+      if (kept.length) ipv4Only[name] = kept;
+    }
+    shared.networkInterfaces = ipv4Only;
+    ipv4PinApplied = true;
+    console.log("[email] No routable IPv6 on this host — pinning SMTP to IPv4.");
+  } catch (error) {
+    console.warn(`[email] Could not pin SMTP to IPv4: ${error.message}`);
+  }
+};
 
 /**
  * Password-reset email delivery.
@@ -56,6 +114,8 @@ const emailConfig = ({ env }) => {
     // machine really can put mail on the wire without a relay.
     return mailSink(env, "EMAIL_ENABLED is set but SMTP_HOST is not.");
   }
+
+  restrictNodemailerToIPv4(env);
 
   const port = env.int("SMTP_PORT", 587);
 

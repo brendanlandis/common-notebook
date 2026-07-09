@@ -78,10 +78,20 @@ function probe(host, port, family) {
   });
 }
 
+const isGlobalIPv6 = (address) =>
+  !address.startsWith('fe80') && !address.startsWith('fc') && !address.startsWith('fd');
+
 /**
- * Nodemailer only resolves AAAA records when the machine has an IPv6 address on
- * some interface. If it does, but there is no route, roughly half of all sends
- * fail with ENETUNREACH — intermittently, because the address is chosen at random.
+ * Does nodemailer's IPv6 guess match reality?
+ *
+ * It resolves AAAA whenever *any* non-internal interface has an IPv6 address —
+ * a link-local `fe80::` counts. Then it picks from A+AAAA **at random**. On a host
+ * with no IPv6 route that means half of all sends fail with ENETUNREACH.
+ *
+ * `config/plugins.ts` pins SMTP to IPv4 when there is no globally-routable IPv6,
+ * so this reports what will actually happen rather than what a bare socket does.
+ * Note we connect to a AAAA *literal*: connecting to a hostname with `family: 6`
+ * can return an IPv4-mapped `::ffff:` address and look like a success.
  */
 async function checkAddressFamilies(host, port) {
   const [v4, v6] = await Promise.all([
@@ -89,39 +99,42 @@ async function checkAddressFamilies(host, port) {
     dns.resolve6(host).catch(() => []),
   ]);
 
-  const hasLocalIPv6 = Object.values(os.networkInterfaces())
-    .flat()
-    .some((i) => i && (i.family === 'IPv6' || i.family === 6) && !i.internal);
+  const interfaces = Object.values(os.networkInterfaces()).flat().filter(Boolean);
+  const anyIPv6 = interfaces.filter((i) => !i.internal && (i.family === 'IPv6' || i.family === 6));
+  const globalIPv6 = anyIPv6.filter((i) => isGlobalIPv6(i.address));
 
   console.log(`\nAddress families for ${host}:`);
-  console.log(`  A    records: ${v4.length}`);
+  console.log(`  A records:    ${v4.length}`);
   console.log(`  AAAA records: ${v6.length}`);
-  console.log(`  this host has a routable IPv6 address: ${hasLocalIPv6 ? 'yes' : 'no'}`);
+  console.log(`  this host's non-internal IPv6 addresses: ${anyIPv6.length} ` +
+    `(${globalIPv6.length} globally routable)`);
 
-  if (v6.length === 0 || !hasLocalIPv6) {
-    if (!hasLocalIPv6 && v6.length > 0) {
-      console.log('  → nodemailer will skip AAAA entirely (no local IPv6 interface). Good.');
+  if (v6.length === 0) return true;
+
+  if (globalIPv6.length === 0) {
+    if (anyIPv6.length > 0) {
+      console.log(
+        '  → only link-local IPv6 here, so nodemailer WOULD resolve AAAA and could pick an\n' +
+          '    unreachable address at random. config/plugins.ts pins SMTP to IPv4, which fixes it.\n' +
+          '    (Set SMTP_FORCE_IPV4=false to opt out.)'
+      );
+    } else {
+      console.log('  → no IPv6 interfaces; nodemailer will skip AAAA entirely.');
     }
     return true;
   }
 
-  // Both sides claim IPv6. Does it actually work?
-  const result = await probe(host, port, 6);
+  // A real global IPv6 address exists. Does it reach the relay?
+  const result = await probe(v6[0], port, 6);
   if (result.ok) {
-    console.log(`  → IPv6 reaches port ${port} (${result.ms}ms). Both families usable.`);
+    console.log(`  → IPv6 reaches ${v6[0]}:${port} (${result.ms}ms). Both families usable.`);
     return true;
   }
 
   console.error(
-    `\n✗ IPv6 is configured on this host but cannot reach ${host}:${port} (${result.reason}).\n` +
-      '  Nodemailer resolves both families and picks an address AT RANDOM, so roughly\n' +
-      `  half of all sends will fail with ${result.reason}. This is intermittent, which is\n` +
-      '  worse than a clean failure.\n\n' +
-      '  Fix the host, not the app: either configure the IPv6 route, or drop the\n' +
-      '  IPv6 address so nodemailer stops resolving AAAA at all:\n' +
-      '      sudo sysctl -w net.ipv6.conf.all.disable_ipv6=1\n' +
-      '      sudo sysctl -w net.ipv6.conf.default.disable_ipv6=1\n' +
-      '  (persist in /etc/sysctl.conf)\n'
+    `\n✗ This host has a global IPv6 address but cannot reach ${v6[0]}:${port} (${result.reason}).\n` +
+      '  Nodemailer picks between A and AAAA at random, so sends will fail intermittently.\n' +
+      '  Set SMTP_FORCE_IPV4=true, or fix the IPv6 route.\n'
   );
   return false;
 }
@@ -184,6 +197,28 @@ async function main() {
   if (!USER || !PASS) {
     console.error('\n✗ SMTP_USERNAME / SMTP_PASSWORD are not both set; cannot test authentication.\n');
     process.exit(1);
+  }
+
+  // Apply the same IPv4 pin config/plugins.ts applies, or this script authenticates
+  // over a path Strapi will never take. (Twice now, a probe has "passed" because
+  // Node's Happy Eyeballs fell back to IPv4 where nodemailer would not have.)
+  const globalIPv6Count = Object.values(os.networkInterfaces())
+    .flat()
+    .filter(Boolean)
+    .filter((i) => !i.internal && (i.family === 'IPv6' || i.family === 6) && isGlobalIPv6(i.address))
+    .length;
+
+  const forced = process.env.SMTP_FORCE_IPV4;
+  const pinToIPv4 = forced === undefined ? globalIPv6Count === 0 : forced === 'true';
+  if (pinToIPv4) {
+    const shared = require('nodemailer/lib/shared');
+    const ipv4Only = {};
+    for (const [name, addresses] of Object.entries(os.networkInterfaces())) {
+      const kept = (addresses || []).filter((a) => a.family === 'IPv4' || a.family === 4);
+      if (kept.length) ipv4Only[name] = kept;
+    }
+    shared.networkInterfaces = ipv4Only;
+    console.log('\n  (pinning to IPv4, as config/plugins.ts does)');
   }
 
   console.log(`\nAuthenticating on port ${PORT} ...`);

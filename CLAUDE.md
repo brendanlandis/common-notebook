@@ -131,6 +131,13 @@ throughout the frontend. Node engine constraint: `>=18 <=22.x`.
   so a stray send is refused permanently instead of retried for days.
 - **DigitalOcean blocks outbound SMTP on 25/465/587.** Forward Email's alternates (2465 implicit TLS,
   2587/2525 STARTTLS) work. `node scripts/check-smtp.js` probes all six and then authenticates.
+- **nodemailer resolves A *and* AAAA itself and picks one at random**, deciding to resolve AAAA if any
+  non-internal interface has an IPv6 address — a link-local `fe80::` counts. On a droplet with no IPv6
+  route that makes ~half of sends fail with `ENETUNREACH`, intermittently. `config/plugins.ts` detects the
+  absence of a globally-routable IPv6 address and swaps `nodemailer/lib/shared`'s `networkInterfaces` for
+  an IPv4-only view before the first DNS lookup. Override with `SMTP_FORCE_IPV4`.
+  Node's Happy Eyeballs hides this from a naive probe, so any SMTP diagnostic must pin the family (and
+  connect to a AAAA *literal* — a hostname with `family: 6` may return an IPv4-mapped `::ffff:` address).
 - `backend/tsconfig.json`'s `include` is `"./"`, so it type-checks root files too. `vitest.config.ts` is
   explicitly excluded: it imports a devDependency that production installs omit, and Strapi type-checks on
   boot, so leaving it in fails on prod with `TS2307`.
