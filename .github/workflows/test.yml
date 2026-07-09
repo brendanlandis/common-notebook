@@ -26,7 +26,33 @@ jobs:
     
     - name: Install dependencies
       run: npm ci
-    
+
+    - name: Run tests
+      run: npm run test:run
+
+  backend-test:
+    name: Backend Tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./backend
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        # Backend engines constraint is >=18 <=22.x
+        node-version: '22'
+        cache: 'npm'
+        cache-dependency-path: backend/package-lock.json
+
+    - name: Install dependencies
+      run: npm ci
+
+    # Guards the tenant-isolation middleware. Breaking these means user A can
+    # read or mutate user B's data — see backend/src/ownership/.
     - name: Run tests
       run: npm run test:run
 

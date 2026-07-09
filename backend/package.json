@@ -8,15 +8,17 @@
     "deploy": "strapi deploy",
     "develop": "strapi develop",
     "start": "strapi start",
-    "strapi": "strapi"
+    "strapi": "strapi",
+    "test:run": "vitest run",
+    "test": "vitest"
   },
   "dependencies": {
     "@strapi/plugin-cloud": "5.50.0",
     "@strapi/plugin-users-permissions": "5.50.0",
     "@strapi/provider-upload-aws-s3": "^5.50.0",
     "@strapi/strapi": "5.50.0",
-    "mysql2": "3.22.5",
     "better-sqlite3": "^12.11.1",
+    "mysql2": "3.22.5",
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
     "react-router-dom": "^6.30.1",
@@ -27,7 +29,8 @@
     "@types/node": "^25.6.0",
     "@types/react": "^18",
     "@types/react-dom": "^18",
-    "typescript": "^5.0.0"
+    "typescript": "^5.0.0",
+    "vitest": "^4.1.10"
   },
   "engines": {
     "node": ">=18.0.0 <=22.x.x",
