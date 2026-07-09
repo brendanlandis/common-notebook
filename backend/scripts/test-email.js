@@ -16,6 +16,17 @@
  * will reject or bin the message even though SMTP said 250 OK.
  */
 
+const path = require('path');
+
+// Load `.env` ourselves. Strapi loads it too, but only once `createStrapi()` runs
+// — and we inspect EMAIL_ENABLED *before* booting, to work out whether the running
+// server would send. Without this, that check always saw `undefined` and warned
+// even when the variable was correctly set. dotenv never overwrites an existing
+// variable, so an explicit `EMAIL_ENABLED=false node scripts/test-email.js` wins.
+require('dotenv').config({
+  path: process.env.ENV_PATH || path.resolve(__dirname, '..', '.env'),
+});
+
 const args = process.argv.slice(2);
 
 function arg(name) {
