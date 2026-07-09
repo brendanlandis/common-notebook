@@ -35,6 +35,25 @@ interface ShowsApiResponse {
 }
 
 /**
+ * Is this feature on for the logged-in user?
+ *
+ * The shows below are fetched for one hardcoded slownames username, but the todos
+ * are written into whoever is logged in — so without this gate every invited user
+ * receives Brendan's band chores. The server decides, from the signed access token;
+ * the browser has no trustworthy identity to offer. See app/api/shows-todos/route.ts.
+ */
+async function showTodosEnabled(): Promise<boolean> {
+  try {
+    const response = await fetch('/api/shows-todos');
+    if (!response.ok) return false;
+    const body = await response.json();
+    return body.enabled === true;
+  } catch {
+    return false; // fail closed
+  }
+}
+
+/**
  * Fetch past band shows and create todos for them
  * @returns Object with success status and counts of todos created
  */
@@ -42,9 +61,16 @@ export async function createTodosFromShows(): Promise<{
   success: boolean;
   todosCreated: number;
   showsProcessed: number;
+  skipped?: boolean;
   error?: string;
 }> {
   try {
+    // Before anything else — and before we write `lastShowTodosCheck`, which would
+    // otherwise leave a stray settings row in every new user's account.
+    if (!(await showTodosEnabled())) {
+      return { success: true, todosCreated: 0, showsProcessed: 0, skipped: true };
+    }
+
     // Calculate yesterday's date in EST
     const now = getNowInEST();
     const yesterday = subDays(now, 1);

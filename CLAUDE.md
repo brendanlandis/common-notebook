@@ -156,6 +156,11 @@ throughout the frontend. Node engine constraint: `>=18 <=22.x`.
   Nothing else in the frontend loads `.env` — there is no `dotenv` there; Next.js does it.
 - **Anything `console.log`'d from `backend/config/*.ts` corrupts scripts that parse stdout**, because
   Strapi evaluates config during `createStrapi()`. Config diagnostics go to `console.warn` (stderr).
+- **`showsTodoCreator.ts` reads *one* hardcoded slownames username but writes todos into whoever is logged
+  in.** Harmless with one account; with tenants it hands every invited user Brendan's band chores (and his
+  show history). Gated by `SHOW_TODOS_USER_ID` via `app/api/shows-todos/route.ts`, checked server-side
+  against the user id in the signed access token, and **fails closed when unset** — so the feature is off
+  unless deliberately switched on. A stopgap until slownames has per-user identities.
 - `backend/tsconfig.json`'s `include` is `"./"`, so it type-checks root files too. `vitest.config.ts` is
   explicitly excluded: it imports a devDependency that production installs omit, and Strapi type-checks on
   boot, so leaving it in fails on prod with `TS2307`.
