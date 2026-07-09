@@ -123,6 +123,12 @@
     },
     "workSessions": {
       "type": "json"
+    },
+    "owner": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "plugin::users-permissions.user",
+      "private": true
     }
   }
 }
