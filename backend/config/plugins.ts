@@ -12,19 +12,33 @@ const emailConfig = ({ env }) => {
   const host = env("SMTP_HOST");
   if (!host) return {};
 
+  const port = env.int("SMTP_PORT", 587);
+
+  // Implicit TLS from the first byte on these; everything else negotiates
+  // STARTTLS. 2465 is Forward Email's alternate for when a host blocks 465 —
+  // getting this wrong means the handshake stalls rather than failing cleanly.
+  const IMPLICIT_TLS_PORTS = [465, 2465];
+
   return {
     email: {
       config: {
         provider: "nodemailer",
+        // Passed straight to nodemailer.createTransport().
         providerOptions: {
           host,
-          port: env.int("SMTP_PORT", 587),
-          // STARTTLS on 587, implicit TLS on 465.
-          secure: env.int("SMTP_PORT", 587) === 465,
+          port,
+          secure: IMPLICIT_TLS_PORTS.includes(port),
           auth: {
             user: env("SMTP_USERNAME"),
             pass: env("SMTP_PASSWORD"),
           },
+          // Nodemailer defaults are 2 min to connect and 10 min on the socket.
+          // A blocked outbound SMTP port (DigitalOcean blocks these by default)
+          // drops the SYN, so the send hangs rather than failing — and the whole
+          // request hangs with it. Fail fast and surface the error instead.
+          connectionTimeout: env.int("SMTP_CONNECTION_TIMEOUT", 10_000),
+          greetingTimeout: env.int("SMTP_GREETING_TIMEOUT", 10_000),
+          socketTimeout: env.int("SMTP_SOCKET_TIMEOUT", 20_000),
         },
         settings: {
           defaultFrom: env("EMAIL_FROM"),
