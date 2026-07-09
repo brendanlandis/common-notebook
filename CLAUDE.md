@@ -78,12 +78,19 @@ throughout the frontend. Node engine constraint: `>=18 <=22.x`.
 # Gotchas
 - Run tests with `npm run test:run` (one-shot) — plain `npm test` is Vitest **watch mode** and will
   hang a non-interactive run. Single file: `npx vitest run <path>`.
-- CI runs only `npm run build` (both apps) + frontend `npm run test:run`. **Lint and `tsc` are not
+- CI runs `npm run build` (both apps) + `npm run test:run` (both apps). **Lint and `tsc` are not
   CI-gated.** `npm run lint` (`eslint .`) reports ~168 pre-existing findings and `tsc --noEmit` has
   pre-existing errors in some test files — don't chase these as if new; scope checks to files you touched.
 - Tests colocate in `__tests__/`; `layoutTransformers`/date tests mock `../dateUtils` and
   `../timezoneConfig` via `vi.mock` (see `app/lib/__tests__/layoutTransformers.*.test.ts`).
-- CI Node versions differ from the backend's `<=22.x` cap (frontend CI uses Node 25) — watch for
-  engine mismatches.
+- **Everything runs Node 25 / npm 11** — prod, local, and all four CI jobs — even though
+  `backend/package.json` still declares `engines: >=18 <=22.x` (harmless `EBADENGINE` warnings).
+  Don't "fix" a CI job back to Node 22: Node 22 ships npm 10, which rejects an npm 11 lockfile with
+  `Missing: yaml@2.9.0 from lock file` (npm 11 omits optional peer deps such as `vite`'s `yaml`).
+- **`npm install` will not catch a broken lockfile; only `npm ci` will.** After changing backend deps,
+  run `npm ci --dry-run` before pushing — that's the exact check CI performs.
+- `backend/tsconfig.json`'s `include` is `"./"`, so it type-checks root files too. `vitest.config.ts` is
+  explicitly excluded: it imports a devDependency that production installs omit, and Strapi type-checks on
+  boot, so leaving it in fails on prod with `TS2307`.
 - `.npmrc` sets `ignore-scripts=true`.
 - Two `types` files exist: `app/types/index.ts` (current domain types) and legacy `app/types.ts`.

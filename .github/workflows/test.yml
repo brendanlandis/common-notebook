@@ -43,8 +43,10 @@ jobs:
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
-        # Backend engines constraint is >=18 <=22.x
-        node-version: '22'
+        # Matches production (Node 25 / npm 11). package.json still declares
+        # engines <=22.x, but prod runs 25; Node 22 ships npm 10, which rejects
+        # the npm 11 lockfile over vite's optional `yaml` peer dep.
+        node-version: '25'
         cache: 'npm'
         cache-dependency-path: backend/package-lock.json
 
