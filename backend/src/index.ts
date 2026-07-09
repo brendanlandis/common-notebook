@@ -3,6 +3,7 @@ import type { Core } from '@strapi/strapi';
 import { createOwnershipMiddleware } from './ownership';
 import { warnOnUnownedRows } from './ownership/preflight';
 import { OWNED_CONTENT_TYPES, ownerIsRequestUser } from './ownership/rule';
+import { seedAdvancedSettings, seedRolePermissions } from './permissions';
 
 export default {
   /**
@@ -33,6 +34,11 @@ export default {
    * run jobs, or perform some special logic.
    */
   async bootstrap({ strapi }: { strapi: Core.Strapi }) {
+    // Authorization lives in git, not in admin-UI checkboxes. Both of these are
+    // authoritative: anything not declared in src/permissions is revoked.
+    await seedRolePermissions(strapi);
+    await seedAdvancedSettings(strapi);
+
     // The middleware above fails closed, so an un-backfilled row is invisible to
     // everyone. Say so at boot rather than let it look like data loss.
     await warnOnUnownedRows(strapi, OWNED_CONTENT_TYPES);

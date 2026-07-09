@@ -165,34 +165,6 @@ async function seedFor(strapi, user, offset) {
 }
 
 /**
- * Grant the Authenticated role CRUD on the owned types.
- *
- * The dev database ships with no `api::` permissions at all, so without this the
- * isolation test would get a 403 from Strapi's permission layer and never reach
- * the ownership middleware — a false pass. Stage 3 will seed this from
- * bootstrap() for every environment; until then, dev needs it explicitly.
- */
-async function grantAuthenticatedPermissions(strapi, roleId) {
-  const ACTIONS = ['find', 'findOne', 'create', 'update', 'delete'];
-  let created = 0;
-  for (const uid of OWNED_TYPES) {
-    for (const verb of ACTIONS) {
-      const action = `${uid}.${verb}`;
-      const existing = await strapi
-        .query('plugin::users-permissions.permission')
-        .findOne({ where: { action, role: { id: roleId } } });
-      if (!existing) {
-        await strapi
-          .query('plugin::users-permissions.permission')
-          .create({ data: { action, role: roleId } });
-        created += 1;
-      }
-    }
-  }
-  return created;
-}
-
-/**
  * Reproduce production's pre-backfill state: rows that belong to nobody.
  * Deliberately omits `owner` so backfill-owner.js has something to find.
  */
@@ -226,8 +198,8 @@ async function main() {
       .findOne({ where: { type: 'authenticated' } });
     if (!role) throw new Error('No "authenticated" role found.');
 
-    const granted = await grantAuthenticatedPermissions(app, role.id);
-    if (granted) console.log(`Granted ${granted} Authenticated permissions on the owned types.`);
+    // Role permissions are seeded by bootstrap() (src/permissions), which runs
+    // as part of createStrapi().load() above — including for this script.
 
     const users = [];
     for (const u of USERS) {
