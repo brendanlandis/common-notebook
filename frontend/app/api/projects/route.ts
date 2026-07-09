@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAccessToken } from '@/app/lib/strapiAuth';
-
-const STRAPI_API_URL = process.env.STRAPI_API_URL;
+import { TOP_OF_MIND, demoteTopOfMindProjects } from '@/app/lib/projectImportance';
+import { fetchAllPages, strapiFetch } from '@/app/lib/strapiServer';
 
 export async function GET(req: NextRequest) {
   try {
@@ -14,21 +14,9 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const response = await fetch(`${STRAPI_API_URL}/api/projects?pagination[pageSize]=100`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    if (!response.ok) {
-      return NextResponse.json(
-        { success: false, error: 'Failed to fetch projects' },
-        { status: response.status }
-      );
-    }
-
-    const data = await response.json();
-    return NextResponse.json({ success: true, data: data.data });
+    // Was a single page of 100, which silently dropped project 101 onward.
+    const projects = await fetchAllPages(token, '/api/projects');
+    return NextResponse.json({ success: true, data: projects });
   } catch (error) {
     console.error('Error fetching projects:', error);
     return NextResponse.json(
@@ -51,47 +39,14 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json();
 
-    // If creating a project with "top of mind", downgrade any existing "top of mind" projects
-    if (body.importance === 'top of mind') {
-      // Fetch all existing projects
-      const projectsResponse = await fetch(`${STRAPI_API_URL}/api/projects`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (projectsResponse.ok) {
-        const projectsData = await projectsResponse.json();
-        const projects = projectsData.data || [];
-
-        // Find and downgrade any existing "top of mind" projects
-        for (const project of projects) {
-          const importance = project.attributes?.importance || project.importance;
-          if (importance === 'top of mind') {
-            // Downgrade to "normal"
-            await fetch(`${STRAPI_API_URL}/api/projects/${project.documentId}`, {
-              method: 'PUT',
-              headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${token}`,
-              },
-              body: JSON.stringify({
-                data: {
-                  importance: 'normal',
-                },
-              }),
-            });
-          }
-        }
-      }
+    // Only one project may be "top of mind" at a time.
+    if (body.importance === TOP_OF_MIND) {
+      await demoteTopOfMindProjects(token);
     }
 
-    const response = await fetch(`${STRAPI_API_URL}/api/projects`, {
+    const response = await strapiFetch(token, '/api/projects', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ data: body }),
     });
 

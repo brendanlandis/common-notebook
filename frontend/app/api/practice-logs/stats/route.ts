@@ -1,11 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAccessToken } from '@/app/lib/strapiAuth';
+import { fetchAllPages } from '@/app/lib/strapiServer';
 import { getTodayForRecurrence, toISODateInEST } from '@/app/lib/dateUtils';
 import type { PracticeType } from '@/app/types/index';
 
-const STRAPI_API_URL = process.env.STRAPI_API_URL;
-
 const PRACTICE_TYPES: PracticeType[] = ['guitar', 'voice', 'drums', 'writing', 'composing', 'ear training'];
+
+interface PracticeLog {
+  type: PracticeType;
+  date: string | null;
+  duration: number | null;
+}
 
 interface DayData {
   date: string;
@@ -34,25 +39,15 @@ export async function GET(req: NextRequest) {
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 29); // 29 days ago + today = 30 days total
     const startDate = toISODateInEST(thirtyDaysAgo);
 
-    // Fetch all practice logs from the past 30 days
-    const response = await fetch(
-      `${STRAPI_API_URL}/api/practice-logs?filters[date][$gte]=${startDate}&pagination[pageSize]=1000`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
+    // Fetch every practice log in the past 30 days.
+    //
+    // This used to request `pagination[pageSize]=1000`, which Strapi silently
+    // clamps to `maxLimit: 100` (backend/config/api.ts). Past 100 logs in the
+    // window the stats were simply wrong, with no error anywhere.
+    const logs = await fetchAllPages<PracticeLog>(
+      token,
+      `/api/practice-logs?filters[date][$gte]=${startDate}`
     );
-
-    if (!response.ok) {
-      return NextResponse.json(
-        { success: false, error: 'Failed to fetch practice logs' },
-        { status: response.status }
-      );
-    }
-
-    const data = await response.json();
-    const logs = data.data;
 
     // Create a map of all dates in the range
     const dateRange: string[] = [];
@@ -73,7 +68,7 @@ export async function GET(req: NextRequest) {
       });
 
       // Sum up durations for each date
-      logs.forEach((log: any) => {
+      logs.forEach((log) => {
         if (log.type === type && log.date && log.duration) {
           const currentMinutes = minutesByDate.get(log.date) || 0;
           minutesByDate.set(log.date, currentMinutes + log.duration);

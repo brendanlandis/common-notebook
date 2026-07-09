@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAccessToken } from '@/app/lib/strapiAuth';
+import { fetchAllPages } from '@/app/lib/strapiServer';
 
 const STRAPI_API_URL = process.env.STRAPI_API_URL;
 
@@ -19,8 +20,9 @@ export async function GET(req: NextRequest) {
     const type = searchParams.get('type');
     const date = searchParams.get('date');
 
-    // Build query string
-    let queryString = '?pagination[pageSize]=200&sort[0]=start:desc';
+    // `pageSize=200` used to be requested here; Strapi clamps to 100 without
+    // saying so. fetchAllPages pages properly instead.
+    let queryString = '?sort[0]=start:desc';
     if (type) {
       queryString += `&filters[type][$eq]=${encodeURIComponent(type)}`;
     }
@@ -28,26 +30,11 @@ export async function GET(req: NextRequest) {
       queryString += `&filters[date][$eq]=${encodeURIComponent(date)}`;
     }
 
-    const response = await fetch(
-      `${STRAPI_API_URL}/api/practice-logs${queryString}`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
+    const logs = await fetchAllPages(token, `/api/practice-logs${queryString}`);
 
-    if (!response.ok) {
-      return NextResponse.json(
-        { success: false, error: 'Failed to fetch practice logs' },
-        { status: response.status }
-      );
-    }
-
-    const data = await response.json();
     return NextResponse.json({
       success: true,
-      data: data.data,
+      data: logs,
     });
   } catch (error) {
     console.error('Error fetching practice logs:', error);

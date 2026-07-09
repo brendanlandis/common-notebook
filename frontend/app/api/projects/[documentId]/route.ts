@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAccessToken } from '@/app/lib/strapiAuth';
+import { TOP_OF_MIND, demoteTopOfMindProjects } from '@/app/lib/projectImportance';
 
 const STRAPI_API_URL = process.env.STRAPI_API_URL;
 
@@ -20,42 +21,9 @@ export async function PUT(
 
     const body = await req.json();
 
-    // If updating a project to "top of mind", downgrade any other existing "top of mind" projects
-    if (body.importance === 'top of mind') {
-      // Fetch all existing projects
-      const projectsResponse = await fetch(`${STRAPI_API_URL}/api/projects`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (projectsResponse.ok) {
-        const projectsData = await projectsResponse.json();
-        const projects = projectsData.data || [];
-
-        // Find and downgrade any existing "top of mind" projects (excluding the current one)
-        for (const project of projects) {
-          const importance = project.attributes?.importance || project.importance;
-          if (
-            project.documentId !== documentId &&
-            importance === 'top of mind'
-          ) {
-            // Downgrade to "normal"
-            await fetch(`${STRAPI_API_URL}/api/projects/${project.documentId}`, {
-              method: 'PUT',
-              headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${token}`,
-              },
-              body: JSON.stringify({
-                data: {
-                  importance: 'normal',
-                },
-              }),
-            });
-          }
-        }
-      }
+    // Only one project may be "top of mind" at a time.
+    if (body.importance === TOP_OF_MIND) {
+      await demoteTopOfMindProjects(token, documentId);
     }
 
     const response = await fetch(

@@ -50,19 +50,34 @@ export interface Tokens {
 }
 
 /**
- * Read a JWT's `exp` without verifying it. Used only to decide *when* to
- * refresh — never to authorize. Strapi verifies every token it is given.
+ * Decode a JWT payload without verifying the signature. Used only for local
+ * bookkeeping — when to refresh, and which in-process mutex to take. Never to
+ * authorize: Strapi verifies every token it is given.
  */
-function readExpiry(token: string): number | null {
+function readPayload(token: string): Record<string, unknown> | null {
   const payload = token.split('.')[1];
   if (!payload) return null;
   try {
     const json = Buffer.from(payload.replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString();
-    const exp = JSON.parse(json)?.exp;
-    return typeof exp === 'number' ? exp : null;
+    const parsed = JSON.parse(json);
+    return typeof parsed === 'object' && parsed !== null ? parsed : null;
   } catch {
     return null;
   }
+}
+
+function readExpiry(token: string): number | null {
+  const exp = readPayload(token)?.exp;
+  return typeof exp === 'number' ? exp : null;
+}
+
+/**
+ * The user id carried by an access token, for keying per-user in-process work
+ * (see `runMoonPhaseResetIfDue`). Falls back to null for opaque tokens.
+ */
+export function getUserIdFromAccessToken(token: string): string | null {
+  const userId = readPayload(token)?.userId;
+  return userId === undefined || userId === null ? null : String(userId);
 }
 
 /**

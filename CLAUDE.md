@@ -98,6 +98,11 @@ throughout the frontend. Node engine constraint: `>=18 <=22.x`.
   `Missing: yaml@2.9.0 from lock file` (npm 11 omits optional peer deps such as `vite`'s `yaml`).
 - **`npm install` will not catch a broken lockfile; only `npm ci` will.** After changing backend deps,
   run `npm ci --dry-run` before pushing — that's the exact check CI performs.
+- **Strapi silently clamps `pagination[pageSize]` to `maxLimit: 100`** (`backend/config/api.ts`), and
+  applies `defaultLimit: 25` when you pass none. A handler asking for `pageSize=1000` gets 100 rows and
+  no error — that shipped wrong practice stats and a project-demotion bug. Never hand-roll a Strapi list
+  fetch: use `fetchAllPages()` from `app/lib/strapiServer.ts`, which pages properly and throws instead of
+  truncating. Filter server-side (`filters[...]`), never in JS over a partial page.
 - `backend/tsconfig.json`'s `include` is `"./"`, so it type-checks root files too. `vitest.config.ts` is
   explicitly excluded: it imports a devDependency that production installs omit, and Strapi type-checks on
   boot, so leaving it in fails on prod with `TS2307`.
