@@ -37,6 +37,9 @@
     "src/admin/",
     // Do not include test files
     "**/*.test.*",
+    // Test tooling config: imports vitest, which is a devDependency and is not
+    // installed in production. Compiling it there fails with TS2307.
+    "vitest.config.ts",
     // Do not include plugins in the server compilation
     "src/plugins/**"
   ]
