@@ -474,8 +474,7 @@ export interface ApiInviteInvite extends Struct.CollectionTypeSchema {
     usedBy: Schema.Attribute.Relation<
       'oneToOne',
       'plugin::users-permissions.user'
-    > &
-      Schema.Attribute.Private;
+    >;
   };
 }
 
