@@ -144,6 +144,18 @@ throughout the frontend. Node engine constraint: `>=18 <=22.x`.
   an IPv4-only view before the first DNS lookup. Override with `SMTP_FORCE_IPV4`.
   Node's Happy Eyeballs hides this from a naive probe, so any SMTP diagnostic must pin the family (and
   connect to a AAAA *literal* — a hostname with `family: 6` may return an IPv4-mapped `::ffff:` address).
+- **Every `.env*` is gitignored in both apps, so an env var set locally never deploys.** `frontend/.env`
+  points `STRAPI_API_URL` at **production** Strapi, so `npm run dev` and any script reading that file talk
+  to prod. Check the URL a script printed before trusting "I tested it locally".
+- **`STRAPI_INVITE_TOKEN` failures are diagnosable from the error text.** An *unset* token makes
+  `/api/auth/redeem-invite` return "Registration is unavailable" (503); a *wrong or revoked* token makes
+  the invite lookup 401, which the route cannot distinguish from a bad code, so it returns "That invite
+  code is not valid" (400). `node frontend/scripts/check-invite-token.js` reports which env file supplied
+  the token and probes all four required scopes without creating an account or consuming an invite (a 403
+  means the scope is missing; 401 on *every* probe means the token value itself is unrecognised).
+  Nothing else in the frontend loads `.env` — there is no `dotenv` there; Next.js does it.
+- **Anything `console.log`'d from `backend/config/*.ts` corrupts scripts that parse stdout**, because
+  Strapi evaluates config during `createStrapi()`. Config diagnostics go to `console.warn` (stderr).
 - `backend/tsconfig.json`'s `include` is `"./"`, so it type-checks root files too. `vitest.config.ts` is
   explicitly excluded: it imports a devDependency that production installs omit, and Strapi type-checks on
   boot, so leaving it in fails on prod with `TS2307`.

@@ -52,7 +52,9 @@ const restrictNodemailerToIPv4 = (env) => {
     }
     shared.networkInterfaces = ipv4Only;
     ipv4PinApplied = true;
-    console.log("[email] No routable IPv6 on this host — pinning SMTP to IPv4.");
+    // stderr, not stdout: scripts read this process's stdout (create-invite prints
+    // a code, other tooling parses output). Config must never pollute it.
+    console.warn("[email] No routable IPv6 on this host — pinning SMTP to IPv4.");
   } catch (error) {
     console.warn(`[email] Could not pin SMTP to IPv4: ${error.message}`);
   }
