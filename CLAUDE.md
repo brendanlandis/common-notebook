@@ -117,6 +117,12 @@ throughout the frontend. Node engine constraint: `>=18 <=22.x`.
 - **Strapi has no compare-and-set.** Anything read-then-write (invite redemption, the moon-phase reset)
   needs an in-process guard keyed by the thing being mutated. Correct on the single-process droplet; the
   same caveat as `app/api/auth/rate-limiter.ts`.
+- **`.env` is only loaded once `createStrapi()` runs.** A script reading `process.env` *before* booting
+  Strapi sees nothing from the file — which silently broke `seed-dev.js`'s "refuse unless local SQLite"
+  guard on prod (`DATABASE_CLIENT` read as `undefined`, defaulted to `sqlite`) and made `test-email.js`
+  warn about an `EMAIL_ENABLED` that was in fact set. Any script inspecting env before boot must
+  `require('dotenv').config({ path: process.env.ENV_PATH || path.resolve(__dirname, '..', '.env') })`
+  first. dotenv never overwrites an existing variable, so shell overrides still win.
 - **Email sending is opt-in, via `EMAIL_ENABLED=true`.** `backend/.env` holds the *production* SMTP
   credentials, and any local boot — `strapi develop`, a forgotten `strapi start`, a script — picks them up;
   that has already sent real password-reset mail to a seed address by accident. `config/plugins.ts`

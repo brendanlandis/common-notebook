@@ -21,6 +21,17 @@
  * creates users with a published password; it must never touch production.
  */
 
+const path = require('path');
+
+// Load `.env` before the safety check below. Strapi loads it too, but only once
+// `createStrapi()` runs — and `refuseUnlessLocalSqlite()` reads DATABASE_CLIENT
+// *before* that. Without this the guard was inert on a production host, where
+// DATABASE_CLIENT lives in `.env`: it read `undefined`, defaulted to 'sqlite',
+// and let the script seed prod.
+require('dotenv').config({
+  path: process.env.ENV_PATH || path.resolve(__dirname, '..', '.env'),
+});
+
 const SEED_TAG = '[seed]';
 const SEED_PASSWORD = 'seedpassword123';
 
