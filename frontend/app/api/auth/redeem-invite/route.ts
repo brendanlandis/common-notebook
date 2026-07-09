@@ -67,19 +67,27 @@ async function getAuthenticatedRoleId(): Promise<number | null> {
 /**
  * Mark the invite spent, or release it again.
  *
- * `usedBy` is deliberately absent. It is a `private` field, and the content API
- * rejects private fields in a request body outright (`400 Invalid key usedBy`) —
- * the same rule that stops a client choosing its own `owner`. Recording who
- * redeemed an invite needs `usedBy` un-privated in the Content-Type Builder.
+ * The audit trail is `usedByEmail`, a plain text field, deliberately not the
+ * `usedBy` relation. Strapi rejects *any* relation in a content-API body unless
+ * the caller holds `find` on the relation's target
+ * (`@strapi/utils` `throw-restricted-relations`), so writing `usedBy` would mean
+ * granting this token `plugin::users-permissions.user.find` — and with it, the
+ * ability to list every user's email. A string costs nothing.
+ *
+ * It is written in a *second* call, after the account exists: the invite must be
+ * spent first so a failure can never leave a live account beside a reusable code.
  */
-async function setInviteUsedAt(invite: Invite, usedAt: string | null): Promise<boolean> {
+async function updateInvite(
+  invite: Invite,
+  data: { usedAt?: string | null; usedByEmail?: string }
+): Promise<boolean> {
   const response = await fetch(`${STRAPI_API_URL}/api/invites/${invite.documentId}`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${STRAPI_INVITE_TOKEN}`,
     },
-    body: JSON.stringify({ data: { usedAt } }),
+    body: JSON.stringify({ data }),
     cache: 'no-store',
   });
   return response.ok;
@@ -156,7 +164,7 @@ export async function POST(req: NextRequest) {
       // Spend the invite BEFORE creating the account. If this write fails we must
       // not proceed: an account paired with a still-valid invite is exactly how a
       // single code gets redeemed twice.
-      if (!(await setInviteUsedAt(invite, new Date().toISOString()))) {
+      if (!(await updateInvite(invite, { usedAt: new Date().toISOString() }))) {
         console.error(`Could not consume invite ${invite.documentId}; refusing to create an account`);
         return NextResponse.json(
           { success: false, error: 'Registration is unavailable' },
@@ -184,7 +192,7 @@ export async function POST(req: NextRequest) {
       if (!createResponse.ok) {
         // Give the invite back — the caller never got an account. Best-effort: if
         // this fails the invite is burned, which is the safe direction.
-        if (!(await setInviteUsedAt(invite, null))) {
+        if (!(await updateInvite(invite, { usedAt: null }))) {
           console.error(`Failed to release invite ${invite.documentId} after a failed signup`);
         }
         const error = await createResponse.json().catch(() => ({}));
@@ -194,6 +202,12 @@ export async function POST(req: NextRequest) {
           { success: false, error: error?.error?.message || 'Could not create the account' },
           { status: 400 }
         );
+      }
+
+      // Audit trail only. A failure here costs the record of who redeemed the
+      // invite, not its spent status — that is already committed above.
+      if (!(await updateInvite(invite, { usedByEmail: String(email) }))) {
+        console.error(`Could not record usedByEmail on invite ${invite.documentId}`);
       }
 
       // Log the new user in.

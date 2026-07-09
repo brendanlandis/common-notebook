@@ -103,9 +103,17 @@ throughout the frontend. Node engine constraint: `>=18 <=22.x`.
   no error — that shipped wrong practice stats and a project-demotion bug. Never hand-roll a Strapi list
   fetch: use `fetchAllPages()` from `app/lib/strapiServer.ts`, which pages properly and throws instead of
   truncating. Filter server-side (`filters[...]`), never in JS over a partial page.
-- **A `private: true` field cannot be written through the content API either**, not just read: sending it
-  in a request body is a `400 ValidationError: Invalid key <field>`. That's why a client can't choose its
-  own `todo.owner` — and why `invite.usedBy` cannot be set by the redemption route.
+- **Two separate rules reject fields in a content-API request body**, both with the same unhelpful
+  `400 ValidationError: Invalid key <field>`:
+  1. `throw-private.js` — the attribute is `private: true`.
+  2. `throw-restricted-relations.js` — the attribute is *any relation*, and the caller lacks
+     `<target>.find` on the relation's target.
+
+  `todo.owner` trips both (it's private *and* points at the user model), which is why a client can never
+  choose its own owner. `invite.usedBy` trips only the second: writing it requires granting the invite
+  token `plugin::users-permissions.user.find`, which also lets that token list every user's email.
+  When a relation is mysteriously "invalid", check the caller's `find` permission on the *target* before
+  suspecting `private`.
 - **Strapi has no compare-and-set.** Anything read-then-write (invite redemption, the moon-phase reset)
   needs an in-process guard keyed by the thing being mutated. Correct on the single-process droplet; the
   same caveat as `app/api/auth/rate-limiter.ts`.

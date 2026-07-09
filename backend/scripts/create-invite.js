@@ -44,10 +44,7 @@ async function main() {
 
   try {
     if (LIST) {
-      const invites = await app.documents('api::invite.invite').findMany({
-        populate: ['usedBy'],
-        limit: 100,
-      });
+      const invites = await app.documents('api::invite.invite').findMany({ limit: 100 });
       if (invites.length === 0) {
         console.log('\nNo invites yet.\n');
         return;
@@ -55,13 +52,11 @@ async function main() {
       console.log('\nInvites:\n');
       for (const invite of invites) {
         const status = invite.usedAt
-          ? `used ${String(invite.usedAt).slice(0, 10)} by ${invite.usedBy?.username ?? '?'}`
+          ? `used ${String(invite.usedAt).slice(0, 10)} by ${invite.usedByEmail ?? '?'}`
           : invite.expiresAt && new Date(invite.expiresAt) < new Date()
             ? 'EXPIRED'
             : 'unused';
-        console.log(
-          `  ${invite.code}  ${(invite.email || '—').padEnd(28)} ${status}`
-        );
+        console.log(`  ${invite.code}  ${(invite.email || '—').padEnd(28)} ${status}`);
       }
       console.log('');
       return;

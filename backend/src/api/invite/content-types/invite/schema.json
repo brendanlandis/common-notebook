@@ -25,10 +25,8 @@
     "usedAt": {
       "type": "datetime"
     },
-    "usedBy": {
-      "type": "relation",
-      "relation": "oneToOne",
-      "target": "plugin::users-permissions.user"
+    "usedByEmail": {
+      "type": "string"
     }
   }
 }
