@@ -42,7 +42,7 @@ describe('fetchAllPages', () => {
   });
 
   it('stops after one page when there is only one', async () => {
-    const fetchMock = vi.fn(async () => page(['a'], 1, 1));
+    const fetchMock = vi.fn(async (_url: string, _init?: RequestInit) => page(['a'], 1, 1));
     global.fetch = fetchMock as unknown as typeof global.fetch;
 
     await expect(fetchAllPages('tok', '/api/projects')).resolves.toEqual(['a']);
@@ -50,29 +50,28 @@ describe('fetchAllPages', () => {
   });
 
   it('appends pagination with & when the path already has a query', async () => {
-    const fetchMock = vi.fn(async () => page([], 1, 1));
+    const fetchMock = vi.fn(async (_url: string, _init?: RequestInit) => page([], 1, 1));
     global.fetch = fetchMock as unknown as typeof global.fetch;
 
     await fetchAllPages('tok', '/api/todos?filters[soon][$eq]=true');
-    const url = fetchMock.mock.calls[0][0] as string;
-    expect(url).toContain('filters[soon][$eq]=true&pagination[pageSize]=100');
+    expect(fetchMock.mock.calls[0][0]).toContain('filters[soon][$eq]=true&pagination[pageSize]=100');
   });
 
   it('appends pagination with ? when the path has none', async () => {
-    const fetchMock = vi.fn(async () => page([], 1, 1));
+    const fetchMock = vi.fn(async (_url: string, _init?: RequestInit) => page([], 1, 1));
     global.fetch = fetchMock as unknown as typeof global.fetch;
 
     await fetchAllPages('tok', '/api/projects');
-    expect(fetchMock.mock.calls[0][0] as string).toContain('/api/projects?pagination[pageSize]=100');
+    expect(fetchMock.mock.calls[0][0]).toContain('/api/projects?pagination[pageSize]=100');
   });
 
   it('sends the bearer token', async () => {
-    const fetchMock = vi.fn(async () => page([], 1, 1));
+    const fetchMock = vi.fn(async (_url: string, _init?: RequestInit) => page([], 1, 1));
     global.fetch = fetchMock as unknown as typeof global.fetch;
 
     await fetchAllPages('secret-token', '/api/todos');
-    const init = fetchMock.mock.calls[0][1] as RequestInit;
-    expect((init.headers as Record<string, string>).Authorization).toBe('Bearer secret-token');
+    const headers = fetchMock.mock.calls[0][1]?.headers as Record<string, string>;
+    expect(headers.Authorization).toBe('Bearer secret-token');
   });
 
   it('throws rather than returning a short list when Strapi errors', async () => {

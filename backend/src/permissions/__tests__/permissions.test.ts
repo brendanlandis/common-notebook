@@ -4,13 +4,24 @@ import { ROLE_PERMISSIONS } from '../index';
 import { OWNED_CONTENT_TYPES } from '../../ownership/rule';
 
 describe('ROLE_PERMISSIONS — the authorization surface, in git', () => {
-  it('grants the public role exactly two things: logging in, and refreshing', () => {
+  it('grants the public role only login, refresh, and password reset', () => {
     // `auth.refresh` cannot require the authenticated role: by definition the
     // caller's access token has expired. The refresh token is the credential.
+    // The reset pair is authenticated by the emailed token; `forgotPassword`
+    // answers ok for unknown addresses, so it leaks no account existence.
     expect(ROLE_PERMISSIONS.public).toEqual([
       'plugin::users-permissions.auth.callback',
       'plugin::users-permissions.auth.refresh',
+      'plugin::users-permissions.auth.forgotPassword',
+      'plugin::users-permissions.auth.resetPassword',
     ]);
+  });
+
+  it('never grants a way to create an account through a role', () => {
+    // Accounts come only from /api/auth/redeem-invite, which uses a scoped API
+    // token. `user.create` here would be a public signup endpoint.
+    const all = [...ROLE_PERMISSIONS.public, ...ROLE_PERMISSIONS.authenticated];
+    expect(all).not.toContain('plugin::users-permissions.user.create');
   });
 
   it('lets an authenticated user revoke their own sessions', () => {

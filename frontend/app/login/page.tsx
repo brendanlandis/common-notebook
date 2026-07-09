@@ -106,6 +106,10 @@ export default function LoginPage() {
             {isSubmitting ? "logging in..." : "duh"}
           </button>
         </div>
+
+        <div>
+          <a href="/forgot-password">forgot your password?</a>
+        </div>
       </form>
     </main>
   );

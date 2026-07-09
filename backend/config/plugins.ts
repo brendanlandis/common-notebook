@@ -1,6 +1,42 @@
 const YEAR = 365 * 24 * 60 * 60; // seconds — every lifespan below is in seconds
 
+/**
+ * Password-reset email delivery.
+ *
+ * Strapi ships only the `sendmail` provider, which sends straight from the host
+ * and lands in spam. Configure real SMTP by setting SMTP_HOST; without it we
+ * leave the default in place and `bootstrap()` warns, rather than booting into a
+ * config that silently drops mail.
+ */
+const emailConfig = ({ env }) => {
+  const host = env("SMTP_HOST");
+  if (!host) return {};
+
+  return {
+    email: {
+      config: {
+        provider: "nodemailer",
+        providerOptions: {
+          host,
+          port: env.int("SMTP_PORT", 587),
+          // STARTTLS on 587, implicit TLS on 465.
+          secure: env.int("SMTP_PORT", 587) === 465,
+          auth: {
+            user: env("SMTP_USERNAME"),
+            pass: env("SMTP_PASSWORD"),
+          },
+        },
+        settings: {
+          defaultFrom: env("EMAIL_FROM"),
+          defaultReplyTo: env("EMAIL_REPLY_TO", env("EMAIL_FROM")),
+        },
+      },
+    },
+  };
+};
+
 module.exports = ({ env }) => ({
+  ...emailConfig({ env }),
   // Sessions, so "logged in until I log out" is literally true.
   //
   // A plain Strapi JWT is stateless and unrevocable: logging out only deletes the

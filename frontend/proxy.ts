@@ -22,7 +22,12 @@ import type { NextRequest } from 'next/server';
 
 const ACCESS_COOKIE = 'auth_token';
 const REFRESH_COOKIE = 'refresh_token';
-const PUBLIC_PATHS = ['/login'];
+
+/**
+ * Reachable without a session. Forget one of these and the symptom is a redirect
+ * loop from an emailed password-reset link.
+ */
+const PUBLIC_PATHS = ['/login', '/register', '/forgot-password', '/reset-password'];
 
 const CLEAR_COOKIE_OPTIONS = {
   httpOnly: true,

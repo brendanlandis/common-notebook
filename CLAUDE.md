@@ -103,6 +103,12 @@ throughout the frontend. Node engine constraint: `>=18 <=22.x`.
   no error — that shipped wrong practice stats and a project-demotion bug. Never hand-roll a Strapi list
   fetch: use `fetchAllPages()` from `app/lib/strapiServer.ts`, which pages properly and throws instead of
   truncating. Filter server-side (`filters[...]`), never in JS over a partial page.
+- **A `private: true` field cannot be written through the content API either**, not just read: sending it
+  in a request body is a `400 ValidationError: Invalid key <field>`. That's why a client can't choose its
+  own `todo.owner` — and why `invite.usedBy` cannot be set by the redemption route.
+- **Strapi has no compare-and-set.** Anything read-then-write (invite redemption, the moon-phase reset)
+  needs an in-process guard keyed by the thing being mutated. Correct on the single-process droplet; the
+  same caveat as `app/api/auth/rate-limiter.ts`.
 - `backend/tsconfig.json`'s `include` is `"./"`, so it type-checks root files too. `vitest.config.ts` is
   explicitly excluded: it imports a devDependency that production installs omit, and Strapi type-checks on
   boot, so leaving it in fails on prod with `TS2307`.

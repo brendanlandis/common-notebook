@@ -26,8 +26,6 @@ const CRUD = ['find', 'findOne', 'create', 'update', 'delete'] as const;
  *   auth.connect               — OAuth providers, unused
  *   auth.emailConfirmation     — email_confirmation=false
  *   auth.sendEmailConfirmation
- *   auth.forgotPassword        — add when password reset lands (Stage 5)
- *   auth.resetPassword         — ditto
  *   auth.changePassword        — nothing calls it yet
  */
 export const ROLE_PERMISSIONS: Record<string, string[]> = {
@@ -38,6 +36,11 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
     // definition, so this cannot require the authenticated role. The refresh
     // token in the body is the credential.
     'plugin::users-permissions.auth.refresh',
+    // Password reset. `forgotPassword` answers `{ok:true}` for unknown addresses,
+    // so it does not leak which emails have accounts. `resetPassword` is
+    // authenticated by the emailed token.
+    'plugin::users-permissions.auth.forgotPassword',
+    'plugin::users-permissions.auth.resetPassword',
   ],
   authenticated: [
     ...OWNED_CONTENT_TYPES.flatMap((uid) => CRUD.map((action) => `${uid}.${action}`)),
@@ -131,4 +134,49 @@ export async function seedAdvancedSettings(strapi: any) {
     `[permissions] advanced settings updated: ` +
       changed.map((k) => `${k}=${JSON.stringify(desired[k])}`).join(', ')
   );
+}
+
+/**
+ * The password-reset email's sender address.
+ *
+ * Strapi's default is `Administration Panel <no-reply@strapi.io>`, which any
+ * real mail server will reject or bin as spam. The address lives in the
+ * `plugin_users-permissions_email` core-store row — another piece of admin-UI
+ * state — so seed it alongside everything else.
+ *
+ * The message body is left alone; its `<%= URL %>?code=<%= TOKEN %>` link is
+ * built from `email_reset_password` (seeded above).
+ */
+export async function seedEmailTemplates(strapi: any) {
+  const from = process.env.EMAIL_FROM;
+  if (!from) {
+    strapi.log.warn(
+      '[permissions] EMAIL_FROM is unset — password-reset mail would be sent from ' +
+        'no-reply@strapi.io and rejected. Set SMTP_HOST and EMAIL_FROM.'
+    );
+    return;
+  }
+
+  const store = strapi.store({ type: 'plugin', name: 'users-permissions', key: 'email' });
+  const current = (await store.get()) ?? {};
+  const resetPassword = current.reset_password ?? {};
+  const options = resetPassword.options ?? {};
+
+  const desiredFrom = { name: process.env.EMAIL_FROM_NAME || 'Common Notebook', email: from };
+  if (JSON.stringify(options.from) === JSON.stringify(desiredFrom)) return;
+
+  await store.set({
+    value: {
+      ...current,
+      reset_password: {
+        ...resetPassword,
+        options: {
+          ...options,
+          from: desiredFrom,
+          response_email: process.env.EMAIL_REPLY_TO || from,
+        },
+      },
+    },
+  });
+  strapi.log.info(`[permissions] reset-password email sender set to ${from}`);
 }
