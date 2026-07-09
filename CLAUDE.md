@@ -33,10 +33,19 @@ License: AGPL v3.
   `TimezoneContext`, `PracticeContext`. `hooks/` — global hooks. `types/index.ts` — central domain types.
 
 ## Backend communication
-Browser never calls Strapi directly. Flow: browser → Next `app/api/*` handler → reads the `auth_token`
-httpOnly cookie → `fetch()` to `${STRAPI_API_URL}/api/...` with `Authorization: Bearer <token>`.
-API handlers return `{ success: boolean, ... }`. Unauthenticated requests are redirected to `/login`
-by `frontend/proxy.ts`.
+Browser never calls Strapi directly. Flow: browser → Next `app/api/*` handler → `getAccessToken(req)`
+(`app/lib/strapiAuth.ts`) → `fetch()` to `${STRAPI_API_URL}/api/...` with `Authorization: Bearer <token>`.
+API handlers return `{ success: boolean, ... }`.
+
+**Auth is session-based, not a bare JWT.** Strapi runs `jwtManagement: 'refresh'`, so there are two
+httpOnly cookies: `auth_token` (access, 30 min) and `refresh_token` (a year, backed by a row in
+`strapi_sessions`). Never read `auth_token` directly in a handler — call `getAccessToken(req)`, which
+refreshes proactively when the token is within 60s of expiry and re-sets both cookies. Logging out calls
+Strapi `/auth/logout` with `scope: 'all'`, which is what makes revocation real.
+
+`frontend/proxy.ts` gates page navigations on the *refresh* cookie's `exp`, decoded locally without
+verifying the signature. That is a **UX gate, not an authorization boundary** — a forged cookie renders an
+empty shell, because every data call is still authorized by Strapi and scoped by the ownership middleware.
 
 # Backend
 

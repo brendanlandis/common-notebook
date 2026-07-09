@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getAccessToken } from '@/app/lib/strapiAuth';
 import type { Todo } from '@/app/types/index';
 
 const STRAPI_API_URL = process.env.STRAPI_API_URL;
@@ -9,7 +10,7 @@ export async function DELETE(
 ) {
   try {
     const { documentId, date } = await params;
-    const token = req.cookies.get('auth_token')?.value;
+    const token = await getAccessToken(req);
 
     if (!token) {
       return NextResponse.json(

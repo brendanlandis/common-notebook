@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getAccessToken } from '@/app/lib/strapiAuth';
 import { getTodayForRecurrence, toISODateInEST } from '@/app/lib/dateUtils';
 
 const STRAPI_API_URL = process.env.STRAPI_API_URL;
@@ -12,7 +13,7 @@ interface StatItem {
 export async function GET(req: NextRequest) {
   try {
     // Get auth token from cookies
-    const token = req.cookies.get('auth_token')?.value;
+    const token = await getAccessToken(req);
 
     if (!token) {
       return NextResponse.json(

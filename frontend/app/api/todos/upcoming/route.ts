@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getAccessToken } from '@/app/lib/strapiAuth';
 import { getTodayInEST, toISODateInEST } from '@/app/lib/dateUtils';
 import { addDays } from 'date-fns';
 
@@ -7,7 +8,7 @@ const STRAPI_API_URL = process.env.STRAPI_API_URL;
 export async function GET(req: NextRequest) {
   try {
     // Get auth token from cookies
-    const token = req.cookies.get('auth_token')?.value;
+    const token = await getAccessToken(req);
 
     if (!token) {
       return NextResponse.json(

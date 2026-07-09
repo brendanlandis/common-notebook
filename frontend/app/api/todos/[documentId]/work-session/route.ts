@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getAccessToken } from '@/app/lib/strapiAuth';
 import type { Todo } from '@/app/types/index';
 import { toZonedTime } from 'date-fns-tz';
 import { format as formatTz } from 'date-fns-tz';
@@ -12,7 +13,7 @@ export async function POST(
 ) {
   try {
     const { documentId } = await params;
-    const token = req.cookies.get('auth_token')?.value;
+    const token = await getAccessToken(req);
 
     if (!token) {
       return NextResponse.json(

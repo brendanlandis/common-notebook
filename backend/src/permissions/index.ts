@@ -26,20 +26,26 @@ const CRUD = ['find', 'findOne', 'create', 'update', 'delete'] as const;
  *   auth.connect               — OAuth providers, unused
  *   auth.emailConfirmation     — email_confirmation=false
  *   auth.sendEmailConfirmation
- *   auth.refresh               — add when sessions land (Stage 0b)
  *   auth.forgotPassword        — add when password reset lands (Stage 5)
  *   auth.resetPassword         — ditto
- *   auth.logout, auth.changePassword — nothing calls them yet
+ *   auth.changePassword        — nothing calls it yet
  */
 export const ROLE_PERMISSIONS: Record<string, string[]> = {
   public: [
-    // POST /api/auth/local — the only thing an anonymous caller may do.
+    // POST /api/auth/local
     'plugin::users-permissions.auth.callback',
+    // POST /api/auth/refresh — the caller's access token is expired by
+    // definition, so this cannot require the authenticated role. The refresh
+    // token in the body is the credential.
+    'plugin::users-permissions.auth.refresh',
   ],
   authenticated: [
     ...OWNED_CONTENT_TYPES.flatMap((uid) => CRUD.map((action) => `${uid}.${action}`)),
     // GET /api/users/me — frontend/proxy.ts calls this on every navigation.
     'plugin::users-permissions.user.me',
+    // POST /api/auth/logout — revokes the session row, which is the only thing
+    // that makes logout mean anything. Requires a valid access token.
+    'plugin::users-permissions.auth.logout',
   ],
 };
 

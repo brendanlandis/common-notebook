@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getAccessToken } from '@/app/lib/strapiAuth';
 import { calculateNextRecurrence } from '@/app/lib/recurrence';
 import type { Todo } from '@/app/types/index';
 
@@ -10,7 +11,7 @@ export async function POST(
 ) {
   try {
     const { documentId } = await params;
-    const token = req.cookies.get('auth_token')?.value;
+    const token = await getAccessToken(req);
 
     if (!token) {
       return NextResponse.json(

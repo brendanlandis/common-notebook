@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getAccessToken } from '@/app/lib/strapiAuth';
 import {
   performMoonPhaseReset,
   updateMoonPhaseResetDate,
@@ -6,7 +7,7 @@ import {
 
 export async function POST(req: NextRequest) {
   try {
-    const token = req.cookies.get('auth_token')?.value;
+    const token = await getAccessToken(req);
 
     if (!token) {
       return NextResponse.json(

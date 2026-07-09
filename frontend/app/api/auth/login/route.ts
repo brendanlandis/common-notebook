@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { setAuthCookies } from '@/app/lib/strapiAuth';
 import { checkRateLimit, resetRateLimit } from '../rate-limiter';
 
 const STRAPI_API_URL = process.env.STRAPI_API_URL;
-const COOKIE_MAX_AGE = 90 * 24 * 60 * 60; // 90 days
 
 export async function POST(req: NextRequest) {
   try {
@@ -64,19 +64,23 @@ export async function POST(req: NextRequest) {
     // Authentication successful - reset rate limit for this IP
     resetRateLimit(ip);
 
-    // Set HTTP-only cookie with JWT token
-    const res = NextResponse.json({ 
-      success: true, 
-      user: data.user 
+    // Strapi runs in refresh mode, so /auth/local returns both tokens. Without
+    // the refresh token the user would be logged out when the short-lived access
+    // token expires.
+    if (!data.refreshToken) {
+      console.error('Login succeeded but Strapi returned no refreshToken. Is jwtManagement set to "refresh"?');
+      return NextResponse.json(
+        { success: false, error: 'Authentication misconfigured' },
+        { status: 500 }
+      );
+    }
+
+    const res = NextResponse.json({
+      success: true,
+      user: data.user,
     });
 
-    res.cookies.set('auth_token', data.jwt, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: COOKIE_MAX_AGE,
-      path: '/',
-    });
+    setAuthCookies(res, { access: data.jwt, refresh: data.refreshToken });
 
     return res;
   } catch (error) {
