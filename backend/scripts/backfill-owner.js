@@ -53,6 +53,9 @@ async function countUnowned(strapi, uid) {
  * Page through unowned rows. We re-query each iteration rather than paginating
  * with an offset, because assigning an owner removes the row from the result
  * set — a moving window would skip half of them.
+ *
+ * Never called in dry-run mode: with nothing written, the result set never
+ * shrinks and the loop would not terminate.
  */
 async function backfillType(strapi, uid, userId) {
   let done = 0;
@@ -65,15 +68,12 @@ async function backfillType(strapi, uid, userId) {
     if (rows.length === 0) break;
 
     for (const row of rows) {
-      if (!DRY_RUN) {
-        await strapi.documents(uid).update({
-          documentId: row.documentId,
-          data: { owner: userId },
-        });
-      }
+      await strapi.documents(uid).update({
+        documentId: row.documentId,
+        data: { owner: userId },
+      });
       done += 1;
     }
-    if (DRY_RUN) break; // nothing changed, so the query would loop forever
     if (process.stdout.isTTY) process.stdout.write(`  ${uid}: ${done}\r`);
   }
   if (process.stdout.isTTY) process.stdout.write(`\r${' '.repeat(60)}\r`);
@@ -110,7 +110,9 @@ async function main() {
 
     console.log(`\n${DRY_RUN ? 'Would assign' : 'Assigning'} ${total} rows to ${user.username}...`);
     for (const uid of OWNED_TYPES) {
-      const n = await backfillType(app, uid, userId);
+      // In dry-run, report the counted total rather than walking pages: nothing
+      // is written, so the unowned set never shrinks.
+      const n = DRY_RUN ? before[uid] : await backfillType(app, uid, userId);
       console.log(`  ${uid.padEnd(34)} ${n}`.padEnd(50));
     }
 
