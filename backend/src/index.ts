@@ -3,7 +3,12 @@ import type { Core } from '@strapi/strapi';
 import { createOwnershipMiddleware } from './ownership';
 import { warnOnUnownedRows } from './ownership/preflight';
 import { OWNED_CONTENT_TYPES, ownerIsRequestUser } from './ownership/rule';
-import { seedAdvancedSettings, seedEmailTemplates, seedRolePermissions } from './permissions';
+import {
+  logEmailTransport,
+  seedAdvancedSettings,
+  seedEmailTemplates,
+  seedRolePermissions,
+} from './permissions';
 
 export default {
   /**
@@ -39,6 +44,7 @@ export default {
     await seedRolePermissions(strapi);
     await seedAdvancedSettings(strapi);
     await seedEmailTemplates(strapi);
+    logEmailTransport(strapi);
 
     // The middleware above fails closed, so an un-backfilled row is invisible to
     // everyone. Say so at boot rather than let it look like data loss.

@@ -30,12 +30,24 @@ async function main() {
     process.exit(1);
   }
 
+  // Would the *running server* send, with this environment? Compute it before we
+  // opt ourselves in, or the answer is always yes and the check is worthless.
+  const serverWouldSend =
+    process.env.EMAIL_ENABLED === 'true' ||
+    (process.env.EMAIL_ENABLED === undefined && process.env.NODE_ENV === 'production');
+
   // This script exists to send a real email, so it opts into the guard in
-  // config/plugins.ts that otherwise stops non-production Strapi from using the
-  // real SMTP credentials in backend/.env. Must be set before the app boots.
-  process.env.ALLOW_DEV_EMAIL = 'true';
-  if (process.env.NODE_ENV !== 'production') {
-    console.log('\n⚠ This will send a real email using the credentials in backend/.env.');
+  // config/plugins.ts. Must be set before the app boots.
+  process.env.EMAIL_ENABLED = 'true';
+
+  console.log('\n⚠ This will send a real email using the credentials in backend/.env.');
+  if (!serverWouldSend) {
+    console.log(
+      '\n⚠ But the running Strapi server would NOT: EMAIL_ENABLED is unset and ' +
+        `NODE_ENV=${process.env.NODE_ENV ?? '(unset)'}. This script opts itself in, so a\n` +
+        '  success here does not mean password-reset emails are being delivered.\n' +
+        '  Set EMAIL_ENABLED=true in the environment the server runs under.'
+    );
   }
 
   const { createStrapi, compileStrapi } = require('@strapi/strapi');

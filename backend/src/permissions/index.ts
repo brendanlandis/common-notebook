@@ -137,6 +137,30 @@ export async function seedAdvancedSettings(strapi: any) {
 }
 
 /**
+ * Say, at boot, whether this instance can actually send email.
+ *
+ * `config/plugins.ts` swaps in a no-op transport unless `EMAIL_ENABLED=true` (or
+ * `NODE_ENV=production`). Since `strapi start` does not set `NODE_ENV`, a droplet
+ * that never exported it would sink every password-reset email in silence. This
+ * makes that state impossible to miss in the logs.
+ */
+export function logEmailTransport(strapi: any) {
+  const options = strapi.config.get('plugin::email.providerOptions') ?? {};
+
+  if (options.jsonTransport) {
+    strapi.log.warn(
+      '[email] transport: SINK — no mail will be sent. ' +
+        `EMAIL_ENABLED=${process.env.EMAIL_ENABLED ?? '(unset)'} ` +
+        `NODE_ENV=${process.env.NODE_ENV ?? '(unset)'}`
+    );
+    return;
+  }
+
+  const provider = strapi.config.get('plugin::email.provider', 'sendmail');
+  strapi.log.info(`[email] transport: ${provider} → ${options.host}:${options.port}`);
+}
+
+/**
  * The password-reset email's sender address.
  *
  * Strapi's default is `Administration Panel <no-reply@strapi.io>`, which any

@@ -17,37 +17,45 @@ const YEAR = 365 * 24 * 60 * 60; // seconds — every lifespan below is in secon
  *
  * `scripts/test-email.js` opts in deliberately. Nothing else should.
  */
-const emailConfig = ({ env }) => {
-  const isProduction = env("NODE_ENV") === "production";
-  const allowDevEmail = env.bool("ALLOW_DEV_EMAIL", false);
-
-  if (!isProduction && !allowDevEmail) {
-    // A sink, not a relay. Nodemailer's jsonTransport serialises the message and
-    // returns it; no socket is ever opened.
-    //
-    // Note we do NOT simply fall through to Strapi's default `sendmail` provider:
-    // that one calls `sendDirectSmtp` and tries to deliver straight to the
-    // recipient's MX, so a dev machine really can put mail on the wire.
-    console.warn(
-      "[email] Not production — using a no-op mail transport. Nothing will be sent. " +
-        "Set ALLOW_DEV_EMAIL=true to send for real (scripts/test-email.js does this)."
-    );
-    return {
-      email: {
-        config: {
-          provider: "nodemailer",
-          providerOptions: { jsonTransport: true },
-          settings: {
-            defaultFrom: env("EMAIL_FROM", "dev@localhost"),
-            defaultReplyTo: env("EMAIL_FROM", "dev@localhost"),
-          },
+/** A transport that serialises the message and opens no socket. */
+const mailSink = (env, reason: string) => {
+  console.warn(`[email] ${reason} Using a no-op transport — nothing will be sent.`);
+  return {
+    email: {
+      config: {
+        provider: "nodemailer",
+        providerOptions: { jsonTransport: true },
+        settings: {
+          defaultFrom: env("EMAIL_FROM", "dev@localhost"),
+          defaultReplyTo: env("EMAIL_FROM", "dev@localhost"),
         },
       },
-    };
+    },
+  };
+};
+
+const emailConfig = ({ env }) => {
+  const host = env("SMTP_HOST");
+
+  // `strapi start` does NOT set NODE_ENV — Strapi reports "development" unless the
+  // process manager exports it. Keying the guard on NODE_ENV alone would silently
+  // disable production email on a droplet that simply never set it. So NODE_ENV is
+  // only the *default*; EMAIL_ENABLED is the explicit answer, and prod should set it.
+  const emailEnabled = env.bool("EMAIL_ENABLED", env("NODE_ENV") === "production");
+
+  if (!emailEnabled) {
+    // `backend/.env` holds the production SMTP credentials, and any local boot —
+    // `strapi develop`, a forgotten `strapi start`, a script — picks them up. That
+    // has already sent real password-reset emails to a seed address by accident.
+    return mailSink(env, "EMAIL_ENABLED is not set and NODE_ENV is not production.");
   }
 
-  const host = env("SMTP_HOST");
-  if (!host) return {};
+  if (!host) {
+    // Deliberately NOT falling through to Strapi's default `sendmail` provider:
+    // it calls `sendDirectSmtp` and delivers straight to the recipient's MX, so a
+    // machine really can put mail on the wire without a relay.
+    return mailSink(env, "EMAIL_ENABLED is set but SMTP_HOST is not.");
+  }
 
   const port = env.int("SMTP_PORT", 587);
 
