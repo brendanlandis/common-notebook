@@ -1,7 +1,6 @@
 import { toISODateInEST, getNowInEST } from './dateUtils';
 import { subDays } from 'date-fns';
 
-const SLOWNAMES_API_URL = process.env.NEXT_PUBLIC_STRAPI_BAND_API_URL;
 const SYSTEM_SETTINGS_TITLE = 'lastShowTodosCheck';
 
 /**
@@ -138,12 +137,12 @@ export async function createTodosFromShows(): Promise<{
       };
     }
 
-    // Fetch shows from Slownames API
-    const username = process.env.NEXT_PUBLIC_BAND_NOTEBOOK_USER;
-    const showsUrl = `${SLOWNAMES_API_URL}/api/shows?pLevel=3&sort=date:desc&filters[date][$lte]=${yesterdayStr}&filters[band][users][username][$eq]=${username}`;
-    
-    const showsResponse = await fetch(showsUrl);
-    
+    // Fetch shows via the server-side gate route, which holds the slownames
+    // archive key and only returns shows when this user is enabled.
+    const showsResponse = await fetch(
+      `/api/shows-todos?before=${encodeURIComponent(yesterdayStr)}`
+    );
+
     if (!showsResponse.ok) {
       console.error('Failed to fetch shows from API');
       return {
@@ -155,9 +154,9 @@ export async function createTodosFromShows(): Promise<{
     }
 
     const showsData: ShowsApiResponse = await showsResponse.json();
-    
+
     // Filter to only shows after lastCheckDate
-    const newShows = showsData.data.filter(
+    const newShows = (showsData.data ?? []).filter(
       (show) => show.date > lastCheckDate
     );
 
