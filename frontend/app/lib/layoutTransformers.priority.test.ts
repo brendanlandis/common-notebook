@@ -1,11 +1,11 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { transformLayout } from '../layoutTransformers';
+import { transformLayout } from './layoutTransformers';
 import type { Todo, Project, LayoutRuleset } from '@/app/types/index';
-import * as dateUtils from '../dateUtils';
+import * as dateUtils from './dateUtils';
 
 // Mock date utilities (mirrors layoutTransformers.workSessions.test.ts)
-vi.mock('../dateUtils', async () => {
-  const actual = await vi.importActual('../dateUtils');
+vi.mock('./dateUtils', async () => {
+  const actual = await vi.importActual('./dateUtils');
   return {
     ...actual,
     getTodayInEST: vi.fn(),
@@ -15,7 +15,7 @@ vi.mock('../dateUtils', async () => {
   };
 });
 
-vi.mock('../timezoneConfig', () => ({
+vi.mock('./timezoneConfig', () => ({
   getTimezone: vi.fn(() => 'America/New_York'),
   getDayBoundaryHour: vi.fn(() => 0),
 }));

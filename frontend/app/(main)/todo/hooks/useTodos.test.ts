@@ -14,7 +14,7 @@ vi.mock("@/app/lib/showsTodoCreator", () => ({
     .mockResolvedValue({ success: true, todosCreated: 0, showsProcessed: 0 }),
 }));
 
-import { useTodos } from "../useTodos";
+import { useTodos } from "./useTodos";
 
 const makeTodo = (overrides: Partial<Todo> = {}): Todo =>
   ({

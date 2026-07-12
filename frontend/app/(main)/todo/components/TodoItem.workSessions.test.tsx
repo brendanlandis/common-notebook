@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import TodoItem from '../TodoItem';
+import TodoItem from './TodoItem';
 import type { Todo } from '@/app/types/index';
 
 // Mock date utilities

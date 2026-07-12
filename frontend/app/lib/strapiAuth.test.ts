@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 // use, but the import must still resolve under vitest.
 vi.mock('next/headers', () => ({ cookies: vi.fn() }));
 
-import { isExpiringSoon } from '../strapiAuth';
+import { isExpiringSoon } from './strapiAuth';
 
 /** Build an unsigned JWT with the given `exp`. Only the payload is ever read. */
 function tokenExpiringAt(epochSeconds: number): string {

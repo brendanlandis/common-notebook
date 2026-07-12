@@ -1,10 +1,10 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import type { Todo } from '@/app/types/index';
-import * as completedTaskConfig from '../completedTaskVisibilityConfig';
-import { getWorkedOnPhase } from '../dayBoundaryHelpers';
+import * as completedTaskConfig from './completedTaskVisibilityConfig';
+import { getWorkedOnPhase } from './dayBoundaryHelpers';
 
 // Mock the config module to control visibility minutes
-vi.mock('../completedTaskVisibilityConfig', () => ({
+vi.mock('./completedTaskVisibilityConfig', () => ({
   getCompletedTaskVisibilityMinutes: vi.fn(() => 60), // Default 60 minutes
   setCachedVisibilityMinutes: vi.fn(),
   fetchVisibilityMinutesFromStrapi: vi.fn(),
@@ -12,8 +12,8 @@ vi.mock('../completedTaskVisibilityConfig', () => ({
 }));
 
 // Mock day boundary helpers module
-vi.mock('../dayBoundaryHelpers', async () => {
-  const actual = await vi.importActual('../dayBoundaryHelpers');
+vi.mock('./dayBoundaryHelpers', async () => {
+  const actual = await vi.importActual('./dayBoundaryHelpers');
   return {
     ...actual,
     getWorkedOnPhase: vi.fn(),

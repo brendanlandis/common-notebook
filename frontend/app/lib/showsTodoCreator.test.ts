@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { createTodosFromShows } from '../showsTodoCreator';
+import { createTodosFromShows } from './showsTodoCreator';
 
-vi.mock('../dateUtils', () => ({
+vi.mock('./dateUtils', () => ({
   getNowInEST: () => new Date('2026-07-09T12:00:00.000Z'),
   toISODateInEST: (d: Date) => d.toISOString().slice(0, 10),
 }));

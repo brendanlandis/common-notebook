@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { NextRequest } from 'next/server';
-import { POST as skipRoute } from '../[documentId]/skip/route';
-import { POST as completeRoute } from '../[documentId]/complete/route';
+import { POST as skipRoute } from './[documentId]/skip/route';
+import { POST as completeRoute } from './[documentId]/complete/route';
 import type { Todo } from '@/app/types/index';
 import * as dateUtils from '@/app/lib/dateUtils';
 

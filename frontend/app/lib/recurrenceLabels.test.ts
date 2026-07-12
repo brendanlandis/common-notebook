@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { getDayName, getOrdinal, getMonthName, getRecurrencePrefix } from "../recurrenceLabels";
+import { getDayName, getOrdinal, getMonthName, getRecurrencePrefix } from "./recurrenceLabels";
 import type { Todo } from "@/app/types/index";
 
 describe("getDayName", () => {

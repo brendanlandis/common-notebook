@@ -16,7 +16,7 @@ describe('Completed Task Visibility Configuration', () => {
     delete process.env.NEXT_PUBLIC_COMPLETED_TASK_VISIBILITY_MINUTES;
     
     // Reimport the module to reset the cache
-    completedTaskVisibilityConfig = await import('../completedTaskVisibilityConfig');
+    completedTaskVisibilityConfig = await import('./completedTaskVisibilityConfig');
   });
 
   afterEach(() => {
@@ -34,7 +34,7 @@ describe('Completed Task Visibility Configuration', () => {
       
       // Need to reimport after setting env var
       vi.resetModules();
-      completedTaskVisibilityConfig = await import('../completedTaskVisibilityConfig');
+      completedTaskVisibilityConfig = await import('./completedTaskVisibilityConfig');
       
       const result = completedTaskVisibilityConfig.getCompletedTaskVisibilityMinutes();
       expect(result).toBe(30);
@@ -53,7 +53,7 @@ describe('Completed Task Visibility Configuration', () => {
       
       // Need to reimport after setting env var
       vi.resetModules();
-      completedTaskVisibilityConfig = await import('../completedTaskVisibilityConfig');
+      completedTaskVisibilityConfig = await import('./completedTaskVisibilityConfig');
       
       // Set cache
       completedTaskVisibilityConfig.setCachedVisibilityMinutes(120);
@@ -66,7 +66,7 @@ describe('Completed Task Visibility Configuration', () => {
       process.env.NEXT_PUBLIC_COMPLETED_TASK_VISIBILITY_MINUTES = 'invalid';
       
       vi.resetModules();
-      completedTaskVisibilityConfig = await import('../completedTaskVisibilityConfig');
+      completedTaskVisibilityConfig = await import('./completedTaskVisibilityConfig');
       
       const result = completedTaskVisibilityConfig.getCompletedTaskVisibilityMinutes();
       expect(result).toBe(15); // Should fall back to default
@@ -76,7 +76,7 @@ describe('Completed Task Visibility Configuration', () => {
       process.env.NEXT_PUBLIC_COMPLETED_TASK_VISIBILITY_MINUTES = '-10';
       
       vi.resetModules();
-      completedTaskVisibilityConfig = await import('../completedTaskVisibilityConfig');
+      completedTaskVisibilityConfig = await import('./completedTaskVisibilityConfig');
       
       const result = completedTaskVisibilityConfig.getCompletedTaskVisibilityMinutes();
       expect(result).toBe(15); // Should fall back to default

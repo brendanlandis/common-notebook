@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { NextRequest } from 'next/server';
-import { POST as workSessionRoute } from '../[documentId]/work-session/route';
+import { POST as workSessionRoute } from './[documentId]/work-session/route';
 import type { Todo } from '@/app/types/index';
 import { toZonedTime, format as formatTz } from 'date-fns-tz';
 

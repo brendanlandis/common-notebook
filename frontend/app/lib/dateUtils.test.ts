@@ -1,13 +1,13 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { getTodayForRecurrence, getCompletionDateForRecurrence } from '../dateUtils';
-import * as dayBoundaryConfig from '../dayBoundaryConfig';
-import * as timezoneConfig from '../timezoneConfig';
+import { getTodayForRecurrence, getCompletionDateForRecurrence } from './dateUtils';
+import * as dayBoundaryConfig from './dayBoundaryConfig';
+import * as timezoneConfig from './timezoneConfig';
 
 // Mock the day boundary config
-vi.mock('../dayBoundaryConfig');
+vi.mock('./dayBoundaryConfig');
 
 // Mock the timezone config to ensure consistent behavior across environments
-vi.mock('../timezoneConfig', () => ({
+vi.mock('./timezoneConfig', () => ({
   getTimezone: vi.fn(() => 'America/New_York'),
   setCachedTimezone: vi.fn(),
   fetchTimezoneFromStrapi: vi.fn(),

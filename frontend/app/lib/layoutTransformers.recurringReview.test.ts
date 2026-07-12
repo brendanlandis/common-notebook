@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { transformLayout } from '../layoutTransformers';
-import type { RawTodoData } from '../layoutTransformers';
+import { transformLayout } from './layoutTransformers';
+import type { RawTodoData } from './layoutTransformers';
 import type { LayoutRuleset, Todo, Project, RecurrenceType } from '@/app/types/index';
 
 // Helper to create minimal todo for testing

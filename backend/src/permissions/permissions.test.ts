@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { ROLE_PERMISSIONS } from '../index';
-import { OWNED_CONTENT_TYPES } from '../../ownership/rule';
+import { ROLE_PERMISSIONS } from './index';
+import { OWNED_CONTENT_TYPES } from '../ownership/rule';
 
 describe('ROLE_PERMISSIONS — the authorization surface, in git', () => {
   it('grants the public role only login, refresh, and password reset', () => {

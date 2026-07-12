@@ -5,7 +5,7 @@ import {
   supportsDisplayDateOffset,
   getOffsetSupportedTypes,
   RECURRENCE_SPECS
-} from '../recurrenceSpec';
+} from './recurrenceSpec';
 import type { Todo } from '@/app/types/index';
 
 // Helper to create minimal todo for testing

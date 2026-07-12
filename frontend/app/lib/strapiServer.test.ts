@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { STRAPI_MAX_PAGE_SIZE, fetchAllPages } from '../strapiServer';
+import { STRAPI_MAX_PAGE_SIZE, fetchAllPages } from './strapiServer';
 
 /** Build a Strapi list response for one page. */
 function page(rows: unknown[], pageNo: number, pageCount: number) {

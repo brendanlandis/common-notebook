@@ -1,11 +1,11 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { calculateNextRecurrence } from '../recurrence';
+import { calculateNextRecurrence } from './recurrence';
 import type { Todo } from '@/app/types/index';
-import * as dateUtils from '../dateUtils';
+import * as dateUtils from './dateUtils';
 
 // Mock the date utilities to have consistent test dates
-vi.mock('../dateUtils', async () => {
-  const actual = await vi.importActual('../dateUtils');
+vi.mock('./dateUtils', async () => {
+  const actual = await vi.importActual('./dateUtils');
   return {
     ...actual,
     getTodayForRecurrence: vi.fn(),
@@ -16,7 +16,7 @@ vi.mock('../dateUtils', async () => {
 });
 
 // Mock the timezone config to ensure consistent behavior across environments
-vi.mock('../timezoneConfig', () => ({
+vi.mock('./timezoneConfig', () => ({
   getTimezone: vi.fn(() => 'America/New_York'),
   setCachedTimezone: vi.fn(),
   fetchTimezoneFromStrapi: vi.fn(),

@@ -1,12 +1,12 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import RecurringReviewLayout from '../RecurringReviewLayout';
+import RecurringReviewLayout from './RecurringReviewLayout';
 import type { TransformedLayout } from '@/app/lib/layoutTransformers';
-import type { LayoutRendererProps } from '../types';
+import type { LayoutRendererProps } from './types';
 import type { Todo, Project, RecurrenceType } from '@/app/types/index';
 
 // Mock TodoItemRecurringReview component
-vi.mock('../../TodoItemRecurringReview', () => ({
+vi.mock('../TodoItemRecurringReview', () => ({
   default: ({ todo }: any) => (
     <li data-testid="todo-item-recurring-review" data-todo-id={todo.documentId}>
       {todo.title}

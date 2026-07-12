@@ -18,7 +18,8 @@ License: AGPL v3.
 - Forms: react-hook-form 7 + zod 4. Charts: recharts 3. Icons: `@phosphor-icons/react`.
 - Dates: `date-fns` + `date-fns-tz`; also `astronomy-engine` (moon-phase / solstice recurrence).
 - No global state library — React hooks + Context only.
-- Tests: Vitest 4 + jsdom + Testing Library; colocated in `__tests__/` dirs. No Prettier config.
+- Tests: Vitest 4 + jsdom + Testing Library; co-located as `*.test.ts(x)` siblings next to the
+  code under test. No Prettier config.
 
 ## Layout (`frontend/app/`)
 - `(main)/` — authed route group (`layout.tsx`). Features: `todo/`, `practice/`, `settings/`, home.
@@ -82,7 +83,7 @@ throughout the frontend. Node engine constraint: `>=18 <=22.x`.
   `projectPriority.ts`) → normal → later, sorted by creation date within each tier.
 - **EST-centric date logic:** use `getTodayInEST`/`getNowInEST`/`parseInEST` from `app/lib/dateUtils.ts`
   plus configurable day-boundary hour; keep date logic pure and unit-tested.
-- Naming: PascalCase components, camelCase lib/util files, `use*` hooks, `__tests__/` for tests.
+- Naming: PascalCase components, camelCase lib/util files, `use*` hooks, `*.test.ts(x)` siblings for tests.
 
 # Gotchas
 - Run tests with `npm run test:run` (one-shot) — plain `npm test` is Vitest **watch mode** and will
@@ -90,8 +91,8 @@ throughout the frontend. Node engine constraint: `>=18 <=22.x`.
 - CI runs `npm run build` (both apps) + `npm run test:run` (both apps). **Lint and `tsc` are not
   CI-gated.** `npm run lint` (`eslint .`) reports ~168 pre-existing findings and `tsc --noEmit` has
   pre-existing errors in some test files — don't chase these as if new; scope checks to files you touched.
-- Tests colocate in `__tests__/`; `layoutTransformers`/date tests mock `../dateUtils` and
-  `../timezoneConfig` via `vi.mock` (see `app/lib/__tests__/layoutTransformers.*.test.ts`).
+- Tests co-locate as `*.test.ts(x)` siblings next to their subject; `layoutTransformers`/date tests
+  mock `./dateUtils` and `./timezoneConfig` via `vi.mock` (see `app/lib/layoutTransformers.*.test.ts`).
 - **Everything runs Node 25 / npm 11** — prod, local, and all four CI jobs — even though
   `backend/package.json` still declares `engines: >=18 <=22.x` (harmless `EBADENGINE` warnings).
   Don't "fix" a CI job back to Node 22: Node 22 ships npm 10, which rejects an npm 11 lockfile with

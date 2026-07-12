@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
-import TodoItemRecurringReview from "../TodoItemRecurringReview";
+import TodoItemRecurringReview from "./TodoItemRecurringReview";
 import type { Todo } from "@/app/types/index";
 
 // Mock RichTextDisplay

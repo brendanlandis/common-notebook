@@ -12,7 +12,7 @@ describe('Completed Task Visibility Integration Tests', () => {
     delete process.env.NEXT_PUBLIC_COMPLETED_TASK_VISIBILITY_MINUTES;
     
     // Reimport to reset cache
-    completedTaskVisibilityConfig = await import('../completedTaskVisibilityConfig');
+    completedTaskVisibilityConfig = await import('./completedTaskVisibilityConfig');
   });
 
   describe('Todo Page Initial Load Scenario', () => {

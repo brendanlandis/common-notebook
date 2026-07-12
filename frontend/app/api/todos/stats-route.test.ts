@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { GET } from '../stats/route';
+import { GET } from './stats/route';
 import { NextRequest } from 'next/server';
 import * as dateUtils from '@/app/lib/dateUtils';
 

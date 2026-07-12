@@ -1,16 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { getEffectiveDayForTimestamp, getWorkedOnPhase } from '../dayBoundaryHelpers';
-import * as timezoneConfig from '../timezoneConfig';
-import * as dateUtils from '../dateUtils';
+import { getEffectiveDayForTimestamp, getWorkedOnPhase } from './dayBoundaryHelpers';
+import * as timezoneConfig from './timezoneConfig';
+import * as dateUtils from './dateUtils';
 
 // Mock timezone config - using UTC for testing (no timezone offset)
-vi.mock('../timezoneConfig', () => ({
+vi.mock('./timezoneConfig', () => ({
   getTimezone: vi.fn(() => 'UTC'),
   getDayBoundaryHour: vi.fn(() => 4),
 }));
 
 // Mock date utilities
-vi.mock('../dateUtils', () => ({
+vi.mock('./dateUtils', () => ({
   // Simulate toZonedTime behavior for UTC timezone
   // For UTC, there's no offset, so we just return the date as-is
   // The returned date has UTC values accessible via getUTC* methods

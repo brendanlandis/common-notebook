@@ -5,8 +5,8 @@ import {
   hasRelationValue,
   isContentApiRequest,
   mergeFilters,
-} from '../index';
-import { ownerIsRequestUser } from '../rule';
+} from './index';
+import { ownerIsRequestUser } from './rule';
 
 const UID = 'api::todo.todo';
 const ALICE = { id: 2 };

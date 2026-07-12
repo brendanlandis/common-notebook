@@ -9,7 +9,7 @@ vi.mock('@/app/lib/strapiAuth', () => ({
   getUserIdFromAccessToken: (...args: unknown[]) => getUserIdFromAccessToken(...args),
 }));
 
-import { GET } from '../route';
+import { GET } from './route';
 
 const request = () => new NextRequest('http://localhost:3000/api/shows-todos');
 
