@@ -36,7 +36,7 @@ describe('GET /api/shows-todos', () => {
     getUserIdFromAccessToken.mockReturnValue('1');
 
     const body = await (await GET(request())).json();
-    expect(body).toEqual({ success: true, enabled: true });
+    expect(body).toEqual({ success: true, enabled: true, shows: [] });
   });
 
   it('is disabled for every other user', async () => {
