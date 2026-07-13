@@ -9,6 +9,7 @@ import {
 } from './strapiServer';
 
 const MOON_PHASE_SETTING = 'moonPhaseLastResetDate';
+const AUTO_DECLUTTER_SETTING = 'autoDeclutter';
 
 interface StrapiRow {
   documentId: string;
@@ -88,6 +89,13 @@ export async function runMoonPhaseResetIfDue(token: string, userKey: string): Pr
 
   const pending = (async () => {
     try {
+      // Auto-declutter is opt-out: defaults on, so unset or 'true' proceeds and
+      // only an explicit 'false' skips the automatic reset. The manual declutter
+      // button (/api/reset-moon-phase) is unaffected. Read first to short-circuit
+      // a disabled account before touching the last-reset date.
+      const auto = await getSystemSetting(token, AUTO_DECLUTTER_SETTING);
+      if (auto?.value === 'false') return;
+
       const setting = await getSystemSetting(token, MOON_PHASE_SETTING);
       const lastResetDate = setting?.date ? parseInEST(setting.date) : null;
 

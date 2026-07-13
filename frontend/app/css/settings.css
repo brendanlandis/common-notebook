@@ -1,3 +1,10 @@
+/* Match the checkbox border to its checkmark (both primary). daisyUI's default
+   border is a faint base-content; the checkmark is already `--primary-color`
+   via `.checkbox::before` in color.css. */
+.settings-page .checkbox {
+  border-color: var(--primary-color);
+}
+
 #timezone-manager {
   display: flex;
   align-items: center;

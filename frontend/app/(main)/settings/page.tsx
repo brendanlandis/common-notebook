@@ -11,10 +11,15 @@ import {
   fetchDayBoundaryHourFromStrapi,
   saveDayBoundaryHourToStrapi,
 } from "@/app/lib/dayBoundaryConfig";
+import {
+  fetchAutoDeclutterFromStrapi,
+  saveAutoDeclutterToStrapi,
+} from "@/app/lib/autoDeclutterConfig";
 
 export default function SettingsPage() {
   const [visibilityMinutes, setVisibilityMinutes] = useState<number>(15); // Default to 15 minutes
   const [dayBoundaryHour, setDayBoundaryHour] = useState<number>(0); // Default to midnight
+  const [autoDeclutter, setAutoDeclutter] = useState<boolean>(true); // Default on
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -29,6 +34,10 @@ export default function SettingsPage() {
       const hour = await fetchDayBoundaryHourFromStrapi();
       if (hour !== null) {
         setDayBoundaryHour(hour);
+      }
+      const declutter = await fetchAutoDeclutterFromStrapi();
+      if (declutter !== null) {
+        setAutoDeclutter(declutter);
       }
       setIsLoading(false);
     };
@@ -61,6 +70,21 @@ export default function SettingsPage() {
     const success = await saveDayBoundaryHourToStrapi(newValue);
     if (!success) {
       console.error("Failed to save day boundary setting");
+    }
+
+    setIsSaving(false);
+  };
+
+  const handleAutoDeclutterChange = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const newValue = event.target.checked;
+    setAutoDeclutter(newValue);
+    setIsSaving(true);
+
+    const success = await saveAutoDeclutterToStrapi(newValue);
+    if (!success) {
+      console.error("Failed to save auto-declutter setting");
     }
 
     setIsSaving(false);
@@ -111,6 +135,21 @@ export default function SettingsPage() {
               </option>
             ))}
           </select>
+
+          <h2>Auto-Declutter</h2>
+          <p>
+            Should the workspace auto-refresh (remove &quot;top of mind&quot;
+            flags, &quot;soon&quot; flags) every new moon?
+          </p>
+          <label className="settings-checkbox">
+            <input
+              type="checkbox"
+              className="checkbox"
+              checked={autoDeclutter}
+              onChange={handleAutoDeclutterChange}
+              disabled={isLoading || isSaving}
+            />
+          </label>
         </section>
       </div>
     </>

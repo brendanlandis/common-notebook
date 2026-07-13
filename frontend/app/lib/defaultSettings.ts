@@ -19,6 +19,7 @@ export const DEFAULT_SETTINGS: ReadonlyArray<{ title: string; value: string }> =
   { title: 'timezone', value: 'America/New_York' },
   { title: 'dayBoundaryHour', value: '4' },
   { title: 'completedTaskVisibilityMinutes', value: '15' },
+  { title: 'autoDeclutter', value: 'true' },
 ];
 
 /**
