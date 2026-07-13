@@ -145,5 +145,6 @@ hr {
 @import "./page-todo.css";
 @import "./page-practice.css";
 @import "./settings.css";
+@import "./charts.css";
 
 @import "./print.css";

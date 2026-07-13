@@ -1,0 +1,69 @@
+/* Shared styling for the evilcharts-style pie/line charts
+   (app/components/charts/*). Tooltip + legend are custom React content, so they
+   are styled here with the app's theme CSS vars rather than Tailwind utilities. */
+
+/* Tooltip surface — subtle bordered card matching the evilcharts look. */
+.chart-tooltip {
+  background-color: color-mix(in oklch, var(--background) 88%, transparent);
+  backdrop-filter: blur(4px);
+  border: 1px solid color-mix(in oklch, var(--primary-color) 25%, transparent);
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.65rem;
+  color: var(--primary-color);
+  font-size: 0.75rem;
+  box-shadow: 0 8px 24px color-mix(in oklch, var(--primary-color) 12%, transparent);
+  display: grid;
+  gap: 0.35rem;
+  min-width: 8rem;
+}
+
+.chart-tooltip-label {
+  font-weight: 600;
+  text-align: left;
+}
+
+.chart-tooltip-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.chart-tooltip-name {
+  flex: 1;
+  text-align: left;
+  opacity: 0.8;
+}
+
+.chart-tooltip-value {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+/* Small gradient chip shared by tooltip + legend. */
+.chart-tooltip-swatch,
+.chart-legend-swatch {
+  display: inline-block;
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+/* Legend — centered row of gradient chips + labels. */
+.chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 0.35rem 1rem;
+  margin: 0;
+  padding: 0.75rem 0 0;
+  list-style: none;
+  font-size: 0.775rem;
+}
+
+.chart-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
