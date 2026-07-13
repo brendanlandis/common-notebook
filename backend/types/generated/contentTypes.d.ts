@@ -547,6 +547,7 @@ export interface ApiProjectProject extends Struct.CollectionTypeSchema {
       Schema.Attribute.Private;
     publishedAt: Schema.Attribute.DateTime;
     slug: Schema.Attribute.String;
+    tasks: Schema.Attribute.Relation<'oneToMany', 'api::task.task'>;
     title: Schema.Attribute.String & Schema.Attribute.Required;
     todos: Schema.Attribute.Relation<'oneToMany', 'api::todo.todo'>;
     updatedAt: Schema.Attribute.DateTime;
@@ -591,6 +592,96 @@ export interface ApiSystemSettingSystemSetting
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
     value: Schema.Attribute.String;
+  };
+}
+
+export interface ApiTaskTask extends Struct.CollectionTypeSchema {
+  collectionName: 'tasks';
+  info: {
+    displayName: 'Task';
+    pluralName: 'tasks';
+    singularName: 'task';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    category: Schema.Attribute.Enumeration<
+      [
+        'home chores',
+        'studio chores',
+        'band chores',
+        'life chores',
+        'work chores',
+        'web chores',
+        'data chores',
+        'computer chores',
+        'in the mail',
+        'buy stuff',
+        'errands',
+        'wishlist',
+      ]
+    >;
+    completed: Schema.Attribute.Boolean &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<false>;
+    completedAt: Schema.Attribute.DateTime;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    description: Schema.Attribute.Blocks;
+    displayDate: Schema.Attribute.Date;
+    displayDateOffset: Schema.Attribute.Integer;
+    dueDate: Schema.Attribute.Date;
+    isRecurring: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<'oneToMany', 'api::task.task'> &
+      Schema.Attribute.Private;
+    long: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
+    owner: Schema.Attribute.Relation<
+      'oneToOne',
+      'plugin::users-permissions.user'
+    > &
+      Schema.Attribute.Private;
+    price: Schema.Attribute.Integer;
+    project: Schema.Attribute.Relation<'manyToOne', 'api::project.project'>;
+    publishedAt: Schema.Attribute.DateTime;
+    purchaseUrl: Schema.Attribute.String;
+    recurrenceDayOfMonth: Schema.Attribute.Integer;
+    recurrenceDayOfWeek: Schema.Attribute.Integer;
+    recurrenceDayOfWeekMonthly: Schema.Attribute.Integer;
+    recurrenceInterval: Schema.Attribute.Integer;
+    recurrenceMonth: Schema.Attribute.Integer;
+    recurrenceType: Schema.Attribute.Enumeration<
+      [
+        'none',
+        'daily',
+        'every x days',
+        'weekly',
+        'biweekly',
+        'monthly date',
+        'monthly day',
+        'annually',
+        'full moon',
+        'new moon',
+        'every season',
+        'winter solstice',
+        'spring equinox',
+        'summer solstice',
+        'autumn equinox',
+      ]
+    > &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'none'>;
+    recurrenceWeekOfMonth: Schema.Attribute.Integer;
+    soon: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
+    title: Schema.Attribute.String & Schema.Attribute.Required;
+    trackingUrl: Schema.Attribute.String;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    wishListCategory: Schema.Attribute.String;
+    workSessions: Schema.Attribute.JSON;
   };
 }
 
@@ -1199,6 +1290,7 @@ declare module '@strapi/strapi' {
       'api::practice-log.practice-log': ApiPracticeLogPracticeLog;
       'api::project.project': ApiProjectProject;
       'api::system-setting.system-setting': ApiSystemSettingSystemSetting;
+      'api::task.task': ApiTaskTask;
       'api::todo.todo': ApiTodoTodo;
       'plugin::content-releases.release': PluginContentReleasesRelease;
       'plugin::content-releases.release-action': PluginContentReleasesReleaseAction;
