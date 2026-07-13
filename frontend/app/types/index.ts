@@ -1,50 +1,13 @@
-// Strapi Blocks types
-export interface StrapiLinkNode {
-  type: 'link';
-  url: string;
-  children: StrapiTextNode[];
-}
+// Strapi Blocks types.
+//
+// We defer to the renderer's own node types (`BlocksContent`) rather than
+// hand-maintaining a parallel union — the old hand-written union omitted
+// image/code/nested-list nodes, which is exactly how the previous TipTap
+// converter silently dropped them. `BlocksContent` is `RootNode[]`, so
+// `StrapiBlock` is a single block node and `StrapiBlock[]` is `BlocksContent`.
+import type { BlocksContent } from '@strapi/blocks-react-renderer';
 
-export interface StrapiTextNode {
-  type: 'text';
-  text: string;
-  bold?: boolean;
-  italic?: boolean;
-  underline?: boolean;
-  strikethrough?: boolean;
-  code?: boolean;
-}
-
-export type StrapiInlineNode = StrapiTextNode | StrapiLinkNode;
-
-export interface StrapiParagraphBlock {
-  type: 'paragraph';
-  children: StrapiInlineNode[];
-}
-
-export interface StrapiHeadingBlock {
-  type: 'heading';
-  level: 1 | 2 | 3 | 4 | 5 | 6;
-  children: StrapiInlineNode[];
-}
-
-export interface StrapiQuoteBlock {
-  type: 'quote';
-  children: StrapiInlineNode[];
-}
-
-export interface StrapiListItemBlock {
-  type: 'list-item';
-  children: StrapiInlineNode[];
-}
-
-export interface StrapiListBlock {
-  type: 'list';
-  format: 'ordered' | 'unordered';
-  children: StrapiListItemBlock[];
-}
-
-export type StrapiBlock = StrapiParagraphBlock | StrapiListBlock | StrapiHeadingBlock | StrapiQuoteBlock;
+export type StrapiBlock = BlocksContent[number];
 
 // Recurrence types
 export type RecurrenceType = 

@@ -112,7 +112,7 @@ hr {
       color: inherit !important;
     }
   }
-  button:not(.btn) {
+  button:not(.btn):not(.slate-editor-toolbar-button) {
     padding: 0;
     margin: 0;
     &:hover {
@@ -127,7 +127,7 @@ hr {
     justify-content: space-between;
   }
 
-  li:last-of-type {
+  li:last-of-type:not([data-slate-node="element"]) {
     position: absolute;
     bottom: 1rem;
     left: 1rem;

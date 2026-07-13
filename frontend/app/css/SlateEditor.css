@@ -1,0 +1,193 @@
+/* SlateEditor Component Styles
+ *
+ * Colors come from the app theme (daisyUI retro / dim) via the semantic
+ * variables defined in color.css — never hardcode black/white here. */
+
+.slate-editor-container {
+  border: 1px solid var(--primary-color);
+  overflow: hidden;
+}
+
+.slate-editor-toolbar {
+  padding: 0.6rem;
+  border-bottom: 1px solid var(--primary-color);
+  display: flex;
+  gap: 0.2rem;
+  flex-wrap: wrap;
+  background: var(--background-lighter);
+}
+
+.slate-editor-toolbar-separator {
+  border-left: 1px solid var(--primary-color);
+  opacity: 0.35;
+  margin: 0 0.2rem;
+}
+
+.slate-editor-toolbar-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.45rem 0.4rem;
+  margin: 0.1rem;
+  border: 1px solid var(--primary-color);
+  border-radius: 3px;
+  background-color: var(--background);
+  color: var(--primary-color);
+  cursor: pointer;
+  font-weight: normal;
+  font-size: 1rem;
+  opacity: 1;
+  transition: all 0.2s ease;
+}
+
+.slate-editor-toolbar-button:hover:not(:disabled),
+.slate-editor-toolbar-button.active {
+  background-color: var(--primary-color);
+  color: var(--background);
+  border-color: var(--primary-color);
+}
+
+.slate-editor-toolbar-button.active {
+  font-weight: bold;
+}
+
+.slate-editor-toolbar-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.slate-editor-editable {
+  min-height: 100px;
+  padding: 1rem;
+  outline: none;
+  background: var(--background);
+  color: var(--primary-color);
+  line-height: 1.3rem;
+  white-space: pre-wrap;
+}
+
+/* Block Element Styles */
+.slate-editor-editable {
+  h1 {
+    font-size: 2rem;
+    font-weight: bold;
+    margin: 0.67rem 0;
+    line-height: 2.2rem;
+  }
+  h2 {
+    font-size: 1.5rem;
+    font-weight: bold;
+    margin: 0.75rem 0;
+  }
+  h3 {
+    font-size: 1.17rem;
+    font-weight: bold;
+    margin: 0.83rem 0;
+  }
+  h4 {
+    font-size: 1rem;
+    font-weight: bold;
+    margin: 1rem 0;
+  }
+  h5 {
+    font-size: 0.83rem;
+    font-weight: bold;
+    margin: 1.17rem 0;
+  }
+  h6 {
+    font-size: 0.67rem;
+    font-weight: bold;
+    margin: 1.33rem 0;
+  }
+  p {
+    margin: 0 0 1rem 0;
+  }
+  blockquote {
+    border-left: 4px solid var(--background-light);
+    margin: 0 0 1em 0;
+    padding-left: 0.7rem;
+    opacity: 0.8;
+    font-style: italic;
+  }
+  ul,
+  ol {
+    margin: 0 0 1em 0;
+    padding-left: 1em;
+  }
+  ul {
+    list-style-type: disc;
+  }
+  ol {
+    list-style-type: number;
+  }
+  li {
+    margin: 0.25em 0 0.25em 1rem;
+  }
+  pre {
+    background: var(--background-lighter);
+    border: 1px solid var(--background-light);
+    padding: 1rem;
+    margin: 0 0 1rem 0;
+    overflow-x: auto;
+    font-family: monospace;
+    code {
+      background: none;
+      border: none;
+      padding: 0;
+      font-size: inherit;
+    }
+  }
+
+  code {
+    background: var(--background-lighter);
+    border: 1px solid var(--background-light);
+    border-radius: 3px;
+    padding: 2px 4px;
+    font-family: monospace;
+    font-size: 0.9rem;
+  }
+
+  /* Links are inline and must read like the surrounding text: same font/size,
+   * theme color, underlined. `font: inherit` neutralizes any global/preflight
+   * sizing so a link never renders larger or block-like. */
+  a,
+  a.slate-editor-link {
+    display: inline;
+    font: inherit;
+    color: var(--primary-color);
+    text-decoration: underline;
+    cursor: pointer;
+    &:hover {
+      color: var(--primary-color);
+      text-decoration: underline;
+    }
+  }
+  *:first-child {
+    margin-top: 0;
+  }
+  *:last-child {
+    margin-bottom: 0;
+  }
+}
+
+/* Read-only passthrough for block types the editor has no UI for (e.g. images). */
+.slate-editor-void {
+  margin: 0 0 1rem 0;
+}
+
+.slate-editor-void img {
+  max-width: 100%;
+  height: auto;
+}
+
+.slate-editor-void-label {
+  display: inline-block;
+  padding: 0.2rem 0.4rem;
+  border: 1px dashed var(--background-light);
+  border-radius: 3px;
+  color: var(--primary-color);
+  opacity: 0.7;
+  font-size: 0.85rem;
+  font-family: monospace;
+  background: var(--background-lighter);
+}
