@@ -8,8 +8,8 @@ export default function TodoActionsDrawer() {
   const pathname = usePathname();
   const { closeDrawer } = useTodoActions();
   
-  // Show content on todo page, but drawer-side must always be in DOM
-  const showContent = pathname === '/todo';
+  // Show content on todo pages, but drawer-side must always be in DOM
+  const showContent = pathname.startsWith('/todo');
 
   return (
     <div className="drawer-side">

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { usePathname } from "next/navigation";
 import { createPortal } from "react-dom";
 import TodoForm from "./TodoForm";
 import ProjectForm from "./ProjectForm";
@@ -15,6 +16,7 @@ export default function TodoForms() {
   const [drawerContainer, setDrawerContainer] = useState<HTMLElement | null>(
     null
   );
+  const pathname = usePathname();
   const { drawerContent } = useTodoActions();
   const {
     editingTodo,
@@ -26,9 +28,13 @@ export default function TodoForms() {
   } = useTodoData();
 
   useEffect(() => {
-    // Find the drawer container after mount
+    // Re-resolve the drawer container after mount, on route changes, and each
+    // time the drawer opens. It lives in the app-wide drawer (a different
+    // layout level) and is (re)rendered per todo route, so a one-time capture
+    // on mount can race the DOM commit — leaving the first open blank until the
+    // portal target is resolved. Re-resolving on open makes it deterministic.
     setDrawerContainer(document.getElementById("drawer-form-container"));
-  }, []);
+  }, [pathname, drawerContent]);
 
   if (!drawerContainer) return null;
 
