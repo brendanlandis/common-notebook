@@ -1,6 +1,5 @@
 'use client';
 
-import { useId } from 'react';
 import {
   LineChart as ReLineChart,
   Line,
@@ -11,7 +10,6 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts';
-import { toGradientStops, toSwatch } from './chartColors';
 
 export interface LineSeries {
   key: string; // data key + config key
@@ -36,7 +34,7 @@ interface TooltipEntry {
 // Tooltip that lists each series for the hovered x value, sorted by value
 // descending — preserving the behaviour of the old practice-chart tooltip.
 function makeLineTooltip(series: LineSeries[]) {
-  const swatches = new Map(series.map((s) => [s.key, toSwatch(s.color)]));
+  const swatches = new Map(series.map((s) => [s.key, s.color]));
   const labels = new Map(series.map((s) => [s.key, s.label]));
 
   return function LineTooltip({
@@ -50,16 +48,9 @@ function makeLineTooltip(series: LineSeries[]) {
   }) {
     if (!active || !payload?.length) return null;
 
-    // Collapse duplicate dataKeys (glow underlay + main line share a key) and drop
-    // empty values, then sort high → low.
-    const seen = new Set<string>();
+    // Drop empty values, then sort high → low.
     const rows = payload
-      .filter((entry) => {
-        const key = String(entry.dataKey ?? '');
-        if (!key || seen.has(key) || entry.value == null) return false;
-        seen.add(key);
-        return true;
-      })
+      .filter((entry) => entry.dataKey != null && entry.value != null)
       .sort((a, b) => (b.value ?? 0) - (a.value ?? 0));
 
     if (rows.length === 0) return null;
@@ -87,7 +78,7 @@ function LineLegend({ series }: { series: LineSeries[] }) {
     <ul className="chart-legend">
       {series.map((s) => (
         <li key={s.key} className="chart-legend-item">
-          <span className="chart-legend-swatch" style={{ background: toSwatch(s.color) }} />
+          <span className="chart-legend-swatch" style={{ background: s.color }} />
           <span>{s.label}</span>
         </li>
       ))}
@@ -103,36 +94,27 @@ export default function LineChart({
   yDomainMax,
   yLabel,
 }: LineChartProps) {
-  const uid = useId().replace(/:/g, '');
-  const blurId = `${uid}-blur`;
   const LineTooltip = makeLineTooltip(series);
 
   return (
     <ResponsiveContainer width="100%" height={height}>
       <ReLineChart data={data} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-        <defs>
-          {series.map((s, index) => {
-            const [from, to] = toGradientStops(s.color);
-            return (
-              <linearGradient key={s.key} id={`${uid}-grad-${index}`} x1="0" y1="0" x2="1" y2="0">
-                <stop offset="0%" stopColor={from} />
-                <stop offset="100%" stopColor={to} />
-              </linearGradient>
-            );
-          })}
-          <filter id={blurId} x="-20%" y="-20%" width="140%" height="140%">
-            <feGaussianBlur stdDeviation="4" />
-          </filter>
-        </defs>
-        <CartesianGrid strokeDasharray="3 3" stroke="var(--primary-color)" opacity={0.1} />
+        <CartesianGrid
+          strokeDasharray="3 3"
+          stroke="var(--primary-color)"
+          opacity={0.1}
+          vertical={false}
+        />
         <XAxis
           dataKey={xKey}
-          stroke="var(--primary-color)"
+          axisLine={false}
+          tickLine={false}
           tick={{ fill: 'var(--primary-color)', fontSize: 12 }}
           interval="preserveStartEnd"
         />
         <YAxis
-          stroke="var(--primary-color)"
+          axisLine={false}
+          tickLine={false}
           tick={{ fill: 'var(--primary-color)', fontSize: 12 }}
           domain={yDomainMax ? [0, yDomainMax] : undefined}
           label={
@@ -144,35 +126,18 @@ export default function LineChart({
         <Tooltip content={<LineTooltip />} isAnimationActive={false} />
         <Legend content={<LineLegend series={series} />} />
 
-        {/* Soft glow underlay: a wide, translucent, blurred copy of each line. */}
-        {series.map((s, index) => (
-          <Line
-            key={`${s.key}-glow`}
-            type="monotone"
-            dataKey={s.key}
-            stroke={`url(#${uid}-grad-${index})`}
-            strokeWidth={7}
-            strokeOpacity={0.18}
-            dot={false}
-            activeDot={false}
-            isAnimationActive={false}
-            legendType="none"
-            tooltipType="none"
-            filter={`url(#${blurId})`}
-          />
-        ))}
-
-        {/* Main gradient lines. */}
-        {series.map((s, index) => (
+        {series.map((s) => (
           <Line
             key={s.key}
-            type="monotone"
+            type="linear"
             dataKey={s.key}
             name={s.label}
-            stroke={`url(#${uid}-grad-${index})`}
-            strokeWidth={2.5}
-            dot={{ r: 2, fill: s.color, stroke: 'none' }}
-            activeDot={{ r: 5, fill: s.color, stroke: 'var(--background)', strokeWidth: 2 }}
+            stroke={s.color}
+            strokeWidth={2}
+            // Filled dot with a background-coloured ring, which also masks the
+            // line where it meets the dot — the gap/padding seen in the example.
+            dot={{ r: 4, fill: s.color, stroke: 'var(--background)', strokeWidth: 3 }}
+            activeDot={{ r: 6, fill: s.color, stroke: 'var(--background)', strokeWidth: 3 }}
             isAnimationActive={false}
           />
         ))}

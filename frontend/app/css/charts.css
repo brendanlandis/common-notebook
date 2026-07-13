@@ -2,16 +2,14 @@
    (app/components/charts/*). Tooltip + legend are custom React content, so they
    are styled here with the app's theme CSS vars rather than Tailwind utilities. */
 
-/* Tooltip surface — subtle bordered card matching the evilcharts look. */
+/* Tooltip surface — a plain bordered card, no shadow or blur. */
 .chart-tooltip {
-  background-color: color-mix(in oklch, var(--background) 88%, transparent);
-  backdrop-filter: blur(4px);
+  background-color: var(--background);
   border: 1px solid color-mix(in oklch, var(--primary-color) 25%, transparent);
   border-radius: 0.5rem;
   padding: 0.5rem 0.65rem;
   color: var(--primary-color);
   font-size: 0.75rem;
-  box-shadow: 0 8px 24px color-mix(in oklch, var(--primary-color) 12%, transparent);
   display: grid;
   gap: 0.35rem;
   min-width: 8rem;
@@ -39,7 +37,7 @@
   font-weight: 600;
 }
 
-/* Small gradient chip shared by tooltip + legend. */
+/* Small solid color chip shared by tooltip + legend. */
 .chart-tooltip-swatch,
 .chart-legend-swatch {
   display: inline-block;
