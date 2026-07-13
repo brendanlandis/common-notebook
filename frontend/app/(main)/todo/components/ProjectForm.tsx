@@ -1,11 +1,12 @@
 "use client";
 
-import { useForm, SubmitHandler } from "react-hook-form";
+import { useForm, SubmitHandler, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useState } from "react";
 import type { Project, World, ProjectImportance, StrapiBlock } from "@/app/types/index";
 import RichTextEditor from "@/app/components/RichTextEditor";
+import { slugify } from "@/app/lib/slugify";
 
 const schema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -36,6 +37,7 @@ export default function ProjectForm({
   const {
     register,
     handleSubmit,
+    control,
     formState: { errors },
   } = useForm<ProjectFormInputs>({
     resolver: zodResolver(schema),
@@ -46,6 +48,11 @@ export default function ProjectForm({
       importance: project?.importance || "normal",
     },
   });
+
+  // The slug is read-only and derived from the title (the server re-slugifies
+  // and enforces per-owner uniqueness, so this is a preview).
+  const titleValue = useWatch({ control, name: "title" });
+  const slugPreview = slugify(titleValue || "");
 
   const handleFormSubmit: SubmitHandler<ProjectFormInputs> = (data) => {
     // Helper to check if block is empty
@@ -64,6 +71,7 @@ export default function ProjectForm({
     
     const payload = {
       title: data.title,
+      slug: slugify(data.title),
       description: filteredDescription,
       world: data.world,
       importance: data.importance,
@@ -85,6 +93,17 @@ export default function ProjectForm({
           {...register("title")}
         />
         {errors.title && <span className="error">{errors.title.message}</span>}
+      </div>
+
+      <div>
+        <label htmlFor="slug">slug</label>
+        <input
+          id="slug"
+          type="text"
+          value={slugPreview}
+          readOnly
+          tabIndex={-1}
+        />
       </div>
 
       <div>

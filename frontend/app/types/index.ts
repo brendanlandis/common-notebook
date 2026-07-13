@@ -147,6 +147,7 @@ export interface Project {
   id: number;
   documentId: string;
   title: string;
+  slug?: string; // URL-friendly, derived from title; unique per owner
   description: StrapiBlock[];
   world?: World;
   importance?: ProjectImportance;
@@ -199,6 +200,7 @@ export interface LayoutRuleset {
   showNonRecurring: boolean;
   visibleWorlds: World[] | null; // null = show all worlds
   visibleCategories: TodoCategory[] | null; // null = show all categories
+  visibleProjects?: string[]; // documentIds; omit/undefined = show all projects
   sortBy: "alphabetical" | "creationDate" | "dueDate" | "completedAt";
   groupBy: "recurring-separate" | "recurring-separate-world" | "merged" | "single-section" | "world" | "project" | "category" | "good-morning" | "roulette" | "stuff" | "later" | "done" | "invoicing" | "chores" | "recurring-review";
   longOnly?: boolean;

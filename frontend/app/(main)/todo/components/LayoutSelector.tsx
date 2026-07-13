@@ -21,6 +21,10 @@ export default function LayoutSelector({ value, onChange }: LayoutSelectorProps)
   const byWorldPresets = LAYOUT_PRESETS.filter((preset) => preset.groupBy === "world");
   const reviewPresets = LAYOUT_PRESETS.filter((preset) => preset.id === "done" || preset.id === "invoicing" || preset.id === "recurring");
 
+  // On pages not represented by any preset (a world/project route), `value` is
+  // "" — show a blank row at the top so the select has something to display.
+  const valueIsKnownPreset = LAYOUT_PRESETS.some((preset) => preset.id === value);
+
   return (
     <select
       value={value}
@@ -28,6 +32,7 @@ export default function LayoutSelector({ value, onChange }: LayoutSelectorProps)
       id="order-selector"
       suppressHydrationWarning
     >
+      {!valueIsKnownPreset && <option value=""></option>}
       {sortedSpecialPresets.map((preset) => (
         <option key={preset.id} value={preset.id}>
           {preset.name}

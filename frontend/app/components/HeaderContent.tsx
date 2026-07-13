@@ -1,6 +1,6 @@
 "use client";
 
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import LayoutSelector from "../(main)/todo/components/LayoutSelector";
 import PracticeSelector from "../(main)/practice/components/PracticeSelector";
 import { useLayoutRuleset } from "../contexts/LayoutRulesetContext";
@@ -11,6 +11,7 @@ import MoonPhaseIcon from "./MoonPhaseIcon";
 
 export default function HeaderContent() {
   const pathname = usePathname();
+  const router = useRouter();
   const { selectedRulesetId, setSelectedRulesetId, isHydrated } =
     useLayoutRuleset();
   const { selectedPracticeType, setSelectedPracticeType } = usePractice();
@@ -38,13 +39,23 @@ export default function HeaderContent() {
     }
   };
 
-  if (pathname === "/todo") {
+  // Todo pages (index + per-world / per-project routes) share one header. The
+  // shared TodoForms drawer is mounted for the whole /todo route group, so the
+  // add buttons work everywhere.
+  if (pathname.startsWith("/todo")) {
+    const isTodoIndex = pathname === "/todo";
     return (
       <>
         {isHydrated && (
           <LayoutSelector
-            value={selectedRulesetId}
-            onChange={setSelectedRulesetId}
+            // On a world/project route the current view isn't a preset, so show
+            // the blank row; picking a real view sets it and returns to /todo.
+            value={isTodoIndex ? selectedRulesetId : ""}
+            onChange={(id) => {
+              if (!id) return;
+              setSelectedRulesetId(id);
+              if (!isTodoIndex) router.push("/todo");
+            }}
           />
         )}
         <button

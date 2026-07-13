@@ -119,6 +119,14 @@ function shouldIncludeTodo(todo: Todo, ruleset: LayoutRuleset, getWorld: (todo: 
     }
   }
 
+  // Filter by project (used by the per-project view)
+  if (ruleset.visibleProjects) {
+    const projectId = todo.project?.documentId;
+    if (!projectId || !ruleset.visibleProjects.includes(projectId)) {
+      return false;
+    }
+  }
+
   // Filter by long only
   if (ruleset.longOnly && !todo.long) {
     return false;

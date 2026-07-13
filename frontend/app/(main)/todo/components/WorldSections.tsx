@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import TodoSections from "./TodoSections";
 import type { Project, Todo, World } from "@/app/types/index";
 
@@ -79,7 +80,13 @@ export default function WorldSections({
 
         return (
           <div className="group-section" key={world}>
-            {!hideWorldName && <h2>{world}</h2>}
+            {!hideWorldName && (
+              <h2>
+                <Link href={`/todo/world/${encodeURIComponent(world)}`}>
+                  {world}
+                </Link>
+              </h2>
+            )}
             
             {/* Top of mind projects and categories */}
             {hasFirstSection && (

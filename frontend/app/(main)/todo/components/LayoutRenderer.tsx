@@ -60,14 +60,19 @@ export default function LayoutRenderer({
   recentStatsSection,
 }: LayoutRendererComponentProps) {
   // Use StuffLayout for "stuff" view (which uses category groupBy)
-  const LayoutComponent = ruleset.id === "stuff" 
-    ? StuffLayout 
+  const LayoutComponent = ruleset.id === "stuff"
+    ? StuffLayout
     : LAYOUT_COMPONENTS[ruleset.groupBy] || DefaultLayout;
+
+  // Single-world views (per-world presets and the /todo/world/[world] route)
+  // hide the redundant per-world heading.
+  const hideWorldName = ruleset.visibleWorlds?.length === 1;
 
   return (
     <LayoutComponent
       transformedData={transformedData}
       selectedRulesetId={selectedRulesetId}
+      hideWorldName={hideWorldName}
       onComplete={onComplete}
       onEdit={onEdit}
       onDelete={onDelete}

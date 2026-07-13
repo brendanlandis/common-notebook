@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import TodoItem from "./TodoItem";
 import type { Project, Todo } from "@/app/types/index";
 import { PencilIcon } from "@phosphor-icons/react";
@@ -68,7 +69,13 @@ export default function TodoSections({
           <div key={key} className="todo-section">
             {title !== "all todos" && (
               <h3>
-                {title}
+                {"documentId" in section ? (
+                  <Link href={`/todo/project/${section.slug || section.documentId}`}>
+                    {title}
+                  </Link>
+                ) : (
+                  title
+                )}
                 {"documentId" in section && onEditProject && (
                   <button onClick={() => onEditProject(section as Project)}>
                     <PencilIcon size={18} />

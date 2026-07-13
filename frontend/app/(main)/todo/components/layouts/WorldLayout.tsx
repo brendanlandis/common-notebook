@@ -3,8 +3,6 @@
 import WorldSections from "../WorldSections";
 import type { LayoutRendererProps } from "./types";
 
-const SINGLE_WORLD_LAYOUTS = ["day-job", "life-stuff", "music-admin", "make-music", "web-sites"];
-
 export default function WorldLayout({
   transformedData,
   onComplete,
@@ -14,7 +12,7 @@ export default function WorldLayout({
   onRemoveWorkSession,
   onSkipRecurring,
   onEditProject,
-  selectedRulesetId,
+  hideWorldName,
 }: LayoutRendererProps) {
   return (
     transformedData.worldSections && (
@@ -27,7 +25,7 @@ export default function WorldLayout({
         onRemoveWorkSession={onRemoveWorkSession}
         onSkipRecurring={onSkipRecurring}
         onEditProject={onEditProject}
-        hideWorldName={SINGLE_WORLD_LAYOUTS.includes(selectedRulesetId || "")}
+        hideWorldName={hideWorldName}
       />
     )
   );

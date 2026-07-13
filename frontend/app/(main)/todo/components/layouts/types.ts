@@ -10,6 +10,7 @@ export interface LayoutRendererProps {
   onRemoveWorkSession: (originalDocumentId: string, date: string) => void;
   onSkipRecurring: (documentId: string) => void;
   onEditProject?: (project: Project) => void;
-  selectedRulesetId?: string; // For layout-specific props like hideWorldName
+  selectedRulesetId?: string; // For layout-specific tweaks (e.g. month grouping)
+  hideWorldName?: boolean; // WorldLayout: hide the per-world <h2> (single-world views)
   recentStatsSection?: React.ReactNode;
 }

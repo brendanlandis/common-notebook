@@ -18,8 +18,8 @@ export default function HeaderIcon() {
     return <MetronomeIcon {...iconProps} />;
   }
 
-  // Todo page
-  if (pathname === '/todo') {
+  // Todo pages (index + per-world / per-project routes)
+  if (pathname.startsWith('/todo')) {
     return <BroomIcon {...iconProps} />;
   }
 

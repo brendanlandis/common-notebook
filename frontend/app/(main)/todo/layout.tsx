@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { TodoDataProvider } from "./contexts/TodoDataContext";
+import TodoForms from "./components/TodoForms";
 
 export const metadata: Metadata = {
   title: "to do",
@@ -10,6 +12,11 @@ export default function TodoLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return <>{children}</>;
+  return (
+    <TodoDataProvider>
+      {children}
+      <TodoForms />
+    </TodoDataProvider>
+  );
 }
 
