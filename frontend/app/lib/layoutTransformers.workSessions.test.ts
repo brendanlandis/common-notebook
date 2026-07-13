@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { transformLayout } from './layoutTransformers';
-import type { Todo, Project } from '@/app/types/index';
+import type { Task, Project } from '@/app/types/index';
 import * as dateUtils from './dateUtils';
 import * as timezoneConfig from './timezoneConfig';
 
@@ -28,8 +28,8 @@ vi.mock('./timezoneConfig', () => ({
   getDayBoundaryHour: vi.fn(() => 0),
 }));
 
-// Helper to create minimal todo
-function createTodo(overrides: Partial<Todo>): Todo {
+// Helper to create minimal task
+function createTask(overrides: Partial<Task>): Task {
   return {
     id: 1,
     documentId: 'test-doc-id',
@@ -76,8 +76,8 @@ describe('Layout Transformer - Work Session Virtual Entries', () => {
   });
 
   describe('Virtual Entry Creation', () => {
-    it('should create virtual worked-on entries for long todos with work sessions', () => {
-      const longTodo = createTodo({
+    it('should create virtual worked-on entries for long tasks with work sessions', () => {
+      const longTask = createTask({
         documentId: 'long-task-1',
         title: 'Long project task',
         long: true,
@@ -94,8 +94,8 @@ describe('Layout Transformer - Work Session Virtual Entries', () => {
           projects: [],
           categoryGroups: [],
           incidentals: [],
-          completedTodos: [],
-          longTodosWithSessions: [longTodo],
+          completedTasks: [],
+          longTasksWithSessions: [longTask],
           recurringProjects: [],
           recurringCategoryGroups: [],
           recurringIncidentals: [],
@@ -107,9 +107,9 @@ describe('Layout Transformer - Work Session Virtual Entries', () => {
       expect(result.allSections!.length).toBeGreaterThan(0);
       
       // Find the virtual entries
-      const allTodos = result.allSections!.flatMap(section => section.todos);
-      const virtualEntries = allTodos.filter(todo => 
-        todo.documentId.includes('-worked-')
+      const allTasks = result.allSections!.flatMap(section => section.tasks);
+      const virtualEntries = allTasks.filter(task => 
+        task.documentId.includes('-worked-')
       );
       
       expect(virtualEntries.length).toBe(2); // One for each work session
@@ -118,7 +118,7 @@ describe('Layout Transformer - Work Session Virtual Entries', () => {
     });
 
     it('should use correct documentId pattern for virtual entries', () => {
-      const longTodo = createTodo({
+      const longTask = createTask({
         documentId: 'abc123',
         title: 'My Task',
         long: true,
@@ -133,8 +133,8 @@ describe('Layout Transformer - Work Session Virtual Entries', () => {
           projects: [],
           categoryGroups: [],
           incidentals: [],
-          completedTodos: [],
-          longTodosWithSessions: [longTodo],
+          completedTasks: [],
+          longTasksWithSessions: [longTask],
           recurringProjects: [],
           recurringCategoryGroups: [],
           recurringIncidentals: [],
@@ -142,8 +142,8 @@ describe('Layout Transformer - Work Session Virtual Entries', () => {
         ruleset
       );
 
-      const allTodos = result.allSections.flatMap(section => section.todos);
-      const virtualEntry = allTodos.find(todo => todo.documentId.includes('-worked-'));
+      const allTasks = result.allSections.flatMap(section => section.tasks);
+      const virtualEntry = allTasks.find(task => task.documentId.includes('-worked-'));
       
       expect(virtualEntry).toBeDefined();
       expect(virtualEntry!.documentId).toMatch(/^abc123-worked-\d{4}-\d{2}-\d{2}$/);
@@ -151,7 +151,7 @@ describe('Layout Transformer - Work Session Virtual Entries', () => {
     });
 
     it('should set completed=false for virtual entries', () => {
-      const longTodo = createTodo({
+      const longTask = createTask({
         documentId: 'task-1',
         long: true,
         completed: true, // Original task is completed
@@ -167,8 +167,8 @@ describe('Layout Transformer - Work Session Virtual Entries', () => {
           projects: [],
           categoryGroups: [],
           incidentals: [],
-          completedTodos: [],
-          longTodosWithSessions: [longTodo],
+          completedTasks: [],
+          longTasksWithSessions: [longTask],
           recurringProjects: [],
           recurringCategoryGroups: [],
           recurringIncidentals: [],
@@ -176,8 +176,8 @@ describe('Layout Transformer - Work Session Virtual Entries', () => {
         ruleset
       );
 
-      const allTodos = result.allSections.flatMap(section => section.todos);
-      const virtualEntry = allTodos.find(todo => todo.documentId.includes('-worked-'));
+      const allTasks = result.allSections.flatMap(section => section.tasks);
+      const virtualEntry = allTasks.find(task => task.documentId.includes('-worked-'));
       
       expect(virtualEntry).toBeDefined();
       expect(virtualEntry!.completed).toBe(false); // Virtual entry is not completed
@@ -186,7 +186,7 @@ describe('Layout Transformer - Work Session Virtual Entries', () => {
 
     it('should use work session timestamp as completedAt', () => {
       const sessionTimestamp = '2026-01-05T14:30:00.000-05:00';
-      const longTodo = createTodo({
+      const longTask = createTask({
         documentId: 'task-1',
         long: true,
         workSessions: [
@@ -200,8 +200,8 @@ describe('Layout Transformer - Work Session Virtual Entries', () => {
           projects: [],
           categoryGroups: [],
           incidentals: [],
-          completedTodos: [],
-          longTodosWithSessions: [longTodo],
+          completedTasks: [],
+          longTasksWithSessions: [longTask],
           recurringProjects: [],
           recurringCategoryGroups: [],
           recurringIncidentals: [],
@@ -209,8 +209,8 @@ describe('Layout Transformer - Work Session Virtual Entries', () => {
         ruleset
       );
 
-      const allTodos = result.allSections.flatMap(section => section.todos);
-      const virtualEntry = allTodos.find(todo => todo.documentId.includes('-worked-'));
+      const allTasks = result.allSections.flatMap(section => section.tasks);
+      const virtualEntry = allTasks.find(task => task.documentId.includes('-worked-'));
       
       expect(virtualEntry!.completedAt).toBe(sessionTimestamp);
     });
@@ -218,7 +218,7 @@ describe('Layout Transformer - Work Session Virtual Entries', () => {
 
   describe('Date Grouping', () => {
     it('should group virtual entries by work session date', () => {
-      const longTodo = createTodo({
+      const longTask = createTask({
         documentId: 'task-1',
         long: true,
         workSessions: [
@@ -233,8 +233,8 @@ describe('Layout Transformer - Work Session Virtual Entries', () => {
           projects: [],
           categoryGroups: [],
           incidentals: [],
-          completedTodos: [],
-          longTodosWithSessions: [longTodo],
+          completedTasks: [],
+          longTasksWithSessions: [longTask],
           recurringProjects: [],
           recurringCategoryGroups: [],
           recurringIncidentals: [],
@@ -247,10 +247,10 @@ describe('Layout Transformer - Work Session Virtual Entries', () => {
       
       // Check that entries are in correct date sections
       const jan5Section = result.allSections.find(s => 
-        s.todos.some(t => t.documentId === 'task-1-worked-2026-01-05')
+        s.tasks.some(t => t.documentId === 'task-1-worked-2026-01-05')
       );
       const jan4Section = result.allSections.find(s => 
-        s.todos.some(t => t.documentId === 'task-1-worked-2026-01-04')
+        s.tasks.some(t => t.documentId === 'task-1-worked-2026-01-04')
       );
       
       expect(jan5Section).toBeDefined();
@@ -258,7 +258,7 @@ describe('Layout Transformer - Work Session Virtual Entries', () => {
     });
 
     it('should respect 30-day window for work sessions', () => {
-      const longTodo = createTodo({
+      const longTask = createTask({
         documentId: 'task-1',
         long: true,
         workSessions: [
@@ -273,8 +273,8 @@ describe('Layout Transformer - Work Session Virtual Entries', () => {
           projects: [],
           categoryGroups: [],
           incidentals: [],
-          completedTodos: [],
-          longTodosWithSessions: [longTodo],
+          completedTasks: [],
+          longTasksWithSessions: [longTask],
           recurringProjects: [],
           recurringCategoryGroups: [],
           recurringIncidentals: [],
@@ -282,9 +282,9 @@ describe('Layout Transformer - Work Session Virtual Entries', () => {
         ruleset
       );
 
-      const allTodos = result.allSections.flatMap(section => section.todos);
-      const jan5Entry = allTodos.find(t => t.documentId === 'task-1-worked-2026-01-05');
-      const dec1Entry = allTodos.find(t => t.documentId === 'task-1-worked-2025-12-01');
+      const allTasks = result.allSections.flatMap(section => section.tasks);
+      const jan5Entry = allTasks.find(t => t.documentId === 'task-1-worked-2026-01-05');
+      const dec1Entry = allTasks.find(t => t.documentId === 'task-1-worked-2025-12-01');
       
       expect(jan5Entry).toBeDefined(); // Within 30 days
       expect(dec1Entry).toBeUndefined(); // Outside 30 days
@@ -293,7 +293,7 @@ describe('Layout Transformer - Work Session Virtual Entries', () => {
 
   describe('Multiple Work Sessions', () => {
     it('should create separate virtual entries for each work session', () => {
-      const longTodo = createTodo({
+      const longTask = createTask({
         documentId: 'multi-session-task',
         long: true,
         workSessions: [
@@ -309,8 +309,8 @@ describe('Layout Transformer - Work Session Virtual Entries', () => {
           projects: [],
           categoryGroups: [],
           incidentals: [],
-          completedTodos: [],
-          longTodosWithSessions: [longTodo],
+          completedTasks: [],
+          longTasksWithSessions: [longTask],
           recurringProjects: [],
           recurringCategoryGroups: [],
           recurringIncidentals: [],
@@ -318,9 +318,9 @@ describe('Layout Transformer - Work Session Virtual Entries', () => {
         ruleset
       );
 
-      const allTodos = result.allSections.flatMap(section => section.todos);
-      const virtualEntries = allTodos.filter(todo => 
-        todo.documentId.includes('multi-session-task-worked-')
+      const allTasks = result.allSections.flatMap(section => section.tasks);
+      const virtualEntries = allTasks.filter(task => 
+        task.documentId.includes('multi-session-task-worked-')
       );
       
       // Should have 3 virtual entries but with same date will be deduplicated by date key
@@ -328,8 +328,8 @@ describe('Layout Transformer - Work Session Virtual Entries', () => {
       expect(virtualEntries.length).toBeGreaterThan(0);
     });
 
-    it('should handle multiple long todos with work sessions', () => {
-      const todo1 = createTodo({
+    it('should handle multiple long tasks with work sessions', () => {
+      const task1 = createTask({
         documentId: 'task-1',
         title: 'Task One',
         long: true,
@@ -338,7 +338,7 @@ describe('Layout Transformer - Work Session Virtual Entries', () => {
         ],
       });
 
-      const todo2 = createTodo({
+      const task2 = createTask({
         documentId: 'task-2',
         title: 'Task Two',
         long: true,
@@ -353,8 +353,8 @@ describe('Layout Transformer - Work Session Virtual Entries', () => {
           projects: [],
           categoryGroups: [],
           incidentals: [],
-          completedTodos: [],
-          longTodosWithSessions: [todo1, todo2],
+          completedTasks: [],
+          longTasksWithSessions: [task1, task2],
           recurringProjects: [],
           recurringCategoryGroups: [],
           recurringIncidentals: [],
@@ -362,9 +362,9 @@ describe('Layout Transformer - Work Session Virtual Entries', () => {
         ruleset
       );
 
-      const allTodos = result.allSections.flatMap(section => section.todos);
-      const task1Entry = allTodos.find(t => t.documentId === 'task-1-worked-2026-01-05');
-      const task2Entry = allTodos.find(t => t.documentId === 'task-2-worked-2026-01-05');
+      const allTasks = result.allSections.flatMap(section => section.tasks);
+      const task1Entry = allTasks.find(t => t.documentId === 'task-1-worked-2026-01-05');
+      const task2Entry = allTasks.find(t => t.documentId === 'task-2-worked-2026-01-05');
       
       expect(task1Entry).toBeDefined();
       expect(task2Entry).toBeDefined();
@@ -374,8 +374,8 @@ describe('Layout Transformer - Work Session Virtual Entries', () => {
   });
 
   describe('Edge Cases', () => {
-    it('should handle long todos with no work sessions', () => {
-      const longTodo = createTodo({
+    it('should handle long tasks with no work sessions', () => {
+      const longTask = createTask({
         documentId: 'no-sessions',
         long: true,
         workSessions: [],
@@ -387,8 +387,8 @@ describe('Layout Transformer - Work Session Virtual Entries', () => {
           projects: [],
           categoryGroups: [],
           incidentals: [],
-          completedTodos: [],
-          longTodosWithSessions: [longTodo],
+          completedTasks: [],
+          longTasksWithSessions: [longTask],
           recurringProjects: [],
           recurringCategoryGroups: [],
           recurringIncidentals: [],
@@ -396,16 +396,16 @@ describe('Layout Transformer - Work Session Virtual Entries', () => {
         ruleset
       );
 
-      const allTodos = result.allSections.flatMap(section => section.todos);
-      const virtualEntries = allTodos.filter(todo => 
-        todo.documentId.includes('-worked-')
+      const allTasks = result.allSections.flatMap(section => section.tasks);
+      const virtualEntries = allTasks.filter(task => 
+        task.documentId.includes('-worked-')
       );
       
       expect(virtualEntries.length).toBe(0); // No virtual entries created
     });
 
-    it('should handle long todos with null work sessions', () => {
-      const longTodo = createTodo({
+    it('should handle long tasks with null work sessions', () => {
+      const longTask = createTask({
         documentId: 'null-sessions',
         long: true,
         workSessions: null,
@@ -417,8 +417,8 @@ describe('Layout Transformer - Work Session Virtual Entries', () => {
           projects: [],
           categoryGroups: [],
           incidentals: [],
-          completedTodos: [],
-          longTodosWithSessions: [longTodo],
+          completedTasks: [],
+          longTasksWithSessions: [longTask],
           recurringProjects: [],
           recurringCategoryGroups: [],
           recurringIncidentals: [],
@@ -426,16 +426,16 @@ describe('Layout Transformer - Work Session Virtual Entries', () => {
         ruleset
       );
 
-      const allTodos = result.allSections.flatMap(section => section.todos);
-      const virtualEntries = allTodos.filter(todo => 
-        todo.documentId.includes('-worked-')
+      const allTasks = result.allSections.flatMap(section => section.tasks);
+      const virtualEntries = allTasks.filter(task => 
+        task.documentId.includes('-worked-')
       );
       
       expect(virtualEntries.length).toBe(0); // No virtual entries created
     });
 
     it('should not create virtual entries for non-done views', () => {
-      const longTodo = createTodo({
+      const longTask = createTask({
         documentId: 'task-1',
         long: true,
         workSessions: [
@@ -449,8 +449,8 @@ describe('Layout Transformer - Work Session Virtual Entries', () => {
           projects: [],
           categoryGroups: [],
           incidentals: [],
-          completedTodos: [],
-          longTodosWithSessions: [longTodo],
+          completedTasks: [],
+          longTasksWithSessions: [longTask],
           recurringProjects: [],
           recurringCategoryGroups: [],
           recurringIncidentals: [],
@@ -462,8 +462,8 @@ describe('Layout Transformer - Work Session Virtual Entries', () => {
       expect(result.allSections).toEqual([]);
     });
 
-    it('should preserve all todo properties in virtual entries', () => {
-      const longTodo = createTodo({
+    it('should preserve all task properties in virtual entries', () => {
+      const longTask = createTask({
         documentId: 'full-task',
         title: 'Full Task',
         description: [{ type: 'paragraph', children: [{ type: 'text', text: 'Description' }] }],
@@ -482,8 +482,8 @@ describe('Layout Transformer - Work Session Virtual Entries', () => {
           projects: [],
           categoryGroups: [],
           incidentals: [],
-          completedTodos: [],
-          longTodosWithSessions: [longTodo],
+          completedTasks: [],
+          longTasksWithSessions: [longTask],
           recurringProjects: [],
           recurringCategoryGroups: [],
           recurringIncidentals: [],
@@ -491,11 +491,11 @@ describe('Layout Transformer - Work Session Virtual Entries', () => {
         ruleset
       );
 
-      const allTodos = result.allSections.flatMap(section => section.todos);
-      const virtualEntry = allTodos.find(todo => todo.documentId.includes('-worked-'));
+      const allTasks = result.allSections.flatMap(section => section.tasks);
+      const virtualEntry = allTasks.find(task => task.documentId.includes('-worked-'));
       
       expect(virtualEntry).toBeDefined();
-      expect(virtualEntry!.description).toEqual(longTodo.description);
+      expect(virtualEntry!.description).toEqual(longTask.description);
       expect(virtualEntry!.soon).toBe(true);
       expect(virtualEntry!.category).toBe('work');
       expect(virtualEntry!.trackingUrl).toBe('https://example.com');
@@ -503,16 +503,16 @@ describe('Layout Transformer - Work Session Virtual Entries', () => {
     });
   });
 
-  describe('Integration with Completed Todos', () => {
-    it('should show both completed todos and worked-on entries in done view', () => {
-      const completedTodo = createTodo({
+  describe('Integration with Completed Tasks', () => {
+    it('should show both completed tasks and worked-on entries in done view', () => {
+      const completedTask = createTask({
         documentId: 'completed-1',
         title: 'Completed Task',
         completed: true,
         completedAt: '2026-01-05T11:00:00.000Z',
       });
 
-      const longTodoWithSession = createTodo({
+      const longTaskWithSession = createTask({
         documentId: 'long-1',
         title: 'Long Task',
         long: true,
@@ -527,8 +527,8 @@ describe('Layout Transformer - Work Session Virtual Entries', () => {
           projects: [],
           categoryGroups: [],
           incidentals: [],
-          completedTodos: [completedTodo], // Pass in completedTodos array
-          longTodosWithSessions: [longTodoWithSession],
+          completedTasks: [completedTask], // Pass in completedTasks array
+          longTasksWithSessions: [longTaskWithSession],
           recurringProjects: [],
           recurringCategoryGroups: [],
           recurringIncidentals: [],
@@ -539,10 +539,10 @@ describe('Layout Transformer - Work Session Virtual Entries', () => {
       expect(result.allSections).toBeDefined();
       expect(result.allSections!.length).toBeGreaterThan(0);
 
-      const allTodos = result.allSections!.flatMap(section => section.todos);
+      const allTasks = result.allSections!.flatMap(section => section.tasks);
       
-      const completed = allTodos.find(t => t.documentId === 'completed-1');
-      const workedOn = allTodos.find(t => t.documentId === 'long-1-worked-2026-01-05');
+      const completed = allTasks.find(t => t.documentId === 'completed-1');
+      const workedOn = allTasks.find(t => t.documentId === 'long-1-worked-2026-01-05');
       
       expect(completed).toBeDefined();
       expect(workedOn).toBeDefined();

@@ -1,6 +1,6 @@
 "use client";
 
-import TodoSections from "../TodoSections";
+import TaskSections from "../TaskSections";
 import type { LayoutRendererProps } from "./types";
 
 export default function ChoresLayout({
@@ -16,7 +16,7 @@ export default function ChoresLayout({
   return (
     (transformedData.nonRecurringNoProjectSections && transformedData.nonRecurringNoProjectSections.length > 0) ||
     (transformedData.nonRecurringNoProjectIncidentals && transformedData.nonRecurringNoProjectIncidentals.length > 0) ? (
-      <TodoSections
+      <TaskSections
         sections={transformedData.nonRecurringNoProjectSections || []}
         incidentals={transformedData.nonRecurringNoProjectIncidentals}
         onComplete={onComplete}

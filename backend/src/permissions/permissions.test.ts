@@ -43,6 +43,14 @@ describe('ROLE_PERMISSIONS — the authorization surface, in git', () => {
     }
   });
 
+  it('grants task CRUD (the todo→task rename target) to authenticated users', () => {
+    // The frontend talks to /api/tasks once the rename ships; without these the
+    // seeder — which is authoritative — would leave the new type unreachable.
+    for (const action of ['find', 'findOne', 'create', 'update', 'delete']) {
+      expect(ROLE_PERMISSIONS.authenticated).toContain(`api::task.task.${action}`);
+    }
+  });
+
   it('grants /api/users/me — frontend/proxy.ts calls it on every navigation', () => {
     expect(ROLE_PERMISSIONS.authenticated).toContain('plugin::users-permissions.user.me');
   });

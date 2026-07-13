@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import type { Todo } from '@/app/types/index';
+import type { Task } from '@/app/types/index';
 import * as completedTaskConfig from './completedTaskVisibilityConfig';
 import { getWorkedOnPhase } from './dayBoundaryHelpers';
 
@@ -21,8 +21,8 @@ vi.mock('./dayBoundaryHelpers', async () => {
 });
 
 describe('Worked-On Task Phase-Based Visibility Logic', () => {
-  // Helper to create a todo with work sessions
-  function createTodoWithWorkSessions(workSessions: Array<{ date: string; timestamp: string }>): Todo {
+  // Helper to create a task with work sessions
+  function createTaskWithWorkSessions(workSessions: Array<{ date: string; timestamp: string }>): Task {
     return {
       id: 1,
       documentId: 'test-long-task',
@@ -57,7 +57,7 @@ describe('Worked-On Task Phase-Based Visibility Logic', () => {
   }
 
   // Helper function to simulate the visibility logic from page.tsx
-  function shouldBeVisible(todo: Todo, phase: 1 | 2 | 3): boolean {
+  function shouldBeVisible(task: Task, phase: 1 | 2 | 3): boolean {
     // Hide in Phase 2 only
     return phase !== 2;
   }
@@ -69,104 +69,104 @@ describe('Worked-On Task Phase-Based Visibility Logic', () => {
 
   describe('Phase 1 - Within Visibility Window', () => {
     it('should show task in main views during Phase 1', () => {
-      const todo = createTodoWithWorkSessions([
+      const task = createTaskWithWorkSessions([
         { date: '2026-01-05', timestamp: '2026-01-05T10:00:00.000Z' },
       ]);
 
       vi.mocked(getWorkedOnPhase).mockReturnValue(1);
-      const visible = shouldBeVisible(todo, 1);
+      const visible = shouldBeVisible(task, 1);
 
       expect(visible).toBe(true);
     });
 
     it('should have workedOnPhase=1 for CSS class application', () => {
-      const todo = createTodoWithWorkSessions([
+      const task = createTaskWithWorkSessions([
         { date: '2026-01-05', timestamp: '2026-01-05T10:00:00.000Z' },
       ]);
 
       vi.mocked(getWorkedOnPhase).mockReturnValue(1);
       
       // Simulate what page.tsx does
-      const todoWithPhase = {
-        ...todo,
+      const taskWithPhase = {
+        ...task,
         workedOnPhase: 1 as const,
       };
 
-      expect(todoWithPhase.workedOnPhase).toBe(1);
+      expect(taskWithPhase.workedOnPhase).toBe(1);
     });
   });
 
   describe('Phase 2 - Beyond Visibility Window, Same Day', () => {
     it('should hide task from main views during Phase 2', () => {
-      const todo = createTodoWithWorkSessions([
+      const task = createTaskWithWorkSessions([
         { date: '2026-01-05', timestamp: '2026-01-05T10:00:00.000Z' },
       ]);
 
       vi.mocked(getWorkedOnPhase).mockReturnValue(2);
-      const visible = shouldBeVisible(todo, 2);
+      const visible = shouldBeVisible(task, 2);
 
       expect(visible).toBe(false);
     });
 
     it('should transition from Phase 1 to Phase 2 when visibility window expires', () => {
-      const todo = createTodoWithWorkSessions([
+      const task = createTaskWithWorkSessions([
         { date: '2026-01-05', timestamp: '2026-01-05T10:00:00.000Z' },
       ]);
 
       // First check - within visibility window
       vi.mocked(getWorkedOnPhase).mockReturnValue(1);
-      let visible = shouldBeVisible(todo, 1);
+      let visible = shouldBeVisible(task, 1);
       expect(visible).toBe(true);
 
       // Second check - beyond visibility window, same effective day
       vi.mocked(getWorkedOnPhase).mockReturnValue(2);
-      visible = shouldBeVisible(todo, 2);
+      visible = shouldBeVisible(task, 2);
       expect(visible).toBe(false);
     });
   });
 
   describe('Phase 3 - Different Effective Day', () => {
     it('should show task in main views during Phase 3', () => {
-      const todo = createTodoWithWorkSessions([
+      const task = createTaskWithWorkSessions([
         { date: '2026-01-05', timestamp: '2026-01-05T10:00:00.000Z' },
       ]);
 
       vi.mocked(getWorkedOnPhase).mockReturnValue(3);
-      const visible = shouldBeVisible(todo, 3);
+      const visible = shouldBeVisible(task, 3);
 
       expect(visible).toBe(true);
     });
 
     it('should not have workedOnPhase or have phase=3 in Phase 3', () => {
-      const todo = createTodoWithWorkSessions([
+      const task = createTaskWithWorkSessions([
         { date: '2026-01-05', timestamp: '2026-01-05T10:00:00.000Z' },
       ]);
 
       vi.mocked(getWorkedOnPhase).mockReturnValue(3);
       
       // Simulate what page.tsx does
-      const todoWithPhase = {
-        ...todo,
+      const taskWithPhase = {
+        ...task,
         workedOnPhase: 3 as const,
       };
 
       // In Phase 3, workedOnPhase should not be 1, so no "worked-on" class
-      expect(todoWithPhase.workedOnPhase).not.toBe(1);
+      expect(taskWithPhase.workedOnPhase).not.toBe(1);
     });
 
     it('should transition from Phase 2 to Phase 3 at day boundary', () => {
-      const todo = createTodoWithWorkSessions([
+      const task = createTaskWithWorkSessions([
         { date: '2026-01-05', timestamp: '2026-01-05T10:00:00.000Z' },
       ]);
 
       // Phase 2 - hidden
       vi.mocked(getWorkedOnPhase).mockReturnValue(2);
-      let visible = shouldBeVisible(todo, 2);
+      let visible = shouldBeVisible(task, 2);
       expect(visible).toBe(false);
 
       // Phase 3 - visible again
       vi.mocked(getWorkedOnPhase).mockReturnValue(3);
-      visible = shouldBeVisible(todo, 3);
+      visible = shouldBeVisible(task, 3);
       expect(visible).toBe(true);
     });
   });
@@ -174,7 +174,7 @@ describe('Worked-On Task Phase-Based Visibility Logic', () => {
   describe('Day Boundary Scenarios', () => {
     it('should skip Phase 2 if day boundary comes before visibility window', () => {
       // Work session near end of day with long visibility window
-      const todo = createTodoWithWorkSessions([
+      const task = createTaskWithWorkSessions([
         { date: '2026-01-05', timestamp: '2026-01-05T22:00:00.000Z' },
       ]);
 
@@ -183,26 +183,26 @@ describe('Worked-On Task Phase-Based Visibility Logic', () => {
 
       // Immediately after work session - Phase 1
       vi.mocked(getWorkedOnPhase).mockReturnValue(1);
-      let visible = shouldBeVisible(todo, 1);
+      let visible = shouldBeVisible(task, 1);
       expect(visible).toBe(true);
 
       // After day boundary but before 24 hours - Phase 3 (day boundary takes precedence)
       vi.mocked(getWorkedOnPhase).mockReturnValue(3);
-      visible = shouldBeVisible(todo, 3);
+      visible = shouldBeVisible(task, 3);
       expect(visible).toBe(true);
     });
   });
 
   describe('Multiple Work Sessions', () => {
     it('should use most recent work session for phase calculation', () => {
-      const todo = createTodoWithWorkSessions([
+      const task = createTaskWithWorkSessions([
         { date: '2026-01-05', timestamp: '2026-01-05T10:00:00.000Z' },
         { date: '2026-01-04', timestamp: '2026-01-04T10:00:00.000Z' },
       ]);
 
       // Most recent is Jan 5, which determines the phase
       vi.mocked(getWorkedOnPhase).mockReturnValue(1);
-      const visible = shouldBeVisible(todo, 1);
+      const visible = shouldBeVisible(task, 1);
 
       expect(visible).toBe(true);
     });
@@ -210,7 +210,7 @@ describe('Worked-On Task Phase-Based Visibility Logic', () => {
 
   describe('Non-long Tasks', () => {
     it('should always be visible for non-long tasks', () => {
-      const todo: Todo = {
+      const task: Task = {
         id: 1,
         documentId: 'regular-task',
         title: 'Regular task',
@@ -244,20 +244,20 @@ describe('Worked-On Task Phase-Based Visibility Logic', () => {
 
       // Non-long tasks don't have phases, so they're always visible
       // (no filtering logic applies)
-      expect(todo.long).toBe(false);
+      expect(task.long).toBe(false);
     });
   });
 
   describe('Edge Cases', () => {
-    it('should handle todo with no work sessions', () => {
-      const todo = createTodoWithWorkSessions([]);
+    it('should handle task with no work sessions', () => {
+      const task = createTaskWithWorkSessions([]);
 
       // No work sessions means no phase, task is always visible
-      expect(todo.workSessions?.length).toBe(0);
+      expect(task.workSessions?.length).toBe(0);
     });
 
-    it('should handle todo with null work sessions', () => {
-      const todo: Todo = {
+    it('should handle task with null work sessions', () => {
+      const task: Task = {
         id: 1,
         documentId: 'task-no-sessions',
         title: 'Task with null sessions',
@@ -289,13 +289,13 @@ describe('Worked-On Task Phase-Based Visibility Logic', () => {
         publishedAt: '2026-01-01T00:00:00.000Z',
       };
 
-      expect(todo.workSessions).toBeNull();
+      expect(task.workSessions).toBeNull();
     });
   });
 
   describe('Integration with Config', () => {
     it('should respect updated visibility minutes from config', () => {
-      const todo = createTodoWithWorkSessions([
+      const task = createTaskWithWorkSessions([
         { date: '2026-01-05', timestamp: '2026-01-05T10:00:00.000Z' },
       ]);
 

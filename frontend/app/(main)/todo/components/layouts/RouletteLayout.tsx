@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import TodoItem from "../TodoItem";
+import TaskItem from "../TaskItem";
 import type { LayoutRendererProps } from "./types";
 
 export default function RouletteLayout({
@@ -13,27 +13,27 @@ export default function RouletteLayout({
   onRemoveWorkSession,
   onSkipRecurring,
 }: LayoutRendererProps) {
-  const randomTodo = useMemo(() => {
-    const todos = transformedData.rouletteTodos || [];
-    if (todos.length === 0) {
+  const randomTask = useMemo(() => {
+    const tasks = transformedData.rouletteTasks || [];
+    if (tasks.length === 0) {
       return null;
     }
-    // Select a random todo
-    const randomIndex = Math.floor(Math.random() * todos.length);
-    return todos[randomIndex];
-  }, [transformedData.rouletteTodos]);
+    // Select a random task
+    const randomIndex = Math.floor(Math.random() * tasks.length);
+    return tasks[randomIndex];
+  }, [transformedData.rouletteTasks]);
 
-  if (!randomTodo) {
-    return <p>No todos available</p>;
+  if (!randomTask) {
+    return <p>No tasks available</p>;
   }
 
   return (
-    <div className="todos-container">
-      <div className="todo-section">
-        <ul className="todos-list">
-          <TodoItem
-            key={randomTodo.documentId}
-            todo={randomTodo}
+    <div className="tasks-container">
+      <div className="task-section">
+        <ul className="tasks-list">
+          <TaskItem
+            key={randomTask.documentId}
+            task={randomTask}
             onComplete={onComplete}
             onEdit={onEdit}
             onDelete={onDelete}

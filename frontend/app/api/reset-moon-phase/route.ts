@@ -16,14 +16,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { todosUpdated, projectsUpdated } = await performMoonPhaseReset(token);
+    const { tasksUpdated, projectsUpdated } = await performMoonPhaseReset(token);
 
     // Update the system setting to track the last reset date
     await updateMoonPhaseResetDate(token);
 
     return NextResponse.json({
       success: true,
-      todosUpdated,
+      tasksUpdated,
       projectsUpdated,
     });
   } catch (error) {

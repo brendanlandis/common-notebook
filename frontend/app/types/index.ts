@@ -72,8 +72,8 @@ export type World =
   | 'day job'
   | 'computer';
 
-// Todo category types
-export type TodoCategory = 
+// Task category types
+export type TaskCategory = 
   | 'home chores'
   | 'studio chores'
   | 'band chores'
@@ -108,8 +108,8 @@ export interface WorkSession {
   timestamp: string; // ISO datetime
 }
 
-// Todo interface
-export interface Todo {
+// Task interface
+export interface Task {
   id: number;
   documentId: string;
   title: string;
@@ -127,7 +127,7 @@ export interface Todo {
   recurrenceWeekOfMonth: number | null;
   recurrenceDayOfWeekMonthly: number | null;
   recurrenceMonth: number | null;
-  category: TodoCategory | null;
+  category: TaskCategory | null;
   trackingUrl: string | null;
   purchaseUrl: string | null;
   price: number | null;
@@ -154,7 +154,7 @@ export interface Project {
   createdAt: string;
   updatedAt: string;
   publishedAt: string;
-  todos?: Todo[];
+  tasks?: Task[];
 }
 
 // API Response types
@@ -187,8 +187,8 @@ export interface PracticeLog {
 
 export type ProjectsResponse = StrapiResponse<Project[]>;
 export type ProjectResponse = StrapiResponse<Project>;
-export type TodosResponse = StrapiResponse<Todo[]>;
-export type TodoResponse = StrapiResponse<Todo>;
+export type TasksResponse = StrapiResponse<Task[]>;
+export type TaskResponse = StrapiResponse<Task>;
 export type PracticeLogsResponse = StrapiResponse<PracticeLog[]>;
 export type PracticeLogResponse = StrapiResponse<PracticeLog>;
 
@@ -199,7 +199,7 @@ export interface LayoutRuleset {
   showRecurring: boolean;
   showNonRecurring: boolean;
   visibleWorlds: World[] | null; // null = show all worlds
-  visibleCategories: TodoCategory[] | null; // null = show all categories
+  visibleCategories: TaskCategory[] | null; // null = show all categories
   visibleProjects?: string[]; // documentIds; omit/undefined = show all projects
   sortBy: "alphabetical" | "creationDate" | "dueDate" | "completedAt";
   groupBy: "recurring-separate" | "recurring-separate-world" | "merged" | "single-section" | "world" | "project" | "category" | "good-morning" | "roulette" | "stuff" | "later" | "done" | "invoicing" | "chores" | "recurring-review";

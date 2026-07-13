@@ -1,6 +1,6 @@
 "use client";
 
-import TodoSections from "../TodoSections";
+import TaskSections from "../TaskSections";
 import WorldSections from "../WorldSections";
 import type { LayoutRendererProps } from "./types";
 
@@ -18,7 +18,7 @@ export default function RecurringSeparateWorldLayout({
     <>
       {transformedData.recurringSections &&
         transformedData.recurringSections.length > 0 && (
-          <TodoSections
+          <TaskSections
             sections={transformedData.recurringSections}
             incidentals={transformedData.recurringIncidentals}
             onComplete={onComplete}

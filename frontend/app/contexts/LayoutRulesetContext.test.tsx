@@ -90,7 +90,7 @@ describe('LayoutRulesetContext', () => {
         rulesetId: 'roulette',
         timestamp: Date.now(),
       };
-      localStorageMock['todo-layout-ruleset-id'] = JSON.stringify(layoutData);
+      localStorageMock['task-layout-ruleset-id'] = JSON.stringify(layoutData);
 
       const { result } = renderHook(() => useLayoutRuleset(), { wrapper });
       
@@ -102,12 +102,12 @@ describe('LayoutRulesetContext', () => {
         rulesetId: 'roulette',
         timestamp: Date.now() - (6 * 60 * 1000), // 6 minutes ago (expired)
       };
-      localStorageMock['todo-layout-ruleset-id'] = JSON.stringify(expiredLayoutData);
+      localStorageMock['task-layout-ruleset-id'] = JSON.stringify(expiredLayoutData);
 
       const { result } = renderHook(() => useLayoutRuleset(), { wrapper });
       
       expect(result.current.selectedRulesetId).toBe('good-morning');
-      expect(localStorage.removeItem).toHaveBeenCalledWith('todo-layout-ruleset-id');
+      expect(localStorage.removeItem).toHaveBeenCalledWith('task-layout-ruleset-id');
     });
 
     it('should use valid URL parameter over localStorage', async () => {
@@ -115,7 +115,7 @@ describe('LayoutRulesetContext', () => {
         rulesetId: 'roulette',
         timestamp: Date.now(),
       };
-      localStorageMock['todo-layout-ruleset-id'] = JSON.stringify(layoutData);
+      localStorageMock['task-layout-ruleset-id'] = JSON.stringify(layoutData);
       
       mockSearchParams.get.mockReturnValue('stuff');
 
@@ -131,7 +131,7 @@ describe('LayoutRulesetContext', () => {
         rulesetId: 'roulette',
         timestamp: Date.now(),
       };
-      localStorageMock['todo-layout-ruleset-id'] = JSON.stringify(layoutData);
+      localStorageMock['task-layout-ruleset-id'] = JSON.stringify(layoutData);
       
       mockSearchParams.get.mockReturnValue('invalid-preset');
 
@@ -157,7 +157,7 @@ describe('LayoutRulesetContext', () => {
 
       await waitFor(() => {
         expect(localStorage.setItem).toHaveBeenCalledWith(
-          'todo-layout-ruleset-id',
+          'task-layout-ruleset-id',
           expect.stringContaining('"rulesetId":"stuff"')
         );
       });
@@ -256,7 +256,7 @@ describe('LayoutRulesetContext', () => {
       // Should persist to localStorage
       await waitFor(() => {
         expect(localStorage.setItem).toHaveBeenCalledWith(
-          'todo-layout-ruleset-id',
+          'task-layout-ruleset-id',
           expect.stringContaining('"rulesetId":"stuff"')
         );
       });
@@ -265,12 +265,12 @@ describe('LayoutRulesetContext', () => {
 
   describe('Error handling', () => {
     it('should handle invalid JSON in localStorage', () => {
-      localStorageMock['todo-layout-ruleset-id'] = 'invalid-json';
+      localStorageMock['task-layout-ruleset-id'] = 'invalid-json';
 
       const { result } = renderHook(() => useLayoutRuleset(), { wrapper });
 
       expect(result.current.selectedRulesetId).toBe('good-morning');
-      expect(localStorage.removeItem).toHaveBeenCalledWith('todo-layout-ruleset-id');
+      expect(localStorage.removeItem).toHaveBeenCalledWith('task-layout-ruleset-id');
     });
 
     it('should throw error when used outside provider', () => {

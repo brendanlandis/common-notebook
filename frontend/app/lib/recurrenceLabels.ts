@@ -1,4 +1,4 @@
-import type { Todo } from "@/app/types/index";
+import type { Task } from "@/app/types/index";
 
 /**
  * Converts a day index (0-6) to a lowercase day name
@@ -48,53 +48,53 @@ export function getMonthName(monthIndex: number | null | undefined): string {
 }
 
 /**
- * Generates a recurrence prefix for a todo item based on its recurrence type
- * @param todo - The todo item
+ * Generates a recurrence prefix for a task item based on its recurrence type
+ * @param task - The task item
  * @returns A human-readable recurrence prefix (e.g., "every day", "every 2 days", "every sunday")
  */
-export function getRecurrencePrefix(todo: Todo): string {
-  switch (todo.recurrenceType) {
+export function getRecurrencePrefix(task: Task): string {
+  switch (task.recurrenceType) {
     case "daily":
       return "every day";
     
     case "every x days":
-      if (todo.recurrenceInterval != null && todo.recurrenceInterval > 0) {
-        return `every ${todo.recurrenceInterval} days`;
+      if (task.recurrenceInterval != null && task.recurrenceInterval > 0) {
+        return `every ${task.recurrenceInterval} days`;
       }
       return "every x days";
     
     case "weekly":
       // Database uses ISO 8601 standard (1=Mon, 2=Tue, ..., 7=Sun), convert to getDayName format (0=Sun, 1=Mon, ..., 6=Sat)
-      if (todo.recurrenceDayOfWeek != null && todo.recurrenceDayOfWeek >= 1 && todo.recurrenceDayOfWeek <= 7) {
-        return `every ${getDayName(todo.recurrenceDayOfWeek % 7)}`;
+      if (task.recurrenceDayOfWeek != null && task.recurrenceDayOfWeek >= 1 && task.recurrenceDayOfWeek <= 7) {
+        return `every ${getDayName(task.recurrenceDayOfWeek % 7)}`;
       }
       return "weekly";
     
     case "biweekly":
       // Database uses ISO 8601 standard (1=Mon, 2=Tue, ..., 7=Sun), convert to getDayName format (0=Sun, 1=Mon, ..., 6=Sat)
-      if (todo.recurrenceDayOfWeek != null && todo.recurrenceDayOfWeek >= 1 && todo.recurrenceDayOfWeek <= 7) {
-        return `every other ${getDayName(todo.recurrenceDayOfWeek % 7)}`;
+      if (task.recurrenceDayOfWeek != null && task.recurrenceDayOfWeek >= 1 && task.recurrenceDayOfWeek <= 7) {
+        return `every other ${getDayName(task.recurrenceDayOfWeek % 7)}`;
       }
       return "biweekly";
     
     case "monthly date":
-      if (todo.recurrenceDayOfMonth != null && todo.recurrenceDayOfMonth >= 1 && todo.recurrenceDayOfMonth <= 31) {
-        return `on the ${getOrdinal(todo.recurrenceDayOfMonth)}`;
+      if (task.recurrenceDayOfMonth != null && task.recurrenceDayOfMonth >= 1 && task.recurrenceDayOfMonth <= 31) {
+        return `on the ${getOrdinal(task.recurrenceDayOfMonth)}`;
       }
       return "monthly";
     
     case "monthly day":
       // Database uses ISO 8601 standard (1=Mon, 2=Tue, ..., 7=Sun), convert to getDayName format (0=Sun, 1=Mon, ..., 6=Sat)
-      if (todo.recurrenceWeekOfMonth != null && todo.recurrenceDayOfWeekMonthly != null && 
-          todo.recurrenceDayOfWeekMonthly >= 1 && todo.recurrenceDayOfWeekMonthly <= 7) {
-        return `${getOrdinal(todo.recurrenceWeekOfMonth)} ${getDayName(todo.recurrenceDayOfWeekMonthly % 7)}`;
+      if (task.recurrenceWeekOfMonth != null && task.recurrenceDayOfWeekMonthly != null && 
+          task.recurrenceDayOfWeekMonthly >= 1 && task.recurrenceDayOfWeekMonthly <= 7) {
+        return `${getOrdinal(task.recurrenceWeekOfMonth)} ${getDayName(task.recurrenceDayOfWeekMonthly % 7)}`;
       }
       return "monthly";
     
     case "annually":
-      if (todo.recurrenceMonth != null && todo.recurrenceDayOfMonth != null &&
-          todo.recurrenceMonth >= 1 && todo.recurrenceMonth <= 12) {
-        return `${todo.recurrenceMonth}/${todo.recurrenceDayOfMonth}`;
+      if (task.recurrenceMonth != null && task.recurrenceDayOfMonth != null &&
+          task.recurrenceMonth >= 1 && task.recurrenceMonth <= 12) {
+        return `${task.recurrenceMonth}/${task.recurrenceDayOfMonth}`;
       }
       return "annually";
     

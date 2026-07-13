@@ -21,6 +21,9 @@
 
 const OWNED_TYPES = [
   'api::todo.todo',
+  // Kept in sync with OWNED_CONTENT_TYPES in src/ownership/rule.ts. `task`
+  // coexists with `todo` during the todo→task migration.
+  'api::task.task',
   'api::project.project',
   'api::practice-log.practice-log',
   'api::system-setting.system-setting',

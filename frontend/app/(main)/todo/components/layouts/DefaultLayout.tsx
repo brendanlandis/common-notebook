@@ -1,6 +1,6 @@
 "use client";
 
-import TodoSections from "../TodoSections";
+import TaskSections from "../TaskSections";
 import type { LayoutRendererProps } from "./types";
 
 export default function DefaultLayout({
@@ -16,7 +16,7 @@ export default function DefaultLayout({
   return (
     transformedData.allSections &&
     transformedData.allSections.length > 0 && (
-      <TodoSections
+      <TaskSections
         sections={transformedData.allSections}
         incidentals={transformedData.incidentals}
         onComplete={onComplete}

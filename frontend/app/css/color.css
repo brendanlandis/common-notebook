@@ -105,7 +105,7 @@ button.btn {
   border-color: var(--primary-color-light);
 }
 
-.todo-description {
+.task-description {
   border-color: var(--primary-color-lighter);
   background: var(--background-lighter);
 }

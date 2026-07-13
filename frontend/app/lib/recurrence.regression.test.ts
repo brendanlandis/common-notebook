@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { calculateNextRecurrence } from './recurrence';
-import type { Todo } from '@/app/types/index';
+import type { Task } from '@/app/types/index';
 import * as dateUtils from './dateUtils';
 
 // Mock the date utilities
@@ -23,7 +23,7 @@ vi.mock('./timezoneConfig', () => ({
   saveTimezoneToStrapi: vi.fn(),
 }));
 
-function createTodo(overrides: Partial<Todo>): Todo {
+function createTask(overrides: Partial<Task>): Task {
   return {
     id: 1,
     documentId: 'test-1',
@@ -75,20 +75,20 @@ describe('Regression Tests - Fixed Bugs', () => {
         new Date('2026-01-05T00:00:00')
       );
 
-      const todo = createTodo({
+      const task = createTask({
         isRecurring: true,
         recurrenceType: 'biweekly',
         recurrenceDayOfWeek: 1, // Monday
         displayDate: '2026-01-05',
       });
 
-      const result = calculateNextRecurrence(todo, false);
+      const result = calculateNextRecurrence(task, false);
 
       // Should be Jan 19 (14 days), NOT Jan 26 (21 days)
       expect(result.displayDate).toBe('2026-01-19');
 
       // Verify it's exactly 14 days
-      const displayDate = new Date(todo.displayDate!);
+      const displayDate = new Date(task.displayDate!);
       const nextDate = new Date(result.displayDate!);
       const daysDiff = (nextDate.getTime() - displayDate.getTime()) / (1000 * 60 * 60 * 24);
       expect(daysDiff).toBe(14);
@@ -100,14 +100,14 @@ describe('Regression Tests - Fixed Bugs', () => {
         new Date('2026-01-06T00:00:00')
       );
 
-      const todo = createTodo({
+      const task = createTask({
         isRecurring: true,
         recurrenceType: 'biweekly',
         recurrenceDayOfWeek: 1, // Monday
         displayDate: '2026-01-05', // Was supposed to be done Monday
       });
 
-      const result = calculateNextRecurrence(todo, false);
+      const result = calculateNextRecurrence(task, false);
 
       // Should still be Jan 19 (14 days from Jan 5), NOT Jan 27 (20 days)
       expect(result.displayDate).toBe('2026-01-19');
@@ -119,14 +119,14 @@ describe('Regression Tests - Fixed Bugs', () => {
         new Date('2026-01-09T00:00:00')
       );
 
-      const todo = createTodo({
+      const task = createTask({
         isRecurring: true,
         recurrenceType: 'biweekly',
         recurrenceDayOfWeek: 1,
         displayDate: '2026-01-05',
       });
 
-      const result = calculateNextRecurrence(todo, false);
+      const result = calculateNextRecurrence(task, false);
 
       // Should still be Jan 19 (14 days from Jan 5), NOT Jan 23 (17 days from completion)
       expect(result.displayDate).toBe('2026-01-19');
@@ -140,14 +140,14 @@ describe('Regression Tests - Fixed Bugs', () => {
         new Date('2026-01-05T00:00:00')
       );
 
-      const todo = createTodo({
+      const task = createTask({
         isRecurring: true,
         recurrenceType: 'weekly',
         recurrenceDayOfWeek: 1, // Monday
         displayDate: '2026-01-05',
       });
 
-      const result = calculateNextRecurrence(todo, false);
+      const result = calculateNextRecurrence(task, false);
 
       // Should be Jan 12 (next Monday, 7 days), NOT Jan 19 (14 days)
       expect(result.displayDate).toBe('2026-01-12');
@@ -159,14 +159,14 @@ describe('Regression Tests - Fixed Bugs', () => {
         new Date('2026-01-06T00:00:00')
       );
 
-      const todo = createTodo({
+      const task = createTask({
         isRecurring: true,
         recurrenceType: 'weekly',
         recurrenceDayOfWeek: 2, // Tuesday
         displayDate: '2026-01-06',
       });
 
-      const result = calculateNextRecurrence(todo, false);
+      const result = calculateNextRecurrence(task, false);
 
       // Should be Jan 13 (next Tuesday, 7 days), NOT Jan 20 (14 days)
       expect(result.displayDate).toBe('2026-01-13');
@@ -180,7 +180,7 @@ describe('Regression Tests - Fixed Bugs', () => {
         new Date('2026-01-10T00:00:00')
       );
 
-      const todo = createTodo({
+      const task = createTask({
         isRecurring: true,
         recurrenceType: 'monthly date',
         recurrenceDayOfMonth: 15,
@@ -188,7 +188,7 @@ describe('Regression Tests - Fixed Bugs', () => {
         dueDate: '2026-01-15',
       });
 
-      const result = calculateNextRecurrence(todo, false);
+      const result = calculateNextRecurrence(task, false);
 
       // Should be Feb 15, NOT Jan 15 (which would cause duplicate)
       expect(result.displayDate).toBe('2026-02-15');
@@ -200,7 +200,7 @@ describe('Regression Tests - Fixed Bugs', () => {
         new Date('2026-02-05T00:00:00')
       );
 
-      const todo = createTodo({
+      const task = createTask({
         isRecurring: true,
         recurrenceType: 'monthly date',
         recurrenceDayOfMonth: 15,
@@ -208,7 +208,7 @@ describe('Regression Tests - Fixed Bugs', () => {
         dueDate: '2026-01-15',
       });
 
-      const result = calculateNextRecurrence(todo, false);
+      const result = calculateNextRecurrence(task, false);
 
       // Should be Feb 15 (next occurrence after Feb 5)
       expect(result.displayDate).toBe('2026-02-15');
@@ -217,14 +217,14 @@ describe('Regression Tests - Fixed Bugs', () => {
 
   describe('Bug: State Management Issues', () => {
     it('should preserve soon field on recurrence', () => {
-      const todo = createTodo({
+      const task = createTask({
         isRecurring: true,
         recurrenceType: 'daily',
         displayDate: '2026-01-05',
         soon: true,
       });
 
-      const result = calculateNextRecurrence(todo, false);
+      const result = calculateNextRecurrence(task, false);
 
       // This test verifies the calculation returns expected dates.
       // The actual field preservation happens in the API endpoint.
@@ -232,20 +232,20 @@ describe('Regression Tests - Fixed Bugs', () => {
     });
 
     it('should preserve long field on recurrence', () => {
-      const todo = createTodo({
+      const task = createTask({
         isRecurring: true,
         recurrenceType: 'daily',
         displayDate: '2026-01-05',
         long: true,
       });
 
-      const result = calculateNextRecurrence(todo, false);
+      const result = calculateNextRecurrence(task, false);
 
       expect(result.displayDate).toBe('2026-01-06');
     });
 
     it('should work correctly with wishlist fields', () => {
-      const todo = createTodo({
+      const task = createTask({
         isRecurring: true,
         recurrenceType: 'daily',
         displayDate: '2026-01-05',
@@ -255,7 +255,7 @@ describe('Regression Tests - Fixed Bugs', () => {
         trackingUrl: 'https://tracking.example.com',
       });
 
-      const result = calculateNextRecurrence(todo, false);
+      const result = calculateNextRecurrence(task, false);
 
       expect(result.displayDate).toBe('2026-01-06');
     });
@@ -268,14 +268,14 @@ describe('Regression Tests - Fixed Bugs', () => {
         new Date('2026-01-19T00:00:00')
       );
 
-      const todo = createTodo({
+      const task = createTask({
         isRecurring: true,
         recurrenceType: 'biweekly',
         recurrenceDayOfWeek: 1,
         displayDate: '2026-01-05',
       });
 
-      const result = calculateNextRecurrence(todo, false);
+      const result = calculateNextRecurrence(task, false);
 
       // Jan 5 + 14 = Jan 19 (today, not future)
       // Jan 19 + 14 = Feb 2
@@ -288,14 +288,14 @@ describe('Regression Tests - Fixed Bugs', () => {
         new Date('2026-02-02T00:00:00')
       );
 
-      const todo = createTodo({
+      const task = createTask({
         isRecurring: true,
         recurrenceType: 'biweekly',
         recurrenceDayOfWeek: 1,
         displayDate: '2026-01-05',
       });
 
-      const result = calculateNextRecurrence(todo, false);
+      const result = calculateNextRecurrence(task, false);
 
       // Jan 5 → Jan 19 → Feb 2 (today) → Feb 16
       expect(result.displayDate).toBe('2026-02-16');
@@ -303,56 +303,56 @@ describe('Regression Tests - Fixed Bugs', () => {
   });
 
   describe('Bug: Timezone-aware date comparison (completing on due date)', () => {
-    // This bug occurred when completing a monthly recurring todo ON its due date.
+    // This bug occurred when completing a monthly recurring task ON its due date.
     // The old code used startOfDay() which uses system timezone, causing incorrect
     // comparisons on UTC servers. The fix uses ISO date string comparison instead.
     
-    it('should advance to next month when completing monthly date todo ON the due date', () => {
-      // Feb 1, 2026 - completing a Feb 1st monthly todo on Feb 1st
+    it('should advance to next month when completing monthly date task ON the due date', () => {
+      // Feb 1, 2026 - completing a Feb 1st monthly task on Feb 1st
       vi.mocked(dateUtils.getTodayForRecurrence).mockReturnValue(
         new Date('2026-02-01T00:00:00')
       );
 
-      const todo = createTodo({
+      const task = createTask({
         isRecurring: true,
         recurrenceType: 'monthly date',
         recurrenceDayOfMonth: 1,
         displayDate: '2026-02-01',
       });
 
-      const result = calculateNextRecurrence(todo, false);
+      const result = calculateNextRecurrence(task, false);
 
       // Should be March 1, NOT Feb 1 (same date - the bug!)
       expect(result.displayDate).toBe('2026-03-01');
     });
 
-    it('should advance to next month when completing monthly date todo ON the due date (with boundary hour time)', () => {
+    it('should advance to next month when completing monthly date task ON the due date (with boundary hour time)', () => {
       // Simulates production scenario: Feb 1 at 9 AM UTC (4 AM EST boundary hour)
       // This was the exact scenario causing the bug on UTC servers
       vi.mocked(dateUtils.getTodayForRecurrence).mockReturnValue(
         new Date('2026-02-01T09:00:00Z') // 4 AM EST = 9 AM UTC
       );
 
-      const todo = createTodo({
+      const task = createTask({
         isRecurring: true,
         recurrenceType: 'monthly date',
         recurrenceDayOfMonth: 1,
         displayDate: '2026-02-01',
       });
 
-      const result = calculateNextRecurrence(todo, false);
+      const result = calculateNextRecurrence(task, false);
 
       // Should still be March 1, regardless of time component
       expect(result.displayDate).toBe('2026-03-01');
     });
 
-    it('should advance to next month when completing monthly day todo ON the due date', () => {
+    it('should advance to next month when completing monthly day task ON the due date', () => {
       // Jan 13, 2026 is the 2nd Tuesday of January
       vi.mocked(dateUtils.getTodayForRecurrence).mockReturnValue(
         new Date('2026-01-13T00:00:00')
       );
 
-      const todo = createTodo({
+      const task = createTask({
         isRecurring: true,
         recurrenceType: 'monthly day',
         recurrenceWeekOfMonth: 2, // 2nd week
@@ -361,19 +361,19 @@ describe('Regression Tests - Fixed Bugs', () => {
         dueDate: '2026-01-13',
       });
 
-      const result = calculateNextRecurrence(todo, false);
+      const result = calculateNextRecurrence(task, false);
 
       // Should be Feb 10 (2nd Tuesday of Feb), NOT Jan 13
       expect(result.displayDate).toBe('2026-02-10');
     });
 
-    it('should advance to next year when completing annual todo ON the due date', () => {
-      // Mar 15, 2026 - completing annual todo on its date
+    it('should advance to next year when completing annual task ON the due date', () => {
+      // Mar 15, 2026 - completing annual task on its date
       vi.mocked(dateUtils.getTodayForRecurrence).mockReturnValue(
         new Date('2026-03-15T00:00:00')
       );
 
-      const todo = createTodo({
+      const task = createTask({
         isRecurring: true,
         recurrenceType: 'annually',
         recurrenceMonth: 3, // March
@@ -381,7 +381,7 @@ describe('Regression Tests - Fixed Bugs', () => {
         displayDate: '2026-03-15',
       });
 
-      const result = calculateNextRecurrence(todo, false);
+      const result = calculateNextRecurrence(task, false);
 
       // Should be March 15, 2027, NOT March 15, 2026
       expect(result.displayDate).toBe('2027-03-15');
@@ -393,14 +393,14 @@ describe('Regression Tests - Fixed Bugs', () => {
         new Date('2026-01-31T00:00:00')
       );
 
-      const todo = createTodo({
+      const task = createTask({
         isRecurring: true,
         recurrenceType: 'monthly date',
         recurrenceDayOfMonth: 31,
         displayDate: '2026-01-31',
       });
 
-      const result = calculateNextRecurrence(todo, false);
+      const result = calculateNextRecurrence(task, false);
 
       // Feb doesn't have 31 days, should use Feb 28 (last day of Feb 2026)
       expect(result.displayDate).toBe('2026-02-28');
@@ -422,14 +422,14 @@ describe('Regression Tests - Fixed Bugs', () => {
           new Date(timeStr)
         );
 
-        const todo = createTodo({
+        const task = createTask({
           isRecurring: true,
           recurrenceType: 'monthly date',
           recurrenceDayOfMonth: 1,
           displayDate: '2026-02-01',
         });
 
-        const result = calculateNextRecurrence(todo, false);
+        const result = calculateNextRecurrence(task, false);
 
         expect(result.displayDate).toBe('2026-03-01');
       }
@@ -443,7 +443,7 @@ describe('Regression Tests - Fixed Bugs', () => {
         new Date('2026-01-10T00:00:00')
       );
 
-      const todo = createTodo({
+      const task = createTask({
         isRecurring: true,
         recurrenceType: 'monthly date',
         recurrenceDayOfMonth: 15,
@@ -451,7 +451,7 @@ describe('Regression Tests - Fixed Bugs', () => {
         dueDate: '2026-01-15',
       });
 
-      const result = calculateNextRecurrence(todo, false);
+      const result = calculateNextRecurrence(task, false);
 
       // Next occurrence from Jan 15 (event date) is Feb 15
       expect(result.displayDate).toBe('2026-02-15');
@@ -463,7 +463,7 @@ describe('Regression Tests - Fixed Bugs', () => {
         new Date('2026-02-05T00:00:00')
       );
 
-      const todo = createTodo({
+      const task = createTask({
         isRecurring: true,
         recurrenceType: 'monthly date',
         recurrenceDayOfMonth: 15,
@@ -471,7 +471,7 @@ describe('Regression Tests - Fixed Bugs', () => {
         dueDate: '2026-01-15',
       });
 
-      const result = calculateNextRecurrence(todo, false);
+      const result = calculateNextRecurrence(task, false);
 
       // Next occurrence from Feb 5 (completion date) is Feb 15
       expect(result.displayDate).toBe('2026-02-15');

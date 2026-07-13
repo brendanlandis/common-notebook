@@ -22,6 +22,10 @@ export interface OwnershipRule {
 /** The content types that carry an `owner`. Nothing else is touched. */
 export const OWNED_CONTENT_TYPES = [
   'api::todo.todo',
+  // `task` is the rename target of `todo`; both are owned while they coexist
+  // during the todo→task migration. `api::todo.todo` is removed once the old
+  // content type is deleted (see the standardize-on-task plan, Stage 6).
+  'api::task.task',
   'api::project.project',
   'api::practice-log.practice-log',
   'api::system-setting.system-setting',

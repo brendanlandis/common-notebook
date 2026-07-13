@@ -5,7 +5,7 @@ import LayoutSelector from "../(main)/todo/components/LayoutSelector";
 import PracticeSelector from "../(main)/practice/components/PracticeSelector";
 import { useLayoutRuleset } from "../contexts/LayoutRulesetContext";
 import { usePractice } from "../contexts/PracticeContext";
-import { useTodoActions } from "../contexts/TodoActionsContext";
+import { useTaskActions } from "../contexts/TaskActionsContext";
 import { PlusCircleIcon, FolderSimplePlusIcon } from "@phosphor-icons/react";
 import MoonPhaseIcon from "./MoonPhaseIcon";
 
@@ -15,7 +15,7 @@ export default function HeaderContent() {
   const { selectedRulesetId, setSelectedRulesetId, isHydrated } =
     useLayoutRuleset();
   const { selectedPracticeType, setSelectedPracticeType } = usePractice();
-  const { openTodoForm, openProjectForm } = useTodoActions();
+  const { openTaskForm, openProjectForm } = useTaskActions();
 
   const handleResetMoonPhase = async () => {
     try {
@@ -26,7 +26,7 @@ export default function HeaderContent() {
       if (response.ok) {
         const result = await response.json();
         if (result.success) {
-          // Emit event to trigger todo refresh without full page reload
+          // Emit event to trigger task refresh without full page reload
           window.dispatchEvent(new CustomEvent('moon-phase-reset'));
         } else {
           console.error("Failed to reset moon phase:", result.error);
@@ -39,29 +39,29 @@ export default function HeaderContent() {
     }
   };
 
-  // Todo pages (index + per-world / per-project routes) share one header. The
-  // shared TodoForms drawer is mounted for the whole /todo route group, so the
+  // Task pages (index + per-world / per-project routes) share one header. The
+  // shared TaskForms drawer is mounted for the whole /todo route group, so the
   // add buttons work everywhere.
   if (pathname.startsWith("/todo")) {
-    const isTodoIndex = pathname === "/todo";
+    const isTaskIndex = pathname === "/todo";
     return (
       <>
         {isHydrated && (
           <LayoutSelector
             // On a world/project route the current view isn't a preset, so show
             // the blank row; picking a real view sets it and returns to /todo.
-            value={isTodoIndex ? selectedRulesetId : ""}
+            value={isTaskIndex ? selectedRulesetId : ""}
             onChange={(id) => {
               if (!id) return;
               setSelectedRulesetId(id);
-              if (!isTodoIndex) router.push("/todo");
+              if (!isTaskIndex) router.push("/todo");
             }}
           />
         )}
         <button
-          onClick={openTodoForm}
+          onClick={openTaskForm}
           className="tooltip tooltip-bottom"
-          data-tip="add todo"
+          data-tip="add task"
         >
           <PlusCircleIcon size={25} />
         </button>

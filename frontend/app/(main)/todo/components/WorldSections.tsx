@@ -1,15 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import TodoSections from "./TodoSections";
-import type { Project, Todo, World } from "@/app/types/index";
+import TaskSections from "./TaskSections";
+import type { Project, Task, World } from "@/app/types/index";
 
-interface TodoGroup {
+interface TaskGroup {
   title: string;
-  todos: Todo[];
+  tasks: Task[];
 }
 
-type Section = Project | TodoGroup;
+type Section = Project | TaskGroup;
 
 interface WorldSectionsProps {
   worldSections: Map<World, {
@@ -17,10 +17,10 @@ interface WorldSectionsProps {
     priority: Section[];
     normal: Section[];
     later: Section[];
-    incidentals: Todo[];
+    incidentals: Task[];
   }>;
   onComplete: (documentId: string) => void;
-  onEdit: (todo: Todo) => void;
+  onEdit: (task: Task) => void;
   onDelete: (documentId: string) => void;
   onWorkSession: (documentId: string) => void;
   onRemoveWorkSession: (originalDocumentId: string, date: string) => void;
@@ -90,7 +90,7 @@ export default function WorldSections({
             
             {/* Top of mind projects and categories */}
             {hasFirstSection && (
-              <TodoSections
+              <TaskSections
                 sections={data.topOfMindAndCategories}
                 incidentals={hasIncidentals ? data.incidentals : undefined}
                 onComplete={onComplete}
@@ -106,9 +106,9 @@ export default function WorldSections({
             {/* Divider before the main container if top-of-mind/incidentals precede it */}
             {hasFirstSection && (hasPriority || hasNormal) && <hr />}
 
-            {/* Priority (p1, p2, …) then normal projects — one shared todos-container */}
+            {/* Priority (p1, p2, …) then normal projects — one shared tasks-container */}
             {(hasPriority || hasNormal) && (
-              <TodoSections
+              <TaskSections
                 sections={[...data.priority, ...data.normal]}
                 onComplete={onComplete}
                 onEdit={onEdit}
@@ -125,7 +125,7 @@ export default function WorldSections({
 
             {/* Later projects */}
             {hasLater && (
-              <TodoSections
+              <TaskSections
                 sections={data.later}
                 onComplete={onComplete}
                 onEdit={onEdit}

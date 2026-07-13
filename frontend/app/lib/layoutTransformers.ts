@@ -1,71 +1,71 @@
-import type { Project, Todo, TodoCategory, World, LayoutRuleset, RecurrenceType } from "@/app/types/index";
+import type { Project, Task, TaskCategory, World, LayoutRuleset, RecurrenceType } from "@/app/types/index";
 import { getTodayInEST, parseInEST, formatInEST, toISODateInEST, toZonedTime } from "@/app/lib/dateUtils";
 import { getTimezone } from "@/app/lib/timezoneConfig";
 import { getDayBoundaryHour } from "@/app/lib/dayBoundaryConfig";
 import { getProjectPriority } from "@/app/lib/projectPriority";
 import { addDays } from "date-fns";
 
-export interface TodoGroup {
+export interface TaskGroup {
   title: string;
-  todos: Todo[];
+  tasks: Task[];
 }
 
-export type Section = Project | TodoGroup;
+export type Section = Project | TaskGroup;
 
 export interface TransformedLayout {
   recurringSections?: Section[];
-  recurringIncidentals?: Todo[];
+  recurringIncidentals?: Task[];
   nonRecurringSections?: Section[];
-  nonRecurringIncidentals?: Todo[];
+  nonRecurringIncidentals?: Task[];
   allSections?: Section[];
-  incidentals?: Todo[];
+  incidentals?: Task[];
   worldSections?: Map<World, {
     topOfMindAndCategories: Section[];
     priority: Section[];
     normal: Section[];
     later: Section[];
-    incidentals: Todo[];
+    incidentals: Task[];
   }>;
   combinedSections?: Section[];
-  combinedIncidentals?: Todo[];
+  combinedIncidentals?: Task[];
   topOfMindSections?: Section[];
-  topOfMindIncidentals?: Todo[];
+  topOfMindIncidentals?: Task[];
   nonRecurringNoProjectSections?: Section[];
-  nonRecurringNoProjectIncidentals?: Todo[];
-  rouletteTodos?: Todo[];
-  upcomingTodosByDay?: TodoGroup[];
+  nonRecurringNoProjectIncidentals?: Task[];
+  rouletteTasks?: Task[];
+  upcomingTasksByDay?: TaskGroup[];
   recurringReviewSections?: Map<RecurrenceType | "monthly", Section[]>;
-  recurringReviewIncidentals?: Map<RecurrenceType | "monthly", Todo[]>;
+  recurringReviewIncidentals?: Map<RecurrenceType | "monthly", Task[]>;
 }
 
-export interface RawTodoData {
+export interface RawTaskData {
   projects: Project[];
-  categoryGroups: TodoGroup[];
-  incidentals: Todo[];
+  categoryGroups: TaskGroup[];
+  incidentals: Task[];
   recurringProjects: Project[];
-  recurringCategoryGroups: TodoGroup[];
-  recurringIncidentals: Todo[];
-  completedTodos?: Todo[];
-  upcomingTodos?: Todo[];
-  longTodosWithSessions?: Todo[];
+  recurringCategoryGroups: TaskGroup[];
+  recurringIncidentals: Task[];
+  completedTasks?: Task[];
+  upcomingTasks?: Task[];
+  longTasksWithSessions?: Task[];
 }
 
-// Helper function to determine a todo's world
-function getTodoWorld(todo: Todo): World {
-  // If todo has a project, use project's world
-  if (todo.project && (todo.project as any).world) {
-    return (todo.project as any).world;
+// Helper function to determine a task's world
+function getTaskWorld(task: Task): World {
+  // If task has a project, use project's world
+  if (task.project && (task.project as any).world) {
+    return (task.project as any).world;
   }
 
   // If no project but has category, map category to world
-  if (todo.category) {
-    if (todo.category === "home chores" || todo.category === "life chores") {
+  if (task.category) {
+    if (task.category === "home chores" || task.category === "life chores") {
       return "life stuff";
-    } else if (todo.category === "studio chores" || todo.category === "band chores") {
+    } else if (task.category === "studio chores" || task.category === "band chores") {
       return "music admin";
-    } else if (todo.category === "work chores") {
+    } else if (task.category === "work chores") {
       return "day job";
-    } else if (todo.category === "web chores" || todo.category === "data chores" || todo.category === "computer chores") {
+    } else if (task.category === "web chores" || task.category === "data chores" || task.category === "computer chores") {
       return "computer";
     }
   }
@@ -74,31 +74,31 @@ function getTodoWorld(todo: Todo): World {
   return "life stuff";
 }
 
-// Filter a single todo based on ruleset
-function shouldIncludeTodo(todo: Todo, ruleset: LayoutRuleset, getWorld: (todo: Todo) => World): boolean {
+// Filter a single task based on ruleset
+function shouldIncludeTask(task: Task, ruleset: LayoutRuleset, getWorld: (task: Task) => World): boolean {
   // "in the mail", "buy stuff", "wishlist", and "errands" categories should only appear in the "stuff" layout
-  if ((todo.category === "in the mail" || todo.category === "buy stuff" || todo.category === "wishlist" || todo.category === "errands") && ruleset.id !== "stuff") {
+  if ((task.category === "in the mail" || task.category === "buy stuff" || task.category === "wishlist" || task.category === "errands") && ruleset.id !== "stuff") {
     return false;
   }
 
   // "data chores" should not appear in the "chores" or "chipping away" views
-  if (todo.category === "data chores" && (ruleset.id === "chores" || ruleset.id === "chipping-away")) {
+  if (task.category === "data chores" && (ruleset.id === "chores" || ruleset.id === "chipping-away")) {
     return false;
   }
 
   // Filter by recurring/non-recurring
-  if (todo.isRecurring && !ruleset.showRecurring) {
+  if (task.isRecurring && !ruleset.showRecurring) {
     return false;
   }
-  if (!todo.isRecurring && !ruleset.showNonRecurring) {
+  if (!task.isRecurring && !ruleset.showNonRecurring) {
     return false;
   }
 
-  // Filter non-recurring todos by displayDate
-  // Recurring todos are already filtered by displayDate at the source
-  if (!todo.isRecurring && todo.displayDate) {
+  // Filter non-recurring tasks by displayDate
+  // Recurring tasks are already filtered by displayDate at the source
+  if (!task.isRecurring && task.displayDate) {
     const today = getTodayInEST();
-    const displayDate = parseInEST(todo.displayDate);
+    const displayDate = parseInEST(task.displayDate);
     if (displayDate > today) {
       return false;
     }
@@ -106,7 +106,7 @@ function shouldIncludeTodo(todo: Todo, ruleset: LayoutRuleset, getWorld: (todo: 
 
   // Filter by world
   if (ruleset.visibleWorlds !== null) {
-    const world = getWorld(todo);
+    const world = getWorld(task);
     if (!ruleset.visibleWorlds.includes(world)) {
       return false;
     }
@@ -114,33 +114,33 @@ function shouldIncludeTodo(todo: Todo, ruleset: LayoutRuleset, getWorld: (todo: 
 
   // Filter by category
   if (ruleset.visibleCategories !== null) {
-    if (!todo.category || !ruleset.visibleCategories.includes(todo.category)) {
+    if (!task.category || !ruleset.visibleCategories.includes(task.category)) {
       return false;
     }
   }
 
   // Filter by project (used by the per-project view)
   if (ruleset.visibleProjects) {
-    const projectId = todo.project?.documentId;
+    const projectId = task.project?.documentId;
     if (!projectId || !ruleset.visibleProjects.includes(projectId)) {
       return false;
     }
   }
 
   // Filter by long only
-  if (ruleset.longOnly && !todo.long) {
+  if (ruleset.longOnly && !task.long) {
     return false;
   }
 
   return true;
 }
 
-// Filter todos from a section
-function filterSectionTodos(section: Section, ruleset: LayoutRuleset, getWorld: (todo: Todo) => World): Section | null {
-  const todos = "documentId" in section ? section.todos || [] : section.todos;
-  const filteredTodos = todos.filter((todo) => shouldIncludeTodo(todo, ruleset, getWorld));
+// Filter tasks from a section
+function filterSectionTasks(section: Section, ruleset: LayoutRuleset, getWorld: (task: Task) => World): Section | null {
+  const tasks = "documentId" in section ? section.tasks || [] : section.tasks;
+  const filteredTasks = tasks.filter((task) => shouldIncludeTask(task, ruleset, getWorld));
 
-  if (filteredTodos.length === 0) {
+  if (filteredTasks.length === 0) {
     return null;
   }
 
@@ -148,20 +148,20 @@ function filterSectionTodos(section: Section, ruleset: LayoutRuleset, getWorld: 
     // It's a Project
     return {
       ...section,
-      todos: filteredTodos,
+      tasks: filteredTasks,
     };
   } else {
-    // It's a TodoGroup
+    // It's a TaskGroup
     return {
       ...section,
-      todos: filteredTodos,
+      tasks: filteredTasks,
     };
   }
 }
 
-// Sort todos within a section
-function sortTodos(todos: Todo[], sortBy: LayoutRuleset["sortBy"]): Todo[] {
-  const sorted = [...todos];
+// Sort tasks within a section
+function sortTasks(tasks: Task[], sortBy: LayoutRuleset["sortBy"]): Task[] {
+  const sorted = [...tasks];
   switch (sortBy) {
     case "alphabetical":
       return sorted.sort((a, b) => a.title.localeCompare(b.title));
@@ -175,7 +175,7 @@ function sortTodos(todos: Todo[], sortBy: LayoutRuleset["sortBy"]): Todo[] {
       return sorted.sort((a, b) => {
         const dateA = a.dueDate ? new Date(a.dueDate).getTime() : 0;
         const dateB = b.dueDate ? new Date(b.dueDate).getTime() : 0;
-        // Put todos without dates at the end
+        // Put tasks without dates at the end
         if (!a.dueDate && !b.dueDate) return 0;
         if (!a.dueDate) return 1;
         if (!b.dueDate) return -1;
@@ -185,7 +185,7 @@ function sortTodos(todos: Todo[], sortBy: LayoutRuleset["sortBy"]): Todo[] {
       return sorted.sort((a, b) => {
         const dateA = a.completedAt ? new Date(a.completedAt).getTime() : 0;
         const dateB = b.completedAt ? new Date(b.completedAt).getTime() : 0;
-        // Put todos without completedAt at the end
+        // Put tasks without completedAt at the end
         if (!a.completedAt && !b.completedAt) return 0;
         if (!a.completedAt) return 1;
         if (!b.completedAt) return -1;
@@ -205,67 +205,67 @@ function sortSections(sections: Section[], sortBy: LayoutRuleset["sortBy"]): Sec
       return sorted.sort((a, b) => a.title.localeCompare(b.title));
     case "creationDate":
       return sorted.sort((a, b) => {
-        // For sections, use the first todo's creation date, or section's createdAt if it's a project
+        // For sections, use the first task's creation date, or section's createdAt if it's a project
         let dateA: number;
         let dateB: number;
 
         if ("documentId" in a) {
-          // Project - use project's createdAt or first todo's createdAt
+          // Project - use project's createdAt or first task's createdAt
           dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-          if (a.todos && a.todos.length > 0) {
-            const todoDate = new Date(a.todos[0].createdAt).getTime();
-            dateA = dateA === 0 ? todoDate : Math.min(dateA, todoDate);
+          if (a.tasks && a.tasks.length > 0) {
+            const taskDate = new Date(a.tasks[0].createdAt).getTime();
+            dateA = dateA === 0 ? taskDate : Math.min(dateA, taskDate);
           }
         } else {
-          // TodoGroup - use first todo's createdAt
-          dateA = a.todos.length > 0 ? new Date(a.todos[0].createdAt).getTime() : 0;
+          // TaskGroup - use first task's createdAt
+          dateA = a.tasks.length > 0 ? new Date(a.tasks[0].createdAt).getTime() : 0;
         }
 
         if ("documentId" in b) {
           dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-          if (b.todos && b.todos.length > 0) {
-            const todoDate = new Date(b.todos[0].createdAt).getTime();
-            dateB = dateB === 0 ? todoDate : Math.min(dateB, todoDate);
+          if (b.tasks && b.tasks.length > 0) {
+            const taskDate = new Date(b.tasks[0].createdAt).getTime();
+            dateB = dateB === 0 ? taskDate : Math.min(dateB, taskDate);
           }
         } else {
-          dateB = b.todos.length > 0 ? new Date(b.todos[0].createdAt).getTime() : 0;
+          dateB = b.tasks.length > 0 ? new Date(b.tasks[0].createdAt).getTime() : 0;
         }
 
         return dateA - dateB;
       });
     case "dueDate":
       return sorted.sort((a, b) => {
-        // For sections, use the earliest due date from todos
+        // For sections, use the earliest due date from tasks
         let dateA: number = Infinity;
         let dateB: number = Infinity;
 
-        if ("documentId" in a && a.todos) {
-          a.todos.forEach((todo) => {
-            if (todo.dueDate) {
-              const date = new Date(todo.dueDate).getTime();
+        if ("documentId" in a && a.tasks) {
+          a.tasks.forEach((task) => {
+            if (task.dueDate) {
+              const date = new Date(task.dueDate).getTime();
               dateA = Math.min(dateA, date);
             }
           });
         } else if (!("documentId" in a)) {
-          a.todos.forEach((todo) => {
-            if (todo.dueDate) {
-              const date = new Date(todo.dueDate).getTime();
+          a.tasks.forEach((task) => {
+            if (task.dueDate) {
+              const date = new Date(task.dueDate).getTime();
               dateA = Math.min(dateA, date);
             }
           });
         }
 
-        if ("documentId" in b && b.todos) {
-          b.todos.forEach((todo) => {
-            if (todo.dueDate) {
-              const date = new Date(todo.dueDate).getTime();
+        if ("documentId" in b && b.tasks) {
+          b.tasks.forEach((task) => {
+            if (task.dueDate) {
+              const date = new Date(task.dueDate).getTime();
               dateB = Math.min(dateB, date);
             }
           });
         } else if (!("documentId" in b)) {
-          b.todos.forEach((todo) => {
-            if (todo.dueDate) {
-              const date = new Date(todo.dueDate).getTime();
+          b.tasks.forEach((task) => {
+            if (task.dueDate) {
+              const date = new Date(task.dueDate).getTime();
               dateB = Math.min(dateB, date);
             }
           });
@@ -283,18 +283,18 @@ function sortSections(sections: Section[], sortBy: LayoutRuleset["sortBy"]): Sec
 }
 
 // Main transformation function
-export function transformLayout(data: RawTodoData, ruleset: LayoutRuleset): TransformedLayout {
+export function transformLayout(data: RawTaskData, ruleset: LayoutRuleset): TransformedLayout {
   // For recurring-review, skip the filtering and use the raw data directly
   if (ruleset.groupBy === "recurring-review") {
     // Collect ALL incomplete recurring tasks (ignore any filtering)
-    const allRecurringTodos: Todo[] = [];
+    const allRecurringTasks: Task[] = [];
     
     // Collect from recurring projects
     data.recurringProjects.forEach((project) => {
-      if ("documentId" in project && project.todos) {
-        project.todos.forEach((todo) => {
-          if (!todo.completed) {
-            allRecurringTodos.push(todo);
+      if ("documentId" in project && project.tasks) {
+        project.tasks.forEach((task) => {
+          if (!task.completed) {
+            allRecurringTasks.push(task);
           }
         });
       }
@@ -302,34 +302,34 @@ export function transformLayout(data: RawTodoData, ruleset: LayoutRuleset): Tran
     
     // Collect from recurring category groups
     data.recurringCategoryGroups.forEach((group) => {
-      if (group.todos) {
-        group.todos.forEach((todo) => {
-          if (!todo.completed) {
-            allRecurringTodos.push(todo);
+      if (group.tasks) {
+        group.tasks.forEach((task) => {
+          if (!task.completed) {
+            allRecurringTasks.push(task);
           }
         });
       }
     });
     
     // Collect recurring incidentals
-    data.recurringIncidentals.forEach((todo) => {
-      if (!todo.completed) {
-        allRecurringTodos.push(todo);
+    data.recurringIncidentals.forEach((task) => {
+      if (!task.completed) {
+        allRecurringTasks.push(task);
       }
     });
     
     // Group by recurrence type, but merge monthly date and monthly day
-    const todosByRecurrenceType = new Map<RecurrenceType | "monthly", Todo[]>();
-    allRecurringTodos.forEach((todo) => {
+    const tasksByRecurrenceType = new Map<RecurrenceType | "monthly", Task[]>();
+    allRecurringTasks.forEach((task) => {
       // Merge monthly date and monthly day into "monthly"
-      const key = (todo.recurrenceType === "monthly date" || todo.recurrenceType === "monthly day") 
+      const key = (task.recurrenceType === "monthly date" || task.recurrenceType === "monthly day") 
         ? "monthly" as const
-        : todo.recurrenceType;
+        : task.recurrenceType;
       
-      if (!todosByRecurrenceType.has(key)) {
-        todosByRecurrenceType.set(key, []);
+      if (!tasksByRecurrenceType.has(key)) {
+        tasksByRecurrenceType.set(key, []);
       }
-      todosByRecurrenceType.get(key)!.push(todo);
+      tasksByRecurrenceType.get(key)!.push(task);
     });
     
     // Define the order of recurrence types (with "monthly" instead of separate entries)
@@ -349,71 +349,71 @@ export function transformLayout(data: RawTodoData, ruleset: LayoutRuleset): Tran
       "autumn equinox",
     ];
     
-    // For each recurrence type, organize todos by project, category, then incidentals
+    // For each recurrence type, organize tasks by project, category, then incidentals
     const recurringReviewSectionsMap = new Map<RecurrenceType | "monthly", Section[]>();
-    const recurringReviewIncidentalsMap = new Map<RecurrenceType | "monthly", Todo[]>();
+    const recurringReviewIncidentalsMap = new Map<RecurrenceType | "monthly", Task[]>();
     
     recurrenceTypeOrder.forEach((recurrenceType) => {
-      const todosForType = todosByRecurrenceType.get(recurrenceType);
-      if (!todosForType || todosForType.length === 0) return;
+      const tasksForType = tasksByRecurrenceType.get(recurrenceType);
+      if (!tasksForType || tasksForType.length === 0) return;
       
       // For monthly, separate and sort by type first (monthly date, then monthly day)
-      let sortedTodosForType = todosForType;
+      let sortedTasksForType = tasksForType;
       if (recurrenceType === "monthly") {
-        const monthlyDateTodos = todosForType.filter(t => t.recurrenceType === "monthly date");
-        const monthlyDayTodos = todosForType.filter(t => t.recurrenceType === "monthly day");
-        sortedTodosForType = [...monthlyDateTodos, ...monthlyDayTodos];
+        const monthlyDateTasks = tasksForType.filter(t => t.recurrenceType === "monthly date");
+        const monthlyDayTasks = tasksForType.filter(t => t.recurrenceType === "monthly day");
+        sortedTasksForType = [...monthlyDateTasks, ...monthlyDayTasks];
       }
       
       // Group by project
       const projectMap = new Map<string, Project>();
-      const todosWithoutProjects: Todo[] = [];
+      const tasksWithoutProjects: Task[] = [];
       
-      sortedTodosForType.forEach((todo) => {
-        if (todo.project) {
-          const project = todo.project as any;
+      sortedTasksForType.forEach((task) => {
+        if (task.project) {
+          const project = task.project as any;
           if (!projectMap.has(project.documentId)) {
             projectMap.set(project.documentId, {
               ...project,
-              todos: [],
+              tasks: [],
             });
           }
-          projectMap.get(project.documentId)!.todos!.push(todo);
+          projectMap.get(project.documentId)!.tasks!.push(task);
         } else {
-          todosWithoutProjects.push(todo);
+          tasksWithoutProjects.push(task);
         }
       });
       
-      // Group todos without projects by category
-      const categoryMap = new Map<TodoCategory, Todo[]>();
-      const incidentalTodos: Todo[] = [];
+      // Group tasks without projects by category
+      const categoryMap = new Map<TaskCategory, Task[]>();
+      const incidentalTasks: Task[] = [];
       
-      todosWithoutProjects.forEach((todo) => {
-        if (todo.category) {
-          if (!categoryMap.has(todo.category)) {
-            categoryMap.set(todo.category, []);
+      tasksWithoutProjects.forEach((task) => {
+        if (task.category) {
+          if (!categoryMap.has(task.category)) {
+            categoryMap.set(task.category, []);
           }
-          categoryMap.get(todo.category)!.push(todo);
+          categoryMap.get(task.category)!.push(task);
         } else {
-          incidentalTodos.push(todo);
+          incidentalTasks.push(task);
         }
       });
       
       // For monthly, we need to maintain the order (monthly date first, then monthly day)
       // within each project/category/incidental group
       // For "every x days", sort by interval first, then alphabetically
-      const sortFunction = (todos: Todo[]) => {
+      const sortFunction = (tasks: Task[]) => {
         if (recurrenceType === "monthly") {
-          const monthlyDateTodos = todos.filter(t => t.recurrenceType === "monthly date");
-          const monthlyDayTodos = todos.filter(t => t.recurrenceType === "monthly day");
+          const monthlyDateTasks = tasks.filter(t => t.recurrenceType === "monthly date");
+          const monthlyDayTasks = tasks.filter(t => t.recurrenceType === "monthly day");
           return [
-            ...sortTodos(monthlyDateTodos, "alphabetical"),
-            ...sortTodos(monthlyDayTodos, "alphabetical"),
+            ...sortTasks(monthlyDateTasks, "alphabetical"),
+            ...sortTasks(monthlyDayTasks, "alphabetical"),
           ];
         }
         if (recurrenceType === "every x days") {
           // Sort by interval first, then alphabetically
-          return [...todos].sort((a, b) => {
+          return [...tasks].sort((a, b) => {
             const intervalA = a.recurrenceInterval || 0;
             const intervalB = b.recurrenceInterval || 0;
             if (intervalA !== intervalB) {
@@ -422,27 +422,27 @@ export function transformLayout(data: RawTodoData, ruleset: LayoutRuleset): Tran
             return a.title.toLowerCase().localeCompare(b.title.toLowerCase());
           });
         }
-        return sortTodos(todos, "alphabetical");
+        return sortTasks(tasks, "alphabetical");
       };
       
       // Sort projects alphabetically
       const projectsArray = Array.from(projectMap.values());
       const sortedProjects = projectsArray.map((project) => ({
         ...project,
-        todos: sortFunction(project.todos || []),
+        tasks: sortFunction(project.tasks || []),
       })).sort((a, b) => a.title.toLowerCase().localeCompare(b.title.toLowerCase()));
       
       // Sort categories alphabetically
-      const categoriesArray = Array.from(categoryMap.entries()).map(([category, todos]) => ({
+      const categoriesArray = Array.from(categoryMap.entries()).map(([category, tasks]) => ({
         title: category,
-        todos: sortFunction(todos),
+        tasks: sortFunction(tasks),
       })).sort((a, b) => a.title.toLowerCase().localeCompare(b.title.toLowerCase()));
       
       // Combine: projects first, then categories
       const sections: Section[] = [...sortedProjects, ...categoriesArray];
       
       // Sort incidentals
-      const sortedIncidentals = sortFunction(incidentalTodos);
+      const sortedIncidentals = sortFunction(incidentalTasks);
       
       // Only add to maps if there's content
       if (sections.length > 0) {
@@ -462,51 +462,51 @@ export function transformLayout(data: RawTodoData, ruleset: LayoutRuleset): Tran
 
   // Filter and prepare data for all other views
   const filteredRecurringProjects = data.recurringProjects
-    .map((project) => filterSectionTodos(project, ruleset, getTodoWorld))
+    .map((project) => filterSectionTasks(project, ruleset, getTaskWorld))
     .filter((section): section is Section => section !== null);
 
   const filteredRecurringCategoryGroups = data.recurringCategoryGroups
-    .map((group) => filterSectionTodos(group, ruleset, getTodoWorld))
-    .filter((group): group is TodoGroup => group !== null);
+    .map((group) => filterSectionTasks(group, ruleset, getTaskWorld))
+    .filter((group): group is TaskGroup => group !== null);
 
-  const filteredRecurringIncidentals = data.recurringIncidentals.filter((todo) =>
-    shouldIncludeTodo(todo, ruleset, getTodoWorld)
+  const filteredRecurringIncidentals = data.recurringIncidentals.filter((task) =>
+    shouldIncludeTask(task, ruleset, getTaskWorld)
   );
 
   const filteredProjects = data.projects
-    .map((project) => filterSectionTodos(project, ruleset, getTodoWorld))
+    .map((project) => filterSectionTasks(project, ruleset, getTaskWorld))
     .filter((section): section is Section => section !== null);
 
   const filteredCategoryGroups = data.categoryGroups
-    .map((group) => filterSectionTodos(group, ruleset, getTodoWorld))
-    .filter((group): group is TodoGroup => group !== null);
+    .map((group) => filterSectionTasks(group, ruleset, getTaskWorld))
+    .filter((group): group is TaskGroup => group !== null);
 
-  const filteredIncidentals = data.incidentals.filter((todo) =>
-    shouldIncludeTodo(todo, ruleset, getTodoWorld)
+  const filteredIncidentals = data.incidentals.filter((task) =>
+    shouldIncludeTask(task, ruleset, getTaskWorld)
   );
 
-  // Sort todos within sections
-  const sortTodosInSection = (section: Section): Section => {
+  // Sort tasks within sections
+  const sortTasksInSection = (section: Section): Section => {
     if ("documentId" in section) {
       return {
         ...section,
-        todos: section.todos ? sortTodos(section.todos, ruleset.sortBy) : [],
+        tasks: section.tasks ? sortTasks(section.tasks, ruleset.sortBy) : [],
       };
     } else {
       return {
         ...section,
-        todos: sortTodos(section.todos, ruleset.sortBy),
+        tasks: sortTasks(section.tasks, ruleset.sortBy),
       };
     }
   };
 
-  const sortedRecurringProjects = filteredRecurringProjects.map(sortTodosInSection);
-  const sortedRecurringCategoryGroups = filteredRecurringCategoryGroups.map(sortTodosInSection);
-  const sortedRecurringIncidentals = sortTodos(filteredRecurringIncidentals, ruleset.sortBy);
+  const sortedRecurringProjects = filteredRecurringProjects.map(sortTasksInSection);
+  const sortedRecurringCategoryGroups = filteredRecurringCategoryGroups.map(sortTasksInSection);
+  const sortedRecurringIncidentals = sortTasks(filteredRecurringIncidentals, ruleset.sortBy);
 
-  const sortedProjects = filteredProjects.map(sortTodosInSection);
-  const sortedCategoryGroups = filteredCategoryGroups.map(sortTodosInSection);
-  const sortedIncidentals = sortTodos(filteredIncidentals, ruleset.sortBy);
+  const sortedProjects = filteredProjects.map(sortTasksInSection);
+  const sortedCategoryGroups = filteredCategoryGroups.map(sortTasksInSection);
+  const sortedIncidentals = sortTasks(filteredIncidentals, ruleset.sortBy);
 
   // Apply grouping based on ruleset
   if (ruleset.groupBy === "recurring-separate") {
@@ -533,7 +533,7 @@ export function transformLayout(data: RawTodoData, ruleset: LayoutRuleset): Tran
       priority: Section[];
       normal: Section[];
       later: Section[];
-      incidentals: Todo[];
+      incidentals: Task[];
     }>();
 
     // Initialize worlds
@@ -570,8 +570,8 @@ export function transformLayout(data: RawTodoData, ruleset: LayoutRuleset): Tran
 
     // Group non-recurring category groups by world (always go with top of mind)
     sortedCategoryGroups.forEach((group) => {
-      if (group.todos && group.todos.length > 0) {
-        const world = getTodoWorld(group.todos[0]);
+      if (group.tasks && group.tasks.length > 0) {
+        const world = getTaskWorld(group.tasks[0]);
         const worldData = nonRecurringWorldMap.get(world);
         if (worldData) {
           worldData.topOfMindAndCategories.push(group);
@@ -580,13 +580,13 @@ export function transformLayout(data: RawTodoData, ruleset: LayoutRuleset): Tran
     });
 
     // Process non-recurring incidentals - add to topOfMindAndCategories
-    const incidentalsByWorld = new Map<World, Todo[]>();
-    sortedIncidentals.forEach((todo) => {
-      const world = getTodoWorld(todo);
+    const incidentalsByWorld = new Map<World, Task[]>();
+    sortedIncidentals.forEach((task) => {
+      const world = getTaskWorld(task);
       if (!incidentalsByWorld.has(world)) {
         incidentalsByWorld.set(world, []);
       }
-      incidentalsByWorld.get(world)!.push(todo);
+      incidentalsByWorld.get(world)!.push(task);
     });
 
     // Sort sections within each world, with special ordering for topOfMindAndCategories
@@ -600,7 +600,7 @@ export function transformLayout(data: RawTodoData, ruleset: LayoutRuleset): Tran
           // It's a Project (should be top of mind since we filtered by importance)
           topOfMindProjects.push(section);
         } else {
-          // It's a TodoGroup (category)
+          // It's a TaskGroup (category)
           categoryGroups.push(section);
         }
       });
@@ -614,7 +614,7 @@ export function transformLayout(data: RawTodoData, ruleset: LayoutRuleset): Tran
       
       // Add incidentals (they'll be rendered with topOfMindAndCategories via the incidentals prop)
       const worldIncidentals = incidentalsByWorld.get(world) || [];
-      worldData.incidentals = sortTodos(worldIncidentals, ruleset.sortBy);
+      worldData.incidentals = sortTasks(worldIncidentals, ruleset.sortBy);
       
       // Sort priority sections by priority number ascending, creation date as tiebreaker
       // (sortSections gives the tiebreaker order; Array.sort is stable so pN groups keep it)
@@ -643,7 +643,7 @@ export function transformLayout(data: RawTodoData, ruleset: LayoutRuleset): Tran
         if (existing) {
           mergedProjects.set(project.documentId, {
             ...existing,
-            todos: [...(existing.todos || []), ...(project.todos || [])],
+            tasks: [...(existing.tasks || []), ...(project.tasks || [])],
           });
         } else {
           mergedProjects.set(project.documentId, { ...project });
@@ -652,19 +652,19 @@ export function transformLayout(data: RawTodoData, ruleset: LayoutRuleset): Tran
     });
 
     // Merge recurring and non-recurring category groups
-    const mergedCategoryGroups = new Map<string, TodoGroup>();
+    const mergedCategoryGroups = new Map<string, TaskGroup>();
 
     [...sortedRecurringCategoryGroups, ...sortedCategoryGroups].forEach((group) => {
       const existing = mergedCategoryGroups.get(group.title);
       if (existing) {
         mergedCategoryGroups.set(group.title, {
           ...existing,
-          todos: [...existing.todos, ...(group.todos || [])],
+          tasks: [...existing.tasks, ...(group.tasks || [])],
         });
       } else {
         mergedCategoryGroups.set(group.title, { 
           title: group.title,
-          todos: group.todos || []
+          tasks: group.tasks || []
         });
       }
     });
@@ -679,42 +679,42 @@ export function transformLayout(data: RawTodoData, ruleset: LayoutRuleset): Tran
     );
 
     // Sort merged incidentals
-    const sortedMergedIncidentals = sortTodos(mergedIncidentals, ruleset.sortBy);
+    const sortedMergedIncidentals = sortTasks(mergedIncidentals, ruleset.sortBy);
 
     return {
       allSections,
       incidentals: sortedMergedIncidentals.length > 0 ? sortedMergedIncidentals : undefined,
     };
   } else if (ruleset.groupBy === "single-section") {
-    // Combine all todos from all sources into a single flat list
-    const allTodos: Todo[] = [];
+    // Combine all tasks from all sources into a single flat list
+    const allTasks: Task[] = [];
 
-    // Collect todos from all projects (recurring and non-recurring)
+    // Collect tasks from all projects (recurring and non-recurring)
     [...sortedRecurringProjects, ...sortedProjects].forEach((project) => {
-      if ("documentId" in project && project.todos) {
-        allTodos.push(...project.todos);
+      if ("documentId" in project && project.tasks) {
+        allTasks.push(...project.tasks);
       }
     });
 
-    // Collect todos from all category groups (recurring and non-recurring)
+    // Collect tasks from all category groups (recurring and non-recurring)
     [...sortedRecurringCategoryGroups, ...sortedCategoryGroups].forEach((group) => {
-      if (group.todos) {
-        allTodos.push(...group.todos);
+      if (group.tasks) {
+        allTasks.push(...group.tasks);
       }
     });
 
     // Collect all incidentals (recurring and non-recurring)
-    allTodos.push(...sortedRecurringIncidentals, ...sortedIncidentals);
+    allTasks.push(...sortedRecurringIncidentals, ...sortedIncidentals);
 
-    // Sort all todos together
-    const sortedAllTodos = sortTodos(allTodos, ruleset.sortBy);
+    // Sort all tasks together
+    const sortedAllTasks = sortTasks(allTasks, ruleset.sortBy);
 
-    // Return as a single TodoGroup section
+    // Return as a single TaskGroup section
     return {
       allSections: [
         {
-          title: "all todos",
-          todos: sortedAllTodos,
+          title: "all tasks",
+          tasks: sortedAllTasks,
         },
       ],
     };
@@ -725,7 +725,7 @@ export function transformLayout(data: RawTodoData, ruleset: LayoutRuleset): Tran
       priority: Section[];
       normal: Section[];
       later: Section[];
-      incidentals: Todo[];
+      incidentals: Task[];
     }>();
 
     // Initialize worlds
@@ -748,7 +748,7 @@ export function transformLayout(data: RawTodoData, ruleset: LayoutRuleset): Tran
         if (existing) {
           mergedProjects.set(project.documentId, {
             ...existing,
-            todos: [...(existing.todos || []), ...(project.todos || [])],
+            tasks: [...(existing.tasks || []), ...(project.tasks || [])],
           });
         } else {
           mergedProjects.set(project.documentId, { ...project });
@@ -757,18 +757,18 @@ export function transformLayout(data: RawTodoData, ruleset: LayoutRuleset): Tran
     });
 
     // Merge recurring and non-recurring category groups by title
-    const mergedCategoryGroups = new Map<string, TodoGroup>();
+    const mergedCategoryGroups = new Map<string, TaskGroup>();
     [...sortedRecurringCategoryGroups, ...sortedCategoryGroups].forEach((group) => {
       const existing = mergedCategoryGroups.get(group.title);
       if (existing) {
         mergedCategoryGroups.set(group.title, {
           ...existing,
-          todos: [...existing.todos, ...(group.todos || [])],
+          tasks: [...existing.tasks, ...(group.tasks || [])],
         });
       } else {
         mergedCategoryGroups.set(group.title, { 
           title: group.title,
-          todos: group.todos || []
+          tasks: group.tasks || []
         });
       }
     });
@@ -793,8 +793,8 @@ export function transformLayout(data: RawTodoData, ruleset: LayoutRuleset): Tran
 
     // Group merged category groups by world (always go with top of mind)
     mergedCategoryGroups.forEach((group) => {
-      if (group.todos && group.todos.length > 0) {
-        const world = getTodoWorld(group.todos[0]);
+      if (group.tasks && group.tasks.length > 0) {
+        const world = getTaskWorld(group.tasks[0]);
         const worldData = worldMap.get(world);
         if (worldData) {
           worldData.topOfMindAndCategories.push(group);
@@ -803,13 +803,13 @@ export function transformLayout(data: RawTodoData, ruleset: LayoutRuleset): Tran
     });
 
     // Process all incidentals (recurring and non-recurring) - add to topOfMindAndCategories
-    const incidentalsByWorld = new Map<World, Todo[]>();
-    [...sortedRecurringIncidentals, ...sortedIncidentals].forEach((todo) => {
-      const world = getTodoWorld(todo);
+    const incidentalsByWorld = new Map<World, Task[]>();
+    [...sortedRecurringIncidentals, ...sortedIncidentals].forEach((task) => {
+      const world = getTaskWorld(task);
       if (!incidentalsByWorld.has(world)) {
         incidentalsByWorld.set(world, []);
       }
-      incidentalsByWorld.get(world)!.push(todo);
+      incidentalsByWorld.get(world)!.push(task);
     });
 
     // Sort sections within each world, with special ordering for topOfMindAndCategories
@@ -823,7 +823,7 @@ export function transformLayout(data: RawTodoData, ruleset: LayoutRuleset): Tran
           // It's a Project (should be top of mind since we filtered by importance)
           topOfMindProjects.push(section);
         } else {
-          // It's a TodoGroup (category)
+          // It's a TaskGroup (category)
           categoryGroups.push(section);
         }
       });
@@ -837,7 +837,7 @@ export function transformLayout(data: RawTodoData, ruleset: LayoutRuleset): Tran
       
       // Add incidentals (they'll be rendered with topOfMindAndCategories via the incidentals prop)
       const worldIncidentals = incidentalsByWorld.get(world) || [];
-      worldData.incidentals = sortTodos(worldIncidentals, ruleset.sortBy);
+      worldData.incidentals = sortTasks(worldIncidentals, ruleset.sortBy);
       
       // Sort priority sections by priority number ascending, creation date as tiebreaker
       // (sortSections gives the tiebreaker order; Array.sort is stable so pN groups keep it)
@@ -859,7 +859,7 @@ export function transformLayout(data: RawTodoData, ruleset: LayoutRuleset): Tran
       [...sortedRecurringProjects, ...sortedProjects, ...sortedRecurringCategoryGroups, ...sortedCategoryGroups],
       ruleset.sortBy
     );
-    const allIncidentals = sortTodos(
+    const allIncidentals = sortTasks(
       [...sortedRecurringIncidentals, ...sortedIncidentals],
       ruleset.sortBy
     );
@@ -870,73 +870,73 @@ export function transformLayout(data: RawTodoData, ruleset: LayoutRuleset): Tran
     };
   } else if (ruleset.groupBy === "category") {
     // Group by category - merge projects into category groups
-    const categoryMap = new Map<TodoCategory | "incidentals", Todo[]>();
+    const categoryMap = new Map<TaskCategory | "incidentals", Task[]>();
 
-    // Collect all todos from projects and category groups
+    // Collect all tasks from projects and category groups
     [...sortedRecurringProjects, ...sortedProjects].forEach((project) => {
-      if ("documentId" in project && project.todos) {
-        project.todos.forEach((todo) => {
-          if (todo.category) {
-            if (!categoryMap.has(todo.category)) {
-              categoryMap.set(todo.category, []);
+      if ("documentId" in project && project.tasks) {
+        project.tasks.forEach((task) => {
+          if (task.category) {
+            if (!categoryMap.has(task.category)) {
+              categoryMap.set(task.category, []);
             }
-            categoryMap.get(todo.category)!.push(todo);
+            categoryMap.get(task.category)!.push(task);
           } else {
             if (!categoryMap.has("incidentals")) {
               categoryMap.set("incidentals", []);
             }
-            categoryMap.get("incidentals")!.push(todo);
+            categoryMap.get("incidentals")!.push(task);
           }
         });
       }
     });
 
     [...sortedRecurringCategoryGroups, ...sortedCategoryGroups].forEach((group) => {
-      if (group.todos) {
-        group.todos.forEach((todo) => {
-          if (!categoryMap.has(group.title as TodoCategory)) {
-            categoryMap.set(group.title as TodoCategory, []);
+      if (group.tasks) {
+        group.tasks.forEach((task) => {
+          if (!categoryMap.has(group.title as TaskCategory)) {
+            categoryMap.set(group.title as TaskCategory, []);
           }
-          categoryMap.get(group.title as TodoCategory)!.push(todo);
+          categoryMap.get(group.title as TaskCategory)!.push(task);
         });
       }
     });
 
     // Add incidentals
-    [...sortedRecurringIncidentals, ...sortedIncidentals].forEach((todo) => {
+    [...sortedRecurringIncidentals, ...sortedIncidentals].forEach((task) => {
       if (!categoryMap.has("incidentals")) {
         categoryMap.set("incidentals", []);
       }
-      categoryMap.get("incidentals")!.push(todo);
+      categoryMap.get("incidentals")!.push(task);
     });
 
-    // Convert to TodoGroup sections with special sorting for "stuff" view
+    // Convert to TaskGroup sections with special sorting for "stuff" view
     if (ruleset.id === "stuff") {
       // For "stuff" view, split wishlist by wishListCategory and order sections
-      const regularCategoryGroups: TodoGroup[] = [];
-      const wishlistCategoryGroups: TodoGroup[] = [];
+      const regularCategoryGroups: TaskGroup[] = [];
+      const wishlistCategoryGroups: TaskGroup[] = [];
       
-      Array.from(categoryMap.entries()).forEach(([category, todos]) => {
+      Array.from(categoryMap.entries()).forEach(([category, tasks]) => {
         if (category === "wishlist") {
           // Split wishlist items by wishListCategory (normalized)
-          const wishlistCategoryMap = new Map<string, Todo[]>();
+          const wishlistCategoryMap = new Map<string, Task[]>();
           
-          todos.forEach((todo) => {
+          tasks.forEach((task) => {
             // Normalize wishListCategory: lowercase and trim
-            const normalizedCategory = todo.wishListCategory
-              ? todo.wishListCategory.trim().toLowerCase()
+            const normalizedCategory = task.wishListCategory
+              ? task.wishListCategory.trim().toLowerCase()
               : "uncategorized";
             
             if (!wishlistCategoryMap.has(normalizedCategory)) {
               wishlistCategoryMap.set(normalizedCategory, []);
             }
-            wishlistCategoryMap.get(normalizedCategory)!.push(todo);
+            wishlistCategoryMap.get(normalizedCategory)!.push(task);
           });
           
           // Create groups for each wishlist category
-          wishlistCategoryMap.forEach((categoryTodos, normalizedCategory) => {
+          wishlistCategoryMap.forEach((categoryTasks, normalizedCategory) => {
             // Sort by price: items without prices first, then items with prices (low to high)
-            const sortedTodos = [...categoryTodos].sort((a, b) => {
+            const sortedTasks = [...categoryTasks].sort((a, b) => {
               const priceA = a.price;
               const priceB = b.price;
               
@@ -957,12 +957,12 @@ export function transformLayout(data: RawTodoData, ruleset: LayoutRuleset): Tran
               return 0;
             });
             
-            // Use the original (non-normalized) category name from the first todo for display
-            const displayName = categoryTodos[0]?.wishListCategory?.trim() || "uncategorized";
+            // Use the original (non-normalized) category name from the first task for display
+            const displayName = categoryTasks[0]?.wishListCategory?.trim() || "uncategorized";
             
             wishlistCategoryGroups.push({
               title: displayName,
-              todos: sortedTodos,
+              tasks: sortedTasks,
             });
           });
           
@@ -970,29 +970,29 @@ export function transformLayout(data: RawTodoData, ruleset: LayoutRuleset): Tran
           wishlistCategoryGroups.sort((a, b) => a.title.localeCompare(b.title));
         } else {
           // Handle regular categories (buy stuff, in the mail, errands)
-          let sortedTodos: Todo[];
+          let sortedTasks: Task[];
           
           if (category === "buy stuff") {
             // Sort by creationDate (oldest first)
-            sortedTodos = [...todos].sort((a, b) => {
+            sortedTasks = [...tasks].sort((a, b) => {
               const dateA = new Date(a.createdAt).getTime();
               const dateB = new Date(b.createdAt).getTime();
               return dateA - dateB;
             });
           } else {
             // Use default sorting for other categories (e.g., "in the mail", "errands")
-            sortedTodos = sortTodos(todos, ruleset.sortBy);
+            sortedTasks = sortTasks(tasks, ruleset.sortBy);
           }
           
           regularCategoryGroups.push({
             title: category === "incidentals" ? "incidentals" : category,
-            todos: sortedTodos,
+            tasks: sortedTasks,
           });
         }
       });
       
       // Order: "buy stuff", "in the mail", "errands", then wishlist categories
-      const orderedSections: TodoGroup[] = [];
+      const orderedSections: TaskGroup[] = [];
       
       // Add "buy stuff" first if it exists
       const buyStuffGroup = regularCategoryGroups.find(g => g.title === "buy stuff");
@@ -1020,23 +1020,23 @@ export function transformLayout(data: RawTodoData, ruleset: LayoutRuleset): Tran
       };
     } else {
       // For non-stuff views, use the original logic
-    const categoryGroups: TodoGroup[] = Array.from(categoryMap.entries())
-        .map(([category, todos]) => {
-          const sortedTodos = sortTodos(todos, ruleset.sortBy);
+    const categoryGroups: TaskGroup[] = Array.from(categoryMap.entries())
+        .map(([category, tasks]) => {
+          const sortedTasks = sortTasks(tasks, ruleset.sortBy);
           return {
         title: category === "incidentals" ? "incidentals" : category,
-            todos: sortedTodos,
+            tasks: sortedTasks,
           };
         })
-      .filter((group) => group.todos.length > 0);
+      .filter((group) => group.tasks.length > 0);
 
     return {
       allSections: sortSections(categoryGroups, ruleset.sortBy),
     };
     }
   } else if (ruleset.groupBy === "good-morning") {
-    // Track which todos have already been included to prevent duplicates
-    const includedTodoIds = new Set<string>();
+    // Track which tasks have already been included to prevent duplicates
+    const includedTaskIds = new Set<string>();
 
     // Find the "top of mind" project from original unfiltered data
     const topOfMindProject = [...data.projects, ...data.recurringProjects].find(
@@ -1050,66 +1050,66 @@ export function transformLayout(data: RawTodoData, ruleset: LayoutRuleset): Tran
     };
 
     // Helper to filter out "day job" world
-    const filterDayJob = (todo: Todo): boolean => {
-      const world = getTodoWorld(todo);
+    const filterDayJob = (task: Task): boolean => {
+      const world = getTaskWorld(task);
       return world !== "day job";
     };
 
-    // Helper to filter and track todos from a section
-    const filterSectionTodosForGoodMorning = (
+    // Helper to filter and track tasks from a section
+    const filterSectionTasksForGoodMorning = (
       section: Section,
-      todoFilter: (todo: Todo) => boolean
+      taskFilter: (task: Task) => boolean
     ): Section | null => {
-      const todos = "documentId" in section ? section.todos || [] : section.todos;
-      // Filter todos that match the criteria and haven't been included yet
-      const filteredTodos = todos.filter((todo) => 
-        todoFilter(todo) && !includedTodoIds.has(todo.documentId)
+      const tasks = "documentId" in section ? section.tasks || [] : section.tasks;
+      // Filter tasks that match the criteria and haven't been included yet
+      const filteredTasks = tasks.filter((task) => 
+        taskFilter(task) && !includedTaskIds.has(task.documentId)
       );
 
-      // Track the included todos
-      filteredTodos.forEach((todo) => includedTodoIds.add(todo.documentId));
+      // Track the included tasks
+      filteredTasks.forEach((task) => includedTaskIds.add(task.documentId));
 
-      if (filteredTodos.length === 0) {
+      if (filteredTasks.length === 0) {
         return null;
       }
 
       if ("documentId" in section) {
         return {
           ...section,
-          todos: filteredTodos,
+          tasks: filteredTasks,
         };
       } else {
         return {
           ...section,
-          todos: filteredTodos,
+          tasks: filteredTasks,
         };
       }
     };
 
     // Helper to filter and track incidentals
     const filterAndTrackIncidentals = (
-      todos: Todo[],
-      todoFilter: (todo: Todo) => boolean
-    ): Todo[] => {
-      const filtered = todos.filter((todo) => 
-        todoFilter(todo) && !includedTodoIds.has(todo.documentId)
+      tasks: Task[],
+      taskFilter: (task: Task) => boolean
+    ): Task[] => {
+      const filtered = tasks.filter((task) => 
+        taskFilter(task) && !includedTaskIds.has(task.documentId)
       );
-      // Track the included todos
-      filtered.forEach((todo) => includedTodoIds.add(todo.documentId));
+      // Track the included tasks
+      filtered.forEach((task) => includedTaskIds.add(task.documentId));
       return filtered;
     };
 
-    // Helper to re-sort todos within a section by dueDate
-    const reSortSectionTodosByDueDate = (section: Section): Section => {
+    // Helper to re-sort tasks within a section by dueDate
+    const reSortSectionTasksByDueDate = (section: Section): Section => {
       if ("documentId" in section) {
         return {
           ...section,
-          todos: section.todos ? sortTodos(section.todos, "dueDate") : [],
+          tasks: section.tasks ? sortTasks(section.tasks, "dueDate") : [],
         };
       } else {
         return {
           ...section,
-          todos: sortTodos(section.todos, "dueDate"),
+          tasks: sortTasks(section.tasks, "dueDate"),
         };
       }
     };
@@ -1117,7 +1117,7 @@ export function transformLayout(data: RawTodoData, ruleset: LayoutRuleset): Tran
     // Helper to merge sections, combining category groups with the same title
     const mergeSections = (sections: Section[], sortBy: LayoutRuleset["sortBy"] = "creationDate"): Section[] => {
       const projectMap = new Map<string, Project>();
-      const categoryGroupMap = new Map<string, TodoGroup>();
+      const categoryGroupMap = new Map<string, TaskGroup>();
 
       sections.forEach((section) => {
         if ("documentId" in section) {
@@ -1125,15 +1125,15 @@ export function transformLayout(data: RawTodoData, ruleset: LayoutRuleset): Tran
           const project = section as Project;
           projectMap.set(project.documentId, project);
         } else {
-          // It's a TodoGroup - merge by title
-          const group = section as TodoGroup;
+          // It's a TaskGroup - merge by title
+          const group = section as TaskGroup;
           const existing = categoryGroupMap.get(group.title);
           if (existing) {
-            // Merge todos from both groups and sort
-            const mergedTodos = [...existing.todos, ...group.todos];
+            // Merge tasks from both groups and sort
+            const mergedTasks = [...existing.tasks, ...group.tasks];
             categoryGroupMap.set(group.title, {
               ...group,
-              todos: sortTodos(mergedTodos, sortBy),
+              tasks: sortTasks(mergedTasks, sortBy),
             });
           } else {
             categoryGroupMap.set(group.title, group);
@@ -1147,33 +1147,33 @@ export function transformLayout(data: RawTodoData, ruleset: LayoutRuleset): Tran
     // Helper to merge sections, combining projects by documentId and category groups by title
     const mergeSectionsWithProjectMerging = (sections: Section[], sortBy: LayoutRuleset["sortBy"] = "creationDate"): Section[] => {
       const projectMap = new Map<string, Project>();
-      const categoryGroupMap = new Map<string, TodoGroup>();
+      const categoryGroupMap = new Map<string, TaskGroup>();
 
       sections.forEach((section) => {
         if ("documentId" in section) {
-          // It's a Project - merge by documentId, combining todos
+          // It's a Project - merge by documentId, combining tasks
           const project = section as Project;
           const existing = projectMap.get(project.documentId);
           if (existing) {
-            // Merge todos from both projects
-            const mergedTodos = [...(existing.todos || []), ...(project.todos || [])];
+            // Merge tasks from both projects
+            const mergedTasks = [...(existing.tasks || []), ...(project.tasks || [])];
             projectMap.set(project.documentId, {
               ...project,
-              todos: mergedTodos,
+              tasks: mergedTasks,
             });
           } else {
             projectMap.set(project.documentId, project);
           }
         } else {
-          // It's a TodoGroup - merge by title
-          const group = section as TodoGroup;
+          // It's a TaskGroup - merge by title
+          const group = section as TaskGroup;
           const existing = categoryGroupMap.get(group.title);
           if (existing) {
-            // Merge todos from both groups and sort
-            const mergedTodos = [...existing.todos, ...group.todos];
+            // Merge tasks from both groups and sort
+            const mergedTasks = [...existing.tasks, ...group.tasks];
             categoryGroupMap.set(group.title, {
               ...group,
-              todos: sortTodos(mergedTodos, sortBy),
+              tasks: sortTasks(mergedTasks, sortBy),
             });
           } else {
             categoryGroupMap.set(group.title, group);
@@ -1181,16 +1181,16 @@ export function transformLayout(data: RawTodoData, ruleset: LayoutRuleset): Tran
         }
       });
 
-      // Sort todos within each merged project: those with dueDate by dueDate, others by creationDate
+      // Sort tasks within each merged project: those with dueDate by dueDate, others by creationDate
       projectMap.forEach((project, documentId) => {
-        if (project.todos) {
-          const todosWithDueDate = project.todos.filter(t => t.dueDate);
-          const todosWithoutDueDate = project.todos.filter(t => !t.dueDate);
-          const sortedWithDueDate = sortTodos(todosWithDueDate, "dueDate");
-          const sortedWithoutDueDate = sortTodos(todosWithoutDueDate, "creationDate");
+        if (project.tasks) {
+          const tasksWithDueDate = project.tasks.filter(t => t.dueDate);
+          const tasksWithoutDueDate = project.tasks.filter(t => !t.dueDate);
+          const sortedWithDueDate = sortTasks(tasksWithDueDate, "dueDate");
+          const sortedWithoutDueDate = sortTasks(tasksWithoutDueDate, "creationDate");
           projectMap.set(documentId, {
             ...project,
-            todos: [...sortedWithDueDate, ...sortedWithoutDueDate],
+            tasks: [...sortedWithDueDate, ...sortedWithoutDueDate],
           });
         }
       });
@@ -1200,111 +1200,111 @@ export function transformLayout(data: RawTodoData, ruleset: LayoutRuleset): Tran
 
     // 1. Recurring Section: All visible recurring tasks
     const recurringSections: Section[] = [];
-    const recurringIncidentals: Todo[] = [];
+    const recurringIncidentals: Task[] = [];
 
-    // Process recurring projects and category groups - all recurring todos
+    // Process recurring projects and category groups - all recurring tasks
     [...sortedRecurringProjects, ...sortedRecurringCategoryGroups].forEach((section) => {
-      const filtered = filterSectionTodosForGoodMorning(section, (todo) => 
-        filterDayJob(todo) && todo.isRecurring
+      const filtered = filterSectionTasksForGoodMorning(section, (task) => 
+        filterDayJob(task) && task.isRecurring
       );
       if (filtered) {
         recurringSections.push(filtered);
       }
     });
 
-    // Process recurring incidentals - all recurring todos
+    // Process recurring incidentals - all recurring tasks
     const filteredRecurringIncidentals = filterAndTrackIncidentals(
       sortedRecurringIncidentals,
-      (todo) => filterDayJob(todo) && todo.isRecurring
+      (task) => filterDayJob(task) && task.isRecurring
     );
     recurringIncidentals.push(...filteredRecurringIncidentals);
 
     // 2. Soon + Top of Mind Section: Non-recurring "soon" tasks + "top of mind" project tasks
     const soonAndTopOfMindSections: Section[] = [];
-    const soonAndTopOfMindIncidentals: Todo[] = [];
+    const soonAndTopOfMindIncidentals: Task[] = [];
 
-    // Non-recurring projects and category groups - todos with soon=true
+    // Non-recurring projects and category groups - tasks with soon=true
     [...data.projects, ...data.categoryGroups].forEach((section) => {
-      const todos = "documentId" in section ? section.todos || [] : section.todos;
-      const filteredTodos = todos.filter((todo) => {
-        // Apply displayDate filtering for non-recurring todos
-        if (todo.displayDate) {
+      const tasks = "documentId" in section ? section.tasks || [] : section.tasks;
+      const filteredTasks = tasks.filter((task) => {
+        // Apply displayDate filtering for non-recurring tasks
+        if (task.displayDate) {
           const today = getTodayInEST();
-          const displayDate = parseInEST(todo.displayDate);
+          const displayDate = parseInEST(task.displayDate);
           if (displayDate > today) {
             return false;
           }
         }
         
-        return !todo.isRecurring &&
-          todo.soon === true && 
-          !includedTodoIds.has(todo.documentId);
+        return !task.isRecurring &&
+          task.soon === true && 
+          !includedTaskIds.has(task.documentId);
       });
       
-      filteredTodos.forEach((todo) => includedTodoIds.add(todo.documentId));
+      filteredTasks.forEach((task) => includedTaskIds.add(task.documentId));
       
-      if (filteredTodos.length > 0) {
-        const sortedTodos = sortTodos(filteredTodos, ruleset.sortBy);
+      if (filteredTasks.length > 0) {
+        const sortedTasks = sortTasks(filteredTasks, ruleset.sortBy);
         if ("documentId" in section) {
           soonAndTopOfMindSections.push({
             ...section,
-            todos: sortedTodos,
+            tasks: sortedTasks,
           });
         } else {
           soonAndTopOfMindSections.push({
             ...section,
-            todos: sortedTodos,
+            tasks: sortedTasks,
           });
         }
       }
     });
 
-    // Non-recurring incidentals - todos with soon=true
-    const filteredNonRecurringIncidentalsSoon = data.incidentals.filter((todo) => {
-      // Apply displayDate filtering for non-recurring todos
-      if (todo.displayDate) {
+    // Non-recurring incidentals - tasks with soon=true
+    const filteredNonRecurringIncidentalsSoon = data.incidentals.filter((task) => {
+      // Apply displayDate filtering for non-recurring tasks
+      if (task.displayDate) {
         const today = getTodayInEST();
-        const displayDate = parseInEST(todo.displayDate);
+        const displayDate = parseInEST(task.displayDate);
         if (displayDate > today) {
           return false;
         }
       }
       
-      return !todo.isRecurring &&
-        todo.soon === true && 
-        !includedTodoIds.has(todo.documentId);
+      return !task.isRecurring &&
+        task.soon === true && 
+        !includedTaskIds.has(task.documentId);
     });
-    filteredNonRecurringIncidentalsSoon.forEach((todo) => includedTodoIds.add(todo.documentId));
+    filteredNonRecurringIncidentalsSoon.forEach((task) => includedTaskIds.add(task.documentId));
     soonAndTopOfMindIncidentals.push(...filteredNonRecurringIncidentalsSoon);
 
-    // Add all non-recurring todos from the "top of mind" project
+    // Add all non-recurring tasks from the "top of mind" project
     if (topOfMindProjectId) {
       // Use ORIGINAL unfiltered data to get the top of mind project from ANY world (including day job)
       // Don't filter by world - top of mind projects always show up even if they're in "day job"
       data.projects.forEach((project) => {
         if ("documentId" in project && project.documentId === topOfMindProjectId) {
-          const todos = project.todos || [];
-          const filteredTodos = todos.filter((todo) => {
-            // Apply displayDate filtering for non-recurring todos
-            if (todo.displayDate) {
+          const tasks = project.tasks || [];
+          const filteredTasks = tasks.filter((task) => {
+            // Apply displayDate filtering for non-recurring tasks
+            if (task.displayDate) {
               const today = getTodayInEST();
-              const displayDate = parseInEST(todo.displayDate);
+              const displayDate = parseInEST(task.displayDate);
               if (displayDate > today) {
                 return false;
               }
             }
             
-            return !todo.isRecurring && 
-              !includedTodoIds.has(todo.documentId);
+            return !task.isRecurring && 
+              !includedTaskIds.has(task.documentId);
           });
           
-          filteredTodos.forEach((todo) => includedTodoIds.add(todo.documentId));
+          filteredTasks.forEach((task) => includedTaskIds.add(task.documentId));
           
-          if (filteredTodos.length > 0) {
-            const sortedTodos = sortTodos(filteredTodos, ruleset.sortBy);
+          if (filteredTasks.length > 0) {
+            const sortedTasks = sortTasks(filteredTasks, ruleset.sortBy);
             soonAndTopOfMindSections.push({
               ...project,
-              todos: sortedTodos,
+              tasks: sortedTasks,
             });
           }
         }
@@ -1317,9 +1317,9 @@ export function transformLayout(data: RawTodoData, ruleset: LayoutRuleset): Tran
 
     // Sort all sections and incidentals
     const finalRecurringSections = sortSections(mergedRecurringSections, "creationDate");
-    const finalRecurringIncidentals = sortTodos(recurringIncidentals, "creationDate");
+    const finalRecurringIncidentals = sortTasks(recurringIncidentals, "creationDate");
     const finalSoonAndTopOfMindSections = sortSections(mergedSoonAndTopOfMindSections, "creationDate");
-    const finalSoonAndTopOfMindIncidentals = sortTodos(soonAndTopOfMindIncidentals, "creationDate");
+    const finalSoonAndTopOfMindIncidentals = sortTasks(soonAndTopOfMindIncidentals, "creationDate");
 
     return {
       combinedSections: finalRecurringSections.length > 0 ? finalRecurringSections : undefined,
@@ -1329,51 +1329,51 @@ export function transformLayout(data: RawTodoData, ruleset: LayoutRuleset): Tran
     };
   } else if (ruleset.groupBy === "chores") {
     // Helper to filter out "day job" world
-    const filterDayJob = (todo: Todo): boolean => {
-      const world = getTodoWorld(todo);
+    const filterDayJob = (task: Task): boolean => {
+      const world = getTaskWorld(task);
       return world !== "day job";
     };
 
-    // Non-Recurring No Project Section: All non-recurring todos without projects (chores and incidentals)
+    // Non-Recurring No Project Section: All non-recurring tasks without projects (chores and incidentals)
     const nonRecurringNoProjectSections: Section[] = [];
-    const nonRecurringNoProjectIncidentals: Todo[] = [];
+    const nonRecurringNoProjectIncidentals: Task[] = [];
 
     // Process non-recurring category groups (these don't have projects by definition)
     sortedCategoryGroups.forEach((group) => {
-      const todos = group.todos || [];
-      const filteredTodos = todos.filter((todo) => 
-        filterDayJob(todo) && !todo.isRecurring && !todo.project
+      const tasks = group.tasks || [];
+      const filteredTasks = tasks.filter((task) => 
+        filterDayJob(task) && !task.isRecurring && !task.project
       );
 
-      if (filteredTodos.length > 0) {
+      if (filteredTasks.length > 0) {
         nonRecurringNoProjectSections.push({
           ...group,
-          todos: filteredTodos,
+          tasks: filteredTasks,
         });
       }
     });
 
     // Process non-recurring incidentals without projects
     const filteredNonRecurringNoProjectIncidentals = sortedIncidentals.filter(
-      (todo) => filterDayJob(todo) && !todo.isRecurring && !todo.project
+      (task) => filterDayJob(task) && !task.isRecurring && !task.project
     );
     nonRecurringNoProjectIncidentals.push(...filteredNonRecurringNoProjectIncidentals);
 
     // Merge sections to combine category groups with the same title
     const mergeSections = (sections: Section[]): Section[] => {
-      const categoryGroupMap = new Map<string, TodoGroup>();
+      const categoryGroupMap = new Map<string, TaskGroup>();
 
       sections.forEach((section) => {
         if (!("documentId" in section)) {
-          // It's a TodoGroup - merge by title
-          const group = section as TodoGroup;
+          // It's a TaskGroup - merge by title
+          const group = section as TaskGroup;
           const existing = categoryGroupMap.get(group.title);
           if (existing) {
-            // Merge todos from both groups and sort
-            const mergedTodos = [...existing.todos, ...group.todos];
+            // Merge tasks from both groups and sort
+            const mergedTasks = [...existing.tasks, ...group.tasks];
             categoryGroupMap.set(group.title, {
               ...group,
-              todos: sortTodos(mergedTodos, ruleset.sortBy),
+              tasks: sortTasks(mergedTasks, ruleset.sortBy),
             });
           } else {
             categoryGroupMap.set(group.title, group);
@@ -1388,86 +1388,86 @@ export function transformLayout(data: RawTodoData, ruleset: LayoutRuleset): Tran
 
     // Sort all sections and incidentals
     const sortedNonRecurringNoProjectSections = sortSections(mergedNonRecurringNoProjectSections, ruleset.sortBy);
-    const sortedNonRecurringNoProjectIncidentals = sortTodos(nonRecurringNoProjectIncidentals, ruleset.sortBy);
+    const sortedNonRecurringNoProjectIncidentals = sortTasks(nonRecurringNoProjectIncidentals, ruleset.sortBy);
 
     return {
       nonRecurringNoProjectSections: sortedNonRecurringNoProjectSections.length > 0 ? sortedNonRecurringNoProjectSections : undefined,
       nonRecurringNoProjectIncidentals: sortedNonRecurringNoProjectIncidentals.length > 0 ? sortedNonRecurringNoProjectIncidentals : undefined,
     };
   } else if (ruleset.groupBy === "roulette") {
-    // Collect all non-completed todos excluding "day job" world
-    const allTodos: Todo[] = [];
+    // Collect all non-completed tasks excluding "day job" world
+    const allTasks: Task[] = [];
 
     // Helper to filter out "day job" world
-    const filterDayJob = (todo: Todo): boolean => {
-      const world = getTodoWorld(todo);
+    const filterDayJob = (task: Task): boolean => {
+      const world = getTaskWorld(task);
       return world !== "day job";
     };
 
-    // Collect todos from recurring projects
+    // Collect tasks from recurring projects
     sortedRecurringProjects.forEach((project) => {
-      if ("documentId" in project && project.todos) {
-        project.todos.forEach((todo) => {
-          if (!todo.completed && filterDayJob(todo) && shouldIncludeTodo(todo, ruleset, getTodoWorld)) {
-            allTodos.push(todo);
+      if ("documentId" in project && project.tasks) {
+        project.tasks.forEach((task) => {
+          if (!task.completed && filterDayJob(task) && shouldIncludeTask(task, ruleset, getTaskWorld)) {
+            allTasks.push(task);
           }
         });
       }
     });
 
-    // Collect todos from recurring category groups
+    // Collect tasks from recurring category groups
     sortedRecurringCategoryGroups.forEach((group) => {
-      if (group.todos) {
-        group.todos.forEach((todo) => {
-          if (!todo.completed && filterDayJob(todo) && shouldIncludeTodo(todo, ruleset, getTodoWorld)) {
-            allTodos.push(todo);
+      if (group.tasks) {
+        group.tasks.forEach((task) => {
+          if (!task.completed && filterDayJob(task) && shouldIncludeTask(task, ruleset, getTaskWorld)) {
+            allTasks.push(task);
           }
         });
       }
     });
 
     // Collect recurring incidentals
-    sortedRecurringIncidentals.forEach((todo) => {
-      if (!todo.completed && filterDayJob(todo) && shouldIncludeTodo(todo, ruleset, getTodoWorld)) {
-        allTodos.push(todo);
+    sortedRecurringIncidentals.forEach((task) => {
+      if (!task.completed && filterDayJob(task) && shouldIncludeTask(task, ruleset, getTaskWorld)) {
+        allTasks.push(task);
       }
     });
 
-    // Collect todos from non-recurring projects
+    // Collect tasks from non-recurring projects
     sortedProjects.forEach((project) => {
-      if ("documentId" in project && project.todos) {
-        project.todos.forEach((todo) => {
-          if (!todo.completed && filterDayJob(todo) && shouldIncludeTodo(todo, ruleset, getTodoWorld)) {
-            allTodos.push(todo);
+      if ("documentId" in project && project.tasks) {
+        project.tasks.forEach((task) => {
+          if (!task.completed && filterDayJob(task) && shouldIncludeTask(task, ruleset, getTaskWorld)) {
+            allTasks.push(task);
           }
         });
       }
     });
 
-    // Collect todos from non-recurring category groups
+    // Collect tasks from non-recurring category groups
     sortedCategoryGroups.forEach((group) => {
-      if (group.todos) {
-        group.todos.forEach((todo) => {
-          if (!todo.completed && filterDayJob(todo) && shouldIncludeTodo(todo, ruleset, getTodoWorld)) {
-            allTodos.push(todo);
+      if (group.tasks) {
+        group.tasks.forEach((task) => {
+          if (!task.completed && filterDayJob(task) && shouldIncludeTask(task, ruleset, getTaskWorld)) {
+            allTasks.push(task);
           }
         });
       }
     });
 
     // Collect non-recurring incidentals
-    sortedIncidentals.forEach((todo) => {
-      if (!todo.completed && filterDayJob(todo) && shouldIncludeTodo(todo, ruleset, getTodoWorld)) {
-        allTodos.push(todo);
+    sortedIncidentals.forEach((task) => {
+      if (!task.completed && filterDayJob(task) && shouldIncludeTask(task, ruleset, getTaskWorld)) {
+        allTasks.push(task);
       }
     });
 
     return {
-      rouletteTodos: allTodos,
+      rouletteTasks: allTasks,
     };
   } else if (ruleset.groupBy === "later") {
     // Filter projects by importance === "later" (both recurring and non-recurring)
-    // Note: filteredRecurringProjects and filteredProjects already respect displayDate via filterSectionTodos
+    // Note: filteredRecurringProjects and filteredProjects already respect displayDate via filterSectionTasks
     const laterRecurringProjects = filteredRecurringProjects.filter((project) => {
       if ("documentId" in project) {
         return project.importance === "later";
@@ -1491,7 +1491,7 @@ export function transformLayout(data: RawTodoData, ruleset: LayoutRuleset): Tran
         if (existing) {
           mergedLaterProjects.set(project.documentId, {
             ...existing,
-            todos: [...(existing.todos || []), ...(project.todos || [])],
+            tasks: [...(existing.tasks || []), ...(project.tasks || [])],
           });
         } else {
           mergedLaterProjects.set(project.documentId, { ...project });
@@ -1499,11 +1499,11 @@ export function transformLayout(data: RawTodoData, ruleset: LayoutRuleset): Tran
       }
     });
 
-    // Sort todos within each project
+    // Sort tasks within each project
     const sortedLaterProjects = Array.from(mergedLaterProjects.values()).map((project) => {
       return {
         ...project,
-        todos: project.todos ? sortTodos(project.todos, ruleset.sortBy) : [],
+        tasks: project.tasks ? sortTasks(project.tasks, ruleset.sortBy) : [],
       };
     });
 
@@ -1514,18 +1514,18 @@ export function transformLayout(data: RawTodoData, ruleset: LayoutRuleset): Tran
       allSections,
     };
   } else if (ruleset.groupBy === "done") {
-    // Collect all completed todos, excluding "in the mail" and "errands" categories
-    const completedTodos = (data.completedTodos || []).filter((todo) => 
-      todo.category !== "in the mail" && todo.category !== "errands"
+    // Collect all completed tasks, excluding "in the mail" and "errands" categories
+    const completedTasks = (data.completedTasks || []).filter((task) => 
+      task.category !== "in the mail" && task.category !== "errands"
     );
 
-    // Group todos by completion date (day)
-    const todosByDate = new Map<string, Todo[]>();
+    // Group tasks by completion date (day)
+    const tasksByDate = new Map<string, Task[]>();
 
-    completedTodos.forEach((todo) => {
-      if (todo.completedAt) {
+    completedTasks.forEach((task) => {
+      if (task.completedAt) {
         // Parse the completedAt timestamp in configured timezone
-        const completedDate = toZonedTime(new Date(todo.completedAt), getTimezone());
+        const completedDate = toZonedTime(new Date(task.completedAt), getTimezone());
         
         // Get the hour in the configured timezone (0-23)
         // After toZonedTime, use UTC methods to access timezone-adjusted values
@@ -1539,34 +1539,34 @@ export function transformLayout(data: RawTodoData, ruleset: LayoutRuleset): Tran
         
         const dateKey = toISODateInEST(adjustedDate);
         
-        if (!todosByDate.has(dateKey)) {
-          todosByDate.set(dateKey, []);
+        if (!tasksByDate.has(dateKey)) {
+          tasksByDate.set(dateKey, []);
         }
-        todosByDate.get(dateKey)!.push(todo);
+        tasksByDate.get(dateKey)!.push(task);
       }
     });
 
-    // Add "worked on" entries for long todos with work sessions
-    // Use the dedicated longTodosWithSessions array passed from the API
-    const longTodos = data.longTodosWithSessions || [];
+    // Add "worked on" entries for long tasks with work sessions
+    // Use the dedicated longTasksWithSessions array passed from the API
+    const longTasks = data.longTasksWithSessions || [];
 
-    longTodos.forEach((todo) => {
-      if (todo.workSessions && todo.workSessions.length > 0) {
-        todo.workSessions.forEach((session) => {
+    longTasks.forEach((task) => {
+      if (task.workSessions && task.workSessions.length > 0) {
+        task.workSessions.forEach((session) => {
           // Create a virtual "worked on" entry for each work session
-          const workedOnEntry: Todo = {
-            ...todo,
+          const workedOnEntry: Task = {
+            ...task,
             id: -1, // Use negative ID to indicate this is a virtual entry
-            documentId: `${todo.documentId}-worked-${session.date}`,
-            title: todo.title, // Keep original title, "worked on" prefix added in display
+            documentId: `${task.documentId}-worked-${session.date}`,
+            title: task.title, // Keep original title, "worked on" prefix added in display
             completed: false, // Mark as not completed to differentiate from actual completions
             completedAt: session.timestamp, // Use the actual timestamp from the work session
           };
 
-          if (!todosByDate.has(session.date)) {
-            todosByDate.set(session.date, []);
+          if (!tasksByDate.has(session.date)) {
+            tasksByDate.set(session.date, []);
           }
-          todosByDate.get(session.date)!.push(workedOnEntry);
+          tasksByDate.get(session.date)!.push(workedOnEntry);
         });
       }
     });
@@ -1587,7 +1587,7 @@ export function transformLayout(data: RawTodoData, ruleset: LayoutRuleset): Tran
 
     // Create sections for each date, sorted by date descending (most recent first)
     // Filter to only include dates within the last 30 days
-    const dateSections = Array.from(todosByDate.entries())
+    const dateSections = Array.from(tasksByDate.entries())
       .filter(([dateKey]) => {
         // Only include dates that are >= 30 days ago
         return dateKey >= cutoffDateISO;
@@ -1597,8 +1597,8 @@ export function transformLayout(data: RawTodoData, ruleset: LayoutRuleset): Tran
         return dateB.localeCompare(dateA);
       });
 
-    const finalDateSections: TodoGroup[] = dateSections
-      .map(([dateKey, todos]) => {
+    const finalDateSections: TaskGroup[] = dateSections
+      .map(([dateKey, tasks]) => {
         // Format the date for display
         const date = parseInEST(dateKey);
         
@@ -1619,11 +1619,11 @@ export function transformLayout(data: RawTodoData, ruleset: LayoutRuleset): Tran
           dateTitle = formatInEST(date, "EEE MM/d").toLowerCase();
         }
 
-        // Sort todos within this day by completedAt ascending (earliest first)
-        const sortedTodos = todos.sort((a, b) => {
+        // Sort tasks within this day by completedAt ascending (earliest first)
+        const sortedTasks = tasks.sort((a, b) => {
           const dateA = a.completedAt ? new Date(a.completedAt).getTime() : 0;
           const dateB = b.completedAt ? new Date(b.completedAt).getTime() : 0;
-          // Put todos without completedAt at the end
+          // Put tasks without completedAt at the end
           if (!a.completedAt && !b.completedAt) return 0;
           if (!a.completedAt) return 1;
           if (!b.completedAt) return -1;
@@ -1633,36 +1633,36 @@ export function transformLayout(data: RawTodoData, ruleset: LayoutRuleset): Tran
 
         return {
           title: dateTitle,
-          todos: sortedTodos,
+          tasks: sortedTasks,
         };
       });
 
-    // Process upcoming todos and group by day
-    const upcomingTodos = data.upcomingTodos || [];
-    const upcomingByDate = new Map<string, Todo[]>();
+    // Process upcoming tasks and group by day
+    const upcomingTasks = data.upcomingTasks || [];
+    const upcomingByDate = new Map<string, Task[]>();
 
-    upcomingTodos.forEach((todo) => {
-      if (todo.displayDate) {
-        const dateKey = todo.displayDate; // Already in YYYY-MM-DD format
+    upcomingTasks.forEach((task) => {
+      if (task.displayDate) {
+        const dateKey = task.displayDate; // Already in YYYY-MM-DD format
         
         if (!upcomingByDate.has(dateKey)) {
           upcomingByDate.set(dateKey, []);
         }
-        upcomingByDate.get(dateKey)!.push(todo);
+        upcomingByDate.get(dateKey)!.push(task);
       }
     });
 
     // Calculate tomorrow through 4 days out
-    // Use actual today (not adjusted by 4am cutoff) for upcoming todos
+    // Use actual today (not adjusted by 4am cutoff) for upcoming tasks
     const actualToday = getTodayInEST();
 
     // Create sections for the next 4 days
-    const upcomingDaySections: TodoGroup[] = [];
+    const upcomingDaySections: TaskGroup[] = [];
     for (let i = 0; i < 4; i++) {
       // Use addDays to properly handle date arithmetic
       const currentDate = addDays(actualToday, i + 1);
       const dateKey = toISODateInEST(currentDate);
-      const todos = upcomingByDate.get(dateKey) || [];
+      const tasks = upcomingByDate.get(dateKey) || [];
 
       // Format the date for display
       let dateTitle: string;
@@ -1675,58 +1675,58 @@ export function transformLayout(data: RawTodoData, ruleset: LayoutRuleset): Tran
 
       upcomingDaySections.push({
         title: dateTitle,
-        todos: todos,
+        tasks: tasks,
       });
     }
 
     return {
       allSections: finalDateSections,
-      upcomingTodosByDay: upcomingDaySections,
+      upcomingTasksByDay: upcomingDaySections,
     };
   } else if (ruleset.groupBy === "invoicing") {
     // Like "done" but scoped to "day job" world, 60-day window, no upcoming
-    const completedTodos = (data.completedTodos || []).filter((todo) => {
-      if (todo.category === "in the mail" || todo.category === "errands") return false;
-      return getTodoWorld(todo) === "day job";
+    const completedTasks = (data.completedTasks || []).filter((task) => {
+      if (task.category === "in the mail" || task.category === "errands") return false;
+      return getTaskWorld(task) === "day job";
     });
 
-    // Group todos by completion date (day)
-    const todosByDate = new Map<string, Todo[]>();
+    // Group tasks by completion date (day)
+    const tasksByDate = new Map<string, Task[]>();
 
-    completedTodos.forEach((todo) => {
-      if (todo.completedAt) {
-        const completedDate = toZonedTime(new Date(todo.completedAt), getTimezone());
+    completedTasks.forEach((task) => {
+      if (task.completedAt) {
+        const completedDate = toZonedTime(new Date(task.completedAt), getTimezone());
         const hour = completedDate.getUTCHours();
         let adjustedDate = new Date(completedDate);
         if (hour < getDayBoundaryHour()) {
           adjustedDate.setDate(adjustedDate.getDate() - 1);
         }
         const dateKey = toISODateInEST(adjustedDate);
-        if (!todosByDate.has(dateKey)) {
-          todosByDate.set(dateKey, []);
+        if (!tasksByDate.has(dateKey)) {
+          tasksByDate.set(dateKey, []);
         }
-        todosByDate.get(dateKey)!.push(todo);
+        tasksByDate.get(dateKey)!.push(task);
       }
     });
 
-    // Add "worked on" entries for long todos with work sessions (day job only)
-    const longTodos = (data.longTodosWithSessions || []).filter((todo) => getTodoWorld(todo) === "day job");
+    // Add "worked on" entries for long tasks with work sessions (day job only)
+    const longTasks = (data.longTasksWithSessions || []).filter((task) => getTaskWorld(task) === "day job");
 
-    longTodos.forEach((todo) => {
-      if (todo.workSessions && todo.workSessions.length > 0) {
-        todo.workSessions.forEach((session) => {
-          const workedOnEntry: Todo = {
-            ...todo,
+    longTasks.forEach((task) => {
+      if (task.workSessions && task.workSessions.length > 0) {
+        task.workSessions.forEach((session) => {
+          const workedOnEntry: Task = {
+            ...task,
             id: -1,
-            documentId: `${todo.documentId}-worked-${session.date}`,
-            title: todo.title,
+            documentId: `${task.documentId}-worked-${session.date}`,
+            title: task.title,
             completed: false,
             completedAt: session.timestamp,
           };
-          if (!todosByDate.has(session.date)) {
-            todosByDate.set(session.date, []);
+          if (!tasksByDate.has(session.date)) {
+            tasksByDate.set(session.date, []);
           }
-          todosByDate.get(session.date)!.push(workedOnEntry);
+          tasksByDate.get(session.date)!.push(workedOnEntry);
         });
       }
     });
@@ -1743,11 +1743,11 @@ export function transformLayout(data: RawTodoData, ruleset: LayoutRuleset): Tran
     sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 59); // 59 days ago + today = 60 days total
     const cutoffDateISO = toISODateInEST(sixtyDaysAgo);
 
-    const dateSections = Array.from(todosByDate.entries())
+    const dateSections = Array.from(tasksByDate.entries())
       .filter(([dateKey]) => dateKey >= cutoffDateISO)
       .sort(([dateA], [dateB]) => dateB.localeCompare(dateA));
 
-    const finalDateSections: TodoGroup[] = dateSections.map(([dateKey, todos]) => {
+    const finalDateSections: TaskGroup[] = dateSections.map(([dateKey, tasks]) => {
       const date = parseInEST(dateKey);
       const yesterdayDate = new Date(todayDate);
       yesterdayDate.setDate(yesterdayDate.getDate() - 1);
@@ -1765,7 +1765,7 @@ export function transformLayout(data: RawTodoData, ruleset: LayoutRuleset): Tran
         dateTitle = formatInEST(date, "EEE MM/d").toLowerCase();
       }
 
-      const sortedTodos = todos.sort((a, b) => {
+      const sortedTasks = tasks.sort((a, b) => {
         const dateA = a.completedAt ? new Date(a.completedAt).getTime() : 0;
         const dateB = b.completedAt ? new Date(b.completedAt).getTime() : 0;
         if (!a.completedAt && !b.completedAt) return 0;
@@ -1776,7 +1776,7 @@ export function transformLayout(data: RawTodoData, ruleset: LayoutRuleset): Tran
 
       return {
         title: dateTitle,
-        todos: sortedTodos,
+        tasks: sortedTasks,
       };
     });
 

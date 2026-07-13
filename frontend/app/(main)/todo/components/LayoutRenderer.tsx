@@ -1,6 +1,6 @@
 "use client";
 
-import type { LayoutRuleset, Todo, Project } from "@/app/types/index";
+import type { LayoutRuleset, Task, Project } from "@/app/types/index";
 import type { TransformedLayout } from "@/app/lib/layoutTransformers";
 import RecurringSeparateLayout from "./layouts/RecurringSeparateLayout";
 import RecurringSeparateWorldLayout from "./layouts/RecurringSeparateWorldLayout";
@@ -19,7 +19,7 @@ interface LayoutRendererComponentProps {
   ruleset: LayoutRuleset;
   selectedRulesetId: string;
   onComplete: (documentId: string) => void;
-  onEdit: (todo: Todo) => void;
+  onEdit: (task: Task) => void;
   onDelete: (documentId: string) => void;
   onWorkSession: (documentId: string) => void;
   onRemoveWorkSession: (originalDocumentId: string, date: string) => void;

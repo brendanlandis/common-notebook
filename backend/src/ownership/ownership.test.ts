@@ -6,9 +6,10 @@ import {
   isContentApiRequest,
   mergeFilters,
 } from './index';
-import { ownerIsRequestUser } from './rule';
+import { OWNED_CONTENT_TYPES, ownerIsRequestUser } from './rule';
 
 const UID = 'api::todo.todo';
+const TASK_UID = 'api::task.task';
 const ALICE = { id: 2 };
 const BOB = { id: 3 };
 
@@ -226,5 +227,48 @@ describe('guard 4 — the admin panel', () => {
       await mw({ uid: UID, action, params: { documentId: 'x' } }, next);
       expect(next, `action=${action}`).toHaveBeenCalled();
     }
+  });
+});
+
+// `task` is the rename target of `todo`. The middleware is content-type-agnostic
+// — it owns whatever is in OWNED_CONTENT_TYPES — so these build it with the REAL
+// list and drive `api::task.task` through the same guards, proving the new type
+// is isolated exactly like todo. (Both coexist until Stage 6 of the rename.)
+describe('task is an owned content type (todo→task rename)', () => {
+  // Middleware configured with the production owned-types list, not a stub.
+  const ownedMiddleware = (strapi: any) =>
+    createOwnershipMiddleware({ strapi, contentTypes: OWNED_CONTENT_TYPES, rule: ownerIsRequestUser });
+
+  it('OWNED_CONTENT_TYPES carries both todo and task during coexistence', () => {
+    expect(OWNED_CONTENT_TYPES).toContain(TASK_UID);
+    expect(OWNED_CONTENT_TYPES).toContain(UID);
+  });
+
+  it('scopes task reads to the caller', async () => {
+    const mw = ownedMiddleware(fakeStrapi({ url: '/api/tasks', user: ALICE }));
+    const params: any = {};
+    await mw({ uid: TASK_UID, action: 'findMany', params }, vi.fn());
+    expect(params.filters).toEqual({ owner: { id: { $eq: 2 } } });
+  });
+
+  it('stamps a task create with the caller, overwriting a client-supplied owner', async () => {
+    const mw = ownedMiddleware(fakeStrapi({ url: '/api/tasks', user: ALICE }));
+    const params: any = { data: { title: 't', owner: BOB.id } };
+    await mw({ uid: TASK_UID, action: 'create', params }, vi.fn());
+    expect(params.data.owner).toBe(ALICE.id);
+  });
+
+  it('authorizes a task write by lookup — NotFound on another tenant’s row', async () => {
+    const mw = ownedMiddleware(fakeStrapi({ url: '/api/tasks', user: ALICE, row: { owner: BOB } }));
+    await expect(
+      mw({ uid: TASK_UID, action: 'update', params: { documentId: 'x' } }, vi.fn())
+    ).rejects.toMatchObject({ name: 'NotFoundError' });
+  });
+
+  it('allows a task write the caller owns', async () => {
+    const mw = ownedMiddleware(fakeStrapi({ url: '/api/tasks', user: ALICE, row: { owner: ALICE } }));
+    const next = vi.fn().mockResolvedValue('ok');
+    await mw({ uid: TASK_UID, action: 'update', params: { documentId: 'x' } }, next);
+    expect(next).toHaveBeenCalled();
   });
 });

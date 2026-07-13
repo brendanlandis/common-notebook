@@ -1,7 +1,7 @@
 // Priority marker parsing for project titles.
 //
 // A project can carry a priority marker in its title as a whole-word token
-// `p1`, `p2`, `p3`, … ("p" = priority). This is used by world-style todo views
+// `p1`, `p2`, `p3`, … ("p" = priority). This is used by world-style task views
 // to order projects between the "top of mind" and "normal" tiers.
 
 /**

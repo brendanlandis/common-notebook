@@ -7,8 +7,8 @@ import { transformLayout } from "@/app/lib/layoutTransformers";
 import { isValidWorld } from "@/app/lib/worlds";
 import LayoutRenderer from "../../components/LayoutRenderer";
 import FaviconManager from "@/app/components/FaviconManager";
-import { useTodoData } from "../../contexts/TodoDataContext";
-import { buildRawTodoData } from "../../utils/buildRawTodoData";
+import { useTaskData } from "../../contexts/TaskDataContext";
+import { buildRawTaskData } from "../../utils/buildRawTaskData";
 
 export default function WorldPage() {
   const params = useParams<{ world: string }>();
@@ -26,7 +26,7 @@ export default function WorldPage() {
     onRemoveWorkSession,
     onSkipRecurring,
     onEditProject,
-  } = useTodoData();
+  } = useTaskData();
 
   // Single-world ruleset: the engine already knows how to render one world
   // (top-of-mind → priority → normal → later). visibleWorlds.length === 1
@@ -46,7 +46,7 @@ export default function WorldPage() {
   );
 
   const transformedData = useMemo(
-    () => transformLayout(buildRawTodoData(grouped), ruleset),
+    () => transformLayout(buildRawTaskData(grouped), ruleset),
     [grouped, ruleset]
   );
 
@@ -56,7 +56,7 @@ export default function WorldPage() {
 
   if (loading) {
     return (
-      <div id="container-todo" className="layout-world-view" suppressHydrationWarning>
+      <div id="container-task" className="layout-world-view" suppressHydrationWarning>
         <p>loading...</p>
       </div>
     );
@@ -64,21 +64,21 @@ export default function WorldPage() {
 
   if (error) {
     return (
-      <div id="container-todo" className="layout-world-view" suppressHydrationWarning>
+      <div id="container-task" className="layout-world-view" suppressHydrationWarning>
         <p>error: {error}</p>
       </div>
     );
   }
 
-  const hasTodos =
+  const hasTasks =
     !!transformedData.worldSections && transformedData.worldSections.size > 0;
 
   return (
     <>
       <FaviconManager type="broom" />
-      <div id="container-todo" className="layout-world-view" suppressHydrationWarning>
+      <div id="container-task" className="layout-world-view" suppressHydrationWarning>
         <h1 className="world-title">{world}</h1>
-        {hasTodos ? (
+        {hasTasks ? (
           <LayoutRenderer
             transformedData={transformedData}
             ruleset={ruleset}

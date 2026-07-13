@@ -1,17 +1,17 @@
 "use client";
 
-import TodoItem from "./TodoItem";
-import type { Todo } from "@/app/types/index";
+import TaskItem from "./TaskItem";
+import type { Task } from "@/app/types/index";
 
-interface TodoGroup {
+interface TaskGroup {
   title: string;
-  todos: Todo[];
+  tasks: Task[];
 }
 
 interface UpcomingSectionProps {
-  upcomingTodosByDay?: TodoGroup[];
+  upcomingTasksByDay?: TaskGroup[];
   onComplete: (documentId: string) => void;
-  onEdit: (todo: Todo) => void;
+  onEdit: (task: Task) => void;
   onDelete: (documentId: string) => void;
   onWorkSession: (documentId: string) => void;
   onRemoveWorkSession: (originalDocumentId: string, date: string) => void;
@@ -19,7 +19,7 @@ interface UpcomingSectionProps {
 }
 
 export default function UpcomingSection({
-  upcomingTodosByDay,
+  upcomingTasksByDay,
   onComplete,
   onEdit,
   onDelete,
@@ -27,33 +27,33 @@ export default function UpcomingSection({
   onRemoveWorkSession,
   onSkipRecurring,
 }: UpcomingSectionProps) {
-  if (!upcomingTodosByDay || upcomingTodosByDay.length === 0) {
+  if (!upcomingTasksByDay || upcomingTasksByDay.length === 0) {
     return null;
   }
 
-  // Check if there are any todos at all
-  const hasTodos = upcomingTodosByDay.some((day) => day.todos.length > 0);
-  if (!hasTodos) {
+  // Check if there are any tasks at all
+  const hasTasks = upcomingTasksByDay.some((day) => day.tasks.length > 0);
+  if (!hasTasks) {
     return null;
   }
 
   return (
-    <div className="todo-section upcoming-section">
+    <div className="task-section upcoming-section">
       <h3>upcoming</h3>
       <div className="upcoming-days">
-        {upcomingTodosByDay.map((dayGroup) => {
-          if (dayGroup.todos.length === 0) {
+        {upcomingTasksByDay.map((dayGroup) => {
+          if (dayGroup.tasks.length === 0) {
             return null;
           }
 
           return (
             <div key={dayGroup.title} className="upcoming-day">
               <h4>{dayGroup.title}</h4>
-              <ul className="todos-list">
-                {dayGroup.todos.map((todo) => (
-                  <TodoItem
-                    key={todo.documentId}
-                    todo={todo}
+              <ul className="tasks-list">
+                {dayGroup.tasks.map((task) => (
+                  <TaskItem
+                    key={task.documentId}
+                    task={task}
                     onComplete={onComplete}
                     onEdit={onEdit}
                     onDelete={onDelete}

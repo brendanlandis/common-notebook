@@ -1,6 +1,6 @@
 "use client";
 
-import TodoSections from "../TodoSections";
+import TaskSections from "../TaskSections";
 import type { LayoutRendererProps } from "./types";
 
 export default function StuffLayout({
@@ -36,7 +36,7 @@ export default function StuffLayout({
   return (
     <>
       {regularSections.length > 0 && (
-        <TodoSections
+        <TaskSections
           sections={regularSections}
           incidentals={transformedData.incidentals}
           onComplete={onComplete}
@@ -52,7 +52,7 @@ export default function StuffLayout({
       {regularSections.length > 0 && wishlistSections.length > 0 && <hr />}
       
       {wishlistSections.length > 0 && (
-        <TodoSections
+        <TaskSections
           sections={wishlistSections}
           onComplete={onComplete}
           onEdit={onEdit}

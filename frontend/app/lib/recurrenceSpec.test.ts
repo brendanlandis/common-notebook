@@ -6,10 +6,10 @@ import {
   getOffsetSupportedTypes,
   RECURRENCE_SPECS
 } from './recurrenceSpec';
-import type { Todo } from '@/app/types/index';
+import type { Task } from '@/app/types/index';
 
-// Helper to create minimal todo for testing
-function createTodo(overrides: Partial<Todo>): Todo {
+// Helper to create minimal task for testing
+function createTask(overrides: Partial<Task>): Task {
   return {
     id: 1,
     documentId: 'test-1',
@@ -46,143 +46,143 @@ function createTodo(overrides: Partial<Todo>): Todo {
 describe('Recurrence Specification', () => {
   describe('validateRecurrenceFields', () => {
     it('should pass validation for non-recurring task', () => {
-      const todo = createTodo({ isRecurring: false, recurrenceType: 'none' });
-      const result = validateRecurrenceFields(todo);
+      const task = createTask({ isRecurring: false, recurrenceType: 'none' });
+      const result = validateRecurrenceFields(task);
       expect(result.valid).toBe(true);
       expect(result.errors).toHaveLength(0);
     });
 
     it('should pass validation for valid daily task (no required fields)', () => {
-      const todo = createTodo({ 
+      const task = createTask({ 
         isRecurring: true, 
         recurrenceType: 'daily' 
       });
-      const result = validateRecurrenceFields(todo);
+      const result = validateRecurrenceFields(task);
       expect(result.valid).toBe(true);
       expect(result.errors).toHaveLength(0);
     });
 
     it('should pass validation for valid weekly task with recurrenceDayOfWeek', () => {
-      const todo = createTodo({ 
+      const task = createTask({ 
         isRecurring: true, 
         recurrenceType: 'weekly',
         recurrenceDayOfWeek: 1
       });
-      const result = validateRecurrenceFields(todo);
+      const result = validateRecurrenceFields(task);
       expect(result.valid).toBe(true);
       expect(result.errors).toHaveLength(0);
     });
 
     it('should fail validation for weekly task without recurrenceDayOfWeek', () => {
-      const todo = createTodo({ 
+      const task = createTask({ 
         isRecurring: true, 
         recurrenceType: 'weekly',
         recurrenceDayOfWeek: null
       });
-      const result = validateRecurrenceFields(todo);
+      const result = validateRecurrenceFields(task);
       expect(result.valid).toBe(false);
       expect(result.errors).toContain('Missing required field for weekly: recurrenceDayOfWeek');
     });
 
     it('should pass validation for valid "every x days" with recurrenceInterval', () => {
-      const todo = createTodo({ 
+      const task = createTask({ 
         isRecurring: true, 
         recurrenceType: 'every x days',
         recurrenceInterval: 3
       });
-      const result = validateRecurrenceFields(todo);
+      const result = validateRecurrenceFields(task);
       expect(result.valid).toBe(true);
       expect(result.errors).toHaveLength(0);
     });
 
     it('should fail validation for "every x days" without recurrenceInterval', () => {
-      const todo = createTodo({ 
+      const task = createTask({ 
         isRecurring: true, 
         recurrenceType: 'every x days',
         recurrenceInterval: null
       });
-      const result = validateRecurrenceFields(todo);
+      const result = validateRecurrenceFields(task);
       expect(result.valid).toBe(false);
       expect(result.errors).toContain('Missing required field for every x days: recurrenceInterval');
     });
 
     it('should pass validation for valid monthly date with recurrenceDayOfMonth', () => {
-      const todo = createTodo({ 
+      const task = createTask({ 
         isRecurring: true, 
         recurrenceType: 'monthly date',
         recurrenceDayOfMonth: 15
       });
-      const result = validateRecurrenceFields(todo);
+      const result = validateRecurrenceFields(task);
       expect(result.valid).toBe(true);
       expect(result.errors).toHaveLength(0);
     });
 
     it('should fail validation for monthly date without recurrenceDayOfMonth', () => {
-      const todo = createTodo({ 
+      const task = createTask({ 
         isRecurring: true, 
         recurrenceType: 'monthly date',
         recurrenceDayOfMonth: null
       });
-      const result = validateRecurrenceFields(todo);
+      const result = validateRecurrenceFields(task);
       expect(result.valid).toBe(false);
       expect(result.errors).toContain('Missing required field for monthly date: recurrenceDayOfMonth');
     });
 
     it('should pass validation for valid monthly day with both required fields', () => {
-      const todo = createTodo({ 
+      const task = createTask({ 
         isRecurring: true, 
         recurrenceType: 'monthly day',
         recurrenceWeekOfMonth: 2,
         recurrenceDayOfWeekMonthly: 3
       });
-      const result = validateRecurrenceFields(todo);
+      const result = validateRecurrenceFields(task);
       expect(result.valid).toBe(true);
       expect(result.errors).toHaveLength(0);
     });
 
     it('should fail validation for monthly day missing recurrenceWeekOfMonth', () => {
-      const todo = createTodo({ 
+      const task = createTask({ 
         isRecurring: true, 
         recurrenceType: 'monthly day',
         recurrenceWeekOfMonth: null,
         recurrenceDayOfWeekMonthly: 3
       });
-      const result = validateRecurrenceFields(todo);
+      const result = validateRecurrenceFields(task);
       expect(result.valid).toBe(false);
       expect(result.errors).toContain('Missing required field for monthly day: recurrenceWeekOfMonth');
     });
 
     it('should pass validation for valid annually with month and day', () => {
-      const todo = createTodo({ 
+      const task = createTask({ 
         isRecurring: true, 
         recurrenceType: 'annually',
         recurrenceMonth: 3,
         recurrenceDayOfMonth: 15
       });
-      const result = validateRecurrenceFields(todo);
+      const result = validateRecurrenceFields(task);
       expect(result.valid).toBe(true);
       expect(result.errors).toHaveLength(0);
     });
 
     it('should fail validation for annually missing recurrenceMonth', () => {
-      const todo = createTodo({ 
+      const task = createTask({ 
         isRecurring: true, 
         recurrenceType: 'annually',
         recurrenceMonth: null,
         recurrenceDayOfMonth: 15
       });
-      const result = validateRecurrenceFields(todo);
+      const result = validateRecurrenceFields(task);
       expect(result.valid).toBe(false);
       expect(result.errors).toContain('Missing required field for annually: recurrenceMonth');
     });
 
     it('should pass validation for biweekly with required field', () => {
-      const todo = createTodo({ 
+      const task = createTask({ 
         isRecurring: true, 
         recurrenceType: 'biweekly',
         recurrenceDayOfWeek: 1
       });
-      const result = validateRecurrenceFields(todo);
+      const result = validateRecurrenceFields(task);
       expect(result.valid).toBe(true);
       expect(result.errors).toHaveLength(0);
     });
@@ -192,11 +192,11 @@ describe('Recurrence Specification', () => {
                      'autumn equinox', 'winter solstice', 'every season'];
       
       types.forEach(type => {
-        const todo = createTodo({ 
+        const task = createTask({ 
           isRecurring: true, 
           recurrenceType: type as any
         });
-        const result = validateRecurrenceFields(todo);
+        const result = validateRecurrenceFields(task);
         expect(result.valid).toBe(true);
         expect(result.errors).toHaveLength(0);
       });

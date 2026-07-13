@@ -1,6 +1,6 @@
 "use client";
 
-import TodoItemRecurringReview from "../TodoItemRecurringReview";
+import TaskItemRecurringReview from "../TaskItemRecurringReview";
 import type { LayoutRendererProps } from "./types";
 import type { RecurrenceType, Project } from "@/app/types/index";
 
@@ -75,7 +75,7 @@ export default function RecurringReviewLayout({
   ];
 
   return (
-    <div className="todos-container">
+    <div className="tasks-container">
       {recurrenceTypeOrder.map((recurrenceType) => {
         const sections = recurringReviewSections?.get(recurrenceType);
         const incidentals = recurringReviewIncidentals?.get(recurrenceType);
@@ -87,23 +87,23 @@ export default function RecurringReviewLayout({
         const label = getRecurrenceTypeLabel(recurrenceType);
 
         return (
-          <div key={recurrenceType} className="todo-section">
+          <div key={recurrenceType} className="task-section">
             <h3>{label}</h3>
             
             {/* Render projects and categories */}
             {sections && sections.map((section, index) => {
               const isProject = "documentId" in section;
               const sectionTitle = isProject ? (section as Project).title : section.title;
-              const todos = isProject ? (section as Project).todos || [] : section.todos;
+              const tasks = isProject ? (section as Project).tasks || [] : section.tasks;
               
               return (
                 <div key={isProject ? (section as Project).documentId : index}>
                   <h4>{sectionTitle}</h4>
-                  <ul className="todos-list">
-                    {todos.map((todo) => (
-                      <TodoItemRecurringReview
-                        key={todo.documentId}
-                        todo={todo}
+                  <ul className="tasks-list">
+                    {tasks.map((task) => (
+                      <TaskItemRecurringReview
+                        key={task.documentId}
+                        task={task}
                         onEdit={onEdit}
                         onDelete={onDelete}
                       />
@@ -117,11 +117,11 @@ export default function RecurringReviewLayout({
             {incidentals && incidentals.length > 0 && (
               <div>
                 <h4>incidentals</h4>
-                <ul className="todos-list">
-                  {incidentals.map((todo) => (
-                    <TodoItemRecurringReview
-                      key={todo.documentId}
-                      todo={todo}
+                <ul className="tasks-list">
+                  {incidentals.map((task) => (
+                    <TaskItemRecurringReview
+                      key={task.documentId}
+                      task={task}
                       onEdit={onEdit}
                       onDelete={onDelete}
                     />

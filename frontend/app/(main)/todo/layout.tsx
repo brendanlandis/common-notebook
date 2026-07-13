@@ -1,22 +1,22 @@
 import type { Metadata } from "next";
-import { TodoDataProvider } from "./contexts/TodoDataContext";
-import TodoForms from "./components/TodoForms";
+import { TaskDataProvider } from "./contexts/TaskDataContext";
+import TaskForms from "./components/TaskForms";
 
 export const metadata: Metadata = {
   title: "to do",
   description: "to do",
 };
 
-export default function TodoLayout({
+export default function TaskLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   return (
-    <TodoDataProvider>
+    <TaskDataProvider>
       {children}
-      <TodoForms />
-    </TodoDataProvider>
+      <TaskForms />
+    </TaskDataProvider>
   );
 }
 

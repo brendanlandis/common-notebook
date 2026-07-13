@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { calculateNextRecurrence } from './recurrence';
-import type { Todo } from '@/app/types/index';
+import type { Task } from '@/app/types/index';
 import * as dateUtils from './dateUtils';
 
 // Mock the date utilities to have consistent test dates
@@ -23,8 +23,8 @@ vi.mock('./timezoneConfig', () => ({
   saveTimezoneToStrapi: vi.fn(),
 }));
 
-// Helper to create minimal todo for testing
-function createTodo(overrides: Partial<Todo>): Todo {
+// Helper to create minimal task for testing
+function createTask(overrides: Partial<Task>): Task {
   return {
     id: 1,
     documentId: 'test-1',
@@ -71,26 +71,26 @@ describe('Recurrence Logic', () => {
 
   describe('Daily Recurrence', () => {
     it('should display today on initial creation', () => {
-      const todo = createTodo({
+      const task = createTask({
         isRecurring: true,
         recurrenceType: 'daily',
         displayDate: null,
       });
 
-      const result = calculateNextRecurrence(todo, true);
+      const result = calculateNextRecurrence(task, true);
 
       expect(result.displayDate).toBe('2026-01-05'); // Today
       expect(result.dueDate).toBe(null);
     });
 
     it('should schedule for tomorrow after completion', () => {
-      const todo = createTodo({
+      const task = createTask({
         isRecurring: true,
         recurrenceType: 'daily',
         displayDate: '2026-01-05',
       });
 
-      const result = calculateNextRecurrence(todo, false);
+      const result = calculateNextRecurrence(task, false);
 
       expect(result.displayDate).toBe('2026-01-06'); // Tomorrow
       expect(result.dueDate).toBe(null);
@@ -102,13 +102,13 @@ describe('Recurrence Logic', () => {
         new Date('2026-01-10T00:00:00')
       );
 
-      const todo = createTodo({
+      const task = createTask({
         isRecurring: true,
         recurrenceType: 'daily',
         displayDate: '2026-01-05',
       });
 
-      const result = calculateNextRecurrence(todo, false);
+      const result = calculateNextRecurrence(task, false);
 
       expect(result.displayDate).toBe('2026-01-11'); // Day after actual completion
     });
@@ -116,50 +116,50 @@ describe('Recurrence Logic', () => {
 
   describe('Every X Days Recurrence', () => {
     it('should display today on initial creation', () => {
-      const todo = createTodo({
+      const task = createTask({
         isRecurring: true,
         recurrenceType: 'every x days',
         recurrenceInterval: 3,
       });
 
-      const result = calculateNextRecurrence(todo, true);
+      const result = calculateNextRecurrence(task, true);
 
       expect(result.displayDate).toBe('2026-01-05'); // Today
     });
 
     it('should schedule X days after completion', () => {
-      const todo = createTodo({
+      const task = createTask({
         isRecurring: true,
         recurrenceType: 'every x days',
         recurrenceInterval: 3,
         displayDate: '2026-01-05',
       });
 
-      const result = calculateNextRecurrence(todo, false);
+      const result = calculateNextRecurrence(task, false);
 
       expect(result.displayDate).toBe('2026-01-08'); // 3 days later
     });
 
     it('should work with 7 day interval', () => {
-      const todo = createTodo({
+      const task = createTask({
         isRecurring: true,
         recurrenceType: 'every x days',
         recurrenceInterval: 7,
       });
 
-      const result = calculateNextRecurrence(todo, false);
+      const result = calculateNextRecurrence(task, false);
 
       expect(result.displayDate).toBe('2026-01-12'); // 7 days later
     });
 
     it('should return null if interval is missing', () => {
-      const todo = createTodo({
+      const task = createTask({
         isRecurring: true,
         recurrenceType: 'every x days',
         recurrenceInterval: null,
       });
 
-      const result = calculateNextRecurrence(todo, false);
+      const result = calculateNextRecurrence(task, false);
 
       expect(result.displayDate).toBe(null);
     });
@@ -168,66 +168,66 @@ describe('Recurrence Logic', () => {
   describe('Weekly Recurrence - Critical Bug Fix', () => {
     it('should find next target weekday on initial creation (not today)', () => {
       // Today is Monday (1), create task for Wednesday (3)
-      const todo = createTodo({
+      const task = createTask({
         isRecurring: true,
         recurrenceType: 'weekly',
         recurrenceDayOfWeek: 3, // Wednesday
       });
 
-      const result = calculateNextRecurrence(todo, true);
+      const result = calculateNextRecurrence(task, true);
 
       expect(result.displayDate).toBe('2026-01-07'); // Next Wednesday
     });
 
     it('should schedule 7 days later when completed on target day', () => {
       // Today is Monday Jan 5, completing Monday task
-      const todo = createTodo({
+      const task = createTask({
         isRecurring: true,
         recurrenceType: 'weekly',
         recurrenceDayOfWeek: 1, // Monday
         displayDate: '2026-01-05',
       });
 
-      const result = calculateNextRecurrence(todo, false);
+      const result = calculateNextRecurrence(task, false);
 
       expect(result.displayDate).toBe('2026-01-12'); // Next Monday (7 days, NOT 14)
     });
 
     it('should find next target weekday when completed on different day', () => {
       // Today is Monday, but task is for Wednesday
-      const todo = createTodo({
+      const task = createTask({
         isRecurring: true,
         recurrenceType: 'weekly',
         recurrenceDayOfWeek: 3, // Wednesday
         displayDate: '2026-01-01',
       });
 
-      const result = calculateNextRecurrence(todo, false);
+      const result = calculateNextRecurrence(task, false);
 
       expect(result.displayDate).toBe('2026-01-07'); // Next Wednesday
     });
 
     it('should work correctly for Sunday tasks', () => {
       // Today is Monday, create task for Sunday (7 in our format)
-      const todo = createTodo({
+      const task = createTask({
         isRecurring: true,
         recurrenceType: 'weekly',
         recurrenceDayOfWeek: 7, // Sunday
       });
 
-      const result = calculateNextRecurrence(todo, false);
+      const result = calculateNextRecurrence(task, false);
 
       expect(result.displayDate).toBe('2026-01-11'); // Next Sunday
     });
 
     it('should return null if recurrenceDayOfWeek is missing', () => {
-      const todo = createTodo({
+      const task = createTask({
         isRecurring: true,
         recurrenceType: 'weekly',
         recurrenceDayOfWeek: null,
       });
 
-      const result = calculateNextRecurrence(todo, false);
+      const result = calculateNextRecurrence(task, false);
 
       expect(result.displayDate).toBe(null);
     });
@@ -235,27 +235,27 @@ describe('Recurrence Logic', () => {
 
   describe('Biweekly Recurrence - Critical Bug Fix', () => {
     it('should find next target weekday on initial creation', () => {
-      const todo = createTodo({
+      const task = createTask({
         isRecurring: true,
         recurrenceType: 'biweekly',
         recurrenceDayOfWeek: 1, // Monday
       });
 
-      const result = calculateNextRecurrence(todo, true);
+      const result = calculateNextRecurrence(task, true);
 
       // nextDay() skips today, so next Monday is 7 days away
       expect(result.displayDate).toBe('2026-01-12'); // Next Monday
     });
 
     it('should maintain strict 14-day cycle from displayDate', () => {
-      const todo = createTodo({
+      const task = createTask({
         isRecurring: true,
         recurrenceType: 'biweekly',
         recurrenceDayOfWeek: 1, // Monday
         displayDate: '2026-01-05',
       });
 
-      const result = calculateNextRecurrence(todo, false);
+      const result = calculateNextRecurrence(task, false);
 
       expect(result.displayDate).toBe('2026-01-19'); // Jan 5 + 14 days
     });
@@ -266,14 +266,14 @@ describe('Recurrence Logic', () => {
         new Date('2026-01-10T00:00:00')
       );
 
-      const todo = createTodo({
+      const task = createTask({
         isRecurring: true,
         recurrenceType: 'biweekly',
         recurrenceDayOfWeek: 1,
         displayDate: '2026-01-05',
       });
 
-      const result = calculateNextRecurrence(todo, false);
+      const result = calculateNextRecurrence(task, false);
 
       // Should maintain original cycle: Jan 5 + 14 = Jan 19
       expect(result.displayDate).toBe('2026-01-19');
@@ -285,14 +285,14 @@ describe('Recurrence Logic', () => {
         new Date('2026-02-02T00:00:00')
       );
 
-      const todo = createTodo({
+      const task = createTask({
         isRecurring: true,
         recurrenceType: 'biweekly',
         recurrenceDayOfWeek: 1,
         displayDate: '2026-01-05',
       });
 
-      const result = calculateNextRecurrence(todo, false);
+      const result = calculateNextRecurrence(task, false);
 
       // Jan 5 + 14 = Jan 19 (past)
       // Jan 19 + 14 = Feb 2 (today, not future)
@@ -301,27 +301,27 @@ describe('Recurrence Logic', () => {
     });
 
     it('should return null if recurrenceDayOfWeek is missing', () => {
-      const todo = createTodo({
+      const task = createTask({
         isRecurring: true,
         recurrenceType: 'biweekly',
         recurrenceDayOfWeek: null,
         displayDate: '2026-01-05',
       });
 
-      const result = calculateNextRecurrence(todo, false);
+      const result = calculateNextRecurrence(task, false);
 
       expect(result.displayDate).toBe(null);
     });
 
     it('should return null if displayDate is missing', () => {
-      const todo = createTodo({
+      const task = createTask({
         isRecurring: true,
         recurrenceType: 'biweekly',
         recurrenceDayOfWeek: 1,
         displayDate: null,
       });
 
-      const result = calculateNextRecurrence(todo, false);
+      const result = calculateNextRecurrence(task, false);
 
       expect(result.displayDate).toBe(null);
     });
@@ -329,7 +329,7 @@ describe('Recurrence Logic', () => {
 
   describe('Monthly Date Recurrence', () => {
     it('should schedule for same day next month', () => {
-      const todo = createTodo({
+      const task = createTask({
         isRecurring: true,
         recurrenceType: 'monthly date',
         recurrenceDayOfMonth: 15,
@@ -338,14 +338,14 @@ describe('Recurrence Logic', () => {
         displayDateOffset: 7, // Need offset to get both dates
       });
 
-      const result = calculateNextRecurrence(todo, false);
+      const result = calculateNextRecurrence(task, false);
 
       expect(result.dueDate).toBe('2026-02-15');
       expect(result.displayDate).toBe('2026-02-08'); // 7 days before
     });
 
     it('should set both dueDate and displayDate with offset', () => {
-      const todo = createTodo({
+      const task = createTask({
         isRecurring: true,
         recurrenceType: 'monthly date',
         recurrenceDayOfMonth: 15,
@@ -354,14 +354,14 @@ describe('Recurrence Logic', () => {
         displayDateOffset: 7,
       });
 
-      const result = calculateNextRecurrence(todo, false);
+      const result = calculateNextRecurrence(task, false);
 
       expect(result.dueDate).toBe('2026-02-15');
       expect(result.displayDate).toBe('2026-02-08'); // 7 days before
     });
 
     it('should only set displayDate without offset', () => {
-      const todo = createTodo({
+      const task = createTask({
         isRecurring: true,
         recurrenceType: 'monthly date',
         recurrenceDayOfMonth: 15,
@@ -369,14 +369,14 @@ describe('Recurrence Logic', () => {
         displayDateOffset: 0,
       });
 
-      const result = calculateNextRecurrence(todo, false);
+      const result = calculateNextRecurrence(task, false);
 
       expect(result.displayDate).toBe('2026-02-15');
       expect(result.dueDate).toBe(null);
     });
 
     it('should use last day of month when target day does not exist (Feb 31)', () => {
-      const todo = createTodo({
+      const task = createTask({
         isRecurring: true,
         recurrenceType: 'monthly date',
         recurrenceDayOfMonth: 31,
@@ -384,7 +384,7 @@ describe('Recurrence Logic', () => {
         dueDate: '2026-01-31',
       });
 
-      const result = calculateNextRecurrence(todo, false);
+      const result = calculateNextRecurrence(task, false);
 
       // Feb 2026 has 28 days (not a leap year)
       expect(result.displayDate).toBe('2026-02-28');
@@ -396,7 +396,7 @@ describe('Recurrence Logic', () => {
         new Date('2028-01-31T00:00:00')
       );
 
-      const todo = createTodo({
+      const task = createTask({
         isRecurring: true,
         recurrenceType: 'monthly date',
         recurrenceDayOfMonth: 29,
@@ -404,7 +404,7 @@ describe('Recurrence Logic', () => {
         dueDate: '2028-01-29',
       });
 
-      const result = calculateNextRecurrence(todo, false);
+      const result = calculateNextRecurrence(task, false);
 
       expect(result.displayDate).toBe('2028-02-29'); // Leap year!
     });
@@ -412,7 +412,7 @@ describe('Recurrence Logic', () => {
 
   describe('Monthly Day Recurrence', () => {
     it('should schedule for 2nd Tuesday of next month', () => {
-      const todo = createTodo({
+      const task = createTask({
         isRecurring: true,
         recurrenceType: 'monthly day',
         recurrenceWeekOfMonth: 2, // 2nd week
@@ -422,14 +422,14 @@ describe('Recurrence Logic', () => {
         displayDateOffset: 7,
       });
 
-      const result = calculateNextRecurrence(todo, false);
+      const result = calculateNextRecurrence(task, false);
 
       expect(result.dueDate).toBe('2026-02-10'); // 2nd Tuesday of Feb
       expect(result.displayDate).toBe('2026-02-03'); // 7 days before
     });
 
     it('should handle last Friday of month', () => {
-      const todo = createTodo({
+      const task = createTask({
         isRecurring: true,
         recurrenceType: 'monthly day',
         recurrenceWeekOfMonth: -1, // Last week
@@ -439,14 +439,14 @@ describe('Recurrence Logic', () => {
         displayDateOffset: 7,
       });
 
-      const result = calculateNextRecurrence(todo, false);
+      const result = calculateNextRecurrence(task, false);
 
       expect(result.dueDate).toBe('2026-02-27'); // Last Friday of Feb
       expect(result.displayDate).toBe('2026-02-20'); // 7 days before
     });
 
     it('should work with offset', () => {
-      const todo = createTodo({
+      const task = createTask({
         isRecurring: true,
         recurrenceType: 'monthly day',
         recurrenceWeekOfMonth: 2,
@@ -456,7 +456,7 @@ describe('Recurrence Logic', () => {
         displayDateOffset: 7,
       });
 
-      const result = calculateNextRecurrence(todo, false);
+      const result = calculateNextRecurrence(task, false);
 
       expect(result.dueDate).toBe('2026-02-10');
       expect(result.displayDate).toBe('2026-02-03'); // 7 days before
@@ -465,7 +465,7 @@ describe('Recurrence Logic', () => {
 
   describe('Annually Recurrence', () => {
     it('should schedule for same date next year', () => {
-      const todo = createTodo({
+      const task = createTask({
         isRecurring: true,
         recurrenceType: 'annually',
         recurrenceMonth: 3, // March
@@ -474,7 +474,7 @@ describe('Recurrence Logic', () => {
         dueDate: '2026-03-15',
       });
 
-      const result = calculateNextRecurrence(todo, false);
+      const result = calculateNextRecurrence(task, false);
 
       expect(result.displayDate).toBe('2027-03-15');
     });
@@ -484,7 +484,7 @@ describe('Recurrence Logic', () => {
         new Date('2027-02-28T00:00:00')
       );
 
-      const todo = createTodo({
+      const task = createTask({
         isRecurring: true,
         recurrenceType: 'annually',
         recurrenceMonth: 2, // February
@@ -493,14 +493,14 @@ describe('Recurrence Logic', () => {
         dueDate: '2026-02-28',
       });
 
-      const result = calculateNextRecurrence(todo, false);
+      const result = calculateNextRecurrence(task, false);
 
       // 2028 is a leap year, so Feb 29 exists
       expect(result.displayDate).toBe('2028-02-29');
     });
 
     it('should work with offset', () => {
-      const todo = createTodo({
+      const task = createTask({
         isRecurring: true,
         recurrenceType: 'annually',
         recurrenceMonth: 3,
@@ -510,7 +510,7 @@ describe('Recurrence Logic', () => {
         displayDateOffset: 7,
       });
 
-      const result = calculateNextRecurrence(todo, false);
+      const result = calculateNextRecurrence(task, false);
 
       expect(result.dueDate).toBe('2027-03-15');
       expect(result.displayDate).toBe('2027-03-08');
@@ -519,12 +519,12 @@ describe('Recurrence Logic', () => {
 
   describe('Non-recurring tasks', () => {
     it('should return null dates for non-recurring tasks', () => {
-      const todo = createTodo({
+      const task = createTask({
         isRecurring: false,
         recurrenceType: 'none',
       });
 
-      const result = calculateNextRecurrence(todo, false);
+      const result = calculateNextRecurrence(task, false);
 
       expect(result.displayDate).toBe(null);
       expect(result.dueDate).toBe(null);
@@ -533,14 +533,14 @@ describe('Recurrence Logic', () => {
 
   describe('Astronomical Event Recurrence', () => {
     it('should calculate next full moon correctly', () => {
-      const todo = createTodo({
+      const task = createTask({
         isRecurring: true,
         recurrenceType: 'full moon',
         displayDate: '2026-01-05',
         dueDate: '2026-01-05',
       });
 
-      const result = calculateNextRecurrence(todo, false);
+      const result = calculateNextRecurrence(task, false);
 
       // Should calculate next full moon after today
       expect(result.displayDate).not.toBe(null);
@@ -548,28 +548,28 @@ describe('Recurrence Logic', () => {
     });
 
     it('should calculate next new moon correctly', () => {
-      const todo = createTodo({
+      const task = createTask({
         isRecurring: true,
         recurrenceType: 'new moon',
         displayDate: '2026-01-05',
         dueDate: '2026-01-05',
       });
 
-      const result = calculateNextRecurrence(todo, false);
+      const result = calculateNextRecurrence(task, false);
 
       expect(result.displayDate).not.toBe(null);
       expect(result.displayDate).not.toBe('2026-01-05');
     });
 
     it('should calculate spring equinox correctly', () => {
-      const todo = createTodo({
+      const task = createTask({
         isRecurring: true,
         recurrenceType: 'spring equinox',
         displayDate: '2026-03-20',
         dueDate: '2026-03-20',
       });
 
-      const result = calculateNextRecurrence(todo, false);
+      const result = calculateNextRecurrence(task, false);
 
       // Next spring equinox should be in 2027
       expect(result.displayDate).not.toBe(null);
@@ -577,14 +577,14 @@ describe('Recurrence Logic', () => {
     });
 
     it('should calculate summer solstice correctly', () => {
-      const todo = createTodo({
+      const task = createTask({
         isRecurring: true,
         recurrenceType: 'summer solstice',
         displayDate: '2026-06-21',
         dueDate: '2026-06-21',
       });
 
-      const result = calculateNextRecurrence(todo, false);
+      const result = calculateNextRecurrence(task, false);
 
       // Next summer solstice should be in 2027
       expect(result.displayDate).not.toBe(null);
@@ -592,14 +592,14 @@ describe('Recurrence Logic', () => {
     });
 
     it('should calculate autumn equinox correctly', () => {
-      const todo = createTodo({
+      const task = createTask({
         isRecurring: true,
         recurrenceType: 'autumn equinox',
         displayDate: '2026-09-22',
         dueDate: '2026-09-23', // Actual 2026 autumn equinox date
       });
 
-      const result = calculateNextRecurrence(todo, false);
+      const result = calculateNextRecurrence(task, false);
 
       // Next autumn equinox should be in 2027
       expect(result.displayDate).not.toBe(null);
@@ -607,14 +607,14 @@ describe('Recurrence Logic', () => {
     });
 
     it('should calculate winter solstice correctly', () => {
-      const todo = createTodo({
+      const task = createTask({
         isRecurring: true,
         recurrenceType: 'winter solstice',
         displayDate: '2025-12-21',
         dueDate: '2025-12-21',
       });
 
-      const result = calculateNextRecurrence(todo, false);
+      const result = calculateNextRecurrence(task, false);
 
       // Next winter solstice should be in 2026
       expect(result.displayDate).not.toBe(null);
@@ -622,14 +622,14 @@ describe('Recurrence Logic', () => {
     });
 
     it('should calculate next season change for "every season"', () => {
-      const todo = createTodo({
+      const task = createTask({
         isRecurring: true,
         recurrenceType: 'every season',
         displayDate: '2026-01-05',
         dueDate: '2026-01-05',
       });
 
-      const result = calculateNextRecurrence(todo, false);
+      const result = calculateNextRecurrence(task, false);
 
       // Next season from Jan 5 should be spring equinox around March 20
       expect(result.displayDate).not.toBe(null);
@@ -637,7 +637,7 @@ describe('Recurrence Logic', () => {
     });
 
     it('should support offset for astronomical events', () => {
-      const todo = createTodo({
+      const task = createTask({
         isRecurring: true,
         recurrenceType: 'full moon',
         displayDate: '2025-12-29',
@@ -645,7 +645,7 @@ describe('Recurrence Logic', () => {
         displayDateOffset: 7,
       });
 
-      const result = calculateNextRecurrence(todo, false);
+      const result = calculateNextRecurrence(task, false);
 
       // Should have both dueDate and displayDate
       expect(result.dueDate).not.toBe(null);
@@ -658,14 +658,14 @@ describe('Recurrence Logic', () => {
     });
 
     it('should support no offset (day of) for astronomical events', () => {
-      const todo = createTodo({
+      const task = createTask({
         isRecurring: true,
         recurrenceType: 'full moon',
         displayDate: '2026-01-05',
         displayDateOffset: 0,
       });
 
-      const result = calculateNextRecurrence(todo, false);
+      const result = calculateNextRecurrence(task, false);
 
       // With no offset, should only have displayDate, no dueDate
       expect(result.displayDate).not.toBe(null);
@@ -675,13 +675,13 @@ describe('Recurrence Logic', () => {
 
   describe('Validation errors', () => {
     it('should return null dates for invalid configuration', () => {
-      const todo = createTodo({
+      const task = createTask({
         isRecurring: true,
         recurrenceType: 'weekly',
         recurrenceDayOfWeek: null, // Missing required field
       });
 
-      const result = calculateNextRecurrence(todo, false);
+      const result = calculateNextRecurrence(task, false);
 
       expect(result.displayDate).toBe(null);
     });

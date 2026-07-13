@@ -58,7 +58,7 @@ export default function RecentStats({ stats, loading, title = "recently", noWrap
   }
 
   return (
-    <div className="todo-section recent-stats-section">
+    <div className="task-section recent-stats-section">
       {chartContent}
     </div>
   );

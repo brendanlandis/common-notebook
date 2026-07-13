@@ -5,7 +5,7 @@
   * {
     color: #000;
   }
-  .todos-container {
+  .tasks-container {
     grid-template-columns: 1fr;
     input.checkbox {
       display: none;
@@ -13,10 +13,10 @@
     label::before {
       content: "- ";
     }
-    .todos-list {
+    .tasks-list {
       display: block;
     }
-    .todos-list li {
+    .tasks-list li {
       display: block;
       break-inside: avoid;
       page-break-inside: avoid;

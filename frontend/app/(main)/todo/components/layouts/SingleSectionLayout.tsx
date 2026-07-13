@@ -1,11 +1,11 @@
 "use client";
 
 import { useMemo } from "react";
-import TodoSections from "../TodoSections";
+import TaskSections from "../TaskSections";
 import UpcomingSection from "../UpcomingSection";
-import TodoItem from "../TodoItem";
+import TaskItem from "../TaskItem";
 import type { LayoutRendererProps } from "./types";
-import type { Todo } from "@/app/types/index";
+import type { Task } from "@/app/types/index";
 import { format, parseISO } from "date-fns";
 
 export default function SingleSectionLayout({
@@ -20,9 +20,9 @@ export default function SingleSectionLayout({
   recentStatsSection,
   selectedRulesetId,
 }: LayoutRendererProps) {
-  const upcomingSection = transformedData.upcomingTodosByDay && (
+  const upcomingSection = transformedData.upcomingTasksByDay && (
     <UpcomingSection
-      upcomingTodosByDay={transformedData.upcomingTodosByDay}
+      upcomingTasksByDay={transformedData.upcomingTasksByDay}
       onComplete={onComplete}
       onEdit={onEdit}
       onDelete={onDelete}
@@ -42,55 +42,55 @@ export default function SingleSectionLayout({
       return null;
     }
 
-    // Collect all todos from all sections
-    const allTodos: Todo[] = [];
+    // Collect all tasks from all sections
+    const allTasks: Task[] = [];
     if (transformedData.allSections) {
       transformedData.allSections.forEach((section) => {
-        let todos: Todo[];
+        let tasks: Task[];
         if ("documentId" in section) {
           // It's a Project
-          todos = section.todos || [];
+          tasks = section.tasks || [];
         } else {
-          // It's a TodoGroup
-          todos = section.todos;
+          // It's a TaskGroup
+          tasks = section.tasks;
         }
-        allTodos.push(...todos);
+        allTasks.push(...tasks);
       });
     }
 
-    // Add incidentals to the pool of todos to be grouped
+    // Add incidentals to the pool of tasks to be grouped
     if (transformedData.incidentals) {
-      allTodos.push(...transformedData.incidentals);
+      allTasks.push(...transformedData.incidentals);
     }
 
-    // Group todos by creation month
-    const todosByMonth = new Map<string, { date: Date; todos: Todo[] }>();
+    // Group tasks by creation month
+    const tasksByMonth = new Map<string, { date: Date; tasks: Task[] }>();
 
-    allTodos.forEach((todo) => {
+    allTasks.forEach((task) => {
       try {
-        const createdDate = parseISO(todo.createdAt);
+        const createdDate = parseISO(task.createdAt);
         // Format as "YYYY-MM" for grouping, but keep the date for sorting
         const monthKey = format(createdDate, "yyyy-MM");
 
-        if (!todosByMonth.has(monthKey)) {
-          todosByMonth.set(monthKey, { date: createdDate, todos: [] });
+        if (!tasksByMonth.has(monthKey)) {
+          tasksByMonth.set(monthKey, { date: createdDate, tasks: [] });
         }
-        todosByMonth.get(monthKey)!.todos.push(todo);
+        tasksByMonth.get(monthKey)!.tasks.push(task);
       } catch (error) {
-        console.error("Error parsing date for todo:", todo.documentId, error);
+        console.error("Error parsing date for task:", task.documentId, error);
       }
     });
 
     // Convert map to array and sort by date (oldest first)
-    const sortedMonths = Array.from(todosByMonth.entries()).sort(
+    const sortedMonths = Array.from(tasksByMonth.entries()).sort(
       ([, a], [, b]) => a.date.getTime() - b.date.getTime(),
     );
 
-    // Create month groups with sorted todos
-    return sortedMonths.map(([monthKey, { date, todos }]) => ({
+    // Create month groups with sorted tasks
+    return sortedMonths.map(([monthKey, { date, tasks }]) => ({
       title: format(date, "MMMM yyyy"),
-      // Sort todos within each month by creation date (oldest first)
-      todos: todos.sort((a, b) => {
+      // Sort tasks within each month by creation date (oldest first)
+      tasks: tasks.sort((a, b) => {
         const dateA = new Date(a.createdAt).getTime();
         const dateB = new Date(b.createdAt).getTime();
         return dateA - dateB;
@@ -111,18 +111,18 @@ export default function SingleSectionLayout({
     groupedByMonth.length > 0
   ) {
     return (
-      <div className="todos-container">
+      <div className="tasks-container">
         {upcomingSection}
         {recentStatsSection}
-        <div className="todo-section">
+        <div className="task-section">
           {groupedByMonth.map((monthGroup) => (
             <div key={monthGroup.title}>
               <h4>{monthGroup.title}</h4>
-              <ul className="todos-list">
-                {monthGroup.todos.map((todo) => (
-                  <TodoItem
-                    key={todo.documentId}
-                    todo={todo}
+              <ul className="tasks-list">
+                {monthGroup.tasks.map((task) => (
+                  <TaskItem
+                    key={task.documentId}
+                    task={task}
                     onComplete={onComplete}
                     onEdit={onEdit}
                     onDelete={onDelete}
@@ -144,7 +144,7 @@ export default function SingleSectionLayout({
   return (
     transformedData.allSections &&
     transformedData.allSections.length > 0 && (
-      <TodoSections
+      <TaskSections
         sections={transformedData.allSections}
         incidentals={transformedData.incidentals}
         onComplete={onComplete}

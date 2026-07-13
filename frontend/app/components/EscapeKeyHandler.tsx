@@ -1,18 +1,18 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useTodoActions } from '../contexts/TodoActionsContext';
+import { useTaskActions } from '../contexts/TaskActionsContext';
 
 export default function EscapeKeyHandler() {
-  const { closeDrawer } = useTodoActions();
+  const { closeDrawer } = useTaskActions();
 
   // Close all drawers on page load to prevent blank drawers after reload
   useEffect(() => {
-    const todoActionsCheckbox = document.getElementById('todoActionsDrawer') as HTMLInputElement;
+    const taskActionsCheckbox = document.getElementById('taskActionsDrawer') as HTMLInputElement;
     const mainMenuCheckbox = document.getElementById('mainMenu') as HTMLInputElement;
     
-    if (todoActionsCheckbox) {
-      todoActionsCheckbox.checked = false;
+    if (taskActionsCheckbox) {
+      taskActionsCheckbox.checked = false;
     }
     if (mainMenuCheckbox) {
       mainMenuCheckbox.checked = false;
@@ -22,16 +22,16 @@ export default function EscapeKeyHandler() {
   useEffect(() => {
     const handleEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        // Check if todo actions drawer is open (left drawer)
-        const todoActionsCheckbox = document.getElementById('todoActionsDrawer') as HTMLInputElement;
-        const isTodoActionsOpen = todoActionsCheckbox?.checked;
+        // Check if task actions drawer is open (left drawer)
+        const taskActionsCheckbox = document.getElementById('taskActionsDrawer') as HTMLInputElement;
+        const isTaskActionsOpen = taskActionsCheckbox?.checked;
 
         // Check if main menu is open (right drawer)
         const mainMenuCheckbox = document.getElementById('mainMenu') as HTMLInputElement;
         const isMainMenuOpen = mainMenuCheckbox?.checked;
 
         // Close whichever drawer is open
-        if (isTodoActionsOpen) {
+        if (isTaskActionsOpen) {
           closeDrawer();
         } else if (isMainMenuOpen) {
           mainMenuCheckbox.checked = false;

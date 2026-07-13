@@ -15,7 +15,7 @@ describe('Completed Task Visibility Integration Tests', () => {
     completedTaskVisibilityConfig = await import('./completedTaskVisibilityConfig');
   });
 
-  describe('Todo Page Initial Load Scenario', () => {
+  describe('Task Page Initial Load Scenario', () => {
     it('should filter completed tasks correctly when using default value (bug scenario)', async () => {
       // Simulate: Page loads, cache is null, so it uses default (15 mins)
       const visibilityMinutes = completedTaskVisibilityConfig.getCompletedTaskVisibilityMinutes();
@@ -128,7 +128,7 @@ describe('Completed Task Visibility Integration Tests', () => {
       visibilityMinutes = completedTaskVisibilityConfig.getCompletedTaskVisibilityMinutes();
       expect(visibilityMinutes).toBe(1440);
       
-      // User navigates back to todo page
+      // User navigates back to task page
       // Now it uses the cached value (the workaround that made it work)
       visibilityMinutes = completedTaskVisibilityConfig.getCompletedTaskVisibilityMinutes();
       expect(visibilityMinutes).toBe(1440);
@@ -271,8 +271,8 @@ describe('Completed Task Visibility Integration Tests', () => {
     });
   });
 
-  describe('Multiple Todo Filtering Scenario', () => {
-    it('should correctly filter mixed array of todos', async () => {
+  describe('Multiple Task Filtering Scenario', () => {
+    it('should correctly filter mixed array of tasks', async () => {
       const mockResponse = {
         success: true,
         value: '60', // 1 hour
@@ -288,7 +288,7 @@ describe('Completed Task Visibility Integration Tests', () => {
       
       const now = new Date('2026-01-08T17:00:00.000Z');
       
-      const todos = [
+      const tasks = [
         {
           id: 1,
           title: 'Incomplete task',
@@ -321,14 +321,14 @@ describe('Completed Task Visibility Integration Tests', () => {
         },
       ];
       
-      const visibleTodos = todos.filter(todo => {
+      const visibleTasks = tasks.filter(task => {
         // Incomplete tasks are always visible
-        if (!todo.completed || !todo.completedAt) {
+        if (!task.completed || !task.completedAt) {
           return true;
         }
         
         // Check if completed task is within visibility window
-        const completedTime = new Date(todo.completedAt);
+        const completedTime = new Date(task.completedAt);
         const minutesSinceCompletion = (now.getTime() - completedTime.getTime()) / (1000 * 60);
         
         return minutesSinceCompletion <= visibilityMinutes;
@@ -336,8 +336,8 @@ describe('Completed Task Visibility Integration Tests', () => {
       
       // Should have: incomplete (1), just completed (2), at boundary (3)
       // Should NOT have: over boundary (4, 5)
-      expect(visibleTodos).toHaveLength(3);
-      expect(visibleTodos.map(t => t.id)).toEqual([1, 2, 3]);
+      expect(visibleTasks).toHaveLength(3);
+      expect(visibleTasks.map(t => t.id)).toEqual([1, 2, 3]);
     });
   });
 

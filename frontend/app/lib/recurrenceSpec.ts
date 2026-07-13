@@ -5,7 +5,7 @@
  * All recurrence calculation code should reference this specification.
  */
 
-import type { RecurrenceType, Todo } from '../types/index';
+import type { RecurrenceType, Task } from '../types/index';
 
 /**
  * Calculation modes for different recurrence types
@@ -23,7 +23,7 @@ export interface RecurrenceTypeSpec {
   type: RecurrenceType;
   calculationMode: CalculationMode;
   shouldDrift: boolean;
-  requiredFields: Array<keyof Todo>;
+  requiredFields: Array<keyof Task>;
   supportsOffset: boolean;
   description: string;
   onInitialCreation: string;
@@ -264,24 +264,24 @@ export const RECURRENCE_SPECS: Record<RecurrenceType, RecurrenceTypeSpec> = {
 };
 
 /**
- * Validate that a todo has all required fields for its recurrence type
+ * Validate that a task has all required fields for its recurrence type
  */
-export function validateRecurrenceFields(todo: Todo): { valid: boolean; errors: string[] } {
-  if (!todo.isRecurring || todo.recurrenceType === 'none') {
+export function validateRecurrenceFields(task: Task): { valid: boolean; errors: string[] } {
+  if (!task.isRecurring || task.recurrenceType === 'none') {
     return { valid: true, errors: [] };
   }
 
-  const spec = RECURRENCE_SPECS[todo.recurrenceType];
+  const spec = RECURRENCE_SPECS[task.recurrenceType];
   if (!spec) {
-    return { valid: false, errors: [`Unknown recurrence type: ${todo.recurrenceType}`] };
+    return { valid: false, errors: [`Unknown recurrence type: ${task.recurrenceType}`] };
   }
 
   const errors: string[] = [];
 
   for (const field of spec.requiredFields) {
-    const value = todo[field];
+    const value = task[field];
     if (value === null || value === undefined) {
-      errors.push(`Missing required field for ${todo.recurrenceType}: ${field}`);
+      errors.push(`Missing required field for ${task.recurrenceType}: ${field}`);
     }
   }
 

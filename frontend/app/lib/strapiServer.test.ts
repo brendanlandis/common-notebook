@@ -37,7 +37,7 @@ describe('fetchAllPages', () => {
     });
     global.fetch = fetchMock as unknown as typeof global.fetch;
 
-    await expect(fetchAllPages('tok', '/api/todos')).resolves.toEqual([1, 2, 3, 4, 5]);
+    await expect(fetchAllPages('tok', '/api/tasks')).resolves.toEqual([1, 2, 3, 4, 5]);
     expect(fetchMock).toHaveBeenCalledTimes(3);
   });
 
@@ -53,7 +53,7 @@ describe('fetchAllPages', () => {
     const fetchMock = vi.fn(async (_url: string, _init?: RequestInit) => page([], 1, 1));
     global.fetch = fetchMock as unknown as typeof global.fetch;
 
-    await fetchAllPages('tok', '/api/todos?filters[soon][$eq]=true');
+    await fetchAllPages('tok', '/api/tasks?filters[soon][$eq]=true');
     expect(fetchMock.mock.calls[0][0]).toContain('filters[soon][$eq]=true&pagination[pageSize]=100');
   });
 
@@ -69,7 +69,7 @@ describe('fetchAllPages', () => {
     const fetchMock = vi.fn(async (_url: string, _init?: RequestInit) => page([], 1, 1));
     global.fetch = fetchMock as unknown as typeof global.fetch;
 
-    await fetchAllPages('secret-token', '/api/todos');
+    await fetchAllPages('secret-token', '/api/tasks');
     const headers = fetchMock.mock.calls[0][1]?.headers as Record<string, string>;
     expect(headers.Authorization).toBe('Bearer secret-token');
   });
@@ -78,17 +78,17 @@ describe('fetchAllPages', () => {
     // Returning a truncated list that looks successful is precisely how the
     // silent-clamp bug produced wrong practice stats for months.
     global.fetch = vi.fn(async () => ({ ok: false, status: 500 }) as Response) as never;
-    await expect(fetchAllPages('tok', '/api/todos')).rejects.toThrow(/500/);
+    await expect(fetchAllPages('tok', '/api/tasks')).rejects.toThrow(/500/);
   });
 
   it('throws if a response omits pagination metadata after the first page', async () => {
     global.fetch = vi.fn(async () => ({ ok: true, json: async () => ({ data: [1] }) }) as Response) as never;
     // No meta.pagination means we cannot know there are more pages; return what we got.
-    await expect(fetchAllPages('tok', '/api/todos')).resolves.toEqual([1]);
+    await expect(fetchAllPages('tok', '/api/tasks')).resolves.toEqual([1]);
   });
 
   it('gives up rather than looping forever if pageCount never shrinks', async () => {
     global.fetch = vi.fn(async () => page([1], 1, 99999)) as never;
-    await expect(fetchAllPages('tok', '/api/todos')).rejects.toThrow(/exceeded/);
+    await expect(fetchAllPages('tok', '/api/tasks')).rejects.toThrow(/exceeded/);
   });
 });

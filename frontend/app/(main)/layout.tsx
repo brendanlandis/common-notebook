@@ -1,10 +1,10 @@
 import { ListIcon } from "@phosphor-icons/react/dist/ssr";
 import MenuItems from "../components/MenuItems";
 import HeaderContent from "../components/HeaderContent";
-import TodoActionsDrawer from "../components/TodoActionsDrawer";
+import TaskActionsDrawer from "../components/TaskActionsDrawer";
 import { LayoutRulesetProvider } from "../contexts/LayoutRulesetContext";
 import { PracticeContextProvider } from "../contexts/PracticeContext";
-import { TodoActionsProvider } from "../contexts/TodoActionsContext";
+import { TaskActionsProvider } from "../contexts/TaskActionsContext";
 import { TimezoneProvider } from "../contexts/TimezoneContext";
 import HeaderIcon from "../components/HeaderIcon";
 import EscapeKeyHandler from "../components/EscapeKeyHandler";
@@ -18,11 +18,11 @@ export default function MainLayout({
     <TimezoneProvider>
       <LayoutRulesetProvider>
         <PracticeContextProvider>
-          <TodoActionsProvider>
+          <TaskActionsProvider>
             <EscapeKeyHandler />
             <div className="drawer">
             <input
-              id="todoActionsDrawer"
+              id="taskActionsDrawer"
               type="checkbox"
               className="drawer-toggle"
             />
@@ -64,9 +64,9 @@ export default function MainLayout({
                 </div>
               </div>
             </div>
-            <TodoActionsDrawer />
+            <TaskActionsDrawer />
           </div>
-        </TodoActionsProvider>
+        </TaskActionsProvider>
       </PracticeContextProvider>
     </LayoutRulesetProvider>
     </TimezoneProvider>

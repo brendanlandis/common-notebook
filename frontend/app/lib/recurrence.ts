@@ -1,6 +1,6 @@
 import { addDays, addMonths, addYears, nextDay, setDate, setMonth, getDay, startOfMonth, lastDayOfMonth, subDays, addWeeks, type Day } from 'date-fns';
 import * as Astronomy from 'astronomy-engine';
-import type { Todo } from '../types/index';
+import type { Task } from '../types/index';
 import { getNowInEST, getTodayInEST, toISODateInEST, parseInEST, getTodayForRecurrence } from './dateUtils';
 import { validateRecurrenceFields } from './recurrenceSpec';
 
@@ -35,36 +35,36 @@ function hasEventDate(recurrenceType: string): boolean {
 }
 
 /**
- * Calculate the next recurrence dates for a recurring todo
+ * Calculate the next recurrence dates for a recurring task
  * All calculations respect the day boundary hour setting for determining "today"
  * and use appropriate calculation modes based on recurrence type.
  * 
- * @param todo - The todo item with recurrence settings
+ * @param task - The task item with recurrence settings
  * @param isInitialCreation - True when creating a new recurring task, false when calculating next occurrence after completion
  * @returns Object with dueDate and displayDate, or null values if not recurring
  */
-export function calculateNextRecurrence(todo: Todo, isInitialCreation: boolean = false): { dueDate: string | null; displayDate: string | null } {
-  if (!todo.isRecurring) {
+export function calculateNextRecurrence(task: Task, isInitialCreation: boolean = false): { dueDate: string | null; displayDate: string | null } {
+  if (!task.isRecurring) {
     return { dueDate: null, displayDate: null };
   }
 
-  // Validate that todo has required fields for its recurrence type
-  const validation = validateRecurrenceFields(todo);
+  // Validate that task has required fields for its recurrence type
+  const validation = validateRecurrenceFields(task);
   if (!validation.valid) {
     // Silently return null - validation should be enforced at the form level
     return { dueDate: null, displayDate: null };
   }
 
-  const isEventBased = hasEventDate(todo.recurrenceType);
+  const isEventBased = hasEventDate(task.recurrenceType);
   
   if (isEventBased) {
     // Calculate the actual event date
-    const eventDate = calculateEventDate(todo);
+    const eventDate = calculateEventDate(task);
     if (!eventDate) {
       return { dueDate: null, displayDate: null };
     }
     
-    const offset = todo.displayDateOffset ?? 0;
+    const offset = task.displayDateOffset ?? 0;
     
     if (offset > 0) {
       // When offset > 0: show task before the event
@@ -83,7 +83,7 @@ export function calculateNextRecurrence(todo: Todo, isInitialCreation: boolean =
     }
   } else {
     // Simple recurring tasks (daily, weekly, etc.) - only displayDate needed
-    const displayDate = calculateNextDisplayDate(todo, isInitialCreation);
+    const displayDate = calculateNextDisplayDate(task, isInitialCreation);
     return { dueDate: null, displayDate };
   }
 }
@@ -92,27 +92,27 @@ export function calculateNextRecurrence(todo: Todo, isInitialCreation: boolean =
  * Calculate the next event date (for recurrence types with specific event dates)
  * Uses max(completionDate, eventDate) to prevent duplicate occurrences
  * 
- * @param todo - The todo item with recurrence settings
+ * @param task - The task item with recurrence settings
  * @returns The next event date as ISO string, or null
  */
-function calculateEventDate(todo: Todo): string | null {
+function calculateEventDate(task: Task): string | null {
   const today = getTodayForRecurrence();
   
   // Reference date is the later of: completion date or existing event date
   // This prevents creating duplicate events when completing before the event date
-  const existingEventDate = todo.dueDate 
-    ? parseInEST(todo.dueDate) 
-    : todo.displayDate 
-    ? parseInEST(todo.displayDate) 
+  const existingEventDate = task.dueDate 
+    ? parseInEST(task.dueDate) 
+    : task.displayDate 
+    ? parseInEST(task.displayDate) 
     : null;
   
   const comparisonDate = existingEventDate && existingEventDate > today
     ? existingEventDate
     : today;
 
-  switch (todo.recurrenceType) {
+  switch (task.recurrenceType) {
     case 'monthly date':
-      if (!todo.recurrenceDayOfMonth) return null;
+      if (!task.recurrenceDayOfMonth) return null;
       
       // Helper to set day of month, using last day if target doesn't exist
       const setDayOfMonth = (baseDate: Date, targetDay: number): Date => {
@@ -127,32 +127,32 @@ function calculateEventDate(todo: Todo): string | null {
       };
       
       // Start from comparisonDate and find the next occurrence
-      let targetDate = setDayOfMonth(comparisonDate, todo.recurrenceDayOfMonth);
+      let targetDate = setDayOfMonth(comparisonDate, task.recurrenceDayOfMonth);
       
       // Always move to the next month after comparisonDate
       // Compare ISO date strings in configured timezone instead of using startOfDay()
       // which uses system timezone and causes issues on UTC servers
       if (toISODateInEST(targetDate) <= toISODateInEST(comparisonDate)) {
         const monthAdded = addMonths(comparisonDate, 1);
-        targetDate = setDayOfMonth(monthAdded, todo.recurrenceDayOfMonth);
+        targetDate = setDayOfMonth(monthAdded, task.recurrenceDayOfMonth);
       }
       
       return toISODateInEST(targetDate);
 
     case 'monthly day':
       if (
-        todo.recurrenceWeekOfMonth === null || todo.recurrenceWeekOfMonth === undefined ||
-        todo.recurrenceDayOfWeekMonthly === null || todo.recurrenceDayOfWeekMonthly === undefined
+        task.recurrenceWeekOfMonth === null || task.recurrenceWeekOfMonth === undefined ||
+        task.recurrenceDayOfWeekMonthly === null || task.recurrenceDayOfWeekMonthly === undefined
       ) {
         return null;
       }
       
-      const monthlyDayOfWeek = toJSDay(todo.recurrenceDayOfWeekMonthly);
+      const monthlyDayOfWeek = toJSDay(task.recurrenceDayOfWeekMonthly);
       
       const findNthWeekdayOfMonth = (baseDate: Date): Date => {
         const targetDayOfWeek = monthlyDayOfWeek;
         
-        if (todo.recurrenceWeekOfMonth === -1) {
+        if (task.recurrenceWeekOfMonth === -1) {
           let targetDate = lastDayOfMonth(baseDate);
           
           while (getDay(targetDate) !== targetDayOfWeek) {
@@ -170,7 +170,7 @@ function calculateEventDate(todo: Todo): string | null {
           targetDate = nextDay(firstDay, targetDayOfWeek as Day);
         }
         
-        const weeksToAdd = todo.recurrenceWeekOfMonth! - 1;
+        const weeksToAdd = task.recurrenceWeekOfMonth! - 1;
         if (weeksToAdd > 0) {
           targetDate = addWeeks(targetDate, weeksToAdd);
         }
@@ -191,8 +191,8 @@ function calculateEventDate(todo: Todo): string | null {
 
     case 'annually':
       if (
-        todo.recurrenceMonth === null || todo.recurrenceMonth === undefined ||
-        todo.recurrenceDayOfMonth === null || todo.recurrenceDayOfMonth === undefined
+        task.recurrenceMonth === null || task.recurrenceMonth === undefined ||
+        task.recurrenceDayOfMonth === null || task.recurrenceDayOfMonth === undefined
       ) {
         return null;
       }
@@ -211,13 +211,13 @@ function calculateEventDate(todo: Todo): string | null {
       };
       
       // Start from comparisonDate and find the next occurrence
-      let annualDate = setAnnualDate(comparisonDate, todo.recurrenceMonth, todo.recurrenceDayOfMonth);
+      let annualDate = setAnnualDate(comparisonDate, task.recurrenceMonth, task.recurrenceDayOfMonth);
       
       // Always move to the next year after comparisonDate
       // Compare ISO date strings in configured timezone (startOfDay uses system timezone)
       if (toISODateInEST(annualDate) <= toISODateInEST(comparisonDate)) {
         const nextYear = addYears(comparisonDate, 1);
-        annualDate = setAnnualDate(nextYear, todo.recurrenceMonth, todo.recurrenceDayOfMonth);
+        annualDate = setAnnualDate(nextYear, task.recurrenceMonth, task.recurrenceDayOfMonth);
       }
       
       return toISODateInEST(annualDate);
@@ -296,18 +296,18 @@ function calculateEventDate(todo: Todo): string | null {
 }
 
 /**
- * Calculate the next display date for a recurring todo (for types with only displayDate)
+ * Calculate the next display date for a recurring task (for types with only displayDate)
  * Respects day boundary hour for determining "today"
  * 
- * @param todo - The todo item with recurrence settings
+ * @param task - The task item with recurrence settings
  * @param isInitialCreation - True when creating a new recurring task
  * @returns The next display date as ISO string, or null
  */
-function calculateNextDisplayDate(todo: Todo, isInitialCreation: boolean = false): string | null {
+function calculateNextDisplayDate(task: Task, isInitialCreation: boolean = false): string | null {
   // Use getTodayForRecurrence() which respects day boundary hour
   const today = getTodayForRecurrence();
 
-  switch (todo.recurrenceType) {
+  switch (task.recurrenceType) {
     case 'daily':
       if (isInitialCreation) {
         // On initial creation, display today
@@ -317,18 +317,18 @@ function calculateNextDisplayDate(todo: Todo, isInitialCreation: boolean = false
       return toISODateInEST(addDays(today, 1));
 
     case 'every x days':
-      if (!todo.recurrenceInterval) return null;
+      if (!task.recurrenceInterval) return null;
       if (isInitialCreation) {
         // On initial creation, display today
         return toISODateInEST(today);
       }
       // After completion, next occurrence is X days from today
-      return toISODateInEST(addDays(today, todo.recurrenceInterval));
+      return toISODateInEST(addDays(today, task.recurrenceInterval));
 
     case 'weekly':
-      if (todo.recurrenceDayOfWeek === null || todo.recurrenceDayOfWeek === undefined) return null;
+      if (task.recurrenceDayOfWeek === null || task.recurrenceDayOfWeek === undefined) return null;
       // Convert from our format (1=Mon, 7=Sun) to JS format (0=Sun, 1=Mon)
-      const dayOfWeek = toJSDay(todo.recurrenceDayOfWeek);
+      const dayOfWeek = toJSDay(task.recurrenceDayOfWeek);
       
       if (isInitialCreation) {
         // On initial creation, find next occurrence of target weekday (not today)
@@ -349,9 +349,9 @@ function calculateNextDisplayDate(todo: Todo, isInitialCreation: boolean = false
       }
 
     case 'biweekly':
-      if (todo.recurrenceDayOfWeek === null || todo.recurrenceDayOfWeek === undefined) return null;
+      if (task.recurrenceDayOfWeek === null || task.recurrenceDayOfWeek === undefined) return null;
       // Convert from our format (1=Mon, 7=Sun) to JS format (0=Sun, 1=Mon)
-      const biweeklyDayOfWeek = toJSDay(todo.recurrenceDayOfWeek);
+      const biweeklyDayOfWeek = toJSDay(task.recurrenceDayOfWeek);
       
       if (isInitialCreation) {
         // On initial creation, find next occurrence of target weekday
@@ -361,9 +361,9 @@ function calculateNextDisplayDate(todo: Todo, isInitialCreation: boolean = false
       
       // After completion, maintain 14-day cycle from displayDate anchor
       // Add 14 days repeatedly until we get a future date
-      if (!todo.displayDate) return null;
+      if (!task.displayDate) return null;
       
-      let nextDate = parseInEST(todo.displayDate);
+      let nextDate = parseInEST(task.displayDate);
       do {
         nextDate = addDays(nextDate, 14);
       } while (nextDate <= today);
@@ -379,8 +379,8 @@ function calculateNextDisplayDate(todo: Todo, isInitialCreation: boolean = false
  * Legacy function for backward compatibility
  * @deprecated Use calculateNextRecurrence instead
  */
-export function calculateNextDueDate(todo: Todo): string | null {
-  const result = calculateNextRecurrence(todo);
+export function calculateNextDueDate(task: Task): string | null {
+  const result = calculateNextRecurrence(task);
   // Return whichever date is set (displayDate for most types, dueDate for event types)
   return result.displayDate || result.dueDate;
 }

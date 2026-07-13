@@ -142,7 +142,7 @@ hr {
 }
 
 @import "./page-login.css";
-@import "./page-todo.css";
+@import "./page-task.css";
 @import "./page-practice.css";
 @import "./settings.css";
 @import "./charts.css";

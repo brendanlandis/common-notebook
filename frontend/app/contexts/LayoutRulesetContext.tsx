@@ -12,7 +12,7 @@ interface LayoutRulesetContextType {
 
 const LayoutRulesetContext = createContext<LayoutRulesetContextType | undefined>(undefined);
 
-const STORAGE_KEY = 'todo-layout-ruleset-id';
+const STORAGE_KEY = 'task-layout-ruleset-id';
 const DEFAULT_RULESET_ID = 'good-morning';
 const LAYOUT_EXPIRY_MS = 5 * 60 * 1000; // 5 minutes in milliseconds
 

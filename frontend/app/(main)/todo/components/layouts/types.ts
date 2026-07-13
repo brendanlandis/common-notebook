@@ -1,10 +1,10 @@
-import type { Todo, Project } from "@/app/types/index";
+import type { Task, Project } from "@/app/types/index";
 import type { TransformedLayout } from "@/app/lib/layoutTransformers";
 
 export interface LayoutRendererProps {
   transformedData: TransformedLayout;
   onComplete: (documentId: string) => void;
-  onEdit: (todo: Todo) => void;
+  onEdit: (task: Task) => void;
   onDelete: (documentId: string) => void;
   onWorkSession: (documentId: string) => void;
   onRemoveWorkSession: (originalDocumentId: string, date: string) => void;

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { Project, World, TodoCategory } from "@/app/types/index";
+import type { Project, World, TaskCategory } from "@/app/types/index";
 
 interface ProjectSelectorProps {
   value: string | null;
@@ -58,7 +58,7 @@ export default function ProjectSelector({
   });
 
   // Define all categories in order
-  const categories: TodoCategory[] = [
+  const categories: TaskCategory[] = [
     'home chores',
     'studio chores',
     'band chores',

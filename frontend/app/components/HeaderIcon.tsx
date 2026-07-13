@@ -18,7 +18,7 @@ export default function HeaderIcon() {
     return <MetronomeIcon {...iconProps} />;
   }
 
-  // Todo pages (index + per-world / per-project routes)
+  // Task pages (index + per-world / per-project routes)
   if (pathname.startsWith('/todo')) {
     return <BroomIcon {...iconProps} />;
   }

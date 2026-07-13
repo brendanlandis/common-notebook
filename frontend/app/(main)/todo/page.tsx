@@ -5,21 +5,21 @@ import LayoutRenderer from "./components/LayoutRenderer";
 import RecentStats from "./components/RecentStats";
 import {
   transformLayout,
-  type RawTodoData,
+  type RawTaskData,
 } from "@/app/lib/layoutTransformers";
 import { getPresetById, getDefaultPreset } from "@/app/lib/layoutPresets";
 import { useLayoutRuleset } from "@/app/contexts/LayoutRulesetContext";
 import FaviconManager from "@/app/components/FaviconManager";
-import { useTodoData } from "./contexts/TodoDataContext";
+import { useTaskData } from "./contexts/TaskDataContext";
 
-export default function TodoPage() {
+export default function TaskPage() {
   const {
     grouped,
     loading,
     error,
-    completedTodos,
-    upcomingTodos,
-    longTodosWithSessions,
+    completedTasks,
+    upcomingTasks,
+    longTasksWithSessions,
     recentStats,
     statsLoading,
     recentStats30Days,
@@ -31,14 +31,14 @@ export default function TodoPage() {
     onRemoveWorkSession,
     onSkipRecurring,
     onEditProject,
-  } = useTodoData();
+  } = useTaskData();
   const { selectedRulesetId } = useLayoutRuleset();
 
   // Transform layout using selected ruleset
   const transformedData = useMemo(() => {
     const ruleset = getPresetById(selectedRulesetId) || getDefaultPreset();
     const useUnfilteredRecurring = selectedRulesetId === "recurring";
-    const rawData: RawTodoData = {
+    const rawData: RawTaskData = {
       projects: grouped.projects,
       categoryGroups: grouped.categoryGroups,
       incidentals: grouped.incidentals,
@@ -51,23 +51,23 @@ export default function TodoPage() {
       recurringIncidentals: useUnfilteredRecurring
         ? grouped.allRecurringIncidentals
         : grouped.recurringIncidentals,
-      completedTodos:
+      completedTasks:
         selectedRulesetId === "done" || selectedRulesetId === "invoicing"
-          ? completedTodos
+          ? completedTasks
           : undefined,
-      upcomingTodos: selectedRulesetId === "done" ? upcomingTodos : undefined,
-      longTodosWithSessions:
+      upcomingTasks: selectedRulesetId === "done" ? upcomingTasks : undefined,
+      longTasksWithSessions:
         selectedRulesetId === "done" || selectedRulesetId === "invoicing"
-          ? longTodosWithSessions
+          ? longTasksWithSessions
           : undefined,
     };
     return transformLayout(rawData, ruleset);
   }, [
     selectedRulesetId,
     grouped,
-    completedTodos,
-    upcomingTodos,
-    longTodosWithSessions,
+    completedTasks,
+    upcomingTasks,
+    longTasksWithSessions,
   ]);
 
   const ruleset = getPresetById(selectedRulesetId) || getDefaultPreset();
@@ -75,7 +75,7 @@ export default function TodoPage() {
 
   if (loading) {
     return (
-      <div id="container-todo" className={layoutClass} suppressHydrationWarning>
+      <div id="container-task" className={layoutClass} suppressHydrationWarning>
         <p>loading...</p>
       </div>
     );
@@ -83,27 +83,27 @@ export default function TodoPage() {
 
   if (error) {
     return (
-      <div id="container-todo" className={layoutClass} suppressHydrationWarning>
+      <div id="container-task" className={layoutClass} suppressHydrationWarning>
         <p>error: {error}</p>
       </div>
     );
   }
 
-  const hasAnyTodos =
+  const hasAnyTasks =
     grouped.projects.length > 0 ||
     grouped.categoryGroups.length > 0 ||
     grouped.incidentals.length > 0;
-  const hasRecurringTodos =
+  const hasRecurringTasks =
     grouped.recurringProjects.length > 0 ||
     grouped.recurringCategoryGroups.length > 0 ||
     grouped.recurringIncidentals.length > 0;
-  const hasCompletedTodos = completedTodos.length > 0;
+  const hasCompletedTasks = completedTasks.length > 0;
 
   return (
     <>
       <FaviconManager type="broom" />
-      <div id="container-todo" className={layoutClass} suppressHydrationWarning>
-        {!hasAnyTodos && !hasRecurringTodos && !hasCompletedTodos ? (
+      <div id="container-task" className={layoutClass} suppressHydrationWarning>
+        {!hasAnyTasks && !hasRecurringTasks && !hasCompletedTasks ? (
           <p>nothin' to do, nowhere to be</p>
         ) : (
           <LayoutRenderer
@@ -120,7 +120,7 @@ export default function TodoPage() {
             recentStatsSection={
               selectedRulesetId === "done" &&
               (recentStats.length > 0 || recentStats30Days.length > 0) ? (
-                <div className="todo-section recent-stats-section">
+                <div className="task-section recent-stats-section">
                   <h3>recently</h3>
                   <div>
                     <RecentStats

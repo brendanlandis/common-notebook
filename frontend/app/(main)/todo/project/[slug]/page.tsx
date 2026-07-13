@@ -4,12 +4,12 @@ import { useMemo } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { PencilIcon } from "@phosphor-icons/react";
-import type { LayoutRuleset, Project, Todo } from "@/app/types/index";
+import type { LayoutRuleset, Project, Task } from "@/app/types/index";
 import { transformLayout } from "@/app/lib/layoutTransformers";
-import TodoSections from "../../components/TodoSections";
+import TaskSections from "../../components/TaskSections";
 import FaviconManager from "@/app/components/FaviconManager";
-import { useTodoData } from "../../contexts/TodoDataContext";
-import { buildRawTodoData } from "../../utils/buildRawTodoData";
+import { useTaskData } from "../../contexts/TaskDataContext";
+import { buildRawTaskData } from "../../utils/buildRawTaskData";
 
 export default function ProjectPage() {
   const params = useParams<{ slug: string }>();
@@ -26,12 +26,12 @@ export default function ProjectPage() {
     onRemoveWorkSession,
     onSkipRecurring,
     onEditProject,
-  } = useTodoData();
+  } = useTaskData();
 
   // Resolve the project by slug first, falling back to documentId so any older
   // documentId-based links keep working. Metadata rides along on the loaded
-  // todos' populated `project` relation (empty projects won't resolve — a v1
-  // limitation, reachable only by clicking a project that has todos).
+  // tasks' populated `project` relation (empty projects won't resolve — a v1
+  // limitation, reachable only by clicking a project that has tasks).
   const project: Project | null = useMemo(() => {
     const all = [
       ...grouped.projects,
@@ -43,9 +43,9 @@ export default function ProjectPage() {
 
   const documentId = project?.documentId;
 
-  // Reuse the engine to filter/sort just this project's todos (recurring +
+  // Reuse the engine to filter/sort just this project's tasks (recurring +
   // non-recurring merged), honoring the same visibility rules as everywhere.
-  const projectTodos: Todo[] = useMemo(() => {
+  const projectTasks: Task[] = useMemo(() => {
     if (!documentId) return [];
     const ruleset: LayoutRuleset = {
       id: "project-view",
@@ -58,16 +58,16 @@ export default function ProjectPage() {
       sortBy: "creationDate",
       groupBy: "merged",
     };
-    const transformed = transformLayout(buildRawTodoData(grouped), ruleset);
+    const transformed = transformLayout(buildRawTaskData(grouped), ruleset);
     const section = (transformed.allSections || []).find(
       (s) => "documentId" in s && s.documentId === documentId
     );
-    return section && "documentId" in section ? section.todos || [] : [];
+    return section && "documentId" in section ? section.tasks || [] : [];
   }, [grouped, documentId, project?.title]);
 
   if (loading) {
     return (
-      <div id="container-todo" className="layout-project-view" suppressHydrationWarning>
+      <div id="container-task" className="layout-project-view" suppressHydrationWarning>
         <p>loading...</p>
       </div>
     );
@@ -75,7 +75,7 @@ export default function ProjectPage() {
 
   if (error) {
     return (
-      <div id="container-todo" className="layout-project-view" suppressHydrationWarning>
+      <div id="container-task" className="layout-project-view" suppressHydrationWarning>
         <p>error: {error}</p>
       </div>
     );
@@ -83,10 +83,10 @@ export default function ProjectPage() {
 
   if (!project) {
     return (
-      <div id="container-todo" className="layout-project-view" suppressHydrationWarning>
+      <div id="container-task" className="layout-project-view" suppressHydrationWarning>
         <p>
-          project not found, or it has no active todos.{" "}
-          <Link href="/todo">back to todo</Link>
+          project not found, or it has no active tasks.{" "}
+          <Link href="/todo">back to to do</Link>
         </p>
       </div>
     );
@@ -95,7 +95,7 @@ export default function ProjectPage() {
   return (
     <>
       <FaviconManager type="broom" />
-      <div id="container-todo" className="layout-project-view" suppressHydrationWarning>
+      <div id="container-task" className="layout-project-view" suppressHydrationWarning>
         <div className="project-view-header">
           <h1>
             {project.title}
@@ -114,9 +114,9 @@ export default function ProjectPage() {
           )}
         </div>
 
-        {projectTodos.length > 0 ? (
-          <TodoSections
-            sections={[{ title: "all todos", todos: projectTodos }]}
+        {projectTasks.length > 0 ? (
+          <TaskSections
+            sections={[{ title: "all tasks", tasks: projectTasks }]}
             onComplete={onComplete}
             onEdit={onEdit}
             onDelete={onDelete}

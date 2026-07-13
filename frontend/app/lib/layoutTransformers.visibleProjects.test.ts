@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { transformLayout } from './layoutTransformers';
-import type { Todo, Project, LayoutRuleset } from '@/app/types/index';
+import type { Task, Project, LayoutRuleset } from '@/app/types/index';
 import * as dateUtils from './dateUtils';
 
 // Mock date utilities (mirrors layoutTransformers.priority.test.ts)
@@ -35,10 +35,10 @@ function createProjectMeta(overrides: Partial<Project>): Project {
   };
 }
 
-function createTodo(overrides: Partial<Todo>): Todo {
+function createTask(overrides: Partial<Task>): Task {
   return {
     id: 1,
-    documentId: 'todo-id',
+    documentId: 'task-id',
     title: 'Test task',
     description: [],
     completed: false,
@@ -89,13 +89,13 @@ const projectRuleset: LayoutRuleset = { ...baseRuleset, visibleProjects: ['targe
 function dataWithBothProjects() {
   return {
     projects: [
-      { ...targetMeta, todos: [createTodo({ documentId: 't1', title: 'Target todo', project: targetMeta })] },
-      { ...otherMeta, todos: [createTodo({ documentId: 't2', title: 'Other todo', project: otherMeta })] },
+      { ...targetMeta, tasks: [createTask({ documentId: 't1', title: 'Target task', project: targetMeta })] },
+      { ...otherMeta, tasks: [createTask({ documentId: 't2', title: 'Other task', project: otherMeta })] },
     ],
     categoryGroups: [
-      { title: 'home chores', todos: [createTodo({ documentId: 'c1', category: 'home chores' })] },
+      { title: 'home chores', tasks: [createTask({ documentId: 'c1', category: 'home chores' })] },
     ],
-    incidentals: [createTodo({ documentId: 'i1', title: 'Loose end' })],
+    incidentals: [createTask({ documentId: 'i1', title: 'Loose end' })],
     recurringProjects: [],
     recurringCategoryGroups: [],
     recurringIncidentals: [],
@@ -121,9 +121,9 @@ describe('Layout Transformer - visibleProjects filter (per-project view)', () =>
     const targetSection = result.allSections!.find(
       (s) => 'documentId' in s && s.documentId === 'target'
     ) as Project;
-    expect(targetSection.todos!.map((t) => t.documentId)).toEqual(['t1']);
+    expect(targetSection.tasks!.map((t) => t.documentId)).toEqual(['t1']);
 
-    // Project-less todos (categories + incidentals) have no project.documentId,
+    // Project-less tasks (categories + incidentals) have no project.documentId,
     // so the guard removes them.
     expect(result.incidentals).toBeUndefined();
   });

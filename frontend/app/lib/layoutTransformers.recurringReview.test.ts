@@ -1,10 +1,10 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { transformLayout } from './layoutTransformers';
-import type { RawTodoData } from './layoutTransformers';
-import type { LayoutRuleset, Todo, Project, RecurrenceType } from '@/app/types/index';
+import type { RawTaskData } from './layoutTransformers';
+import type { LayoutRuleset, Task, Project, RecurrenceType } from '@/app/types/index';
 
-// Helper to create minimal todo for testing
-function createTodo(overrides: Partial<Todo>): Todo {
+// Helper to create minimal task for testing
+function createTask(overrides: Partial<Task>): Task {
   return {
     id: 1,
     documentId: 'test-1',
@@ -51,7 +51,7 @@ function createProject(overrides: Partial<Project>): Project {
     createdAt: '2024-01-01T00:00:00Z',
     updatedAt: '2024-01-01T00:00:00Z',
     publishedAt: '2024-01-01T00:00:00Z',
-    todos: [],
+    tasks: [],
     ...overrides,
   };
 }
@@ -73,8 +73,8 @@ describe('layoutTransformers - recurring-review', () => {
   });
 
   describe('basic functionality', () => {
-    it('should return empty structure when there are no recurring todos', () => {
-      const rawData: RawTodoData = {
+    it('should return empty structure when there are no recurring tasks', () => {
+      const rawData: RawTaskData = {
         projects: [],
         categoryGroups: [],
         incidentals: [],
@@ -89,17 +89,17 @@ describe('layoutTransformers - recurring-review', () => {
       expect(result.recurringReviewSections?.size).toBe(0);
     });
 
-    it('should group todos by recurrence type', () => {
-      const dailyTodo = createTodo({
-        documentId: 'todo-1',
+    it('should group tasks by recurrence type', () => {
+      const dailyTask = createTask({
+        documentId: 'task-1',
         title: 'Daily task',
         isRecurring: true,
         recurrenceType: 'daily',
         completed: false,
       });
 
-      const weeklyTodo = createTodo({
-        documentId: 'todo-2',
+      const weeklyTask = createTask({
+        documentId: 'task-2',
         title: 'Weekly task',
         isRecurring: true,
         recurrenceType: 'weekly',
@@ -107,13 +107,13 @@ describe('layoutTransformers - recurring-review', () => {
         completed: false,
       });
 
-      const rawData: RawTodoData = {
+      const rawData: RawTaskData = {
         projects: [],
         categoryGroups: [],
         incidentals: [],
         recurringProjects: [],
         recurringCategoryGroups: [],
-        recurringIncidentals: [dailyTodo, weeklyTodo],
+        recurringIncidentals: [dailyTask, weeklyTask],
       };
 
       const result = transformLayout(rawData, recurringReviewRuleset);
@@ -126,17 +126,17 @@ describe('layoutTransformers - recurring-review', () => {
       expect(result.recurringReviewIncidentals?.get('weekly')?.length).toBe(1);
     });
 
-    it('should exclude completed recurring todos', () => {
-      const incompleteTodo = createTodo({
-        documentId: 'todo-1',
+    it('should exclude completed recurring tasks', () => {
+      const incompleteTask = createTask({
+        documentId: 'task-1',
         title: 'Incomplete task',
         isRecurring: true,
         recurrenceType: 'daily',
         completed: false,
       });
 
-      const completedTodo = createTodo({
-        documentId: 'todo-2',
+      const completedTask = createTask({
+        documentId: 'task-2',
         title: 'Completed task',
         isRecurring: true,
         recurrenceType: 'daily',
@@ -144,32 +144,32 @@ describe('layoutTransformers - recurring-review', () => {
         completedAt: '2024-01-01T12:00:00Z',
       });
 
-      const rawData: RawTodoData = {
+      const rawData: RawTaskData = {
         projects: [],
         categoryGroups: [],
         incidentals: [],
         recurringProjects: [],
         recurringCategoryGroups: [],
-        recurringIncidentals: [incompleteTodo, completedTodo],
+        recurringIncidentals: [incompleteTask, completedTask],
       };
 
       const result = transformLayout(rawData, recurringReviewRuleset);
 
       const dailyIncidentals = result.recurringReviewIncidentals?.get('daily');
       expect(dailyIncidentals?.length).toBe(1);
-      expect(dailyIncidentals?.[0].documentId).toBe('todo-1');
+      expect(dailyIncidentals?.[0].documentId).toBe('task-1');
     });
   });
 
   describe('organization within recurrence types', () => {
-    it('should organize todos by project, then category, then incidentals', () => {
+    it('should organize tasks by project, then category, then incidentals', () => {
       const project = createProject({
         documentId: 'project-1',
         title: 'Test Project',
       });
 
-      const projectTodo = createTodo({
-        documentId: 'todo-1',
+      const projectTask = createTask({
+        documentId: 'task-1',
         title: 'Project task',
         isRecurring: true,
         recurrenceType: 'daily',
@@ -177,8 +177,8 @@ describe('layoutTransformers - recurring-review', () => {
         project: project,
       });
 
-      const categoryTodo = createTodo({
-        documentId: 'todo-2',
+      const categoryTask = createTask({
+        documentId: 'task-2',
         title: 'Category task',
         isRecurring: true,
         recurrenceType: 'daily',
@@ -186,26 +186,26 @@ describe('layoutTransformers - recurring-review', () => {
         category: 'home chores',
       });
 
-      const incidentalTodo = createTodo({
-        documentId: 'todo-3',
+      const incidentalTask = createTask({
+        documentId: 'task-3',
         title: 'Incidental task',
         isRecurring: true,
         recurrenceType: 'daily',
         completed: false,
       });
 
-      const rawData: RawTodoData = {
+      const rawData: RawTaskData = {
         projects: [],
         categoryGroups: [],
         incidentals: [],
-        recurringProjects: [{ ...project, todos: [projectTodo] }],
+        recurringProjects: [{ ...project, tasks: [projectTask] }],
         recurringCategoryGroups: [
           {
             title: 'home chores',
-            todos: [categoryTodo],
+            tasks: [categoryTask],
           },
         ],
-        recurringIncidentals: [incidentalTodo],
+        recurringIncidentals: [incidentalTask],
       };
 
       const result = transformLayout(rawData, recurringReviewRuleset);
@@ -224,9 +224,9 @@ describe('layoutTransformers - recurring-review', () => {
       expect((dailySections![1] as any).title).toBe('home chores');
     });
 
-    it('should sort todos alphabetically within each group', () => {
-      const todo1 = createTodo({
-        documentId: 'todo-1',
+    it('should sort tasks alphabetically within each group', () => {
+      const task1 = createTask({
+        documentId: 'task-1',
         title: 'Zebra task',
         isRecurring: true,
         recurrenceType: 'daily',
@@ -234,8 +234,8 @@ describe('layoutTransformers - recurring-review', () => {
         category: 'home chores',
       });
 
-      const todo2 = createTodo({
-        documentId: 'todo-2',
+      const task2 = createTask({
+        documentId: 'task-2',
         title: 'Apple task',
         isRecurring: true,
         recurrenceType: 'daily',
@@ -243,8 +243,8 @@ describe('layoutTransformers - recurring-review', () => {
         category: 'home chores',
       });
 
-      const todo3 = createTodo({
-        documentId: 'todo-3',
+      const task3 = createTask({
+        documentId: 'task-3',
         title: 'Banana task',
         isRecurring: true,
         recurrenceType: 'daily',
@@ -252,7 +252,7 @@ describe('layoutTransformers - recurring-review', () => {
         category: 'home chores',
       });
 
-      const rawData: RawTodoData = {
+      const rawData: RawTaskData = {
         projects: [],
         categoryGroups: [],
         incidentals: [],
@@ -260,7 +260,7 @@ describe('layoutTransformers - recurring-review', () => {
         recurringCategoryGroups: [
           {
             title: 'home chores',
-            todos: [todo1, todo2, todo3],
+            tasks: [task1, task2, task3],
           },
         ],
         recurringIncidentals: [],
@@ -269,16 +269,16 @@ describe('layoutTransformers - recurring-review', () => {
       const result = transformLayout(rawData, recurringReviewRuleset);
 
       const dailySections = result.recurringReviewSections?.get('daily');
-      const choresTodos = (dailySections![0] as any).todos;
+      const choresTasks = (dailySections![0] as any).tasks;
 
-      expect(choresTodos[0].title).toBe('Apple task');
-      expect(choresTodos[1].title).toBe('Banana task');
-      expect(choresTodos[2].title).toBe('Zebra task');
+      expect(choresTasks[0].title).toBe('Apple task');
+      expect(choresTasks[1].title).toBe('Banana task');
+      expect(choresTasks[2].title).toBe('Zebra task');
     });
   });
 
   describe('recurrence type coverage', () => {
-    const recurrenceTypes: Array<{ type: RecurrenceType; extraFields?: Partial<Todo>; expectedKey?: RecurrenceType | "monthly" }> = [
+    const recurrenceTypes: Array<{ type: RecurrenceType; extraFields?: Partial<Task>; expectedKey?: RecurrenceType | "monthly" }> = [
       { type: 'daily' },
       { type: 'every x days', extraFields: { recurrenceInterval: 3 } },
       { type: 'weekly', extraFields: { recurrenceDayOfWeek: 1 } },
@@ -301,8 +301,8 @@ describe('layoutTransformers - recurring-review', () => {
 
     recurrenceTypes.forEach(({ type, extraFields, expectedKey }) => {
       it(`should handle ${type} recurrence type`, () => {
-        const todo = createTodo({
-          documentId: 'todo-1',
+        const task = createTask({
+          documentId: 'task-1',
           title: `${type} task`,
           isRecurring: true,
           recurrenceType: type,
@@ -310,13 +310,13 @@ describe('layoutTransformers - recurring-review', () => {
           ...extraFields,
         });
 
-        const rawData: RawTodoData = {
+        const rawData: RawTaskData = {
           projects: [],
           categoryGroups: [],
           incidentals: [],
           recurringProjects: [],
           recurringCategoryGroups: [],
-          recurringIncidentals: [todo],
+          recurringIncidentals: [task],
         };
 
         const result = transformLayout(rawData, recurringReviewRuleset);
@@ -325,12 +325,12 @@ describe('layoutTransformers - recurring-review', () => {
         expect(result.recurringReviewIncidentals?.has(keyToCheck)).toBe(true);
         const incidentals = result.recurringReviewIncidentals?.get(keyToCheck);
         expect(incidentals?.length).toBeGreaterThanOrEqual(1);
-        expect(incidentals?.some(t => t.documentId === 'todo-1')).toBe(true);
+        expect(incidentals?.some(t => t.documentId === 'task-1')).toBe(true);
       });
     });
   });
 
-  describe('multiple todos per recurrence type', () => {
+  describe('multiple tasks per recurrence type', () => {
     it('should handle multiple projects with the same recurrence type', () => {
       const project1 = createProject({
         documentId: 'project-1',
@@ -342,8 +342,8 @@ describe('layoutTransformers - recurring-review', () => {
         title: 'Beta Project',
       });
 
-      const todo1 = createTodo({
-        documentId: 'todo-1',
+      const task1 = createTask({
+        documentId: 'task-1',
         title: 'Task 1',
         isRecurring: true,
         recurrenceType: 'daily',
@@ -351,8 +351,8 @@ describe('layoutTransformers - recurring-review', () => {
         project: project1,
       });
 
-      const todo2 = createTodo({
-        documentId: 'todo-2',
+      const task2 = createTask({
+        documentId: 'task-2',
         title: 'Task 2',
         isRecurring: true,
         recurrenceType: 'daily',
@@ -360,13 +360,13 @@ describe('layoutTransformers - recurring-review', () => {
         project: project2,
       });
 
-      const rawData: RawTodoData = {
+      const rawData: RawTaskData = {
         projects: [],
         categoryGroups: [],
         incidentals: [],
         recurringProjects: [
-          { ...project1, todos: [todo1] },
-          { ...project2, todos: [todo2] },
+          { ...project1, tasks: [task1] },
+          { ...project2, tasks: [task2] },
         ],
         recurringCategoryGroups: [],
         recurringIncidentals: [],
@@ -383,8 +383,8 @@ describe('layoutTransformers - recurring-review', () => {
     });
 
     it('should handle multiple categories with the same recurrence type', () => {
-      const todo1 = createTodo({
-        documentId: 'todo-1',
+      const task1 = createTask({
+        documentId: 'task-1',
         title: 'Task 1',
         isRecurring: true,
         recurrenceType: 'weekly',
@@ -393,8 +393,8 @@ describe('layoutTransformers - recurring-review', () => {
         category: 'home chores',
       });
 
-      const todo2 = createTodo({
-        documentId: 'todo-2',
+      const task2 = createTask({
+        documentId: 'task-2',
         title: 'Task 2',
         isRecurring: true,
         recurrenceType: 'weekly',
@@ -403,14 +403,14 @@ describe('layoutTransformers - recurring-review', () => {
         category: 'studio chores',
       });
 
-      const rawData: RawTodoData = {
+      const rawData: RawTaskData = {
         projects: [],
         categoryGroups: [],
         incidentals: [],
         recurringProjects: [],
         recurringCategoryGroups: [
-          { title: 'home chores', todos: [todo1] },
-          { title: 'studio chores', todos: [todo2] },
+          { title: 'home chores', tasks: [task1] },
+          { title: 'studio chores', tasks: [task2] },
         ],
         recurringIncidentals: [],
       };
@@ -433,11 +433,11 @@ describe('layoutTransformers - recurring-review', () => {
         title: 'Empty Project',
       });
 
-      const rawData: RawTodoData = {
+      const rawData: RawTaskData = {
         projects: [],
         categoryGroups: [],
         incidentals: [],
-        recurringProjects: [{ ...project, todos: [] }],
+        recurringProjects: [{ ...project, tasks: [] }],
         recurringCategoryGroups: [],
         recurringIncidentals: [],
       };
@@ -447,14 +447,14 @@ describe('layoutTransformers - recurring-review', () => {
       expect(result.recurringReviewSections?.size).toBe(0);
     });
 
-    it('should handle todos from all sources (projects, categories, incidentals)', () => {
+    it('should handle tasks from all sources (projects, categories, incidentals)', () => {
       const project = createProject({
         documentId: 'project-1',
         title: 'Test Project',
       });
 
-      const projectTodo = createTodo({
-        documentId: 'todo-1',
+      const projectTask = createTask({
+        documentId: 'task-1',
         title: 'Project task',
         isRecurring: true,
         recurrenceType: 'daily',
@@ -462,8 +462,8 @@ describe('layoutTransformers - recurring-review', () => {
         project: project,
       });
 
-      const categoryTodo = createTodo({
-        documentId: 'todo-2',
+      const categoryTask = createTask({
+        documentId: 'task-2',
         title: 'Category task',
         isRecurring: true,
         recurrenceType: 'daily',
@@ -471,21 +471,21 @@ describe('layoutTransformers - recurring-review', () => {
         category: 'home chores',
       });
 
-      const incidentalTodo = createTodo({
-        documentId: 'todo-3',
+      const incidentalTask = createTask({
+        documentId: 'task-3',
         title: 'Incidental task',
         isRecurring: true,
         recurrenceType: 'daily',
         completed: false,
       });
 
-      const rawData: RawTodoData = {
+      const rawData: RawTaskData = {
         projects: [],
         categoryGroups: [],
         incidentals: [],
-        recurringProjects: [{ ...project, todos: [projectTodo] }],
-        recurringCategoryGroups: [{ title: 'home chores', todos: [categoryTodo] }],
-        recurringIncidentals: [incidentalTodo],
+        recurringProjects: [{ ...project, tasks: [projectTask] }],
+        recurringCategoryGroups: [{ title: 'home chores', tasks: [categoryTask] }],
+        recurringIncidentals: [incidentalTask],
       };
 
       const result = transformLayout(rawData, recurringReviewRuleset);
@@ -497,8 +497,8 @@ describe('layoutTransformers - recurring-review', () => {
 
   describe('monthly merge behavior', () => {
     it('should merge monthly date and monthly day into single monthly section', () => {
-      const monthlyDateTodo = createTodo({
-        documentId: 'todo-date',
+      const monthlyDateTask = createTask({
+        documentId: 'task-date',
         title: 'Monthly date task',
         isRecurring: true,
         recurrenceType: 'monthly date',
@@ -506,8 +506,8 @@ describe('layoutTransformers - recurring-review', () => {
         completed: false,
       });
 
-      const monthlyDayTodo = createTodo({
-        documentId: 'todo-day',
+      const monthlyDayTask = createTask({
+        documentId: 'task-day',
         title: 'Monthly day task',
         isRecurring: true,
         recurrenceType: 'monthly day',
@@ -516,13 +516,13 @@ describe('layoutTransformers - recurring-review', () => {
         completed: false,
       });
 
-      const rawData: RawTodoData = {
+      const rawData: RawTaskData = {
         projects: [],
         categoryGroups: [],
         incidentals: [],
         recurringProjects: [],
         recurringCategoryGroups: [],
-        recurringIncidentals: [monthlyDateTodo, monthlyDayTodo],
+        recurringIncidentals: [monthlyDateTask, monthlyDayTask],
       };
 
       const result = transformLayout(rawData, recurringReviewRuleset);
@@ -536,9 +536,9 @@ describe('layoutTransformers - recurring-review', () => {
       expect(monthlyIncidentals?.length).toBe(2);
     });
 
-    it('should order monthly date todos before monthly day todos', () => {
-      const monthlyDateTodo1 = createTodo({
-        documentId: 'todo-date-1',
+    it('should order monthly date tasks before monthly day tasks', () => {
+      const monthlyDateTask1 = createTask({
+        documentId: 'task-date-1',
         title: 'Zebra monthly date',
         isRecurring: true,
         recurrenceType: 'monthly date',
@@ -546,8 +546,8 @@ describe('layoutTransformers - recurring-review', () => {
         completed: false,
       });
 
-      const monthlyDateTodo2 = createTodo({
-        documentId: 'todo-date-2',
+      const monthlyDateTask2 = createTask({
+        documentId: 'task-date-2',
         title: 'Apple monthly date',
         isRecurring: true,
         recurrenceType: 'monthly date',
@@ -555,8 +555,8 @@ describe('layoutTransformers - recurring-review', () => {
         completed: false,
       });
 
-      const monthlyDayTodo1 = createTodo({
-        documentId: 'todo-day-1',
+      const monthlyDayTask1 = createTask({
+        documentId: 'task-day-1',
         title: 'Zebra monthly day',
         isRecurring: true,
         recurrenceType: 'monthly day',
@@ -565,8 +565,8 @@ describe('layoutTransformers - recurring-review', () => {
         completed: false,
       });
 
-      const monthlyDayTodo2 = createTodo({
-        documentId: 'todo-day-2',
+      const monthlyDayTask2 = createTask({
+        documentId: 'task-day-2',
         title: 'Apple monthly day',
         isRecurring: true,
         recurrenceType: 'monthly day',
@@ -575,13 +575,13 @@ describe('layoutTransformers - recurring-review', () => {
         completed: false,
       });
 
-      const rawData: RawTodoData = {
+      const rawData: RawTaskData = {
         projects: [],
         categoryGroups: [],
         incidentals: [],
         recurringProjects: [],
         recurringCategoryGroups: [],
-        recurringIncidentals: [monthlyDayTodo1, monthlyDateTodo1, monthlyDayTodo2, monthlyDateTodo2],
+        recurringIncidentals: [monthlyDayTask1, monthlyDateTask1, monthlyDayTask2, monthlyDateTask2],
       };
 
       const result = transformLayout(rawData, recurringReviewRuleset);
@@ -608,8 +608,8 @@ describe('layoutTransformers - recurring-review', () => {
         title: 'Test Project',
       });
 
-      const monthlyDateTodo = createTodo({
-        documentId: 'todo-date',
+      const monthlyDateTask = createTask({
+        documentId: 'task-date',
         title: 'Zebra date',
         isRecurring: true,
         recurrenceType: 'monthly date',
@@ -618,8 +618,8 @@ describe('layoutTransformers - recurring-review', () => {
         project,
       });
 
-      const monthlyDayTodo = createTodo({
-        documentId: 'todo-day',
+      const monthlyDayTask = createTask({
+        documentId: 'task-day',
         title: 'Apple day',
         isRecurring: true,
         recurrenceType: 'monthly day',
@@ -629,11 +629,11 @@ describe('layoutTransformers - recurring-review', () => {
         project,
       });
 
-      const rawData: RawTodoData = {
+      const rawData: RawTaskData = {
         projects: [],
         categoryGroups: [],
         incidentals: [],
-        recurringProjects: [{ ...project, todos: [monthlyDayTodo, monthlyDateTodo] }],
+        recurringProjects: [{ ...project, tasks: [monthlyDayTask, monthlyDateTask] }],
         recurringCategoryGroups: [],
         recurringIncidentals: [],
       };
@@ -644,20 +644,20 @@ describe('layoutTransformers - recurring-review', () => {
       expect(monthlySections?.length).toBe(1);
 
       const projectSection = monthlySections?.[0] as Project;
-      expect(projectSection.todos?.length).toBe(2);
+      expect(projectSection.tasks?.length).toBe(2);
 
       // Monthly date should come first
-      expect(projectSection.todos?.[0].recurrenceType).toBe('monthly date');
-      expect(projectSection.todos?.[0].title).toBe('Zebra date');
-      expect(projectSection.todos?.[1].recurrenceType).toBe('monthly day');
-      expect(projectSection.todos?.[1].title).toBe('Apple day');
+      expect(projectSection.tasks?.[0].recurrenceType).toBe('monthly date');
+      expect(projectSection.tasks?.[0].title).toBe('Zebra date');
+      expect(projectSection.tasks?.[1].recurrenceType).toBe('monthly day');
+      expect(projectSection.tasks?.[1].title).toBe('Apple day');
     });
   });
 
   describe('every x days sorting', () => {
-    it('should sort every x days todos by interval first, then alphabetically', () => {
-      const todo2Days = createTodo({
-        documentId: 'todo-2',
+    it('should sort every x days tasks by interval first, then alphabetically', () => {
+      const task2Days = createTask({
+        documentId: 'task-2',
         title: 'Zebra task',
         isRecurring: true,
         recurrenceType: 'every x days',
@@ -665,8 +665,8 @@ describe('layoutTransformers - recurring-review', () => {
         completed: false,
       });
 
-      const todo7Days = createTodo({
-        documentId: 'todo-7',
+      const task7Days = createTask({
+        documentId: 'task-7',
         title: 'Apple task',
         isRecurring: true,
         recurrenceType: 'every x days',
@@ -674,8 +674,8 @@ describe('layoutTransformers - recurring-review', () => {
         completed: false,
       });
 
-      const todo2DaysB = createTodo({
-        documentId: 'todo-2b',
+      const task2DaysB = createTask({
+        documentId: 'task-2b',
         title: 'Apple task',
         isRecurring: true,
         recurrenceType: 'every x days',
@@ -683,8 +683,8 @@ describe('layoutTransformers - recurring-review', () => {
         completed: false,
       });
 
-      const todo14Days = createTodo({
-        documentId: 'todo-14',
+      const task14Days = createTask({
+        documentId: 'task-14',
         title: 'Beta task',
         isRecurring: true,
         recurrenceType: 'every x days',
@@ -692,13 +692,13 @@ describe('layoutTransformers - recurring-review', () => {
         completed: false,
       });
 
-      const rawData: RawTodoData = {
+      const rawData: RawTaskData = {
         projects: [],
         categoryGroups: [],
         incidentals: [],
         recurringProjects: [],
         recurringCategoryGroups: [],
-        recurringIncidentals: [todo7Days, todo2Days, todo14Days, todo2DaysB],
+        recurringIncidentals: [task7Days, task2Days, task14Days, task2DaysB],
       };
 
       const result = transformLayout(rawData, recurringReviewRuleset);
@@ -723,8 +723,8 @@ describe('layoutTransformers - recurring-review', () => {
         title: 'Test Project',
       });
 
-      const todo7Days = createTodo({
-        documentId: 'todo-7',
+      const task7Days = createTask({
+        documentId: 'task-7',
         title: 'Seven days',
         isRecurring: true,
         recurrenceType: 'every x days',
@@ -733,8 +733,8 @@ describe('layoutTransformers - recurring-review', () => {
         project,
       });
 
-      const todo2Days = createTodo({
-        documentId: 'todo-2',
+      const task2Days = createTask({
+        documentId: 'task-2',
         title: 'Two days',
         isRecurring: true,
         recurrenceType: 'every x days',
@@ -743,11 +743,11 @@ describe('layoutTransformers - recurring-review', () => {
         project,
       });
 
-      const rawData: RawTodoData = {
+      const rawData: RawTaskData = {
         projects: [],
         categoryGroups: [],
         incidentals: [],
-        recurringProjects: [{ ...project, todos: [todo7Days, todo2Days] }],
+        recurringProjects: [{ ...project, tasks: [task7Days, task2Days] }],
         recurringCategoryGroups: [],
         recurringIncidentals: [],
       };
@@ -758,13 +758,13 @@ describe('layoutTransformers - recurring-review', () => {
       expect(everyXDaysSections?.length).toBe(1);
 
       const projectSection = everyXDaysSections?.[0] as Project;
-      expect(projectSection.todos?.length).toBe(2);
+      expect(projectSection.tasks?.length).toBe(2);
 
       // Should be ordered by interval: 2 days first, then 7 days
-      expect(projectSection.todos?.[0].recurrenceInterval).toBe(2);
-      expect(projectSection.todos?.[0].title).toBe('Two days');
-      expect(projectSection.todos?.[1].recurrenceInterval).toBe(7);
-      expect(projectSection.todos?.[1].title).toBe('Seven days');
+      expect(projectSection.tasks?.[0].recurrenceInterval).toBe(2);
+      expect(projectSection.tasks?.[0].title).toBe('Two days');
+      expect(projectSection.tasks?.[1].recurrenceInterval).toBe(7);
+      expect(projectSection.tasks?.[1].title).toBe('Seven days');
     });
   });
 });

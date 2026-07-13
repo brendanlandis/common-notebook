@@ -1,6 +1,6 @@
 "use client";
 
-import TodoSections from "../TodoSections";
+import TaskSections from "../TaskSections";
 import type { LayoutRendererProps } from "./types";
 
 export default function RecurringSeparateLayout({
@@ -17,7 +17,7 @@ export default function RecurringSeparateLayout({
     <>
       {transformedData.recurringSections &&
         transformedData.recurringSections.length > 0 && (
-          <TodoSections
+          <TaskSections
             sections={transformedData.recurringSections}
             incidentals={transformedData.recurringIncidentals}
             onComplete={onComplete}
@@ -32,7 +32,7 @@ export default function RecurringSeparateLayout({
 
       {transformedData.nonRecurringSections &&
         transformedData.nonRecurringSections.length > 0 && (
-          <TodoSections
+          <TaskSections
             sections={transformedData.nonRecurringSections}
             incidentals={transformedData.nonRecurringIncidentals}
             onComplete={onComplete}

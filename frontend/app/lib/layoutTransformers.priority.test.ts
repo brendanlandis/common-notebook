@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { transformLayout } from './layoutTransformers';
-import type { Todo, Project, LayoutRuleset } from '@/app/types/index';
+import type { Task, Project, LayoutRuleset } from '@/app/types/index';
 import * as dateUtils from './dateUtils';
 
 // Mock date utilities (mirrors layoutTransformers.workSessions.test.ts)
@@ -20,10 +20,10 @@ vi.mock('./timezoneConfig', () => ({
   getDayBoundaryHour: vi.fn(() => 0),
 }));
 
-function createTodo(overrides: Partial<Todo>): Todo {
+function createTask(overrides: Partial<Task>): Task {
   return {
     id: 1,
-    documentId: 'todo-id',
+    documentId: 'task-id',
     title: 'Test task',
     description: [],
     completed: false,
@@ -66,7 +66,7 @@ function createProject(overrides: Partial<Project>): Project {
     createdAt: '2026-01-01T00:00:00.000Z',
     updatedAt: '2026-01-01T00:00:00.000Z',
     publishedAt: '2026-01-01T00:00:00.000Z',
-    todos: [createTodo({ createdAt: '2026-01-10T00:00:00.000Z' })],
+    tasks: [createTask({ createdAt: '2026-01-10T00:00:00.000Z' })],
     ...overrides,
   };
 }

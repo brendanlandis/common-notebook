@@ -1,22 +1,22 @@
-import type { TodoCategory } from "@/app/types/index";
+import type { TaskCategory } from "@/app/types/index";
 
 /**
- * Helper functions to determine form field visibility based on todo category
+ * Helper functions to determine form field visibility based on task category
  * and other form state. Centralizes conditional logic that was previously
- * scattered throughout the TodoForm component.
+ * scattered throughout the TaskForm component.
  */
 
 /**
  * Show tracking URL field only for "in the mail" category
  */
-export function showTrackingUrl(category: TodoCategory | null): boolean {
+export function showTrackingUrl(category: TaskCategory | null): boolean {
   return category === "in the mail";
 }
 
 /**
  * Show purchase URL field for "buy stuff" OR "wishlist" categories
  */
-export function showPurchaseUrl(category: TodoCategory | null): boolean {
+export function showPurchaseUrl(category: TaskCategory | null): boolean {
   return category === "buy stuff" || category === "wishlist";
 }
 
@@ -24,7 +24,7 @@ export function showPurchaseUrl(category: TodoCategory | null): boolean {
  * Show price and wishlist category fields only for "wishlist" category
  */
 export function showPriceAndWishlistCategory(
-  category: TodoCategory | null
+  category: TaskCategory | null
 ): boolean {
   return category === "wishlist";
 }
@@ -32,7 +32,7 @@ export function showPriceAndWishlistCategory(
 /**
  * Show recurring checkbox for all categories except "in the mail", "buy stuff", and "wishlist"
  */
-export function showRecurringCheckbox(category: TodoCategory | null): boolean {
+export function showRecurringCheckbox(category: TaskCategory | null): boolean {
   return (
     category !== "in the mail" &&
     category !== "buy stuff" &&
@@ -42,10 +42,10 @@ export function showRecurringCheckbox(category: TodoCategory | null): boolean {
 
 /**
  * Show soon checkbox for all categories except "in the mail" and "wishlist"
- * and only when the todo is not recurring
+ * and only when the task is not recurring
  */
 export function showSoonCheckbox(
-  category: TodoCategory | null,
+  category: TaskCategory | null,
   isRecurring: boolean
 ): boolean {
   return (
@@ -56,7 +56,7 @@ export function showSoonCheckbox(
 /**
  * Show long checkbox for all categories except "in the mail", "buy stuff", and "wishlist"
  */
-export function showLongCheckbox(category: TodoCategory | null): boolean {
+export function showLongCheckbox(category: TaskCategory | null): boolean {
   return (
     category !== "in the mail" &&
     category !== "buy stuff" &&
@@ -71,7 +71,7 @@ export function showLongCheckbox(category: TodoCategory | null): boolean {
  * - AND not recurring
  */
 export function showDateFields(
-  category: TodoCategory | null,
+  category: TaskCategory | null,
   isRecurring: boolean
 ): boolean {
   return (
@@ -83,10 +83,10 @@ export function showDateFields(
 }
 
 /**
- * Determine if a category allows recurring todos
+ * Determine if a category allows recurring tasks
  * Returns false for "in the mail", "buy stuff", "wishlist", and "errands"
  */
-export function allowsRecurring(category: TodoCategory | null): boolean {
+export function allowsRecurring(category: TaskCategory | null): boolean {
   return (
     category !== "in the mail" &&
     category !== "buy stuff" &&

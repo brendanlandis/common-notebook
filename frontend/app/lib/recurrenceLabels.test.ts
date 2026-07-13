@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { getDayName, getOrdinal, getMonthName, getRecurrencePrefix } from "./recurrenceLabels";
-import type { Todo } from "@/app/types/index";
+import type { Task } from "@/app/types/index";
 
 describe("getDayName", () => {
   it("should return correct day names for 0-6", () => {
@@ -87,291 +87,291 @@ describe("getMonthName", () => {
 });
 
 describe("getRecurrencePrefix", () => {
-  const baseTodo: Partial<Todo> = {
+  const baseTask: Partial<Task> = {
     documentId: "test-123",
-    title: "Test Todo",
+    title: "Test Task",
     completed: false,
     isRecurring: true,
   };
 
   it("should return 'every day' for daily recurrence", () => {
-    const todo = { ...baseTodo, recurrenceType: "daily" } as Todo;
-    expect(getRecurrencePrefix(todo)).toBe("every day");
+    const task = { ...baseTask, recurrenceType: "daily" } as Task;
+    expect(getRecurrencePrefix(task)).toBe("every day");
   });
 
   it("should return 'every X days' for every x days recurrence", () => {
-    const todo = {
-      ...baseTodo,
+    const task = {
+      ...baseTask,
       recurrenceType: "every x days",
       recurrenceInterval: 2,
-    } as Todo;
-    expect(getRecurrencePrefix(todo)).toBe("every 2 days");
+    } as Task;
+    expect(getRecurrencePrefix(task)).toBe("every 2 days");
 
-    const todo14 = {
-      ...baseTodo,
+    const task14 = {
+      ...baseTask,
       recurrenceType: "every x days",
       recurrenceInterval: 14,
-    } as Todo;
-    expect(getRecurrencePrefix(todo14)).toBe("every 14 days");
+    } as Task;
+    expect(getRecurrencePrefix(task14)).toBe("every 14 days");
   });
 
   it("should return 'every [day]' for weekly recurrence", () => {
-    const todo = {
-      ...baseTodo,
+    const task = {
+      ...baseTask,
       recurrenceType: "weekly",
       recurrenceDayOfWeek: 7, // Database uses ISO 8601: 7=Sunday
-    } as Todo;
-    expect(getRecurrencePrefix(todo)).toBe("every sunday");
+    } as Task;
+    expect(getRecurrencePrefix(task)).toBe("every sunday");
 
-    const todoThursday = {
-      ...baseTodo,
+    const taskThursday = {
+      ...baseTask,
       recurrenceType: "weekly",
       recurrenceDayOfWeek: 4, // ISO 8601: 4=Thursday
-    } as Todo;
-    expect(getRecurrencePrefix(todoThursday)).toBe("every thursday");
+    } as Task;
+    expect(getRecurrencePrefix(taskThursday)).toBe("every thursday");
   });
 
   it("should return 'every other [day]' for biweekly recurrence", () => {
-    const todo = {
-      ...baseTodo,
+    const task = {
+      ...baseTask,
       recurrenceType: "biweekly",
       recurrenceDayOfWeek: 1, // Database uses ISO 8601: 1=Monday
-    } as Todo;
-    expect(getRecurrencePrefix(todo)).toBe("every other monday");
+    } as Task;
+    expect(getRecurrencePrefix(task)).toBe("every other monday");
 
-    const todoFriday = {
-      ...baseTodo,
+    const taskFriday = {
+      ...baseTask,
       recurrenceType: "biweekly",
       recurrenceDayOfWeek: 5, // ISO 8601: 5=Friday
-    } as Todo;
-    expect(getRecurrencePrefix(todoFriday)).toBe("every other friday");
+    } as Task;
+    expect(getRecurrencePrefix(taskFriday)).toBe("every other friday");
   });
 
   it("should return 'on the [ordinal]' for monthly date recurrence", () => {
-    const todo = {
-      ...baseTodo,
+    const task = {
+      ...baseTask,
       recurrenceType: "monthly date",
       recurrenceDayOfMonth: 1,
-    } as Todo;
-    expect(getRecurrencePrefix(todo)).toBe("on the 1st");
+    } as Task;
+    expect(getRecurrencePrefix(task)).toBe("on the 1st");
 
-    const todo15 = {
-      ...baseTodo,
+    const task15 = {
+      ...baseTask,
       recurrenceType: "monthly date",
       recurrenceDayOfMonth: 15,
-    } as Todo;
-    expect(getRecurrencePrefix(todo15)).toBe("on the 15th");
+    } as Task;
+    expect(getRecurrencePrefix(task15)).toBe("on the 15th");
   });
 
   it("should return '[ordinal] [day]' for monthly day recurrence", () => {
-    const todo = {
-      ...baseTodo,
+    const task = {
+      ...baseTask,
       recurrenceType: "monthly day",
       recurrenceWeekOfMonth: 2,
       recurrenceDayOfWeekMonthly: 1, // Database uses ISO 8601: 1=Monday
-    } as Todo;
-    expect(getRecurrencePrefix(todo)).toBe("2nd monday");
+    } as Task;
+    expect(getRecurrencePrefix(task)).toBe("2nd monday");
 
-    const todo3rd = {
-      ...baseTodo,
+    const task3rd = {
+      ...baseTask,
       recurrenceType: "monthly day",
       recurrenceWeekOfMonth: 3,
       recurrenceDayOfWeekMonthly: 5, // ISO 8601: 5=Friday
-    } as Todo;
-    expect(getRecurrencePrefix(todo3rd)).toBe("3rd friday");
+    } as Task;
+    expect(getRecurrencePrefix(task3rd)).toBe("3rd friday");
   });
 
   it("should return 'M/D' format for annually recurrence", () => {
-    const todo = {
-      ...baseTodo,
+    const task = {
+      ...baseTask,
       recurrenceType: "annually",
       recurrenceMonth: 7,
       recurrenceDayOfMonth: 15,
-    } as Todo;
-    expect(getRecurrencePrefix(todo)).toBe("7/15");
+    } as Task;
+    expect(getRecurrencePrefix(task)).toBe("7/15");
 
-    const todoJan1 = {
-      ...baseTodo,
+    const taskJan1 = {
+      ...baseTask,
       recurrenceType: "annually",
       recurrenceMonth: 1,
       recurrenceDayOfMonth: 1,
-    } as Todo;
-    expect(getRecurrencePrefix(todoJan1)).toBe("1/1");
+    } as Task;
+    expect(getRecurrencePrefix(taskJan1)).toBe("1/1");
 
-    const todoApr1 = {
-      ...baseTodo,
+    const taskApr1 = {
+      ...baseTask,
       recurrenceType: "annually",
       recurrenceMonth: 4,
       recurrenceDayOfMonth: 1,
-    } as Todo;
-    expect(getRecurrencePrefix(todoApr1)).toBe("4/1");
+    } as Task;
+    expect(getRecurrencePrefix(taskApr1)).toBe("4/1");
   });
 
   it("should return empty string for full moon recurrence (no prefix needed)", () => {
-    const todo = { ...baseTodo, recurrenceType: "full moon" } as Todo;
-    expect(getRecurrencePrefix(todo)).toBe("");
+    const task = { ...baseTask, recurrenceType: "full moon" } as Task;
+    expect(getRecurrencePrefix(task)).toBe("");
   });
 
   it("should return empty string for new moon recurrence (no prefix needed)", () => {
-    const todo = { ...baseTodo, recurrenceType: "new moon" } as Todo;
-    expect(getRecurrencePrefix(todo)).toBe("");
+    const task = { ...baseTask, recurrenceType: "new moon" } as Task;
+    expect(getRecurrencePrefix(task)).toBe("");
   });
 
   it("should return empty string for every season recurrence (no prefix needed)", () => {
-    const todo = { ...baseTodo, recurrenceType: "every season" } as Todo;
-    expect(getRecurrencePrefix(todo)).toBe("");
+    const task = { ...baseTask, recurrenceType: "every season" } as Task;
+    expect(getRecurrencePrefix(task)).toBe("");
   });
 
   it("should return empty string for seasonal recurrences (no prefix needed)", () => {
-    const todoWinter = { ...baseTodo, recurrenceType: "winter solstice" } as Todo;
-    expect(getRecurrencePrefix(todoWinter)).toBe("");
+    const taskWinter = { ...baseTask, recurrenceType: "winter solstice" } as Task;
+    expect(getRecurrencePrefix(taskWinter)).toBe("");
 
-    const todoSpring = { ...baseTodo, recurrenceType: "spring equinox" } as Todo;
-    expect(getRecurrencePrefix(todoSpring)).toBe("");
+    const taskSpring = { ...baseTask, recurrenceType: "spring equinox" } as Task;
+    expect(getRecurrencePrefix(taskSpring)).toBe("");
 
-    const todoSummer = { ...baseTodo, recurrenceType: "summer solstice" } as Todo;
-    expect(getRecurrencePrefix(todoSummer)).toBe("");
+    const taskSummer = { ...baseTask, recurrenceType: "summer solstice" } as Task;
+    expect(getRecurrencePrefix(taskSummer)).toBe("");
 
-    const todoAutumn = { ...baseTodo, recurrenceType: "autumn equinox" } as Todo;
-    expect(getRecurrencePrefix(todoAutumn)).toBe("");
+    const taskAutumn = { ...baseTask, recurrenceType: "autumn equinox" } as Task;
+    expect(getRecurrencePrefix(taskAutumn)).toBe("");
   });
 
   it("should return fallback labels when required fields are null", () => {
-    const todoWeekly = {
-      ...baseTodo,
+    const taskWeekly = {
+      ...baseTask,
       recurrenceType: "weekly",
       recurrenceDayOfWeek: null,
-    } as Todo;
-    expect(getRecurrencePrefix(todoWeekly)).toBe("weekly");
+    } as Task;
+    expect(getRecurrencePrefix(taskWeekly)).toBe("weekly");
 
-    const todoMonthlyDate = {
-      ...baseTodo,
+    const taskMonthlyDate = {
+      ...baseTask,
       recurrenceType: "monthly date",
       recurrenceDayOfMonth: null,
-    } as Todo;
-    expect(getRecurrencePrefix(todoMonthlyDate)).toBe("monthly");
+    } as Task;
+    expect(getRecurrencePrefix(taskMonthlyDate)).toBe("monthly");
 
-    const todoAnnually = {
-      ...baseTodo,
+    const taskAnnually = {
+      ...baseTask,
       recurrenceType: "annually",
       recurrenceMonth: null,
       recurrenceDayOfMonth: null,
-    } as Todo;
-    expect(getRecurrencePrefix(todoAnnually)).toBe("annually");
+    } as Task;
+    expect(getRecurrencePrefix(taskAnnually)).toBe("annually");
   });
 
   it("should return fallback labels when day of week is invalid", () => {
-    const todoWeeklyInvalid = {
-      ...baseTodo,
+    const taskWeeklyInvalid = {
+      ...baseTask,
       recurrenceType: "weekly",
       recurrenceDayOfWeek: 8, // Invalid: should be 1-7
-    } as Todo;
-    expect(getRecurrencePrefix(todoWeeklyInvalid)).toBe("weekly");
+    } as Task;
+    expect(getRecurrencePrefix(taskWeeklyInvalid)).toBe("weekly");
 
-    const todoWeeklyZero = {
-      ...baseTodo,
+    const taskWeeklyZero = {
+      ...baseTask,
       recurrenceType: "weekly",
       recurrenceDayOfWeek: 0, // Invalid: should be 1-7 (database uses 1-based)
-    } as Todo;
-    expect(getRecurrencePrefix(todoWeeklyZero)).toBe("weekly");
+    } as Task;
+    expect(getRecurrencePrefix(taskWeeklyZero)).toBe("weekly");
 
-    const todoWeeklyNegative = {
-      ...baseTodo,
+    const taskWeeklyNegative = {
+      ...baseTask,
       recurrenceType: "weekly",
       recurrenceDayOfWeek: -1, // Invalid: should be 1-7
-    } as Todo;
-    expect(getRecurrencePrefix(todoWeeklyNegative)).toBe("weekly");
+    } as Task;
+    expect(getRecurrencePrefix(taskWeeklyNegative)).toBe("weekly");
 
-    const todoWeeklyUndefined = {
-      ...baseTodo,
+    const taskWeeklyUndefined = {
+      ...baseTask,
       recurrenceType: "weekly",
       recurrenceDayOfWeek: undefined,
     } as any;
-    expect(getRecurrencePrefix(todoWeeklyUndefined)).toBe("weekly");
+    expect(getRecurrencePrefix(taskWeeklyUndefined)).toBe("weekly");
   });
 
   it("should return fallback labels for biweekly with invalid day of week", () => {
-    const todoBiweeklyInvalid = {
-      ...baseTodo,
+    const taskBiweeklyInvalid = {
+      ...baseTask,
       recurrenceType: "biweekly",
       recurrenceDayOfWeek: 10,
-    } as Todo;
-    expect(getRecurrencePrefix(todoBiweeklyInvalid)).toBe("biweekly");
+    } as Task;
+    expect(getRecurrencePrefix(taskBiweeklyInvalid)).toBe("biweekly");
   });
 
   it("should return fallback label when every x days interval is invalid", () => {
-    const todoEveryXDaysNull = {
-      ...baseTodo,
+    const taskEveryXDaysNull = {
+      ...baseTask,
       recurrenceType: "every x days",
       recurrenceInterval: null,
-    } as Todo;
-    expect(getRecurrencePrefix(todoEveryXDaysNull)).toBe("every x days");
+    } as Task;
+    expect(getRecurrencePrefix(taskEveryXDaysNull)).toBe("every x days");
 
-    const todoEveryXDaysZero = {
-      ...baseTodo,
+    const taskEveryXDaysZero = {
+      ...baseTask,
       recurrenceType: "every x days",
       recurrenceInterval: 0,
-    } as Todo;
-    expect(getRecurrencePrefix(todoEveryXDaysZero)).toBe("every x days");
+    } as Task;
+    expect(getRecurrencePrefix(taskEveryXDaysZero)).toBe("every x days");
 
-    const todoEveryXDaysNegative = {
-      ...baseTodo,
+    const taskEveryXDaysNegative = {
+      ...baseTask,
       recurrenceType: "every x days",
       recurrenceInterval: -5,
-    } as Todo;
-    expect(getRecurrencePrefix(todoEveryXDaysNegative)).toBe("every x days");
+    } as Task;
+    expect(getRecurrencePrefix(taskEveryXDaysNegative)).toBe("every x days");
   });
 
   it("should return fallback label for monthly date with invalid day", () => {
-    const todoMonthlyDateInvalid = {
-      ...baseTodo,
+    const taskMonthlyDateInvalid = {
+      ...baseTask,
       recurrenceType: "monthly date",
       recurrenceDayOfMonth: 32, // Invalid: should be 1-31
-    } as Todo;
-    expect(getRecurrencePrefix(todoMonthlyDateInvalid)).toBe("monthly");
+    } as Task;
+    expect(getRecurrencePrefix(taskMonthlyDateInvalid)).toBe("monthly");
 
-    const todoMonthlyDateZero = {
-      ...baseTodo,
+    const taskMonthlyDateZero = {
+      ...baseTask,
       recurrenceType: "monthly date",
       recurrenceDayOfMonth: 0,
-    } as Todo;
-    expect(getRecurrencePrefix(todoMonthlyDateZero)).toBe("monthly");
+    } as Task;
+    expect(getRecurrencePrefix(taskMonthlyDateZero)).toBe("monthly");
   });
 
   it("should return fallback label for monthly day with invalid day of week", () => {
-    const todoMonthlyDayInvalid = {
-      ...baseTodo,
+    const taskMonthlyDayInvalid = {
+      ...baseTask,
       recurrenceType: "monthly day",
       recurrenceWeekOfMonth: 2,
       recurrenceDayOfWeekMonthly: 8, // Invalid: should be 1-7
-    } as Todo;
-    expect(getRecurrencePrefix(todoMonthlyDayInvalid)).toBe("monthly");
+    } as Task;
+    expect(getRecurrencePrefix(taskMonthlyDayInvalid)).toBe("monthly");
 
-    const todoMonthlyDayZero = {
-      ...baseTodo,
+    const taskMonthlyDayZero = {
+      ...baseTask,
       recurrenceType: "monthly day",
       recurrenceWeekOfMonth: 2,
       recurrenceDayOfWeekMonthly: 0, // Invalid: should be 1-7 (database uses 1-based)
-    } as Todo;
-    expect(getRecurrencePrefix(todoMonthlyDayZero)).toBe("monthly");
+    } as Task;
+    expect(getRecurrencePrefix(taskMonthlyDayZero)).toBe("monthly");
   });
 
   it("should return fallback label for annually with invalid month", () => {
-    const todoAnnuallyInvalidMonth = {
-      ...baseTodo,
+    const taskAnnuallyInvalidMonth = {
+      ...baseTask,
       recurrenceType: "annually",
       recurrenceMonth: 13, // Invalid: should be 1-12
       recurrenceDayOfMonth: 15,
-    } as Todo;
-    expect(getRecurrencePrefix(todoAnnuallyInvalidMonth)).toBe("annually");
+    } as Task;
+    expect(getRecurrencePrefix(taskAnnuallyInvalidMonth)).toBe("annually");
 
-    const todoAnnuallyZeroMonth = {
-      ...baseTodo,
+    const taskAnnuallyZeroMonth = {
+      ...baseTask,
       recurrenceType: "annually",
       recurrenceMonth: 0,
       recurrenceDayOfMonth: 15,
-    } as Todo;
-    expect(getRecurrencePrefix(todoAnnuallyZeroMonth)).toBe("annually");
+    } as Task;
+    expect(getRecurrencePrefix(taskAnnuallyZeroMonth)).toBe("annually");
   });
 });
 
@@ -379,10 +379,10 @@ describe("getRecurrencePrefix", () => {
 // Bug: Sunday (day 7) was incorrectly displayed as "saturday" due to incorrect conversion formula
 // Fix: Changed from `dayOfWeek - 1` to `dayOfWeek % 7` to correctly map ISO 8601 (1-7) to 0-based (0-6)
 describe("ISO 8601 day-of-week conversion regression tests", () => {
-  const baseTodo = {
+  const baseTask = {
     documentId: "test-doc-id",
     id: 123,
-    title: "Test todo",
+    title: "Test task",
     completed: false,
     displayDate: "2024-01-01",
   };
@@ -401,12 +401,12 @@ describe("ISO 8601 day-of-week conversion regression tests", () => {
       ];
 
       testCases.forEach(({ dayOfWeek, expected }) => {
-        const todo = {
-          ...baseTodo,
+        const task = {
+          ...baseTask,
           recurrenceType: "weekly",
           recurrenceDayOfWeek: dayOfWeek,
-        } as Todo;
-        expect(getRecurrencePrefix(todo)).toBe(expected);
+        } as Task;
+        expect(getRecurrencePrefix(task)).toBe(expected);
       });
     });
   });
@@ -424,12 +424,12 @@ describe("ISO 8601 day-of-week conversion regression tests", () => {
       ];
 
       testCases.forEach(({ dayOfWeek, expected }) => {
-        const todo = {
-          ...baseTodo,
+        const task = {
+          ...baseTask,
           recurrenceType: "biweekly",
           recurrenceDayOfWeek: dayOfWeek,
-        } as Todo;
-        expect(getRecurrencePrefix(todo)).toBe(expected);
+        } as Task;
+        expect(getRecurrencePrefix(task)).toBe(expected);
       });
     });
   });
@@ -447,13 +447,13 @@ describe("ISO 8601 day-of-week conversion regression tests", () => {
       ];
 
       testCases.forEach(({ dayOfWeek, expected }) => {
-        const todo = {
-          ...baseTodo,
+        const task = {
+          ...baseTask,
           recurrenceType: "monthly day",
           recurrenceWeekOfMonth: 1,
           recurrenceDayOfWeekMonthly: dayOfWeek,
-        } as Todo;
-        expect(getRecurrencePrefix(todo)).toBe(expected);
+        } as Task;
+        expect(getRecurrencePrefix(task)).toBe(expected);
       });
     });
   });

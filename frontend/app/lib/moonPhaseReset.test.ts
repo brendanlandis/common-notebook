@@ -40,7 +40,7 @@ describe('runMoonPhaseResetIfDue — autoDeclutter gate', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
     upsertSystemSetting.mockResolvedValue(true);
-    fetchAllPages.mockResolvedValue([]); // no soon todos → performMoonPhaseReset is cheap
+    fetchAllPages.mockResolvedValue([]); // no soon tasks → performMoonPhaseReset is cheap
     demoteTopOfMindProjects.mockResolvedValue(0);
     vi.resetModules();
     mod = await import('./moonPhaseReset');

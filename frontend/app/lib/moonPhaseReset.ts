@@ -16,7 +16,7 @@ interface StrapiRow {
 }
 
 /**
- * Clear the "soon" flag on todos and demote "top of mind" projects.
+ * Clear the "soon" flag on tasks and demote "top of mind" projects.
  *
  * Both filters run **server-side**. The old version fetched `/api/projects` with
  * no pagination at all and filtered `importance === 'top of mind'` in JS, so with
@@ -28,25 +28,25 @@ interface StrapiRow {
  * The caller's own token scopes every read and write to their own rows.
  */
 export async function performMoonPhaseReset(token: string): Promise<{
-  todosUpdated: number;
+  tasksUpdated: number;
   projectsUpdated: number;
 }> {
-  const soonTodos = await fetchAllPages<StrapiRow>(token, '/api/todos?filters[soon][$eq]=true');
+  const soonTasks = await fetchAllPages<StrapiRow>(token, '/api/tasks?filters[soon][$eq]=true');
 
-  let todosUpdated = 0;
-  for (const todo of soonTodos) {
-    const response = await strapiFetch(token, `/api/todos/${todo.documentId}`, {
+  let tasksUpdated = 0;
+  for (const task of soonTasks) {
+    const response = await strapiFetch(token, `/api/tasks/${task.documentId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ data: { soon: false } }),
     });
-    if (response.ok) todosUpdated += 1;
-    else console.error(`Moon-phase reset: failed to update todo ${todo.documentId}`);
+    if (response.ok) tasksUpdated += 1;
+    else console.error(`Moon-phase reset: failed to update task ${task.documentId}`);
   }
 
   const projectsUpdated = await demoteTopOfMindProjects(token);
 
-  return { todosUpdated, projectsUpdated };
+  return { tasksUpdated, projectsUpdated };
 }
 
 /** Record that the reset has run, so it does not run again until the next new moon. */
@@ -60,7 +60,7 @@ export async function updateMoonPhaseResetDate(token: string): Promise<void> {
 /**
  * One reset per user at a time, per process.
  *
- * `GET /api/todos` triggers this, and a page load fires several requests at once.
+ * `GET /api/tasks` triggers this, and a page load fires several requests at once.
  * Without a guard each would read the same stale `moonPhaseLastResetDate` and run
  * the reset concurrently.
  *
@@ -77,11 +77,11 @@ const inFlight = new Map<string, Promise<void>>();
  * first looks race-safe but isn't: two concurrent requests can both read the old
  * date before either writes, so claiming first buys nothing the mutex doesn't
  * already give us — and it costs correctness. A crash mid-reset would leave the
- * date claimed and the todos un-reset until the *next* new moon, roughly 29 days
+ * date claimed and the tasks un-reset until the *next* new moon, roughly 29 days
  * later. Claiming afterwards means a failure simply retries on the next request,
  * which is safe precisely because the reset is idempotent.
  *
- * Never throws: a moon-phase failure must not take down the todo list.
+ * Never throws: a moon-phase failure must not take down the task list.
  */
 export async function runMoonPhaseResetIfDue(token: string, userKey: string): Promise<void> {
   const existing = inFlight.get(userKey);

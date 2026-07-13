@@ -1,6 +1,6 @@
 "use client";
 
-import TodoSections from "../TodoSections";
+import TaskSections from "../TaskSections";
 import type { LayoutRendererProps } from "./types";
 
 export default function GoodMorningLayout({
@@ -19,7 +19,7 @@ export default function GoodMorningLayout({
       (transformedData.topOfMindIncidentals && transformedData.topOfMindIncidentals.length > 0) ? (
         <div className="group-section">
           <h2>top of mind</h2>
-          <TodoSections
+          <TaskSections
             sections={transformedData.topOfMindSections || []}
             incidentals={transformedData.topOfMindIncidentals}
             onComplete={onComplete}
@@ -42,7 +42,7 @@ export default function GoodMorningLayout({
       (transformedData.combinedIncidentals && transformedData.combinedIncidentals.length > 0) ? (
         <div className="group-section">
           <h2>recurring</h2>
-          <TodoSections
+          <TaskSections
             sections={transformedData.combinedSections || []}
             incidentals={transformedData.combinedIncidentals}
             onComplete={onComplete}
