@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { devAuthBypassEnabled } from './app/lib/devAuth';
 
 /**
  * Gate page navigations on the presence of a live session.
@@ -65,6 +66,13 @@ function redirectToLogin(request: NextRequest) {
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  // Local dev bypass: never gate navigation on a session. Data calls still go
+  // through app/api/*, which authenticate as the dev user (see devAuth.ts).
+  // Cannot activate on production.
+  if (devAuthBypassEnabled()) {
+    return NextResponse.next();
+  }
 
   if (PUBLIC_PATHS.includes(pathname)) {
     return NextResponse.next();

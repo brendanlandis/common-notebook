@@ -1,5 +1,6 @@
 import { cookies } from 'next/headers';
 import type { NextRequest, NextResponse } from 'next/server';
+import { devAuthBypassEnabled, getDevCredentials } from './devAuth';
 
 /**
  * Server-side token handling for the Strapi session/refresh flow.
@@ -119,6 +120,61 @@ export async function refreshTokens(refreshToken: string): Promise<Tokens | null
 }
 
 /**
+ * Local dev bypass: an in-process session for the configured dev user, minted
+ * via /auth/local and kept fresh with the same machinery as a real session
+ * (never written to cookies). Reached only when `devAuthBypassEnabled()` is
+ * true, which cannot happen on production — see devAuth.ts.
+ */
+let devTokens: Tokens | null = null;
+let devMintInFlight: Promise<Tokens | null> | null = null;
+
+async function mintDevTokens(): Promise<Tokens | null> {
+  const { identifier, password } = getDevCredentials();
+  try {
+    const response = await fetch(`${STRAPI_API_URL}/api/auth/local`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ identifier, password }),
+      cache: 'no-store',
+    });
+    if (!response.ok) {
+      console.warn(
+        `[dev-auth] Could not log in as "${identifier}" (HTTP ${response.status}). ` +
+          `Is the local backend running and seeded? Try: cd backend && node scripts/seed-dev.js`
+      );
+      return null;
+    }
+    const data = await response.json();
+    if (!data?.jwt || !data?.refreshToken) return null;
+    return { access: data.jwt, refresh: data.refreshToken };
+  } catch (err) {
+    console.warn('[dev-auth] Failed to reach local Strapi for dev login:', err);
+    return null;
+  }
+}
+
+async function getDevAccessToken(): Promise<string | null> {
+  if (devTokens && !isExpiringSoon(devTokens.access)) return devTokens.access;
+
+  if (devTokens?.refresh) {
+    const refreshed = await refreshTokens(devTokens.refresh);
+    if (refreshed) {
+      devTokens = refreshed;
+      return devTokens.access;
+    }
+  }
+
+  // Collapse concurrent mints into a single /auth/local call.
+  if (!devMintInFlight) {
+    devMintInFlight = mintDevTokens().finally(() => {
+      devMintInFlight = null;
+    });
+  }
+  devTokens = await devMintInFlight;
+  return devTokens?.access ?? null;
+}
+
+/**
  * Write tokens to the outgoing response. Best-effort: `cookies()` throws outside
  * a request scope (unit tests), and a failure here only costs an extra refresh
  * on the next request.
@@ -140,6 +196,10 @@ async function persistTokens(tokens: Tokens): Promise<void> {
  * Replaces `req.cookies.get('auth_token')?.value` in every route handler.
  */
 export async function getAccessToken(req: NextRequest): Promise<string | null> {
+  // Local dev: impersonate the configured dev user, ignoring cookies entirely.
+  // Gated so it can never activate on production (see devAuth.ts).
+  if (devAuthBypassEnabled()) return getDevAccessToken();
+
   const access = req.cookies.get(ACCESS_COOKIE)?.value ?? null;
   const refresh = req.cookies.get(REFRESH_COOKIE)?.value ?? null;
 
