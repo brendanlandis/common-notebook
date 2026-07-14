@@ -64,6 +64,11 @@
         "in the mail",
         "buy stuff"
       ]
+    },
+    "worldRef": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::world.world"
     }
   }
 }

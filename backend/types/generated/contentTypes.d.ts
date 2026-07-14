@@ -566,6 +566,7 @@ export interface ApiProjectProject extends Struct.CollectionTypeSchema {
         'stuff',
       ]
     >;
+    worldRef: Schema.Attribute.Relation<'oneToOne', 'api::world.world'>;
   };
 }
 
@@ -676,6 +677,41 @@ export interface ApiTaskTask extends Struct.CollectionTypeSchema {
       Schema.Attribute.Private;
     wishListCategory: Schema.Attribute.String;
     workSessions: Schema.Attribute.JSON;
+  };
+}
+
+export interface ApiWorldWorld extends Struct.CollectionTypeSchema {
+  collectionName: 'worlds';
+  info: {
+    displayName: 'World';
+    pluralName: 'worlds';
+    singularName: 'world';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    includeInCombinedViews: Schema.Attribute.Boolean &
+      Schema.Attribute.DefaultTo<true>;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<'oneToMany', 'api::world.world'> &
+      Schema.Attribute.Private;
+    owner: Schema.Attribute.Relation<
+      'oneToOne',
+      'plugin::users-permissions.user'
+    > &
+      Schema.Attribute.Private;
+    position: Schema.Attribute.Integer;
+    publishedAt: Schema.Attribute.DateTime;
+    slug: Schema.Attribute.String;
+    systemKey: Schema.Attribute.String;
+    title: Schema.Attribute.String & Schema.Attribute.Required;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
   };
 }
 
@@ -1195,6 +1231,7 @@ declare module '@strapi/strapi' {
       'api::project.project': ApiProjectProject;
       'api::system-setting.system-setting': ApiSystemSettingSystemSetting;
       'api::task.task': ApiTaskTask;
+      'api::world.world': ApiWorldWorld;
       'plugin::content-releases.release': PluginContentReleasesRelease;
       'plugin::content-releases.release-action': PluginContentReleasesReleaseAction;
       'plugin::i18n.locale': PluginI18NLocale;
