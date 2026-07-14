@@ -106,48 +106,6 @@ describe('Stats API Route - Work Session Counting', () => {
       expect(projectStat.type).toBe('project');
     });
 
-    it('should count work sessions for category tasks', async () => {
-      setupMockFetch({
-        'filters[completed][$eq]=true': {
-          data: [],
-          meta: { pagination: { page: 1, pageCount: 1 } },
-        },
-        'filters[long][$eq]=true': {
-          data: [
-            {
-              documentId: 'long-1',
-              title: 'Long Category Task',
-              long: true,
-              isRecurring: false,
-              category: 'home',
-              workSessions: [
-                { date: '2026-01-09', timestamp: '2026-01-09T10:00:00.000Z' },
-              ],
-            },
-          ],
-          meta: { pagination: { page: 1, pageCount: 1 } },
-        },
-        'practice-logs': {
-          data: [],
-          meta: { pagination: { page: 1, pageCount: 1 } },
-        },
-      });
-
-      const request = createMockRequest('http://localhost/api/tasks/stats?days=7', {
-        auth_token: 'test-token',
-      });
-
-      const response = await GET(request);
-      const data = await response.json();
-
-      expect(data.success).toBe(true);
-      
-      // Categories are summed into "chores"
-      const choresStat = data.data.find((s: any) => s.name === 'chores');
-      expect(choresStat).toBeDefined();
-      expect(choresStat.count).toBe(1);
-    });
-
     it('should only count work sessions within date range', async () => {
       setupMockFetch({
         'filters[completed][$eq]=true': {
@@ -333,7 +291,7 @@ describe('Stats API Route - Work Session Counting', () => {
       expect(dayJobStat.type).toBe('project');
     });
 
-    it('should count work sessions for work chores category', async () => {
+    it('should count work sessions for a day-job-world project', async () => {
       setupMockFetch({
         'filters[completed][$eq]=true': {
           data: [],
@@ -345,7 +303,11 @@ describe('Stats API Route - Work Session Counting', () => {
               documentId: 'long-1',
               long: true,
               isRecurring: false,
-              category: 'work chores',
+              project: {
+                documentId: 'proj-dayjob',
+                title: 'work chores',
+                world: 'day job',
+              },
               workSessions: [
                 { date: '2026-01-09', timestamp: '2026-01-09T10:00:00.000Z' },
               ],
@@ -529,7 +491,7 @@ describe('Stats API Route - Work Session Counting', () => {
       expect(data.data).toEqual([]); // Incidentals are not counted
     });
 
-    it('should not count work sessions in excluded categories', async () => {
+    it('should not count work sessions for project-less long tasks', async () => {
       setupMockFetch({
         'filters[completed][$eq]=true': {
           data: [],
@@ -541,7 +503,6 @@ describe('Stats API Route - Work Session Counting', () => {
               documentId: 'long-1',
               long: true,
               isRecurring: false,
-              category: 'in the mail',
               workSessions: [
                 { date: '2026-01-09', timestamp: '2026-01-09T10:00:00.000Z' },
               ],
@@ -563,7 +524,7 @@ describe('Stats API Route - Work Session Counting', () => {
       const data = await response.json();
 
       expect(data.success).toBe(true);
-      expect(data.data).toEqual([]); // "in the mail" is excluded
+      expect(data.data).toEqual([]); // project-less tasks aren't counted
     });
   });
 

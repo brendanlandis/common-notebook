@@ -50,7 +50,6 @@ function createTask(overrides: Partial<Task>): Task {
     recurrenceWeekOfMonth: null,
     recurrenceDayOfWeekMonthly: null,
     recurrenceMonth: null,
-    category: 'test category',
     project: null,
     trackingUrl: null,
     purchaseUrl: null,

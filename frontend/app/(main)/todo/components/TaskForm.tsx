@@ -280,7 +280,6 @@ export default function TaskForm({ task, onSubmit, onCancel }: TaskFormProps) {
         recurrenceWeekOfMonth: data.recurrenceWeekOfMonth || null,
         recurrenceDayOfWeekMonthly: data.recurrenceDayOfWeekMonthly || null,
         recurrenceMonth: data.recurrenceMonth || null,
-        category: null,
         trackingUrl: data.trackingUrl || null,
         purchaseUrl: data.purchaseUrl || null,
         price: data.price || null,

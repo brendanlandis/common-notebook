@@ -36,21 +36,6 @@ export type World =
   | 'computer'
   | 'stuff';
 
-// Task category types
-export type TaskCategory = 
-  | 'home chores'
-  | 'studio chores'
-  | 'band chores'
-  | 'life chores'
-  | 'work chores'
-  | 'web chores'
-  | 'data chores'
-  | 'computer chores'
-  | 'in the mail'
-  | 'buy stuff'
-  | 'wishlist'
-  | 'errands';
-
 // Practice type
 export type PracticeType = 
   | 'guitar'
@@ -111,7 +96,6 @@ export interface Task {
   recurrenceWeekOfMonth: number | null;
   recurrenceDayOfWeekMonthly: number | null;
   recurrenceMonth: number | null;
-  category: TaskCategory | null;
   trackingUrl: string | null;
   purchaseUrl: string | null;
   price: number | null;

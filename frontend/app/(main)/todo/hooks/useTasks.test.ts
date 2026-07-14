@@ -36,7 +36,6 @@ const makeTask = (overrides: Partial<Task> = {}): Task =>
     recurrenceDayOfWeekMonthly: null,
     recurrenceMonth: null,
     project: null,
-    category: null,
     trackingUrl: null,
     purchaseUrl: null,
     price: null,
@@ -161,7 +160,7 @@ describe("useTasks", () => {
     expect(result.current.tasks[0].completed).toBe(true);
   });
 
-  it("grouped derives projects, category groups, and incidentals from tasks", async () => {
+  it("grouped derives projects and incidentals from tasks", async () => {
     const project = makeProject();
     fetchMock.mockResolvedValueOnce({
       ok: true,
@@ -169,24 +168,20 @@ describe("useTasks", () => {
         success: true,
         data: [
           makeTask({ documentId: "a", project: project as any }),
-          makeTask({
-            documentId: "b",
-            category: "home chores" as any,
-          }),
           makeTask({ documentId: "c" }),
         ],
       }),
     });
 
     const { result } = renderHook(() => useTasks());
-    await waitFor(() => expect(result.current.tasks).toHaveLength(3));
+    await waitFor(() => expect(result.current.tasks).toHaveLength(2));
 
     expect(result.current.grouped.projects).toHaveLength(1);
     expect(result.current.grouped.projects[0].documentId).toBe(project.documentId);
     expect(result.current.grouped.projects[0].tasks).toHaveLength(1);
 
-    expect(result.current.grouped.categoryGroups).toHaveLength(1);
-    expect(result.current.grouped.categoryGroups[0].title).toBe("home chores");
+    // Category grouping is retired: everything project-less is an incidental.
+    expect(result.current.grouped.categoryGroups).toHaveLength(0);
 
     expect(result.current.grouped.incidentals).toHaveLength(1);
     expect(result.current.grouped.incidentals[0].documentId).toBe("c");

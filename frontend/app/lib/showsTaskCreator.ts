@@ -176,7 +176,6 @@ export async function createTasksFromShows(): Promise<{
       const picsResult = await createTask({
         title: `${bandName} @ ${venue} ${formattedDate} - handle documentation`,
         description: [],
-        category: null,
         soon: true,
         long: false,
         completed: false,
@@ -205,7 +204,6 @@ export async function createTasksFromShows(): Promise<{
       const moneyResult = await createTask({
         title: `${bandName} @ ${venue} ${formattedDate} - handle money`,
         description: [],
-        category: null,
         soon: true,
         long: false,
         completed: false,

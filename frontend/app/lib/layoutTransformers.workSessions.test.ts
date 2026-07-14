@@ -48,7 +48,6 @@ function createTask(overrides: Partial<Task>): Task {
     recurrenceWeekOfMonth: null,
     recurrenceDayOfWeekMonthly: null,
     recurrenceMonth: null,
-    category: null,
     project: null,
     trackingUrl: null,
     purchaseUrl: null,
@@ -469,7 +468,6 @@ describe('Layout Transformer - Work Session Virtual Entries', () => {
         description: [{ type: 'paragraph', children: [{ type: 'text', text: 'Description' }] }],
         long: true,
         soon: true,
-        category: 'work',
         trackingUrl: 'https://example.com',
         workSessions: [
           { date: '2026-01-05', timestamp: '2026-01-05T10:00:00.000Z' },
@@ -497,7 +495,6 @@ describe('Layout Transformer - Work Session Virtual Entries', () => {
       expect(virtualEntry).toBeDefined();
       expect(virtualEntry!.description).toEqual(longTask.description);
       expect(virtualEntry!.soon).toBe(true);
-      expect(virtualEntry!.category).toBe('work');
       expect(virtualEntry!.trackingUrl).toBe('https://example.com');
       expect(virtualEntry!.long).toBe(true);
     });

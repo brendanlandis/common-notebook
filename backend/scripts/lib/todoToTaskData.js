@@ -31,7 +31,6 @@ const SCALAR_FIELDS = [
   'recurrenceWeekOfMonth',
   'recurrenceDayOfWeekMonthly',
   'recurrenceMonth',
-  'category',
   'displayDate',
   'displayDateOffset',
   'trackingUrl',

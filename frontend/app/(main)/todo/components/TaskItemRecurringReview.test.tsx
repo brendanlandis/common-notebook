@@ -29,7 +29,6 @@ describe("TaskItemRecurringReview", () => {
     recurrenceWeekOfMonth: null,
     recurrenceDayOfWeekMonthly: null,
     recurrenceMonth: null,
-    category: null,
     trackingUrl: null,
     purchaseUrl: null,
     price: null,

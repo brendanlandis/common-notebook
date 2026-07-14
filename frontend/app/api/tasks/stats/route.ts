@@ -133,7 +133,6 @@ export async function GET(req: NextRequest) {
 
     // Count projects and categories
     const projectCounts = new Map<string, { name: string; count: number }>();
-    const categoryCounts = new Map<string, number>();
     let dayJobCount = 0;
 
     // Count completed tasks (excluding recurring tasks)
@@ -156,16 +155,8 @@ export async function GET(req: NextRequest) {
             projectCounts.set(projectId, { name: projectName, count: 1 });
           }
         }
-      } else if (task.category) {
-        const category = task.category;
-        // Check if category is "work chores" (day job related)
-        if (category === 'work chores') {
-          dayJobCount++;
-        } else {
-          categoryCounts.set(category, (categoryCounts.get(category) || 0) + 1);
-        }
       }
-      // Skip incidentals (no project or category)
+      // Skip project-less tasks
     }
 
     // Count work sessions from long tasks in the specified time range (excluding recurring tasks)
@@ -198,19 +189,8 @@ export async function GET(req: NextRequest) {
                 });
               }
             }
-          } else if (task.category) {
-            const category = task.category;
-            // Check if category is "work chores" (day job related)
-            if (category === 'work chores') {
-              dayJobCount += recentSessions.length;
-            } else {
-              categoryCounts.set(
-                category,
-                (categoryCounts.get(category) || 0) + recentSessions.length
-              );
-            }
           }
-          // Skip incidentals (no project or category)
+          // Skip project-less tasks
         }
       }
     }
@@ -231,7 +211,6 @@ export async function GET(req: NextRequest) {
     }
 
     // Categories to exclude from stats
-    const excludedCategories = ['in the mail'];
 
     // Combine projects and categories into a single list
     const stats: StatItem[] = [];
@@ -250,24 +229,6 @@ export async function GET(req: NextRequest) {
         type: 'project',
         name: data.name,
         count: data.count,
-      });
-    }
-
-    // Sum all category counts into a single "chores" entry
-    let totalChoresCount = 0;
-    for (const [category, count] of categoryCounts.entries()) {
-      // Skip excluded categories
-      if (!excludedCategories.includes(category)) {
-        totalChoresCount += count;
-      }
-    }
-
-    // Add the combined chores entry if there are any
-    if (totalChoresCount > 0) {
-      stats.push({
-        type: 'category',
-        name: 'chores',
-        count: totalChoresCount,
       });
     }
 

@@ -54,7 +54,6 @@ function createTask(overrides: Partial<Task>): Task {
     recurrenceWeekOfMonth: null,
     recurrenceDayOfWeekMonthly: null,
     recurrenceMonth: null,
-    category: null,
     project: null,
     trackingUrl: null,
     purchaseUrl: null,
@@ -92,7 +91,7 @@ function dataWithBothProjects() {
       { ...otherMeta, tasks: [createTask({ documentId: 't2', title: 'Other task', project: otherMeta })] },
     ],
     categoryGroups: [
-      { title: 'home chores', tasks: [createTask({ documentId: 'c1', category: 'home chores' })] },
+      { title: 'home chores', tasks: [createTask({ documentId: 'c1' })] },
     ],
     incidentals: [createTask({ documentId: 'i1', title: 'Loose end' })],
     recurringProjects: [],

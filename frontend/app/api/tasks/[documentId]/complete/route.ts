@@ -96,7 +96,6 @@ export async function POST(
               recurrenceWeekOfMonth: task.recurrenceWeekOfMonth,
               recurrenceDayOfWeekMonthly: task.recurrenceDayOfWeekMonthly,
               recurrenceMonth: task.recurrenceMonth,
-              category: task.category,
               project: task.project ? (task.project as any).documentId : null,
               // Copy additional fields that were previously missing
               soon: task.soon,

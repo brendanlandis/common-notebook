@@ -20,7 +20,6 @@ const fullTodo = {
   recurrenceWeekOfMonth: null,
   recurrenceDayOfWeekMonthly: null,
   recurrenceMonth: null,
-  category: 'band chores',
   displayDate: '2026-01-15',
   displayDateOffset: -2,
   trackingUrl: 'http://track',
@@ -82,11 +81,10 @@ describe('todoToTaskData', () => {
   });
 
   it('handles an incidental todo (no project) and preserves explicit null scalars', () => {
-    const incidental = { ...fullTodo, project: null, dueDate: null, category: null };
+    const incidental = { ...fullTodo, project: null, dueDate: null };
     const { data } = todoToTaskData(incidental);
     expect(data.project).toBeNull();
     expect(data.dueDate).toBeNull();
-    expect(data.category).toBeNull();
   });
 
   it('extracts a null owner when absent — the orchestration guards against orphans', () => {
