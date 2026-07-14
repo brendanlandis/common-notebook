@@ -545,6 +545,10 @@ export interface ApiProjectProject extends Struct.CollectionTypeSchema {
       'plugin::users-permissions.user'
     > &
       Schema.Attribute.Private;
+    projectType: Schema.Attribute.Enumeration<
+      ['default', 'chores', 'wishlist', 'errands', 'in the mail', 'buy stuff']
+    > &
+      Schema.Attribute.DefaultTo<'default'>;
     publishedAt: Schema.Attribute.DateTime;
     slug: Schema.Attribute.String;
     tasks: Schema.Attribute.Relation<'oneToMany', 'api::task.task'>;
@@ -554,7 +558,14 @@ export interface ApiProjectProject extends Struct.CollectionTypeSchema {
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
     world: Schema.Attribute.Enumeration<
-      ['life stuff', 'music admin', 'make music', 'day job', 'computer']
+      [
+        'life stuff',
+        'music admin',
+        'make music',
+        'day job',
+        'computer',
+        'stuff',
+      ]
     >;
   };
 }

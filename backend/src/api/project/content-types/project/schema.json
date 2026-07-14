@@ -31,7 +31,8 @@
         "music admin",
         "make music",
         "day job",
-        "computer"
+        "computer",
+        "stuff"
       ]
     },
     "importance": {
@@ -57,6 +58,18 @@
       "relation": "oneToMany",
       "target": "api::task.task",
       "mappedBy": "project"
+    },
+    "projectType": {
+      "type": "enumeration",
+      "default": "default",
+      "enum": [
+        "default",
+        "chores",
+        "wishlist",
+        "errands",
+        "in the mail",
+        "buy stuff"
+      ]
     }
   }
 }
