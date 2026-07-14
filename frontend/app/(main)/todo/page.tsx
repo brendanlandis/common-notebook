@@ -9,6 +9,7 @@ import {
 } from "@/app/lib/layoutTransformers";
 import { getPresetById, getDefaultPreset } from "@/app/lib/layoutPresets";
 import { useLayoutRuleset } from "@/app/contexts/LayoutRulesetContext";
+import { useStuffProjects } from "@/app/contexts/StuffProjectsContext";
 import FaviconManager from "@/app/components/FaviconManager";
 import { useTaskData } from "./contexts/TaskDataContext";
 
@@ -32,7 +33,15 @@ export default function TaskPage() {
     onSkipRecurring,
     onEditProject,
   } = useTaskData();
-  const { selectedRulesetId } = useLayoutRuleset();
+  const { selectedRulesetId: rawRulesetId } = useLayoutRuleset();
+  const { stuffProjectsEnabled } = useStuffProjects();
+
+  // Fall back off the "stuff" view when stuff projects are disabled (e.g. a
+  // stale ?view=stuff URL or localStorage value).
+  const selectedRulesetId =
+    rawRulesetId === "stuff" && !stuffProjectsEnabled
+      ? getDefaultPreset().id
+      : rawRulesetId;
 
   // Transform layout using selected ruleset
   const transformedData = useMemo(() => {

@@ -53,7 +53,6 @@ export default function ProjectPage() {
       showRecurring: true,
       showNonRecurring: true,
       visibleWorlds: null,
-      visibleCategories: null,
       visibleProjects: [documentId],
       sortBy: "creationDate",
       groupBy: "merged",

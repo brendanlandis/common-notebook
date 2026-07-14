@@ -38,7 +38,6 @@ export default function WorldPage() {
       showRecurring: true,
       showNonRecurring: true,
       visibleWorlds: [world],
-      visibleCategories: null,
       sortBy: "creationDate",
       groupBy: "world",
     }),

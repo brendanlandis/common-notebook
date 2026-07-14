@@ -66,7 +66,6 @@ describe('layoutTransformers - recurring-review', () => {
       showRecurring: true,
       showNonRecurring: false,
       visibleWorlds: null,
-      visibleCategories: null,
       sortBy: 'alphabetical',
       groupBy: 'recurring-review',
     };
@@ -162,10 +161,16 @@ describe('layoutTransformers - recurring-review', () => {
   });
 
   describe('organization within recurrence types', () => {
-    it('should organize tasks by project, then category, then incidentals', () => {
+    it('should organize tasks by project, then incidentals', () => {
       const project = createProject({
         documentId: 'project-1',
         title: 'Test Project',
+      });
+
+      const choresProject = createProject({
+        documentId: 'project-2',
+        title: 'Home Chores',
+        projectType: 'chores',
       });
 
       const projectTask = createTask({
@@ -177,13 +182,13 @@ describe('layoutTransformers - recurring-review', () => {
         project: project,
       });
 
-      const categoryTask = createTask({
+      const choresTask = createTask({
         documentId: 'task-2',
-        title: 'Category task',
+        title: 'Chores task',
         isRecurring: true,
         recurrenceType: 'daily',
         completed: false,
-        category: 'home chores',
+        project: choresProject,
       });
 
       const incidentalTask = createTask({
@@ -198,13 +203,11 @@ describe('layoutTransformers - recurring-review', () => {
         projects: [],
         categoryGroups: [],
         incidentals: [],
-        recurringProjects: [{ ...project, tasks: [projectTask] }],
-        recurringCategoryGroups: [
-          {
-            title: 'home chores',
-            tasks: [categoryTask],
-          },
+        recurringProjects: [
+          { ...project, tasks: [projectTask] },
+          { ...choresProject, tasks: [choresTask] },
         ],
+        recurringCategoryGroups: [],
         recurringIncidentals: [incidentalTask],
       };
 
@@ -213,25 +216,28 @@ describe('layoutTransformers - recurring-review', () => {
       const dailySections = result.recurringReviewSections?.get('daily');
       const dailyIncidentals = result.recurringReviewIncidentals?.get('daily');
 
-      expect(dailySections?.length).toBe(2); // 1 project + 1 category
+      expect(dailySections?.length).toBe(2); // 2 projects
       expect(dailyIncidentals?.length).toBe(1);
 
-      // Check that project comes first
-      expect('documentId' in dailySections![0]).toBe(true);
-      expect((dailySections![0] as Project).documentId).toBe('project-1');
-
-      // Check that category comes second
-      expect((dailySections![1] as any).title).toBe('home chores');
+      // Both sections are projects
+      const ids = dailySections!.map((s) => (s as Project).documentId).sort();
+      expect(ids).toEqual(['project-1', 'project-2']);
     });
 
     it('should sort tasks alphabetically within each group', () => {
+      const choresProject = createProject({
+        documentId: 'project-1',
+        title: 'Home Chores',
+        projectType: 'chores',
+      });
+
       const task1 = createTask({
         documentId: 'task-1',
         title: 'Zebra task',
         isRecurring: true,
         recurrenceType: 'daily',
         completed: false,
-        category: 'home chores',
+        project: choresProject,
       });
 
       const task2 = createTask({
@@ -240,7 +246,7 @@ describe('layoutTransformers - recurring-review', () => {
         isRecurring: true,
         recurrenceType: 'daily',
         completed: false,
-        category: 'home chores',
+        project: choresProject,
       });
 
       const task3 = createTask({
@@ -249,20 +255,15 @@ describe('layoutTransformers - recurring-review', () => {
         isRecurring: true,
         recurrenceType: 'daily',
         completed: false,
-        category: 'home chores',
+        project: choresProject,
       });
 
       const rawData: RawTaskData = {
         projects: [],
         categoryGroups: [],
         incidentals: [],
-        recurringProjects: [],
-        recurringCategoryGroups: [
-          {
-            title: 'home chores',
-            tasks: [task1, task2, task3],
-          },
-        ],
+        recurringProjects: [{ ...choresProject, tasks: [task1, task2, task3] }],
+        recurringCategoryGroups: [],
         recurringIncidentals: [],
       };
 
@@ -382,7 +383,19 @@ describe('layoutTransformers - recurring-review', () => {
       expect((dailySections![1] as Project).title).toBe('Beta Project');
     });
 
-    it('should handle multiple categories with the same recurrence type', () => {
+    it('should handle multiple chore projects with the same recurrence type', () => {
+      const homeChores = createProject({
+        documentId: 'project-1',
+        title: 'Home Chores',
+        projectType: 'chores',
+      });
+
+      const studioChores = createProject({
+        documentId: 'project-2',
+        title: 'Studio Chores',
+        projectType: 'chores',
+      });
+
       const task1 = createTask({
         documentId: 'task-1',
         title: 'Task 1',
@@ -390,7 +403,7 @@ describe('layoutTransformers - recurring-review', () => {
         recurrenceType: 'weekly',
         recurrenceDayOfWeek: 1,
         completed: false,
-        category: 'home chores',
+        project: homeChores,
       });
 
       const task2 = createTask({
@@ -400,18 +413,18 @@ describe('layoutTransformers - recurring-review', () => {
         recurrenceType: 'weekly',
         recurrenceDayOfWeek: 1,
         completed: false,
-        category: 'studio chores',
+        project: studioChores,
       });
 
       const rawData: RawTaskData = {
         projects: [],
         categoryGroups: [],
         incidentals: [],
-        recurringProjects: [],
-        recurringCategoryGroups: [
-          { title: 'home chores', tasks: [task1] },
-          { title: 'studio chores', tasks: [task2] },
+        recurringProjects: [
+          { ...homeChores, tasks: [task1] },
+          { ...studioChores, tasks: [task2] },
         ],
+        recurringCategoryGroups: [],
         recurringIncidentals: [],
       };
 
@@ -421,8 +434,8 @@ describe('layoutTransformers - recurring-review', () => {
       expect(weeklySections?.length).toBe(2);
 
       // Check alphabetical order
-      expect((weeklySections![0] as any).title).toBe('home chores');
-      expect((weeklySections![1] as any).title).toBe('studio chores');
+      expect((weeklySections![0] as any).title).toBe('Home Chores');
+      expect((weeklySections![1] as any).title).toBe('Studio Chores');
     });
   });
 
@@ -447,10 +460,16 @@ describe('layoutTransformers - recurring-review', () => {
       expect(result.recurringReviewSections?.size).toBe(0);
     });
 
-    it('should handle tasks from all sources (projects, categories, incidentals)', () => {
+    it('should handle tasks from all sources (projects and incidentals)', () => {
       const project = createProject({
         documentId: 'project-1',
         title: 'Test Project',
+      });
+
+      const choresProject = createProject({
+        documentId: 'project-2',
+        title: 'Home Chores',
+        projectType: 'chores',
       });
 
       const projectTask = createTask({
@@ -462,13 +481,13 @@ describe('layoutTransformers - recurring-review', () => {
         project: project,
       });
 
-      const categoryTask = createTask({
+      const choresTask = createTask({
         documentId: 'task-2',
-        title: 'Category task',
+        title: 'Chores task',
         isRecurring: true,
         recurrenceType: 'daily',
         completed: false,
-        category: 'home chores',
+        project: choresProject,
       });
 
       const incidentalTask = createTask({
@@ -483,14 +502,17 @@ describe('layoutTransformers - recurring-review', () => {
         projects: [],
         categoryGroups: [],
         incidentals: [],
-        recurringProjects: [{ ...project, tasks: [projectTask] }],
-        recurringCategoryGroups: [{ title: 'home chores', tasks: [categoryTask] }],
+        recurringProjects: [
+          { ...project, tasks: [projectTask] },
+          { ...choresProject, tasks: [choresTask] },
+        ],
+        recurringCategoryGroups: [],
         recurringIncidentals: [incidentalTask],
       };
 
       const result = transformLayout(rawData, recurringReviewRuleset);
 
-      expect(result.recurringReviewSections?.get('daily')?.length).toBe(2); // project + category
+      expect(result.recurringReviewSections?.get('daily')?.length).toBe(2); // 2 projects
       expect(result.recurringReviewIncidentals?.get('daily')?.length).toBe(1);
     });
   });

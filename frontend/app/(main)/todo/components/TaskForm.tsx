@@ -5,7 +5,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useState, useEffect } from "react";
 import ProjectSelector from "./ProjectSelector";
-import type { Task, RecurrenceType, TaskCategory, StrapiBlock } from "@/app/types/index";
+import type { Task, RecurrenceType, ProjectType, StrapiBlock } from "@/app/types/index";
+import { getTaskProjectType } from "@/app/lib/taskProjectType";
 import { getNowInEST, toISODateInEST } from "@/app/lib/dateUtils";
 import { calculateNextRecurrence } from "@/app/lib/recurrence";
 import RichTextEditor from "@/app/components/RichTextEditor";
@@ -35,7 +36,6 @@ const schema = z.object({
   recurrenceDayOfWeekMonthly: z.number().nullable().optional(),
   recurrenceMonth: z.number().nullable().optional(),
   projectDocumentId: z.string().nullable().optional(),
-  category: z.string().nullable().optional(),
   trackingUrl: z.string().nullable().optional(),
   purchaseUrl: z.string().nullable().optional(),
   price: z.number().nullable().optional(),
@@ -131,6 +131,12 @@ export default function TaskForm({ task, onSubmit, onCancel }: TaskFormProps) {
   const [showWishListCategorySuggestions, setShowWishListCategorySuggestions] =
     useState(false);
 
+  // The selected project's type drives which shopping-list fields appear.
+  // Derived from the selected project (reported by ProjectSelector) rather than
+  // stored on the task.
+  const [selectedProjectType, setSelectedProjectType] =
+    useState<ProjectType | null>(task ? getTaskProjectType(task) : null);
+
   // Helper function to get the number of days in a month (including 29 for Feb)
   const getDaysInMonth = (month: number): number => {
     const daysInMonth: { [key: number]: number } = {
@@ -173,7 +179,6 @@ export default function TaskForm({ task, onSubmit, onCancel }: TaskFormProps) {
       recurrenceDayOfWeekMonthly: task?.recurrenceDayOfWeekMonthly ?? 1,
       recurrenceMonth: task?.recurrenceMonth ?? 1,
       projectDocumentId: (task?.project as any)?.documentId || null,
-      category: task?.category || null,
       trackingUrl: task?.trackingUrl || null,
       purchaseUrl: task?.purchaseUrl || null,
       price: task?.price || null,
@@ -185,20 +190,15 @@ export default function TaskForm({ task, onSubmit, onCancel }: TaskFormProps) {
 
   // Single source of truth: react-hook-form. Watch the fields the UI conditions on.
   const selectedProject = watch("projectDocumentId");
-  const selectedCategory = watch("category") as TaskCategory | null;
   const isRecurring = watch("isRecurring");
-  const unifiedValue = selectedProject
-    ? selectedProject
-    : selectedCategory
-    ? `category:${selectedCategory}`
-    : null;
+  const unifiedValue = selectedProject || null;
 
-  // Fetch wishlist category suggestions when category is "wishlist"
+  // Fetch wishlist category suggestions when the selected project is a wishlist
   useEffect(() => {
-    if (selectedCategory === "wishlist") {
+    if (selectedProjectType === "wishlist") {
       fetchWishListCategorySuggestions();
     }
-  }, [selectedCategory]);
+  }, [selectedProjectType]);
 
   const fetchWishListCategorySuggestions = async () => {
     try {
@@ -209,7 +209,7 @@ export default function TaskForm({ task, onSubmit, onCancel }: TaskFormProps) {
         // Get unique, non-null wishListCategory values from wishlist tasks
         const categories = new Set<string>();
         allTasks.forEach((task) => {
-          if (task.category === "wishlist" && task.wishListCategory) {
+          if (getTaskProjectType(task) === "wishlist" && task.wishListCategory) {
             categories.add(task.wishListCategory.trim());
           }
         });
@@ -280,7 +280,7 @@ export default function TaskForm({ task, onSubmit, onCancel }: TaskFormProps) {
         recurrenceWeekOfMonth: data.recurrenceWeekOfMonth || null,
         recurrenceDayOfWeekMonthly: data.recurrenceDayOfWeekMonthly || null,
         recurrenceMonth: data.recurrenceMonth || null,
-        category: data.category as TaskCategory | null,
+        category: null,
         trackingUrl: data.trackingUrl || null,
         purchaseUrl: data.purchaseUrl || null,
         price: data.price || null,
@@ -336,7 +336,6 @@ export default function TaskForm({ task, onSubmit, onCancel }: TaskFormProps) {
       recurrenceMonth:
         data.recurrenceType === "annually" ? data.recurrenceMonth : null,
       project: data.projectDocumentId || null,
-      category: data.category || null,
       trackingUrl: data.trackingUrl || null,
       purchaseUrl: data.purchaseUrl || null,
       price: data.price || null,
@@ -357,20 +356,11 @@ export default function TaskForm({ task, onSubmit, onCancel }: TaskFormProps) {
         <label htmlFor="project">project</label>
         <ProjectSelector
           value={unifiedValue}
-          onChange={(value) => {
-            if (value?.startsWith("category:")) {
-              const category = value.replace("category:", "") as TaskCategory;
-              setValue("category", category);
-              setValue("projectDocumentId", null);
-              if (!allowsRecurring(category)) {
-                setValue("isRecurring", false);
-              }
-            } else if (value) {
-              setValue("projectDocumentId", value);
-              setValue("category", null);
-            } else {
-              setValue("projectDocumentId", null);
-              setValue("category", null);
+          onChange={(documentId, projectType) => {
+            setValue("projectDocumentId", documentId);
+            setSelectedProjectType(projectType);
+            if (!allowsRecurring(projectType)) {
+              setValue("isRecurring", false);
             }
           }}
         />
@@ -395,7 +385,7 @@ export default function TaskForm({ task, onSubmit, onCancel }: TaskFormProps) {
       </div>
 
       {/* tracking url */}
-      {showTrackingUrl(selectedCategory) && (
+      {showTrackingUrl(selectedProjectType) && (
         <div className="task-form-element">
           <label htmlFor="trackingUrl">tracking url</label>
           <input
@@ -408,7 +398,7 @@ export default function TaskForm({ task, onSubmit, onCancel }: TaskFormProps) {
       )}
 
       {/* purchase url */}
-      {showPurchaseUrl(selectedCategory) && (
+      {showPurchaseUrl(selectedProjectType) && (
         <div className="task-form-element">
           <label htmlFor="purchaseUrl">purchase url</label>
           <input
@@ -421,7 +411,7 @@ export default function TaskForm({ task, onSubmit, onCancel }: TaskFormProps) {
       )}
 
       {/* price and wish list category */}
-      {showPriceAndWishlistCategory(selectedCategory) && (
+      {showPriceAndWishlistCategory(selectedProjectType) && (
         <>
           <div className="task-form-element">
             <label htmlFor="price">price</label>
@@ -478,7 +468,7 @@ export default function TaskForm({ task, onSubmit, onCancel }: TaskFormProps) {
 
       {/* checkboxes */}
       <div className="row-one-one-one row-short">
-        {showRecurringCheckbox(selectedCategory) && (
+        {showRecurringCheckbox(selectedProjectType) && (
           <div className="task-form-element">
             <label>
               <input
@@ -493,7 +483,7 @@ export default function TaskForm({ task, onSubmit, onCancel }: TaskFormProps) {
             </label>
           </div>
         )}
-        {showSoonCheckbox(selectedCategory, isRecurring) && (
+        {showSoonCheckbox(selectedProjectType, isRecurring) && (
           <div className="task-form-element">
             <label>
               <input
@@ -506,7 +496,7 @@ export default function TaskForm({ task, onSubmit, onCancel }: TaskFormProps) {
           </div>
         )}
 
-        {showLongCheckbox(selectedCategory) && (
+        {showLongCheckbox(selectedProjectType) && (
           <div className="task-form-element">
             <label>
               <input
@@ -521,7 +511,7 @@ export default function TaskForm({ task, onSubmit, onCancel }: TaskFormProps) {
       </div>
 
       {/* display date and due date */}
-      {showDateFields(selectedCategory, isRecurring) && (
+      {showDateFields(selectedProjectType, isRecurring) && (
         <div className="row-one-one">
           <div className="task-form-element labelled">
             <label htmlFor="displayDate">display date</label>

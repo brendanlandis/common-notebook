@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import type { Task } from "@/app/types/index";
+import { getTaskProjectType } from "@/app/lib/taskProjectType";
 import { PencilIcon, TrashIcon, MapPinIcon, LinkIcon } from "@phosphor-icons/react";
 import RichTextDisplay from "@/app/components/RichTextDisplay";
 import { getRecurrencePrefix } from "@/app/lib/recurrenceLabels";
@@ -40,7 +41,10 @@ export default function TaskItemRecurringReview({
         <div className="task-label">
           {recurrencePrefix && <span className="recurrence-prefix">{recurrencePrefix}: </span>}
           {task.title}
-          {(task.category === "buy stuff" || task.category === "wishlist" || task.category === "errands") && task.price !== null && (
+          {(() => {
+            const projectType = getTaskProjectType(task);
+            return (projectType === "buy stuff" || projectType === "wishlist" || projectType === "errands") && task.price !== null;
+          })() && (
             <span className="task-due-date">
               (${task.price})
             </span>

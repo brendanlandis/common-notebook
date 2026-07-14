@@ -346,10 +346,10 @@ describe("TaskItemRecurringReview", () => {
     expect(purchaseLink).toHaveAttribute("href", "https://example.com/buy");
   });
 
-  it("should render price for buy stuff category", () => {
+  it("should render price for buy stuff project type", () => {
     const taskWithPrice = {
       ...baseTask,
-      category: "buy stuff" as const,
+      project: { documentId: "p-buy-stuff", projectType: "buy stuff" } as any,
       price: 29.99,
     };
     render(

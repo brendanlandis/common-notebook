@@ -28,12 +28,13 @@ export type RecurrenceType =
   | 'autumn equinox';
 
 // World types
-export type World = 
+export type World =
   | 'life stuff'
   | 'music admin'
   | 'make music'
   | 'day job'
-  | 'computer';
+  | 'computer'
+  | 'stuff';
 
 // Task category types
 export type TaskCategory = 
@@ -60,10 +61,30 @@ export type PracticeType =
   | 'ear training';
 
 // Project importance types
-export type ProjectImportance = 
+export type ProjectImportance =
   | 'normal'
   | 'top of mind'
   | 'later';
+
+// Project type — stable handle that replaces the task `category` enum.
+// `normal`/`chores` are ordinary worlds; the four "stuff" types drive
+// shopping-list form fields, the price badge, and wishlist sub-grouping.
+export type ProjectType =
+  | 'normal'
+  | 'chores'
+  | 'wishlist'
+  | 'errands'
+  | 'in the mail'
+  | 'buy stuff';
+
+// The four stuff project types live in the `stuff` world and are gated by the
+// `enableStuffProjects` system setting.
+export const STUFF_PROJECT_TYPES: ProjectType[] = [
+  'wishlist',
+  'errands',
+  'in the mail',
+  'buy stuff',
+];
 
 // Work session type
 export interface WorkSession {
@@ -114,6 +135,7 @@ export interface Project {
   description: StrapiBlock[];
   world?: World;
   importance?: ProjectImportance;
+  projectType?: ProjectType;
   createdAt: string;
   updatedAt: string;
   publishedAt: string;
@@ -162,7 +184,6 @@ export interface LayoutRuleset {
   showRecurring: boolean;
   showNonRecurring: boolean;
   visibleWorlds: World[] | null; // null = show all worlds
-  visibleCategories: TaskCategory[] | null; // null = show all categories
   visibleProjects?: string[]; // documentIds; omit/undefined = show all projects
   sortBy: "alphabetical" | "creationDate" | "dueDate" | "completedAt";
   groupBy: "recurring-separate" | "recurring-separate-world" | "merged" | "single-section" | "world" | "project" | "category" | "good-morning" | "roulette" | "stuff" | "later" | "done" | "invoicing" | "chores" | "recurring-review";

@@ -162,6 +162,8 @@ export async function createTasksFromShows(): Promise<{
 
     console.log(`Found ${newShows.length} new shows to process`);
 
+    const bandChoresProjectId = await getBandChoresProjectId();
+
     let tasksCreated = 0;
 
     // Create 2 tasks for each show
@@ -174,7 +176,7 @@ export async function createTasksFromShows(): Promise<{
       const picsResult = await createTask({
         title: `${bandName} @ ${venue} ${formattedDate} - handle documentation`,
         description: [],
-        category: 'band chores',
+        category: null,
         soon: true,
         long: false,
         completed: false,
@@ -190,7 +192,7 @@ export async function createTasksFromShows(): Promise<{
         recurrenceWeekOfMonth: null,
         recurrenceDayOfWeekMonthly: null,
         recurrenceMonth: null,
-        project: null,
+        project: bandChoresProjectId,
         trackingUrl: null,
         purchaseUrl: null,
         price: null,
@@ -203,7 +205,7 @@ export async function createTasksFromShows(): Promise<{
       const moneyResult = await createTask({
         title: `${bandName} @ ${venue} ${formattedDate} - handle money`,
         description: [],
-        category: 'band chores',
+        category: null,
         soon: true,
         long: false,
         completed: false,
@@ -219,7 +221,7 @@ export async function createTasksFromShows(): Promise<{
         recurrenceWeekOfMonth: null,
         recurrenceDayOfWeekMonthly: null,
         recurrenceMonth: null,
-        project: null,
+        project: bandChoresProjectId,
         trackingUrl: null,
         purchaseUrl: null,
         price: null,
@@ -259,6 +261,30 @@ export async function createTasksFromShows(): Promise<{
       showsProcessed: 0,
       error: error instanceof Error ? error.message : 'Unknown error',
     };
+  }
+}
+
+/**
+ * Look up the "band chores" project's documentId. Band-show tasks used to be
+ * tagged with the `band chores` category; that category is now the "band chores"
+ * project (projectType: chores). Returns null if not found, in which case the
+ * tasks are created without a project (safe fallback).
+ */
+async function getBandChoresProjectId(): Promise<string | null> {
+  try {
+    const response = await fetch('/api/projects');
+    if (!response.ok) return null;
+    const body = await response.json();
+    if (!body.success) return null;
+    const project = (body.data as Array<{ documentId: string; title: string }>).find(
+      (p) => p.title.trim().toLowerCase() === 'band chores'
+    );
+    if (!project) {
+      console.warn('[shows] "band chores" project not found; tasks created without a project');
+    }
+    return project?.documentId ?? null;
+  } catch {
+    return null;
   }
 }
 

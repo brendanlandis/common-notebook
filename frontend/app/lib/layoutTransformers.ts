@@ -1,8 +1,9 @@
-import type { Project, Task, TaskCategory, World, LayoutRuleset, RecurrenceType } from "@/app/types/index";
+import type { Project, Task, ProjectType, World, LayoutRuleset, RecurrenceType } from "@/app/types/index";
 import { getTodayInEST, parseInEST, formatInEST, toISODateInEST, toZonedTime } from "@/app/lib/dateUtils";
 import { getTimezone } from "@/app/lib/timezoneConfig";
 import { getDayBoundaryHour } from "@/app/lib/dayBoundaryConfig";
 import { getProjectPriority } from "@/app/lib/projectPriority";
+import { getTaskProjectType } from "@/app/lib/taskProjectType";
 import { addDays } from "date-fns";
 
 export interface TaskGroup {
@@ -50,39 +51,20 @@ export interface RawTaskData {
   longTasksWithSessions?: Task[];
 }
 
-// Helper function to determine a task's world
+// Helper function to determine a task's world. World now lives on the task's
+// project (every task has a project); project-less incidentals default to
+// 'life stuff'.
 function getTaskWorld(task: Task): World {
-  // If task has a project, use project's world
-  if (task.project && (task.project as any).world) {
-    return (task.project as any).world;
-  }
-
-  // If no project but has category, map category to world
-  if (task.category) {
-    if (task.category === "home chores" || task.category === "life chores") {
-      return "life stuff";
-    } else if (task.category === "studio chores" || task.category === "band chores") {
-      return "music admin";
-    } else if (task.category === "work chores") {
-      return "day job";
-    } else if (task.category === "web chores" || task.category === "data chores" || task.category === "computer chores") {
-      return "computer";
-    }
-  }
-
-  // Default: incidentals go to 'life stuff'
-  return "life stuff";
+  return task.project?.world ?? "life stuff";
 }
 
 // Filter a single task based on ruleset
 function shouldIncludeTask(task: Task, ruleset: LayoutRuleset, getWorld: (task: Task) => World): boolean {
-  // "in the mail", "buy stuff", "wishlist", and "errands" categories should only appear in the "stuff" layout
-  if ((task.category === "in the mail" || task.category === "buy stuff" || task.category === "wishlist" || task.category === "errands") && ruleset.id !== "stuff") {
-    return false;
-  }
-
-  // "data chores" should not appear in the "chores" or "chipping away" views
-  if (task.category === "data chores" && (ruleset.id === "chores" || ruleset.id === "chipping-away")) {
+  // The "stuff" world (wishlist / errands / in the mail / buy stuff projects)
+  // only appears in the "stuff" view. This mirrors how the cross-world presets
+  // exclude "day job" by omitting it from visibleWorlds, but is enforced here so
+  // it also holds for the visibleWorlds: null views (later / done / recurring).
+  if (getWorld(task) === "stuff" && ruleset.id !== "stuff") {
     return false;
   }
 
@@ -108,13 +90,6 @@ function shouldIncludeTask(task: Task, ruleset: LayoutRuleset, getWorld: (task: 
   if (ruleset.visibleWorlds !== null) {
     const world = getWorld(task);
     if (!ruleset.visibleWorlds.includes(world)) {
-      return false;
-    }
-  }
-
-  // Filter by category
-  if (ruleset.visibleCategories !== null) {
-    if (!task.category || !ruleset.visibleCategories.includes(task.category)) {
       return false;
     }
   }
@@ -384,16 +359,18 @@ export function transformLayout(data: RawTaskData, ruleset: LayoutRuleset): Tran
         }
       });
       
-      // Group tasks without projects by category
-      const categoryMap = new Map<TaskCategory, Task[]>();
+      // Group tasks without projects by project type (project-less tasks are
+      // incidentals now, so this is effectively empty, but kept for safety)
+      const categoryMap = new Map<ProjectType, Task[]>();
       const incidentalTasks: Task[] = [];
-      
+
       tasksWithoutProjects.forEach((task) => {
-        if (task.category) {
-          if (!categoryMap.has(task.category)) {
-            categoryMap.set(task.category, []);
+        const projectType = getTaskProjectType(task);
+        if (projectType) {
+          if (!categoryMap.has(projectType)) {
+            categoryMap.set(projectType, []);
           }
-          categoryMap.get(task.category)!.push(task);
+          categoryMap.get(projectType)!.push(task);
         } else {
           incidentalTasks.push(task);
         }
@@ -869,18 +846,21 @@ export function transformLayout(data: RawTaskData, ruleset: LayoutRuleset): Tran
       incidentals: allIncidentals.length > 0 ? allIncidentals : undefined,
     };
   } else if (ruleset.groupBy === "category") {
-    // Group by category - merge projects into category groups
-    const categoryMap = new Map<TaskCategory | "incidentals", Task[]>();
+    // Group by project type - merge project tasks into projectType groups.
+    // (Used by the "stuff" view; the four stuff projects each map 1:1 to a
+    // projectType, so this reproduces the old category grouping.)
+    const categoryMap = new Map<ProjectType | "incidentals", Task[]>();
 
     // Collect all tasks from projects and category groups
     [...sortedRecurringProjects, ...sortedProjects].forEach((project) => {
       if ("documentId" in project && project.tasks) {
         project.tasks.forEach((task) => {
-          if (task.category) {
-            if (!categoryMap.has(task.category)) {
-              categoryMap.set(task.category, []);
+          const projectType = getTaskProjectType(task);
+          if (projectType) {
+            if (!categoryMap.has(projectType)) {
+              categoryMap.set(projectType, []);
             }
-            categoryMap.get(task.category)!.push(task);
+            categoryMap.get(projectType)!.push(task);
           } else {
             if (!categoryMap.has("incidentals")) {
               categoryMap.set("incidentals", []);
@@ -894,10 +874,10 @@ export function transformLayout(data: RawTaskData, ruleset: LayoutRuleset): Tran
     [...sortedRecurringCategoryGroups, ...sortedCategoryGroups].forEach((group) => {
       if (group.tasks) {
         group.tasks.forEach((task) => {
-          if (!categoryMap.has(group.title as TaskCategory)) {
-            categoryMap.set(group.title as TaskCategory, []);
+          if (!categoryMap.has(group.title as ProjectType)) {
+            categoryMap.set(group.title as ProjectType, []);
           }
-          categoryMap.get(group.title as TaskCategory)!.push(task);
+          categoryMap.get(group.title as ProjectType)!.push(task);
         });
       }
     });
@@ -1062,7 +1042,7 @@ export function transformLayout(data: RawTaskData, ruleset: LayoutRuleset): Tran
     ): Section | null => {
       const tasks = "documentId" in section ? section.tasks || [] : section.tasks;
       // Filter tasks that match the criteria and haven't been included yet
-      const filteredTasks = tasks.filter((task) => 
+      const filteredTasks = tasks.filter((task) =>
         taskFilter(task) && !includedTaskIds.has(task.documentId)
       );
 
@@ -1091,7 +1071,7 @@ export function transformLayout(data: RawTaskData, ruleset: LayoutRuleset): Tran
       tasks: Task[],
       taskFilter: (task: Task) => boolean
     ): Task[] => {
-      const filtered = tasks.filter((task) => 
+      const filtered = tasks.filter((task) =>
         taskFilter(task) && !includedTaskIds.has(task.documentId)
       );
       // Track the included tasks
@@ -1235,9 +1215,9 @@ export function transformLayout(data: RawTaskData, ruleset: LayoutRuleset): Tran
             return false;
           }
         }
-        
+
         return !task.isRecurring &&
-          task.soon === true && 
+          task.soon === true &&
           !includedTaskIds.has(task.documentId);
       });
       
@@ -1293,8 +1273,8 @@ export function transformLayout(data: RawTaskData, ruleset: LayoutRuleset): Tran
                 return false;
               }
             }
-            
-            return !task.isRecurring && 
+
+            return !task.isRecurring &&
               !includedTaskIds.has(task.documentId);
           });
           
@@ -1328,71 +1308,18 @@ export function transformLayout(data: RawTaskData, ruleset: LayoutRuleset): Tran
       topOfMindIncidentals: finalSoonAndTopOfMindIncidentals.length > 0 ? finalSoonAndTopOfMindIncidentals : undefined,
     };
   } else if (ruleset.groupBy === "chores") {
-    // Helper to filter out "day job" world
-    const filterDayJob = (task: Task): boolean => {
-      const world = getTaskWorld(task);
-      return world !== "day job";
-    };
-
-    // Non-Recurring No Project Section: All non-recurring tasks without projects (chores and incidentals)
-    const nonRecurringNoProjectSections: Section[] = [];
-    const nonRecurringNoProjectIncidentals: Task[] = [];
-
-    // Process non-recurring category groups (these don't have projects by definition)
-    sortedCategoryGroups.forEach((group) => {
-      const tasks = group.tasks || [];
-      const filteredTasks = tasks.filter((task) => 
-        filterDayJob(task) && !task.isRecurring && !task.project
-      );
-
-      if (filteredTasks.length > 0) {
-        nonRecurringNoProjectSections.push({
-          ...group,
-          tasks: filteredTasks,
-        });
-      }
-    });
-
-    // Process non-recurring incidentals without projects
-    const filteredNonRecurringNoProjectIncidentals = sortedIncidentals.filter(
-      (task) => filterDayJob(task) && !task.isRecurring && !task.project
+    // Flat list of chore-type projects (projectType === "chores"). Every chore
+    // now lives in a project; day-job chores are already excluded upstream by
+    // the preset's visibleWorlds filter, so no further world filtering is needed.
+    const choreProjects = [...sortedRecurringProjects, ...sortedProjects].filter(
+      (section): section is Project =>
+        "documentId" in section && (section as Project).projectType === "chores"
     );
-    nonRecurringNoProjectIncidentals.push(...filteredNonRecurringNoProjectIncidentals);
 
-    // Merge sections to combine category groups with the same title
-    const mergeSections = (sections: Section[]): Section[] => {
-      const categoryGroupMap = new Map<string, TaskGroup>();
-
-      sections.forEach((section) => {
-        if (!("documentId" in section)) {
-          // It's a TaskGroup - merge by title
-          const group = section as TaskGroup;
-          const existing = categoryGroupMap.get(group.title);
-          if (existing) {
-            // Merge tasks from both groups and sort
-            const mergedTasks = [...existing.tasks, ...group.tasks];
-            categoryGroupMap.set(group.title, {
-              ...group,
-              tasks: sortTasks(mergedTasks, ruleset.sortBy),
-            });
-          } else {
-            categoryGroupMap.set(group.title, group);
-          }
-        }
-      });
-
-      return [...Array.from(categoryGroupMap.values())];
-    };
-
-    const mergedNonRecurringNoProjectSections = mergeSections(nonRecurringNoProjectSections);
-
-    // Sort all sections and incidentals
-    const sortedNonRecurringNoProjectSections = sortSections(mergedNonRecurringNoProjectSections, ruleset.sortBy);
-    const sortedNonRecurringNoProjectIncidentals = sortTasks(nonRecurringNoProjectIncidentals, ruleset.sortBy);
+    const sortedNonRecurringNoProjectSections = sortSections(choreProjects, ruleset.sortBy);
 
     return {
       nonRecurringNoProjectSections: sortedNonRecurringNoProjectSections.length > 0 ? sortedNonRecurringNoProjectSections : undefined,
-      nonRecurringNoProjectIncidentals: sortedNonRecurringNoProjectIncidentals.length > 0 ? sortedNonRecurringNoProjectIncidentals : undefined,
     };
   } else if (ruleset.groupBy === "roulette") {
     // Collect all non-completed tasks excluding "day job" world
@@ -1514,9 +1441,9 @@ export function transformLayout(data: RawTaskData, ruleset: LayoutRuleset): Tran
       allSections,
     };
   } else if (ruleset.groupBy === "done") {
-    // Collect all completed tasks, excluding "in the mail" and "errands" categories
-    const completedTasks = (data.completedTasks || []).filter((task) => 
-      task.category !== "in the mail" && task.category !== "errands"
+    // Collect all completed tasks, excluding "in the mail" and "errands" project types
+    const completedTasks = (data.completedTasks || []).filter((task) =>
+      getTaskProjectType(task) !== "in the mail" && getTaskProjectType(task) !== "errands"
     );
 
     // Group tasks by completion date (day)
@@ -1686,7 +1613,7 @@ export function transformLayout(data: RawTaskData, ruleset: LayoutRuleset): Tran
   } else if (ruleset.groupBy === "invoicing") {
     // Like "done" but scoped to "day job" world, 60-day window, no upcoming
     const completedTasks = (data.completedTasks || []).filter((task) => {
-      if (task.category === "in the mail" || task.category === "errands") return false;
+      if (getTaskProjectType(task) === "in the mail" || getTaskProjectType(task) === "errands") return false;
       return getTaskWorld(task) === "day job";
     });
 

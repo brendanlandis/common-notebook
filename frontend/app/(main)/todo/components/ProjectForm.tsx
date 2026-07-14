@@ -12,9 +12,17 @@ const schema = z.object({
   title: z.string().min(1, "Title is required"),
   description: z.array(z.any()).optional(),
   world: z
-    .enum(["life stuff", "music admin", "make music", "day job", "computer"])
+    .enum(["life stuff", "music admin", "make music", "day job", "computer", "stuff"])
     .optional(),
   importance: z.enum(["normal", "top of mind", "later"]),
+  projectType: z.enum([
+    "normal",
+    "chores",
+    "wishlist",
+    "errands",
+    "in the mail",
+    "buy stuff",
+  ]),
 });
 
 type ProjectFormInputs = z.infer<typeof schema>;
@@ -46,6 +54,7 @@ export default function ProjectForm({
       description: project?.description || [],
       world: project?.world || undefined,
       importance: project?.importance || "normal",
+      projectType: project?.projectType || "normal",
     },
   });
 
@@ -75,6 +84,7 @@ export default function ProjectForm({
       description: filteredDescription,
       world: data.world,
       importance: data.importance,
+      projectType: data.projectType,
     };
 
     onSubmit(payload);
@@ -120,6 +130,19 @@ export default function ProjectForm({
           <option value="make music">make music</option>
           <option value="day job">day job</option>
           <option value="computer">computer</option>
+          <option value="stuff">stuff</option>
+        </select>
+      </div>
+
+      <div>
+        <label htmlFor="projectType">type</label>
+        <select id="projectType" {...register("projectType")}>
+          <option value="normal">normal</option>
+          <option value="chores">chores</option>
+          <option value="wishlist">wishlist</option>
+          <option value="errands">errands</option>
+          <option value="in the mail">in the mail</option>
+          <option value="buy stuff">buy stuff</option>
         </select>
       </div>
 

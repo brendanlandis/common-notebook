@@ -80,7 +80,6 @@ const baseRuleset: LayoutRuleset = {
   showRecurring: true,
   showNonRecurring: true,
   visibleWorlds: null,
-  visibleCategories: null,
   sortBy: 'creationDate',
   groupBy: 'merged',
 };

@@ -1,17 +1,19 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { Project, World, TaskCategory } from "@/app/types/index";
+import type { Project, World, ProjectType } from "@/app/types/index";
+import { useStuffProjects } from "@/app/contexts/StuffProjectsContext";
 
 interface ProjectSelectorProps {
   value: string | null;
-  onChange: (documentId: string | null) => void;
+  onChange: (documentId: string | null, projectType: ProjectType | null) => void;
 }
 
 export default function ProjectSelector({
   value,
   onChange,
 }: ProjectSelectorProps) {
+  const { stuffProjectsEnabled } = useStuffProjects();
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -41,9 +43,16 @@ export default function ProjectSelector({
     );
   }
 
-  // Group projects by world
-  const worldOrder: (World | null)[] = ['make music', 'music admin', 'life stuff', 'day job', 'computer', null];
-  const projectsByWorld = projects.reduce((acc, project) => {
+  // Group projects by world (the "stuff" world holds the shopping/errands/
+  // wishlist projects that used to be categories). When stuff projects are
+  // disabled, hide the whole stuff world.
+  const worldOrder: (World | null)[] = stuffProjectsEnabled
+    ? ['make music', 'music admin', 'life stuff', 'day job', 'computer', 'stuff', null]
+    : ['make music', 'music admin', 'life stuff', 'day job', 'computer', null];
+  const visibleProjects = stuffProjectsEnabled
+    ? projects
+    : projects.filter((p) => p.world !== 'stuff');
+  const projectsByWorld = visibleProjects.reduce((acc, project) => {
     const world = project.world || null;
     if (!acc[String(world)]) {
       acc[String(world)] = [];
@@ -57,26 +66,14 @@ export default function ProjectSelector({
     projectsByWorld[world].sort((a, b) => a.title.localeCompare(b.title));
   });
 
-  // Define all categories in order
-  const categories: TaskCategory[] = [
-    'home chores',
-    'studio chores',
-    'band chores',
-    'life chores',
-    'work chores',
-    'web chores',
-    'data chores',
-    'computer chores',
-    'in the mail',
-    'buy stuff',
-    'wishlist',
-    'errands',
-  ];
-
   return (
     <select
       value={value || ""}
-      onChange={(e) => onChange(e.target.value || null)}
+      onChange={(e) => {
+        const documentId = e.target.value || null;
+        const project = projects.find((p) => p.documentId === documentId);
+        onChange(documentId, project?.projectType ?? null);
+      }}
     >
       <option value="">project</option>
       {worldOrder.map((world) => {
@@ -93,14 +90,6 @@ export default function ProjectSelector({
           </optgroup>
         );
       })}
-      <optgroup label="miscellany">
-        {categories.map((category) => (
-          <option key={category} value={`category:${category}`}>
-            {category}
-          </option>
-        ))}
-      </optgroup>
     </select>
   );
 }
-

@@ -1,97 +1,98 @@
-import type { TaskCategory } from "@/app/types/index";
+import type { ProjectType } from "@/app/types/index";
 
 /**
- * Helper functions to determine form field visibility based on task category
- * and other form state. Centralizes conditional logic that was previously
- * scattered throughout the TaskForm component.
+ * Helper functions to determine form field visibility based on the selected
+ * project's `projectType` and other form state. Centralizes conditional logic
+ * that was previously scattered throughout the TaskForm component. The four
+ * "stuff" project types (in the mail / buy stuff / wishlist / errands) drive the
+ * shopping-list fields; everything else behaves like an ordinary task.
  */
 
 /**
- * Show tracking URL field only for "in the mail" category
+ * Show tracking URL field only for "in the mail" project type
  */
-export function showTrackingUrl(category: TaskCategory | null): boolean {
-  return category === "in the mail";
+export function showTrackingUrl(projectType: ProjectType | null): boolean {
+  return projectType === "in the mail";
 }
 
 /**
- * Show purchase URL field for "buy stuff" OR "wishlist" categories
+ * Show purchase URL field for "buy stuff" OR "wishlist" project types
  */
-export function showPurchaseUrl(category: TaskCategory | null): boolean {
-  return category === "buy stuff" || category === "wishlist";
+export function showPurchaseUrl(projectType: ProjectType | null): boolean {
+  return projectType === "buy stuff" || projectType === "wishlist";
 }
 
 /**
- * Show price and wishlist category fields only for "wishlist" category
+ * Show price and wishlist category fields only for "wishlist" project type
  */
 export function showPriceAndWishlistCategory(
-  category: TaskCategory | null
+  projectType: ProjectType | null
 ): boolean {
-  return category === "wishlist";
+  return projectType === "wishlist";
 }
 
 /**
- * Show recurring checkbox for all categories except "in the mail", "buy stuff", and "wishlist"
+ * Show recurring checkbox for all project types except "in the mail", "buy stuff", and "wishlist"
  */
-export function showRecurringCheckbox(category: TaskCategory | null): boolean {
+export function showRecurringCheckbox(projectType: ProjectType | null): boolean {
   return (
-    category !== "in the mail" &&
-    category !== "buy stuff" &&
-    category !== "wishlist"
+    projectType !== "in the mail" &&
+    projectType !== "buy stuff" &&
+    projectType !== "wishlist"
   );
 }
 
 /**
- * Show soon checkbox for all categories except "in the mail" and "wishlist"
+ * Show soon checkbox for all project types except "in the mail" and "wishlist"
  * and only when the task is not recurring
  */
 export function showSoonCheckbox(
-  category: TaskCategory | null,
+  projectType: ProjectType | null,
   isRecurring: boolean
 ): boolean {
   return (
-    category !== "in the mail" && category !== "wishlist" && !isRecurring
+    projectType !== "in the mail" && projectType !== "wishlist" && !isRecurring
   );
 }
 
 /**
- * Show long checkbox for all categories except "in the mail", "buy stuff", and "wishlist"
+ * Show long checkbox for all project types except "in the mail", "buy stuff", "errands", and "wishlist"
  */
-export function showLongCheckbox(category: TaskCategory | null): boolean {
+export function showLongCheckbox(projectType: ProjectType | null): boolean {
   return (
-    category !== "in the mail" &&
-    category !== "buy stuff" &&
-    category !== "errands" &&
-    category !== "wishlist"
+    projectType !== "in the mail" &&
+    projectType !== "buy stuff" &&
+    projectType !== "errands" &&
+    projectType !== "wishlist"
   );
 }
 
 /**
  * Show date fields (display date and due date) when:
- * - Not in "in the mail", "buy stuff", or "wishlist" categories
+ * - Not in "in the mail", "buy stuff", or "wishlist" project types
  * - AND not recurring
  */
 export function showDateFields(
-  category: TaskCategory | null,
+  projectType: ProjectType | null,
   isRecurring: boolean
 ): boolean {
   return (
-    category !== "in the mail" &&
-    category !== "buy stuff" &&
-    category !== "wishlist" &&
+    projectType !== "in the mail" &&
+    projectType !== "buy stuff" &&
+    projectType !== "wishlist" &&
     !isRecurring
   );
 }
 
 /**
- * Determine if a category allows recurring tasks
+ * Determine if a project type allows recurring tasks
  * Returns false for "in the mail", "buy stuff", "wishlist", and "errands"
  */
-export function allowsRecurring(category: TaskCategory | null): boolean {
+export function allowsRecurring(projectType: ProjectType | null): boolean {
   return (
-    category !== "in the mail" &&
-    category !== "buy stuff" &&
-    category !== "wishlist" &&
-    category !== "errands"
+    projectType !== "in the mail" &&
+    projectType !== "buy stuff" &&
+    projectType !== "wishlist" &&
+    projectType !== "errands"
   );
 }
-

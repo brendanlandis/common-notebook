@@ -6,6 +6,7 @@ import { LayoutRulesetProvider } from "../contexts/LayoutRulesetContext";
 import { PracticeContextProvider } from "../contexts/PracticeContext";
 import { TaskActionsProvider } from "../contexts/TaskActionsContext";
 import { TimezoneProvider } from "../contexts/TimezoneContext";
+import { StuffProjectsProvider } from "../contexts/StuffProjectsContext";
 import HeaderIcon from "../components/HeaderIcon";
 import EscapeKeyHandler from "../components/EscapeKeyHandler";
 import SessionGuard from "../components/SessionGuard";
@@ -17,6 +18,7 @@ export default function MainLayout({
 }) {
   return (
     <TimezoneProvider>
+      <StuffProjectsProvider>
       <LayoutRulesetProvider>
         <PracticeContextProvider>
           <TaskActionsProvider>
@@ -71,6 +73,7 @@ export default function MainLayout({
         </TaskActionsProvider>
       </PracticeContextProvider>
     </LayoutRulesetProvider>
+    </StuffProjectsProvider>
     </TimezoneProvider>
   );
 }

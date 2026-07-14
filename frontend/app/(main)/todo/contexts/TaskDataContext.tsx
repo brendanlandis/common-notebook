@@ -13,6 +13,7 @@ import { getISOTimestampInEST } from "@/app/lib/dateUtils";
 import { useLayoutRuleset } from "@/app/contexts/LayoutRulesetContext";
 import { useTaskActions } from "@/app/contexts/TaskActionsContext";
 import { useTimezoneContext } from "@/app/contexts/TimezoneContext";
+import { useStuffProjects } from "@/app/contexts/StuffProjectsContext";
 import { useTasks } from "../hooks/useTasks";
 
 // Stats shape used by the "done" view's RecentStats panels.
@@ -80,11 +81,37 @@ export function TaskDataProvider({ children }: { children: ReactNode }) {
     addManualProject,
     refetch: fetchTasks,
   } = useTasks();
+  const { stuffProjectsEnabled } = useStuffProjects();
   const [completedTasks, setCompletedTasks] = useState<Task[]>([]);
   const [upcomingTasks, setUpcomingTasks] = useState<Task[]>([]);
   const [longTasksWithSessions, setLongTasksWithSessions] = useState<Task[]>(
     []
   );
+
+  // When stuff projects are disabled, hide stuff-world tasks everywhere the UI
+  // reads from, so nothing stuff leaks through. When enabled they flow normally
+  // (e.g. a "soon" stuff task still surfaces in Good Morning). The setting is
+  // the sole gate. Mutation handlers still operate on the unfiltered state.
+  const isStuff = (t: Task) => (t.project as any)?.world === "stuff";
+  const withoutStuff = (list: Task[]) =>
+    stuffProjectsEnabled ? list : list.filter((t) => !isStuff(t));
+  const isStuffProject = (p: { world?: string }) => p.world === "stuff";
+  const withoutStuffProjects = <T extends { world?: string }>(list: T[]) =>
+    stuffProjectsEnabled ? list : list.filter((p) => !isStuffProject(p));
+
+  // Stuff tasks always live in stuff-world projects, so dropping those projects
+  // removes every stuff task from the grouped views.
+  const visibleGrouped: GroupedTasks = stuffProjectsEnabled
+    ? grouped
+    : {
+        ...grouped,
+        projects: withoutStuffProjects(grouped.projects),
+        recurringProjects: withoutStuffProjects(grouped.recurringProjects),
+        allRecurringProjects: withoutStuffProjects(grouped.allRecurringProjects),
+      };
+  const visibleCompletedTasks = withoutStuff(completedTasks);
+  const visibleUpcomingTasks = withoutStuff(upcomingTasks);
+  const visibleLongTasksWithSessions = withoutStuff(longTasksWithSessions);
   const [recentStats, setRecentStats] = useState<RecentStatItem[]>([]);
   const [statsLoading, setStatsLoading] = useState(false);
   const [recentStats30Days, setRecentStats30Days] = useState<RecentStatItem[]>(
@@ -572,12 +599,12 @@ export function TaskDataProvider({ children }: { children: ReactNode }) {
     <TaskDataContext.Provider
       value={{
         tasks,
-        grouped,
+        grouped: visibleGrouped,
         loading,
         error,
-        completedTasks,
-        upcomingTasks,
-        longTasksWithSessions,
+        completedTasks: visibleCompletedTasks,
+        upcomingTasks: visibleUpcomingTasks,
+        longTasksWithSessions: visibleLongTasksWithSessions,
         recentStats,
         statsLoading,
         recentStats30Days,

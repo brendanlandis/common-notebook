@@ -77,7 +77,6 @@ const worldRuleset: LayoutRuleset = {
   showRecurring: true,
   showNonRecurring: true,
   visibleWorlds: null,
-  visibleCategories: null,
   sortBy: 'creationDate',
   groupBy: 'world',
 };

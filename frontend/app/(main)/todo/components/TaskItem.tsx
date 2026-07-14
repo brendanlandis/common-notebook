@@ -3,6 +3,7 @@
 import { differenceInDays, isPast, isToday, isTomorrow } from "date-fns";
 import { useState, useEffect } from "react";
 import type { Task } from "@/app/types/index";
+import { getTaskProjectType } from "@/app/lib/taskProjectType";
 import {
   PencilIcon,
   TrashIcon,
@@ -192,12 +193,13 @@ export default function TaskItem({
               (due {formatDueDate(task.dueDate)})
             </span>
           )}
-          {(task.category === "buy stuff" ||
-            task.category === "wishlist" ||
-            task.category === "errands") &&
-            task.price !== null && (
-              <span className="task-due-date">(${task.price})</span>
-            )}
+          {(() => {
+            const projectType = getTaskProjectType(task);
+            return (projectType === "buy stuff" ||
+              projectType === "wishlist" ||
+              projectType === "errands") &&
+              task.price !== null;
+          })() && <span className="task-due-date">(${task.price})</span>}
         </label>
         <span className="task-actions">
           {task.trackingUrl && (

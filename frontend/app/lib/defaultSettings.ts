@@ -20,6 +20,7 @@ export const DEFAULT_SETTINGS: ReadonlyArray<{ title: string; value: string }> =
   { title: 'dayBoundaryHour', value: '4' },
   { title: 'completedTaskVisibilityMinutes', value: '15' },
   { title: 'autoDeclutter', value: 'true' },
+  { title: 'enableStuffProjects', value: 'true' },
 ];
 
 /**

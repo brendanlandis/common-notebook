@@ -15,11 +15,14 @@ import {
   fetchAutoDeclutterFromStrapi,
   saveAutoDeclutterToStrapi,
 } from "@/app/lib/autoDeclutterConfig";
+import { saveStuffProjectsEnabledToStrapi } from "@/app/lib/stuffProjectsConfig";
+import { useStuffProjects } from "@/app/contexts/StuffProjectsContext";
 
 export default function SettingsPage() {
   const [visibilityMinutes, setVisibilityMinutes] = useState<number>(15); // Default to 15 minutes
   const [dayBoundaryHour, setDayBoundaryHour] = useState<number>(0); // Default to midnight
   const [autoDeclutter, setAutoDeclutter] = useState<boolean>(true); // Default on
+  const { stuffProjectsEnabled, setStuffProjectsEnabled } = useStuffProjects();
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -90,6 +93,21 @@ export default function SettingsPage() {
     setIsSaving(false);
   };
 
+  const handleStuffProjectsChange = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const newValue = event.target.checked;
+    setStuffProjectsEnabled(newValue);
+    setIsSaving(true);
+
+    const success = await saveStuffProjectsEnabledToStrapi(newValue);
+    if (!success) {
+      console.error("Failed to save enable-stuff-projects setting");
+    }
+
+    setIsSaving(false);
+  };
+
   // Format hour for display (0 -> "12am", 1 -> "1am", 13 -> "1pm", etc.)
   const formatHour = (hour: number): string => {
     if (hour === 0) return "12am";
@@ -148,6 +166,22 @@ export default function SettingsPage() {
               checked={autoDeclutter}
               onChange={handleAutoDeclutterChange}
               disabled={isLoading || isSaving}
+            />
+          </label>
+
+          <h2>Stuff projects</h2>
+          <p>
+            Show the &quot;stuff&quot; world (shopping, errands, wishlist, and
+            &quot;in the mail&quot; projects) and its view? Turning this off hides
+            them without deleting anything.
+          </p>
+          <label className="settings-checkbox">
+            <input
+              type="checkbox"
+              className="checkbox"
+              checked={stuffProjectsEnabled}
+              onChange={handleStuffProjectsChange}
+              disabled={isSaving}
             />
           </label>
         </section>
