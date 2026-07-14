@@ -52,7 +52,7 @@ const USERS = [
 ];
 
 const OWNED_TYPES = [
-  'api::todo.todo',
+  'api::task.task',
   'api::project.project',
   'api::practice-log.practice-log',
   'api::system-setting.system-setting',
@@ -154,13 +154,13 @@ async function seedFor(strapi, user, offset) {
     },
   });
 
-  const todos = [
-    { title: `${SEED_TAG} ${user.username} open todo`, completed: false, soon: false },
-    { title: `${SEED_TAG} ${user.username} soon todo`, completed: false, soon: true },
-    { title: `${SEED_TAG} ${user.username} done todo`, completed: true, soon: false },
+  const tasks = [
+    { title: `${SEED_TAG} ${user.username} open task`, completed: false, soon: false },
+    { title: `${SEED_TAG} ${user.username} soon task`, completed: false, soon: true },
+    { title: `${SEED_TAG} ${user.username} done task`, completed: true, soon: false },
   ];
-  for (const t of todos) {
-    await strapi.documents('api::todo.todo').create({
+  for (const t of tasks) {
+    await strapi.documents('api::task.task').create({
       data: {
         ...t,
         recurrenceType: 'none',
@@ -205,8 +205,8 @@ async function seedUnowned(strapi) {
   await strapi.documents('api::project.project').create({
     data: { title: `${SEED_TAG} orphan project`, world: 'life stuff', importance: 'top of mind' },
   });
-  await strapi.documents('api::todo.todo').create({
-    data: { title: `${SEED_TAG} orphan todo`, completed: false, recurrenceType: 'none', soon: true },
+  await strapi.documents('api::task.task').create({
+    data: { title: `${SEED_TAG} orphan task`, completed: false, recurrenceType: 'none', soon: true },
   });
   await strapi.documents('api::practice-log.practice-log').create({
     data: { type: 'voice', date: '2026-07-01', duration: 20 },

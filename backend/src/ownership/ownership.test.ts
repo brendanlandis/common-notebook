@@ -8,8 +8,7 @@ import {
 } from './index';
 import { OWNED_CONTENT_TYPES, ownerIsRequestUser } from './rule';
 
-const UID = 'api::todo.todo';
-const TASK_UID = 'api::task.task';
+const UID = 'api::task.task';
 const ALICE = { id: 2 };
 const BOB = { id: 3 };
 
@@ -65,13 +64,13 @@ describe('mergeFilters', () => {
 describe('isContentApiRequest', () => {
   it('matches the content-API prefix exactly or as a path segment', () => {
     expect(isContentApiRequest('/api', '/api')).toBe(true);
-    expect(isContentApiRequest('/api/todos?x=1', '/api')).toBe(true);
+    expect(isContentApiRequest('/api/tasks?x=1', '/api')).toBe(true);
   });
 
   it('does not match the admin panel or lookalike prefixes', () => {
-    expect(isContentApiRequest('/content-manager/collection-types/api::todo.todo', '/api')).toBe(false);
+    expect(isContentApiRequest('/content-manager/collection-types/api::task.task', '/api')).toBe(false);
     expect(isContentApiRequest('/admin/login', '/api')).toBe(false);
-    expect(isContentApiRequest('/apixyz/todos', '/api')).toBe(false);
+    expect(isContentApiRequest('/apixyz/tasks', '/api')).toBe(false);
     expect(isContentApiRequest('', '/api')).toBe(false);
   });
 });
@@ -119,7 +118,7 @@ describe('guard 2 — no request context', () => {
 
 describe('guard 3 — content API fails closed', () => {
   it('rejects an authenticated-looking request with no user (e.g. an API token)', async () => {
-    const mw = middleware(fakeStrapi({ url: '/api/todos', user: undefined }));
+    const mw = middleware(fakeStrapi({ url: '/api/tasks', user: undefined }));
     const next = vi.fn();
     await expect(mw({ uid: UID, action: 'findMany', params: {} }, next)).rejects.toThrow(
       /Authentication required/
@@ -128,7 +127,7 @@ describe('guard 3 — content API fails closed', () => {
   });
 
   it('scopes reads to the caller', async () => {
-    const mw = middleware(fakeStrapi({ url: '/api/todos', user: ALICE }));
+    const mw = middleware(fakeStrapi({ url: '/api/tasks', user: ALICE }));
     for (const action of ['findMany', 'findFirst', 'findOne', 'count']) {
       const params: any = {};
       await mw({ uid: UID, action, params }, vi.fn());
@@ -137,7 +136,7 @@ describe('guard 3 — content API fails closed', () => {
   });
 
   it('stamps create with the caller, overwriting a client-supplied owner', async () => {
-    const mw = middleware(fakeStrapi({ url: '/api/todos', user: ALICE }));
+    const mw = middleware(fakeStrapi({ url: '/api/tasks', user: ALICE }));
     const params: any = { data: { title: 't', owner: BOB.id } };
     await mw({ uid: UID, action: 'create', params }, vi.fn());
     expect(params.data.owner).toBe(ALICE.id);
@@ -146,7 +145,7 @@ describe('guard 3 — content API fails closed', () => {
   it('throws NotFound — not Forbidden — when updating someone else’s row', async () => {
     // update() ignores `filters`, so this lookup is the only thing standing
     // between a caller and another tenant's row.
-    const mw = middleware(fakeStrapi({ url: '/api/todos', user: ALICE, row: { owner: BOB } }));
+    const mw = middleware(fakeStrapi({ url: '/api/tasks', user: ALICE, row: { owner: BOB } }));
     const next = vi.fn();
     await expect(
       mw({ uid: UID, action: 'update', params: { documentId: 'x' } }, next)
@@ -155,28 +154,28 @@ describe('guard 3 — content API fails closed', () => {
   });
 
   it('allows update of a row the caller owns', async () => {
-    const mw = middleware(fakeStrapi({ url: '/api/todos', user: ALICE, row: { owner: ALICE } }));
+    const mw = middleware(fakeStrapi({ url: '/api/tasks', user: ALICE, row: { owner: ALICE } }));
     const next = vi.fn().mockResolvedValue('ok');
     await mw({ uid: UID, action: 'update', params: { documentId: 'x' } }, next);
     expect(next).toHaveBeenCalled();
   });
 
   it('treats a missing row as NotFound', async () => {
-    const mw = middleware(fakeStrapi({ url: '/api/todos', user: ALICE, row: null }));
+    const mw = middleware(fakeStrapi({ url: '/api/tasks', user: ALICE, row: null }));
     await expect(
       mw({ uid: UID, action: 'delete', params: { documentId: 'gone' } }, vi.fn())
     ).rejects.toMatchObject({ name: 'NotFoundError' });
   });
 
   it('re-stamps a clone, so it does not inherit the source row’s owner', async () => {
-    const mw = middleware(fakeStrapi({ url: '/api/todos', user: ALICE, row: { owner: ALICE } }));
+    const mw = middleware(fakeStrapi({ url: '/api/tasks', user: ALICE, row: { owner: ALICE } }));
     const params: any = { documentId: 'x', data: {} };
     await mw({ uid: UID, action: 'clone', params }, vi.fn());
     expect(params.data.owner).toBe(ALICE.id);
   });
 
   it('fails closed on an unrecognised action', async () => {
-    const mw = middleware(fakeStrapi({ url: '/api/todos', user: ALICE }));
+    const mw = middleware(fakeStrapi({ url: '/api/tasks', user: ALICE }));
     await expect(mw({ uid: UID, action: 'somethingNew', params: {} }, vi.fn())).rejects.toThrow(
       /Unsupported document action/
     );
@@ -184,7 +183,7 @@ describe('guard 3 — content API fails closed', () => {
 });
 
 describe('guard 4 — the admin panel', () => {
-  const ADMIN_URL = '/content-manager/collection-types/api::todo.todo';
+  const ADMIN_URL = '/content-manager/collection-types/api::task.task';
 
   it('leaves admin reads unscoped: the operator sees every tenant', async () => {
     const mw = middleware(fakeStrapi({ url: ADMIN_URL, user: { id: 1 } }));
@@ -230,45 +229,44 @@ describe('guard 4 — the admin panel', () => {
   });
 });
 
-// `task` is the rename target of `todo`. The middleware is content-type-agnostic
-// — it owns whatever is in OWNED_CONTENT_TYPES — so these build it with the REAL
-// list and drive `api::task.task` through the same guards, proving the new type
-// is isolated exactly like todo. (Both coexist until Stage 6 of the rename.)
-describe('task is an owned content type (todo→task rename)', () => {
+// The ownership middleware is content-type-agnostic — it owns whatever is in
+// OWNED_CONTENT_TYPES — so these build it with the REAL list (not a stub) to
+// confirm `api::task.task` is actually registered and isolated like the rest.
+describe('task is an owned content type', () => {
   // Middleware configured with the production owned-types list, not a stub.
   const ownedMiddleware = (strapi: any) =>
     createOwnershipMiddleware({ strapi, contentTypes: OWNED_CONTENT_TYPES, rule: ownerIsRequestUser });
 
-  it('OWNED_CONTENT_TYPES carries both todo and task during coexistence', () => {
-    expect(OWNED_CONTENT_TYPES).toContain(TASK_UID);
-    expect(OWNED_CONTENT_TYPES).toContain(UID);
+  it('OWNED_CONTENT_TYPES carries task and no longer carries todo', () => {
+    expect(OWNED_CONTENT_TYPES).toContain('api::task.task');
+    expect(OWNED_CONTENT_TYPES).not.toContain('api::todo.todo');
   });
 
   it('scopes task reads to the caller', async () => {
     const mw = ownedMiddleware(fakeStrapi({ url: '/api/tasks', user: ALICE }));
     const params: any = {};
-    await mw({ uid: TASK_UID, action: 'findMany', params }, vi.fn());
+    await mw({ uid: UID, action: 'findMany', params }, vi.fn());
     expect(params.filters).toEqual({ owner: { id: { $eq: 2 } } });
   });
 
   it('stamps a task create with the caller, overwriting a client-supplied owner', async () => {
     const mw = ownedMiddleware(fakeStrapi({ url: '/api/tasks', user: ALICE }));
     const params: any = { data: { title: 't', owner: BOB.id } };
-    await mw({ uid: TASK_UID, action: 'create', params }, vi.fn());
+    await mw({ uid: UID, action: 'create', params }, vi.fn());
     expect(params.data.owner).toBe(ALICE.id);
   });
 
   it('authorizes a task write by lookup — NotFound on another tenant’s row', async () => {
     const mw = ownedMiddleware(fakeStrapi({ url: '/api/tasks', user: ALICE, row: { owner: BOB } }));
     await expect(
-      mw({ uid: TASK_UID, action: 'update', params: { documentId: 'x' } }, vi.fn())
+      mw({ uid: UID, action: 'update', params: { documentId: 'x' } }, vi.fn())
     ).rejects.toMatchObject({ name: 'NotFoundError' });
   });
 
   it('allows a task write the caller owns', async () => {
     const mw = ownedMiddleware(fakeStrapi({ url: '/api/tasks', user: ALICE, row: { owner: ALICE } }));
     const next = vi.fn().mockResolvedValue('ok');
-    await mw({ uid: TASK_UID, action: 'update', params: { documentId: 'x' } }, next);
+    await mw({ uid: UID, action: 'update', params: { documentId: 'x' } }, next);
     expect(next).toHaveBeenCalled();
   });
 });

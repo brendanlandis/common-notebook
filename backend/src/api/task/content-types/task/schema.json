@@ -76,23 +76,6 @@
       "target": "api::project.project",
       "inversedBy": "tasks"
     },
-    "category": {
-      "type": "enumeration",
-      "enum": [
-        "home chores",
-        "studio chores",
-        "band chores",
-        "life chores",
-        "work chores",
-        "web chores",
-        "data chores",
-        "computer chores",
-        "in the mail",
-        "buy stuff",
-        "errands",
-        "wishlist"
-      ]
-    },
     "recurrenceMonth": {
       "type": "integer"
     },

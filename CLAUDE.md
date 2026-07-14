@@ -1,6 +1,6 @@
 # overview
 
-`common-notebook` is a suite of no-brand, personal utilities: primarily a **Todo list** app. Two independent
+`common-notebook` is a suite of no-brand, personal utilities: primarily a **task list** (shown on the *To Do* page). Two independent
 npm projects (no workspace tooling):
 
 - `frontend/` — Next.js 16 (App Router), React 19, TypeScript. The UI. Runs on `localhost:3000`.
@@ -25,12 +25,12 @@ License: AGPL v3.
 - `(main)/` — authed route group (`layout.tsx`). Features: `todo/`, `practice/`, `settings/`, home.
   Each feature colocates its own `components/`, `hooks/`, `utils/`. `todo/components/layouts/` holds
   ~11 view variants + `types.ts`.
-- `api/` — Next.js route handlers acting as a BFF/proxy to Strapi (`todos/`, `projects/`,
+- `api/` — Next.js route handlers acting as a BFF/proxy to Strapi (`tasks/`, `projects/`,
   `practice-logs/`, `system-settings/`, `auth/`, …).
-- `lib/` — pure, unit-tested business logic. Core files: `layoutTransformers.ts` (the todo-grouping
-  engine), `groupTodos.ts`, `layoutPresets.ts`, `projectPriority.ts`, `recurrence*.ts`, `dateUtils.ts`,
+- `lib/` — pure, unit-tested business logic. Core files: `layoutTransformers.ts` (the task-grouping
+  engine), `groupTasks.ts`, `layoutPresets.ts`, `projectPriority.ts`, `recurrence*.ts`, `dateUtils.ts`,
   `moonPhase*.ts`, `dayBoundary*.ts`.
-- `components/` — shared UI. `contexts/` — `LayoutRulesetContext`, `TodoActionsContext`,
+- `components/` — shared UI. `contexts/` — `LayoutRulesetContext`, `TaskActionsContext`,
   `TimezoneContext`, `PracticeContext`. `hooks/` — global hooks. `types/index.ts` — central domain types.
 
 ## Backend communication
@@ -54,31 +54,35 @@ Strapi `5.50.0`, TypeScript. Scripts: `npm run develop` / `build` / `start` / `d
 DB via `DATABASE_CLIENT` (mysql | postgres | sqlite), **defaults to SQLite** locally
 (`backend/config/database.ts`). Media uploads go to AWS S3.
 
-Content types under `backend/src/api/*/content-types/*/schema.json`: `todo`, `project`,
+Content types under `backend/src/api/*/content-types/*/schema.json`: `task`, `project`,
 `practice-log`, `system-setting`. Strapi 5 style — `documentId` is the stable identifier used
 throughout the frontend. Node engine constraint: `>=18 <=22.x`.
 
-# Domain model (todo app)
+# Domain model (task app)
 
-- **World** — a top-level bucket: `day job`, `life stuff`, `music admin`, `make music`, `computer`
-  (`app/types/index.ts`). A project belongs to one world.
+- **World** — a top-level bucket: `day job`, `life stuff`, `music admin`, `make music`, `computer`,
+  `stuff` (`app/types/index.ts`). A project belongs to one world.
 - **Importance** — project tier: `top of mind`, `normal`, `later`. World views order projects
   top-of-mind → priority (`pN` title marker) → normal → later, creation-date within each.
-- **View / preset / ruleset** — todo views are presets in `app/lib/layoutPresets.ts`, chosen via the
+- **Project type** — a project's `projectType` (`app/types/index.ts`): `normal`, `chores`, plus the four
+  `STUFF_PROJECT_TYPES` (`wishlist`, `errands`, `in the mail`, `buy stuff`) that live in the `stuff` world
+  and are gated by the `enableStuffProjects` setting (`app/lib/stuffProjectsConfig.ts`). This **replaced the
+  old per-task `category` enum** — see `backend/scripts/migrate-categories-to-projects.js`.
+- **View / preset / ruleset** — task views are presets in `app/lib/layoutPresets.ts`, chosen via the
   `?view=<id>` URL param (`app/contexts/LayoutRulesetContext.tsx`). Each preset sets
-  `groupBy`/`sortBy`/`visibleWorlds`/`visibleCategories`, consumed by `transformLayout`
+  `groupBy`/`sortBy`/`visibleWorlds`/`visibleProjects`, consumed by `transformLayout`
   (`app/lib/layoutTransformers.ts`) → `LayoutRenderer` → a per-layout component.
-- **Incidentals** — todos with no project. **Categories** — grouping for project-less todos.
+- **Incidentals** — tasks with no project.
 
 # Conventions
 
 - **Feature-colocation:** feature code under its route folder; shared code in top-level
   `app/{components,lib,hooks,contexts}`.
-- **Custom hooks own data domains** — e.g. `todo/hooks/useTodos.ts` owns active todos (flat array +
+- **Custom hooks own data domains** — e.g. `todo/hooks/useTasks.ts` owns active tasks (flat array +
   manual-project overlay + memoized groupings) and centralizes all mutations
-  (`addTodo/updateTodo/updateProject/refetch/…`).
-- **Configurable todo views** are data-driven by `LayoutRuleset` (`groupBy`/`sortBy`/`visibleWorlds`/
-  `visibleCategories`) — presets in `layoutPresets.ts`, applied in `layoutTransformers.ts`.
+  (`addTask/updateTask/updateProject/refetch/…`).
+- **Configurable task views** are data-driven by `LayoutRuleset` (`groupBy`/`sortBy`/`visibleWorlds`/
+  `visibleProjects`) — presets in `layoutPresets.ts`, applied in `layoutTransformers.ts`.
   World views order projects by tier: top-of-mind → priority (`pN` title marker, see
   `projectPriority.ts`) → normal → later, sorted by creation date within each tier.
 - **EST-centric date logic:** use `getTodayInEST`/`getNowInEST`/`parseInEST` from `app/lib/dateUtils.ts`
@@ -110,7 +114,7 @@ throughout the frontend. Node engine constraint: `>=18 <=22.x`.
   2. `throw-restricted-relations.js` — the attribute is *any relation*, and the caller lacks
      `<target>.find` on the relation's target.
 
-  `todo.owner` trips both (it's private *and* points at the user model), which is why a client can never
+  `task.owner` trips both (it's private *and* points at the user model), which is why a client can never
   choose its own owner. `invite.usedBy` trips only the second: writing it requires granting the invite
   token `plugin::users-permissions.user.find`, which also lets that token list every user's email.
   When a relation is mysteriously "invalid", check the caller's `find` permission on the *target* before
@@ -157,9 +161,9 @@ throughout the frontend. Node engine constraint: `>=18 <=22.x`.
   Nothing else in the frontend loads `.env` — there is no `dotenv` there; Next.js does it.
 - **Anything `console.log`'d from `backend/config/*.ts` corrupts scripts that parse stdout**, because
   Strapi evaluates config during `createStrapi()`. Config diagnostics go to `console.warn` (stderr).
-- **`showsTodoCreator.ts` reads *one* hardcoded slownames username but writes todos into whoever is logged
+- **`showsTaskCreator.ts` reads *one* hardcoded slownames username but writes tasks into whoever is logged
   in.** Harmless with one account; with tenants it hands every invited user Brendan's band chores (and his
-  show history). Gated by `SHOW_TODOS_USER_ID` via `app/api/shows-todos/route.ts`, checked server-side
+  show history). Gated by `SHOW_TASKS_USER_ID` via `app/api/shows-tasks/route.ts`, checked server-side
   against the user id in the signed access token, and **fails closed when unset** — so the feature is off
   unless deliberately switched on. A stopgap until slownames has per-user identities.
 - `backend/tsconfig.json`'s `include` is `"./"`, so it type-checks root files too. `vitest.config.ts` is

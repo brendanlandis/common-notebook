@@ -18,12 +18,6 @@
     "description": {
       "type": "blocks"
     },
-    "todos": {
-      "type": "relation",
-      "relation": "oneToMany",
-      "target": "api::todo.todo",
-      "mappedBy": "project"
-    },
     "world": {
       "type": "enumeration",
       "enum": [
