@@ -190,6 +190,24 @@ async function persistTokens(tokens: Tokens): Promise<void> {
 }
 
 /**
+ * Delete both session cookies on the outgoing response. Called when Strapi
+ * rejects the refresh token: the cookie is authoritatively dead, so we stop
+ * trusting it — otherwise `proxy.ts` keeps rendering the app shell for a session
+ * the backend has already dropped. Mirrors `persistTokens`' best-effort jar use
+ * (no NextResponse is available here).
+ */
+async function clearSessionCookieJar(): Promise<void> {
+  try {
+    const jar = await cookies();
+    for (const name of [ACCESS_COOKIE, REFRESH_COOKIE]) {
+      jar.set(name, '', { ...COOKIE_OPTIONS, maxAge: 0 });
+    }
+  } catch {
+    /* not in a request scope */
+  }
+}
+
+/**
  * The access token to send to Strapi, refreshing it first if it is about to
  * expire. Returns null when the caller is not authenticated.
  *
@@ -207,7 +225,12 @@ export async function getAccessToken(req: NextRequest): Promise<string | null> {
   if (!refresh) return access; // pre-session cookie, or logged out
 
   const tokens = await refreshTokens(refresh);
-  if (!tokens) return null; // session revoked or refresh token expired
+  if (!tokens) {
+    // Session revoked or refresh token expired/foreign — clear the dead cookies
+    // so the page gate stops treating the caller as logged in.
+    await clearSessionCookieJar();
+    return null;
+  }
 
   await persistTokens(tokens);
   return tokens.access;

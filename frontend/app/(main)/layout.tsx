@@ -8,6 +8,7 @@ import { TaskActionsProvider } from "../contexts/TaskActionsContext";
 import { TimezoneProvider } from "../contexts/TimezoneContext";
 import HeaderIcon from "../components/HeaderIcon";
 import EscapeKeyHandler from "../components/EscapeKeyHandler";
+import SessionGuard from "../components/SessionGuard";
 
 export default function MainLayout({
   children,
@@ -19,6 +20,7 @@ export default function MainLayout({
       <LayoutRulesetProvider>
         <PracticeContextProvider>
           <TaskActionsProvider>
+            <SessionGuard />
             <EscapeKeyHandler />
             <div className="drawer">
             <input
