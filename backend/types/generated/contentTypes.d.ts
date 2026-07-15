@@ -556,16 +556,6 @@ export interface ApiProjectProject extends Struct.CollectionTypeSchema {
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
-    world: Schema.Attribute.Enumeration<
-      [
-        'life stuff',
-        'music admin',
-        'make music',
-        'day job',
-        'computer',
-        'stuff',
-      ]
-    >;
     worldRef: Schema.Attribute.Relation<'manyToOne', 'api::world.world'>;
   };
 }

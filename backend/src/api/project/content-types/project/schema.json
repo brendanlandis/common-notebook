@@ -18,17 +18,6 @@
     "description": {
       "type": "blocks"
     },
-    "world": {
-      "type": "enumeration",
-      "enum": [
-        "life stuff",
-        "music admin",
-        "make music",
-        "day job",
-        "computer",
-        "stuff"
-      ]
-    },
     "importance": {
       "type": "enumeration",
       "default": "normal",
