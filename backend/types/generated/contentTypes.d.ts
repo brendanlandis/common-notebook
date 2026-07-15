@@ -452,6 +452,7 @@ export interface ApiInviteInvite extends Struct.CollectionTypeSchema {
     draftAndPublish: false;
   };
   attributes: {
+    betaAccess: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
     code: Schema.Attribute.String &
       Schema.Attribute.Required &
       Schema.Attribute.Unique;
