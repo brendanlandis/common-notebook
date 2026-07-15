@@ -11,6 +11,8 @@ import { WorldsProvider } from "../contexts/WorldsContext";
 import HeaderIcon from "../components/HeaderIcon";
 import EscapeKeyHandler from "../components/EscapeKeyHandler";
 import SessionGuard from "../components/SessionGuard";
+import { BetaAccessProvider } from "../contexts/BetaAccessContext";
+import BetaGuard from "../components/BetaGuard";
 
 export default function MainLayout({
   children,
@@ -18,6 +20,7 @@ export default function MainLayout({
   children: React.ReactNode;
 }) {
   return (
+    <BetaAccessProvider>
     <TimezoneProvider>
       <WorldsProvider>
       <StuffProjectsProvider>
@@ -54,7 +57,7 @@ export default function MainLayout({
                     </div>
                   </header>
                   <main className="container" id="main-container">
-                    {children}
+                    <BetaGuard>{children}</BetaGuard>
                   </main>
                   <footer></footer>
                 </div>
@@ -78,5 +81,6 @@ export default function MainLayout({
     </StuffProjectsProvider>
     </WorldsProvider>
     </TimezoneProvider>
+    </BetaAccessProvider>
   );
 }

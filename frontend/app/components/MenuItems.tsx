@@ -9,8 +9,11 @@ import {
 import MenuClose from "./MenuClose";
 import ThemeToggle from "./ThemeToggle";
 import LogoutButton from "./LogoutButton";
+import { isBetaPath } from "@/app/lib/betaConfig";
+import { useBetaAccess } from "@/app/contexts/BetaAccessContext";
 
 export default function MenuItems() {
+  const { betaAccess } = useBetaAccess();
   const closeDrawer = () => {
     const drawerCheckbox = document.getElementById(
       "mainMenu"
@@ -34,12 +37,14 @@ export default function MenuItems() {
           <span>to do</span>
         </Link>
       </li>
-      <li>
-        <Link href="/practice" onClick={closeDrawer}>
-          <MetronomeIcon size={30} weight="thin" />
-          <span>practice</span>
-        </Link>
-      </li>
+      {(!isBetaPath("/practice") || betaAccess) && (
+        <li>
+          <Link href="/practice" onClick={closeDrawer}>
+            <MetronomeIcon size={30} weight="thin" />
+            <span>practice</span>
+          </Link>
+        </li>
+      )}
       <li>
         <ThemeToggle />
         <Link
