@@ -1,0 +1,60 @@
+{
+  "collectionName": "components_view_sections",
+  "info": {
+    "displayName": "section"
+  },
+  "options": {},
+  "attributes": {
+    "name": {
+      "type": "string"
+    },
+    "worldMode": {
+      "type": "enumeration",
+      "default": "all",
+      "enum": [
+        "all",
+        "only",
+        "except"
+      ]
+    },
+    "worlds": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::world.world"
+    },
+    "importance": {
+      "type": "enumeration",
+      "default": "any",
+      "enum": [
+        "any",
+        "soonAndTopOfMind",
+        "soonAndTopOfMind-regular",
+        "regular",
+        "regular-later",
+        "later"
+      ]
+    },
+    "projectType": {
+      "type": "enumeration",
+      "default": "any",
+      "enum": [
+        "any",
+        "chores"
+      ]
+    },
+    "recurrence": {
+      "type": "enumeration",
+      "default": "both",
+      "enum": [
+        "both",
+        "recurring",
+        "nonRecurring"
+      ]
+    },
+    "longOnly": {
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "config": {}
+}

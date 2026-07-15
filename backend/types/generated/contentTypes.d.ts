@@ -670,6 +670,44 @@ export interface ApiTaskTask extends Struct.CollectionTypeSchema {
   };
 }
 
+export interface ApiViewView extends Struct.CollectionTypeSchema {
+  collectionName: 'views';
+  info: {
+    displayName: 'View';
+    pluralName: 'views';
+    singularName: 'view';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    layout: Schema.Attribute.Enumeration<
+      ['projects', 'chronological', 'roulette']
+    > &
+      Schema.Attribute.DefaultTo<'projects'>;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<'oneToMany', 'api::view.view'> &
+      Schema.Attribute.Private;
+    name: Schema.Attribute.String & Schema.Attribute.Required;
+    owner: Schema.Attribute.Relation<
+      'oneToOne',
+      'plugin::users-permissions.user'
+    > &
+      Schema.Attribute.Private;
+    position: Schema.Attribute.Integer;
+    publishedAt: Schema.Attribute.DateTime;
+    sections: Schema.Attribute.Component<'view.section', true>;
+    slug: Schema.Attribute.String;
+    systemKey: Schema.Attribute.String;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
 export interface ApiWorldWorld extends Struct.CollectionTypeSchema {
   collectionName: 'worlds';
   info: {
@@ -1222,6 +1260,7 @@ declare module '@strapi/strapi' {
       'api::project.project': ApiProjectProject;
       'api::system-setting.system-setting': ApiSystemSettingSystemSetting;
       'api::task.task': ApiTaskTask;
+      'api::view.view': ApiViewView;
       'api::world.world': ApiWorldWorld;
       'plugin::content-releases.release': PluginContentReleasesRelease;
       'plugin::content-releases.release-action': PluginContentReleasesReleaseAction;

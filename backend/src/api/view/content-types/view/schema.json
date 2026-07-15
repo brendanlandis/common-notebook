@@ -1,0 +1,48 @@
+{
+  "kind": "collectionType",
+  "collectionName": "views",
+  "info": {
+    "singularName": "view",
+    "pluralName": "views",
+    "displayName": "View"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "name": {
+      "type": "string",
+      "required": true
+    },
+    "slug": {
+      "type": "string"
+    },
+    "position": {
+      "type": "integer"
+    },
+    "systemKey": {
+      "type": "string"
+    },
+    "layout": {
+      "type": "enumeration",
+      "default": "projects",
+      "enum": [
+        "projects",
+        "chronological",
+        "roulette"
+      ]
+    },
+    "sections": {
+      "type": "component",
+      "component": "view.section",
+      "repeatable": true
+    },
+    "owner": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "plugin::users-permissions.user",
+      "private": true
+    }
+  }
+}
