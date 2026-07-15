@@ -4,16 +4,15 @@ import { useForm, SubmitHandler, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useState } from "react";
-import type { Project, World, ProjectImportance, StrapiBlock } from "@/app/types/index";
+import type { Project, ProjectImportance, StrapiBlock } from "@/app/types/index";
 import RichTextEditor from "@/app/components/RichTextEditor";
 import { slugify } from "@/app/lib/slugify";
+import { useWorlds } from "@/app/contexts/WorldsContext";
 
 const schema = z.object({
   title: z.string().min(1, "Title is required"),
   description: z.array(z.any()).optional(),
-  world: z
-    .enum(["life stuff", "music admin", "make music", "day job", "computer", "stuff"])
-    .optional(),
+  world: z.string().optional(), // a world documentId ("" = no world)
   importance: z.enum(["normal", "top of mind", "later"]),
   projectType: z.enum([
     "normal",
@@ -41,6 +40,7 @@ export default function ProjectForm({
   const [description, setDescription] = useState<StrapiBlock[]>(
     project?.description || []
   );
+  const { worlds } = useWorlds();
 
   const {
     register,
@@ -52,7 +52,7 @@ export default function ProjectForm({
     defaultValues: {
       title: project?.title || "",
       description: project?.description || [],
-      world: project?.world || undefined,
+      world: project?.world?.documentId ?? "",
       importance: project?.importance || "normal",
       projectType: project?.projectType || "normal",
     },
@@ -125,12 +125,11 @@ export default function ProjectForm({
         <label htmlFor="world">world</label>
         <select id="world" {...register("world")}>
           <option value="">no world</option>
-          <option value="life stuff">life stuff</option>
-          <option value="music admin">music admin</option>
-          <option value="make music">make music</option>
-          <option value="day job">day job</option>
-          <option value="computer">computer</option>
-          <option value="stuff">stuff</option>
+          {worlds.map((w) => (
+            <option key={w.documentId} value={w.documentId}>
+              {w.title}
+            </option>
+          ))}
         </select>
       </div>
 

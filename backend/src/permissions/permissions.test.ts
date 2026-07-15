@@ -51,6 +51,15 @@ describe('ROLE_PERMISSIONS — the authorization surface, in git', () => {
     }
   });
 
+  it('grants world CRUD (user-populated worlds) to authenticated users', () => {
+    // `world.find` in particular is what lets a project create/update set its
+    // `worldRef` relation — writing a relation requires `find` on the target
+    // (throw-restricted-relations), and the frontend BFF also lists worlds.
+    for (const action of ['find', 'findOne', 'create', 'update', 'delete']) {
+      expect(ROLE_PERMISSIONS.authenticated).toContain(`api::world.world.${action}`);
+    }
+  });
+
   it('grants /api/users/me — frontend/proxy.ts calls it on every navigation', () => {
     expect(ROLE_PERMISSIONS.authenticated).toContain('plugin::users-permissions.user.me');
   });

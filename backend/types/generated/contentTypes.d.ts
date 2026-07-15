@@ -566,7 +566,7 @@ export interface ApiProjectProject extends Struct.CollectionTypeSchema {
         'stuff',
       ]
     >;
-    worldRef: Schema.Attribute.Relation<'oneToOne', 'api::world.world'>;
+    worldRef: Schema.Attribute.Relation<'manyToOne', 'api::world.world'>;
   };
 }
 
@@ -705,6 +705,7 @@ export interface ApiWorldWorld extends Struct.CollectionTypeSchema {
     > &
       Schema.Attribute.Private;
     position: Schema.Attribute.Integer;
+    projects: Schema.Attribute.Relation<'oneToMany', 'api::project.project'>;
     publishedAt: Schema.Attribute.DateTime;
     slug: Schema.Attribute.String;
     systemKey: Schema.Attribute.String;

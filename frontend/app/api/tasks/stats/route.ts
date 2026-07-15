@@ -39,7 +39,7 @@ export async function GET(req: NextRequest) {
 
     while (hasMore) {
       const response = await fetch(
-        `${STRAPI_API_URL}/api/tasks?filters[completed][$eq]=true&filters[completedAt][$gte]=${daysAgoString}&populate=project&pagination[pageSize]=100&pagination[page]=${page}`,
+        `${STRAPI_API_URL}/api/tasks?filters[completed][$eq]=true&filters[completedAt][$gte]=${daysAgoString}&populate[project][populate][worldRef]=true&pagination[pageSize]=100&pagination[page]=${page}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -72,7 +72,7 @@ export async function GET(req: NextRequest) {
 
     while (hasMore) {
       const response = await fetch(
-        `${STRAPI_API_URL}/api/tasks?filters[long][$eq]=true&populate=project&pagination[pageSize]=100&pagination[page]=${page}`,
+        `${STRAPI_API_URL}/api/tasks?filters[long][$eq]=true&populate[project][populate][worldRef]=true&pagination[pageSize]=100&pagination[page]=${page}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -133,7 +133,9 @@ export async function GET(req: NextRequest) {
 
     // Count projects and categories
     const projectCounts = new Map<string, { name: string; count: number }>();
-    let dayJobCount = 0;
+    // Worlds kept out of combined views (e.g. day job) are lumped into one entry
+    // per world (keyed by title) instead of listing each of their projects.
+    const excludedCounts = new Map<string, number>();
 
     // Count completed tasks (excluding recurring tasks)
     for (const task of allCompletedTasks) {
@@ -143,9 +145,9 @@ export async function GET(req: NextRequest) {
       }
       
       if (task.project) {
-        // Check if project belongs to "day job" world
-        if (task.project.world === 'day job') {
-          dayJobCount++;
+        const world = task.project.worldRef;
+        if (world && world.includeInCombinedViews === false) {
+          excludedCounts.set(world.title, (excludedCounts.get(world.title) ?? 0) + 1);
         } else {
           const projectId = task.project.documentId;
           const projectName = task.project.title;
@@ -174,9 +176,12 @@ export async function GET(req: NextRequest) {
 
         if (recentSessions.length > 0) {
           if (task.project) {
-            // Check if project belongs to "day job" world
-            if (task.project.world === 'day job') {
-              dayJobCount += recentSessions.length;
+            const world = task.project.worldRef;
+            if (world && world.includeInCombinedViews === false) {
+              excludedCounts.set(
+                world.title,
+                (excludedCounts.get(world.title) ?? 0) + recentSessions.length
+              );
             } else {
               const projectId = task.project.documentId;
               const projectName = task.project.title;
@@ -215,13 +220,11 @@ export async function GET(req: NextRequest) {
     // Combine projects and categories into a single list
     const stats: StatItem[] = [];
 
-    // Add day job entry if there are any
-    if (dayJobCount > 0) {
-      stats.push({
-        type: 'project',
-        name: 'day job',
-        count: dayJobCount,
-      });
+    // Add one lumped entry per excluded world (e.g. day job).
+    for (const [name, count] of excludedCounts.entries()) {
+      if (count > 0) {
+        stats.push({ type: 'project', name, count });
+      }
     }
 
     for (const [projectId, data] of projectCounts.entries()) {

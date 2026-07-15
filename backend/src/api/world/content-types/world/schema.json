@@ -33,6 +33,12 @@
       "relation": "oneToOne",
       "target": "plugin::users-permissions.user",
       "private": true
+    },
+    "projects": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::project.project",
+      "mappedBy": "worldRef"
     }
   }
 }

@@ -67,8 +67,9 @@
     },
     "worldRef": {
       "type": "relation",
-      "relation": "oneToOne",
-      "target": "api::world.world"
+      "relation": "manyToOne",
+      "target": "api::world.world",
+      "inversedBy": "projects"
     }
   }
 }

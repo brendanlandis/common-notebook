@@ -52,12 +52,12 @@ export default function ProjectPage() {
       name: project?.title || "project",
       showRecurring: true,
       showNonRecurring: true,
-      visibleWorlds: null,
+      worldScope: "all", // project-scoped; the world filter is skipped when visibleProjects is set
       visibleProjects: [documentId],
       sortBy: "creationDate",
       groupBy: "merged",
     };
-    const transformed = transformLayout(buildRawTaskData(grouped), ruleset);
+    const transformed = transformLayout(buildRawTaskData(grouped), ruleset, []);
     const section = (transformed.allSections || []).find(
       (s) => "documentId" in s && s.documentId === documentId
     );
@@ -107,8 +107,8 @@ export default function ProjectPage() {
             </button>
           </h1>
           {project.world && (
-            <Link href={`/todo/world/${encodeURIComponent(project.world)}`}>
-              {project.world}
+            <Link href={`/todo/world/${encodeURIComponent(project.world.slug)}`}>
+              {project.world.title}
             </Link>
           )}
         </div>

@@ -26,7 +26,7 @@ function createProjectMeta(overrides: Partial<Project>): Project {
     documentId: 'project-id',
     title: 'Project',
     description: [],
-    world: 'life stuff',
+    world: null,
     importance: 'normal',
     createdAt: '2026-01-01T00:00:00.000Z',
     updatedAt: '2026-01-01T00:00:00.000Z',
@@ -78,7 +78,7 @@ const baseRuleset: LayoutRuleset = {
   name: 'project',
   showRecurring: true,
   showNonRecurring: true,
-  visibleWorlds: null,
+  worldScope: 'all',
   sortBy: 'creationDate',
   groupBy: 'merged',
 };
@@ -107,7 +107,7 @@ describe('Layout Transformer - visibleProjects filter (per-project view)', () =>
   });
 
   it('keeps only the targeted project and drops other projects, categories, and incidentals', () => {
-    const result = transformLayout(dataWithBothProjects(), projectRuleset);
+    const result = transformLayout(dataWithBothProjects(), projectRuleset, []);
 
     const sectionIds = (result.allSections || []).map((s) =>
       'documentId' in s ? s.documentId : s.title
@@ -127,7 +127,7 @@ describe('Layout Transformer - visibleProjects filter (per-project view)', () =>
   });
 
   it('shows all projects when visibleProjects is omitted', () => {
-    const result = transformLayout(dataWithBothProjects(), baseRuleset);
+    const result = transformLayout(dataWithBothProjects(), baseRuleset, []);
 
     const sectionIds = (result.allSections || []).map((s) =>
       'documentId' in s ? s.documentId : s.title

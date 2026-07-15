@@ -17,6 +17,7 @@ import {
 } from "@/app/lib/autoDeclutterConfig";
 import { saveStuffProjectsEnabledToStrapi } from "@/app/lib/stuffProjectsConfig";
 import { useStuffProjects } from "@/app/contexts/StuffProjectsContext";
+import WorldsManager from "./components/WorldsManager";
 
 export default function SettingsPage() {
   const [visibilityMinutes, setVisibilityMinutes] = useState<number>(15); // Default to 15 minutes
@@ -168,6 +169,14 @@ export default function SettingsPage() {
               disabled={isLoading || isSaving}
             />
           </label>
+
+          <h2>worlds</h2>
+          <p>
+            Your top-level buckets for projects. Rename, reorder, add, or remove
+            them. &quot;Combined&quot; controls whether a world shows in the
+            good-morning / everything / roulette / chores views.
+          </p>
+          <WorldsManager />
 
           <h2>Stuff projects</h2>
           <p>

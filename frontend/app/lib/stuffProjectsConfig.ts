@@ -71,20 +71,56 @@ export const STUFF_PROJECTS_DEFAULT_ENABLED = DEFAULT_ENABLED;
 let ensureInFlight: Promise<void> | null = null;
 
 /**
- * Ensure the current user has a project for each of the four stuff project types
- * (wishlist / errands / in the mail / buy stuff). Missing ones are created in the
- * `stuff` world; existing ones are left untouched. Idempotent and safe to call
- * whenever stuff projects are enabled.
+ * The stuff world is identified by its stable `systemKey`, not its title. Find
+ * the user's stuff world; create it (once) if they don't have one yet — enabling
+ * "Stuff projects" provisions the world as well as the projects. Returns the
+ * world's documentId, or null on failure.
+ */
+async function ensureStuffWorld(): Promise<string | null> {
+  const res = await fetch('/api/worlds');
+  if (!res.ok) return null;
+  const body = await res.json();
+  if (!body.success) return null;
+
+  const worlds: { documentId: string; systemKey: string | null; position?: number }[] = body.data;
+  const existing = worlds.find((w) => w.systemKey === 'stuff');
+  if (existing) return existing.documentId;
+
+  const nextPosition = worlds.reduce((max, w) => Math.max(max, w.position ?? 0), -1) + 1;
+  const createRes = await fetch('/api/worlds', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      title: 'stuff',
+      slug: 'stuff',
+      systemKey: 'stuff',
+      includeInCombinedViews: true,
+      position: nextPosition,
+    }),
+  });
+  if (!createRes.ok) return null;
+  const created = await createRes.json();
+  return created.success ? created.data.documentId : null;
+}
+
+/**
+ * Ensure the current user has the `stuff` world and a project for each of the
+ * four stuff project types (wishlist / errands / in the mail / buy stuff).
+ * Missing ones are created; existing ones are left untouched. Idempotent and
+ * safe to call whenever stuff projects are enabled.
  *
- * Matches by `projectType` (the stable handle) so a renamed project still counts
- * as present. The titles it creates mirror the type names, which is also what the
- * data migration matches on — so the two never duplicate each other.
+ * Matches projects by `projectType` (the stable handle) so a renamed project
+ * still counts as present. The titles it creates mirror the type names, which is
+ * also what the data migration matches on — so the two never duplicate.
  */
 export async function ensureStuffProjectsExist(): Promise<void> {
   if (ensureInFlight) return ensureInFlight;
 
   ensureInFlight = (async () => {
     try {
+      const stuffWorldId = await ensureStuffWorld();
+      if (!stuffWorldId) return;
+
       const response = await fetch('/api/projects');
       if (!response.ok) return;
       const body = await response.json();
@@ -104,7 +140,7 @@ export async function ensureStuffProjectsExist(): Promise<void> {
             title: projectType,
             slug: slugify(projectType),
             description: [],
-            world: 'stuff',
+            world: stuffWorldId,
             projectType,
             importance: 'normal',
           }),

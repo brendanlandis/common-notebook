@@ -2,9 +2,10 @@
 
 import { useMemo } from "react";
 import { useParams, notFound } from "next/navigation";
-import type { LayoutRuleset, World } from "@/app/types/index";
+import type { LayoutRuleset } from "@/app/types/index";
 import { transformLayout } from "@/app/lib/layoutTransformers";
-import { isValidWorld } from "@/app/lib/worlds";
+import { findWorldBySlug } from "@/app/lib/worlds";
+import { useWorlds } from "@/app/contexts/WorldsContext";
 import LayoutRenderer from "../../components/LayoutRenderer";
 import FaviconManager from "@/app/components/FaviconManager";
 import { useTaskData } from "../../contexts/TaskDataContext";
@@ -12,8 +13,9 @@ import { buildRawTaskData } from "../../utils/buildRawTaskData";
 
 export default function WorldPage() {
   const params = useParams<{ world: string }>();
-  const world = decodeURIComponent(params.world) as World;
-  const worldIsValid = isValidWorld(world);
+  const slug = decodeURIComponent(params.world);
+  const { worlds, loading: worldsLoading } = useWorlds();
+  const world = findWorldBySlug(slug, worlds);
 
   const {
     grouped,
@@ -29,31 +31,32 @@ export default function WorldPage() {
   } = useTaskData();
 
   // Single-world ruleset: the engine already knows how to render one world
-  // (top-of-mind → priority → normal → later). visibleWorlds.length === 1
-  // makes LayoutRenderer hide the redundant per-world heading.
+  // (top-of-mind → priority → normal → later). A { worldId } scope makes
+  // LayoutRenderer hide the redundant per-world heading.
   const ruleset: LayoutRuleset = useMemo(
     () => ({
       id: "world-view",
-      name: world,
+      name: world?.title ?? slug,
       showRecurring: true,
       showNonRecurring: true,
-      visibleWorlds: [world],
+      worldScope: { worldId: world?.documentId ?? "__unknown__" },
       sortBy: "creationDate",
       groupBy: "world",
     }),
-    [world]
+    [world, slug]
   );
 
   const transformedData = useMemo(
-    () => transformLayout(buildRawTaskData(grouped), ruleset),
-    [grouped, ruleset]
+    () => transformLayout(buildRawTaskData(grouped), ruleset, worlds),
+    [grouped, ruleset, worlds]
   );
 
-  if (!worldIsValid) {
+  // Only 404 once worlds have loaded and the slug truly matches none.
+  if (!worldsLoading && !world) {
     notFound();
   }
 
-  if (loading) {
+  if (loading || worldsLoading) {
     return (
       <div id="container-task" className="layout-world-view" suppressHydrationWarning>
         <p>loading...</p>
@@ -76,7 +79,7 @@ export default function WorldPage() {
     <>
       <FaviconManager type="broom" />
       <div id="container-task" className="layout-world-view" suppressHydrationWarning>
-        <h1 className="world-title">{world}</h1>
+        <h1 className="world-title">{world?.title ?? slug}</h1>
         {hasTasks ? (
           <LayoutRenderer
             transformedData={transformedData}
@@ -91,7 +94,7 @@ export default function WorldPage() {
             onEditProject={onEditProject}
           />
         ) : (
-          <p>nothin' to do in {world}</p>
+          <p>nothin' to do in {world?.title ?? slug}</p>
         )}
       </div>
     </>

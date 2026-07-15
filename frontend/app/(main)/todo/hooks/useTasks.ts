@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
-import type { Project, Task } from "@/app/types/index";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import type { Project, Task, World } from "@/app/types/index";
 import {
   getTodayInEST,
   getNowInEST,
@@ -26,6 +26,8 @@ export interface UseTasksResult {
   updateProject: (p: Project) => void;
   addManualProject: (p: Project) => void;
   refetch: (showLoading?: boolean) => Promise<void>;
+  /** The world of a project by documentId, from the normalized projects map. */
+  worldForProjectId: (documentId?: string | null) => World | null;
 }
 
 // Owns the active-tasks data domain: the flat `tasks` array, the empty-project
@@ -38,9 +40,29 @@ export function useTasks(): UseTasksResult {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const addTask = useCallback(
-    (t: Task) => setTasks((prev) => [...prev, t]),
+  // A task's world lives on its project, but /api/tasks only shallow-populates
+  // the project (no worldRef). We fetch the normalized projects (which carry the
+  // World object) into this map and stitch it onto every task's project so the
+  // layout engine can group by world. Rename-stable: refetched, not derived from
+  // a stale enum.
+  const projectsByIdRef = useRef<Map<string, Project>>(new Map());
+
+  const enrichTaskWorld = useCallback((task: Task): Task => {
+    const proj = task.project as Project | null | undefined;
+    if (!proj?.documentId) return task;
+    const full = projectsByIdRef.current.get(proj.documentId);
+    return { ...task, project: { ...proj, world: full?.world ?? null } };
+  }, []);
+
+  const worldForProjectId = useCallback(
+    (documentId?: string | null): World | null =>
+      documentId ? projectsByIdRef.current.get(documentId)?.world ?? null : null,
     []
+  );
+
+  const addTask = useCallback(
+    (t: Task) => setTasks((prev) => [...prev, enrichTaskWorld(t)]),
+    [enrichTaskWorld]
   );
   const removeTask = useCallback(
     (id: string) =>
@@ -50,20 +72,21 @@ export function useTasks(): UseTasksResult {
   const updateTask = useCallback(
     (t: Task) =>
       setTasks((prev) =>
-        prev.map((x) => (x.documentId === t.documentId ? t : x))
+        prev.map((x) => (x.documentId === t.documentId ? enrichTaskWorld(t) : x))
       ),
-    []
+    [enrichTaskWorld]
   );
 
-  const addManualProject = useCallback(
-    (p: Project) => setManualProjects((prev) => [...prev, p]),
-    []
-  );
+  const addManualProject = useCallback((p: Project) => {
+    projectsByIdRef.current.set(p.documentId, p);
+    setManualProjects((prev) => [...prev, p]);
+  }, []);
 
   // Project metadata lives on each task's `project` relation. When metadata
   // changes, propagate to every task that references it. Also update any
   // matching entry in manualProjects so renames show before tasks are added.
   const updateProject = useCallback((updated: Project) => {
+    projectsByIdRef.current.set(updated.documentId, updated);
     setTasks((prev) =>
       prev.map((t) => {
         const proj = t.project as any;
@@ -83,8 +106,19 @@ export function useTasks(): UseTasksResult {
   const refetch = useCallback(async (showLoading = true) => {
     try {
       if (showLoading) setLoading(true);
-      const response = await fetch("/api/tasks");
-      const result = await response.json();
+      const [tasksResponse, projectsResponse] = await Promise.all([
+        fetch("/api/tasks"),
+        fetch("/api/projects"),
+      ]);
+      const result = await tasksResponse.json();
+      const projectsResult = await projectsResponse.json();
+
+      // Build the project→world map before enriching tasks below.
+      if (projectsResult.success) {
+        projectsByIdRef.current = new Map(
+          (projectsResult.data as Project[]).map((p) => [p.documentId, p])
+        );
+      }
 
       if (result.success) {
         const allTasks: Task[] = result.data;
@@ -150,7 +184,7 @@ export function useTasks(): UseTasksResult {
           return task;
         });
 
-        setTasks(tasksWithPhaseInfo);
+        setTasks(tasksWithPhaseInfo.map(enrichTaskWorld));
         setManualProjects([]);
       } else {
         setError(result.error);
@@ -161,7 +195,7 @@ export function useTasks(): UseTasksResult {
     } finally {
       if (showLoading) setLoading(false);
     }
-  }, []);
+  }, [enrichTaskWorld]);
 
   // Derive all groupings from `tasks`. Empty user-created projects are spliced
   // in from `manualProjects` so they show until the next refetch clears them.
@@ -227,5 +261,6 @@ export function useTasks(): UseTasksResult {
     updateProject,
     addManualProject,
     refetch,
+    worldForProjectId,
   };
 }

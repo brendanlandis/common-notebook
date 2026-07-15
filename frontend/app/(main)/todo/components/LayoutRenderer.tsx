@@ -64,9 +64,9 @@ export default function LayoutRenderer({
     ? StuffLayout
     : LAYOUT_COMPONENTS[ruleset.groupBy] || DefaultLayout;
 
-  // Single-world views (per-world presets and the /todo/world/[world] route)
-  // hide the redundant per-world heading.
-  const hideWorldName = ruleset.visibleWorlds?.length === 1;
+  // Single-target views (the /todo/world/[slug] route and the stuff view) hide
+  // the redundant per-world heading; multi-world scopes keep it.
+  const hideWorldName = typeof ruleset.worldScope === "object";
 
   return (
     <LayoutComponent

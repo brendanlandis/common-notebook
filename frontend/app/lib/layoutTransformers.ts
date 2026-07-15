@@ -4,6 +4,7 @@ import { getTimezone } from "@/app/lib/timezoneConfig";
 import { getDayBoundaryHour } from "@/app/lib/dayBoundaryConfig";
 import { getProjectPriority } from "@/app/lib/projectPriority";
 import { getTaskProjectType } from "@/app/lib/taskProjectType";
+import { resolveVisibleWorldIds, resolveVisibleWorlds } from "@/app/lib/worlds";
 import { addDays } from "date-fns";
 
 export interface TaskGroup {
@@ -20,7 +21,8 @@ export interface TransformedLayout {
   nonRecurringIncidentals?: Task[];
   allSections?: Section[];
   incidentals?: Task[];
-  worldSections?: Map<World, {
+  worldSections?: Map<string, {
+    world: World;
     topOfMindAndCategories: Section[];
     priority: Section[];
     normal: Section[];
@@ -51,23 +53,36 @@ export interface RawTaskData {
   longTasksWithSessions?: Task[];
 }
 
-// Helper function to determine a task's world. World now lives on the task's
-// project (every task has a project); project-less incidentals default to
-// 'life stuff'.
-function getTaskWorld(task: Task): World {
-  return task.project?.world ?? "life stuff";
+// Sentinel grouping key for tasks/projects with no world.
+const NO_WORLD_KEY = "__no_world__";
+
+// A task's world lives on its project (or null for project-less / no-world tasks).
+function getTaskWorld(task: Task): World | null {
+  return task.project?.world ?? null;
 }
 
-// Filter a single task based on ruleset
-function shouldIncludeTask(task: Task, ruleset: LayoutRuleset, getWorld: (task: Task) => World): boolean {
-  // The "stuff" world (wishlist / errands / in the mail / buy stuff projects)
-  // only appears in the "stuff" view. This mirrors how the cross-world presets
-  // exclude "day job" by omitting it from visibleWorlds, but is enforced here so
-  // it also holds for the visibleWorlds: null views (later / done / recurring).
-  if (getWorld(task) === "stuff" && ruleset.id !== "stuff") {
-    return false;
-  }
+// Stable grouping key for a world (its documentId), or a sentinel for "no world".
+function worldKey(world: World | null): string {
+  return world?.documentId ?? NO_WORLD_KEY;
+}
 
+// "Excluded" worlds (includeInCombinedViews === false, e.g. day job) are the set
+// the invoicing view targets and the combined views (good morning / roulette)
+// leave out. Generalizes the old hardcoded `=== "day job"` checks.
+function isExcludedWorld(world: World | null): boolean {
+  return world != null && !world.includeInCombinedViews;
+}
+
+// Filter a single task based on ruleset. `visibleWorldIds` is the set of world
+// documentIds this view spans (already excludes the stuff world unless the view
+// names it — see resolveVisibleWorldIds); `scopeAll` is true only for the 'all'
+// scope, which is the one place a no-world task is shown.
+function shouldIncludeTask(
+  task: Task,
+  ruleset: LayoutRuleset,
+  visibleWorldIds: Set<string>,
+  scopeAll: boolean
+): boolean {
   // Filter by recurring/non-recurring
   if (task.isRecurring && !ruleset.showRecurring) {
     return false;
@@ -86,10 +101,15 @@ function shouldIncludeTask(task: Task, ruleset: LayoutRuleset, getWorld: (task: 
     }
   }
 
-  // Filter by world
-  if (ruleset.visibleWorlds !== null) {
-    const world = getWorld(task);
-    if (!ruleset.visibleWorlds.includes(world)) {
+  // Filter by world — skipped when the view is project-scoped (visibleProjects
+  // already narrows to a specific project, regardless of its world; this is what
+  // lets the project page render a stuff-world project). The visible set already
+  // excludes the stuff world unless the view names it, so this one check subsumes
+  // the old separate stuff gate. A task with no world shows only in an 'all' view.
+  if (!ruleset.visibleProjects) {
+    const world = getTaskWorld(task);
+    const worldOk = world ? visibleWorldIds.has(world.documentId) : scopeAll;
+    if (!worldOk) {
       return false;
     }
   }
@@ -111,9 +131,14 @@ function shouldIncludeTask(task: Task, ruleset: LayoutRuleset, getWorld: (task: 
 }
 
 // Filter tasks from a section
-function filterSectionTasks(section: Section, ruleset: LayoutRuleset, getWorld: (task: Task) => World): Section | null {
+function filterSectionTasks(
+  section: Section,
+  ruleset: LayoutRuleset,
+  visibleWorldIds: Set<string>,
+  scopeAll: boolean
+): Section | null {
   const tasks = "documentId" in section ? section.tasks || [] : section.tasks;
-  const filteredTasks = tasks.filter((task) => shouldIncludeTask(task, ruleset, getWorld));
+  const filteredTasks = tasks.filter((task) => shouldIncludeTask(task, ruleset, visibleWorldIds, scopeAll));
 
   if (filteredTasks.length === 0) {
     return null;
@@ -258,7 +283,17 @@ function sortSections(sections: Section[], sortBy: LayoutRuleset["sortBy"]): Sec
 }
 
 // Main transformation function
-export function transformLayout(data: RawTaskData, ruleset: LayoutRuleset): TransformedLayout {
+export function transformLayout(
+  data: RawTaskData,
+  ruleset: LayoutRuleset,
+  worlds: World[] = []
+): TransformedLayout {
+  // The set of world documentIds this view spans, resolved against the user's
+  // worlds; and whether it's the 'all' scope (the only one that shows no-world
+  // tasks). Used by every filter/grouping path below.
+  const visibleWorldIds = resolveVisibleWorldIds(ruleset.worldScope, worlds);
+  const scopeAll = ruleset.worldScope === "all";
+
   // For recurring-review, skip the filtering and use the raw data directly
   if (ruleset.groupBy === "recurring-review") {
     // Collect ALL incomplete recurring tasks (ignore any filtering)
@@ -439,27 +474,27 @@ export function transformLayout(data: RawTaskData, ruleset: LayoutRuleset): Tran
 
   // Filter and prepare data for all other views
   const filteredRecurringProjects = data.recurringProjects
-    .map((project) => filterSectionTasks(project, ruleset, getTaskWorld))
+    .map((project) => filterSectionTasks(project, ruleset, visibleWorldIds, scopeAll))
     .filter((section): section is Section => section !== null);
 
   const filteredRecurringCategoryGroups = data.recurringCategoryGroups
-    .map((group) => filterSectionTasks(group, ruleset, getTaskWorld))
+    .map((group) => filterSectionTasks(group, ruleset, visibleWorldIds, scopeAll))
     .filter((group): group is TaskGroup => group !== null);
 
   const filteredRecurringIncidentals = data.recurringIncidentals.filter((task) =>
-    shouldIncludeTask(task, ruleset, getTaskWorld)
+    shouldIncludeTask(task, ruleset, visibleWorldIds, scopeAll)
   );
 
   const filteredProjects = data.projects
-    .map((project) => filterSectionTasks(project, ruleset, getTaskWorld))
+    .map((project) => filterSectionTasks(project, ruleset, visibleWorldIds, scopeAll))
     .filter((section): section is Section => section !== null);
 
   const filteredCategoryGroups = data.categoryGroups
-    .map((group) => filterSectionTasks(group, ruleset, getTaskWorld))
+    .map((group) => filterSectionTasks(group, ruleset, visibleWorldIds, scopeAll))
     .filter((group): group is TaskGroup => group !== null);
 
   const filteredIncidentals = data.incidentals.filter((task) =>
-    shouldIncludeTask(task, ruleset, getTaskWorld)
+    shouldIncludeTask(task, ruleset, visibleWorldIds, scopeAll)
   );
 
   // Sort tasks within sections
@@ -505,7 +540,8 @@ export function transformLayout(data: RawTaskData, ruleset: LayoutRuleset): Tran
     );
 
     // Group non-recurring by world
-    const nonRecurringWorldMap = new Map<World, {
+    const nonRecurringWorldMap = new Map<string, {
+      world: World;
       topOfMindAndCategories: Section[];
       priority: Section[];
       normal: Section[];
@@ -513,10 +549,12 @@ export function transformLayout(data: RawTaskData, ruleset: LayoutRuleset): Tran
       incidentals: Task[];
     }>();
 
-    // Initialize worlds
-    const worlds: World[] = ["make music", "music admin", "life stuff", "day job", "computer"];
-    worlds.forEach((world) => {
-      nonRecurringWorldMap.set(world, {
+    // Seed the map from the user's worlds this view spans, in position order.
+    // Projects in a world not seeded here are simply not shown (no silent drop
+    // into a wrong bucket, which is what the old hardcoded list caused).
+    resolveVisibleWorlds(ruleset.worldScope, worlds).forEach((w) => {
+      nonRecurringWorldMap.set(w.documentId, {
+        world: w,
         topOfMindAndCategories: [],
         priority: [],
         normal: [],
@@ -528,8 +566,7 @@ export function transformLayout(data: RawTaskData, ruleset: LayoutRuleset): Tran
     // Group non-recurring projects by world and importance
     sortedProjects.forEach((project) => {
       if ("documentId" in project) {
-        const world = project.world || "life stuff";
-        const worldData = nonRecurringWorldMap.get(world);
+        const worldData = nonRecurringWorldMap.get(worldKey(project.world ?? null));
         if (worldData) {
           const importance = project.importance || "normal";
           if (importance === "top of mind") {
@@ -548,8 +585,7 @@ export function transformLayout(data: RawTaskData, ruleset: LayoutRuleset): Tran
     // Group non-recurring category groups by world (always go with top of mind)
     sortedCategoryGroups.forEach((group) => {
       if (group.tasks && group.tasks.length > 0) {
-        const world = getTaskWorld(group.tasks[0]);
-        const worldData = nonRecurringWorldMap.get(world);
+        const worldData = nonRecurringWorldMap.get(worldKey(getTaskWorld(group.tasks[0])));
         if (worldData) {
           worldData.topOfMindAndCategories.push(group);
         }
@@ -557,9 +593,9 @@ export function transformLayout(data: RawTaskData, ruleset: LayoutRuleset): Tran
     });
 
     // Process non-recurring incidentals - add to topOfMindAndCategories
-    const incidentalsByWorld = new Map<World, Task[]>();
+    const incidentalsByWorld = new Map<string, Task[]>();
     sortedIncidentals.forEach((task) => {
-      const world = getTaskWorld(task);
+      const world = worldKey(getTaskWorld(task));
       if (!incidentalsByWorld.has(world)) {
         incidentalsByWorld.set(world, []);
       }
@@ -697,7 +733,8 @@ export function transformLayout(data: RawTaskData, ruleset: LayoutRuleset): Tran
     };
   } else if (ruleset.groupBy === "world") {
     // Group by world, merging recurring and non-recurring
-    const worldMap = new Map<World, {
+    const worldMap = new Map<string, {
+      world: World;
       topOfMindAndCategories: Section[];
       priority: Section[];
       normal: Section[];
@@ -705,10 +742,10 @@ export function transformLayout(data: RawTaskData, ruleset: LayoutRuleset): Tran
       incidentals: Task[];
     }>();
 
-    // Initialize worlds
-    const worlds: World[] = ["life stuff", "music admin", "make music", "day job", "computer"];
-    worlds.forEach((world) => {
-      worldMap.set(world, {
+    // Seed the map from the user's worlds this view spans, in position order.
+    resolveVisibleWorlds(ruleset.worldScope, worlds).forEach((w) => {
+      worldMap.set(w.documentId, {
+        world: w,
         topOfMindAndCategories: [],
         priority: [],
         normal: [],
@@ -752,8 +789,7 @@ export function transformLayout(data: RawTaskData, ruleset: LayoutRuleset): Tran
 
     // Group merged projects and category groups by world and importance
     mergedProjects.forEach((project) => {
-      const world = project.world || "life stuff";
-      const worldData = worldMap.get(world);
+      const worldData = worldMap.get(worldKey(project.world ?? null));
       if (worldData) {
         const importance = project.importance || "normal";
         if (importance === "top of mind") {
@@ -771,8 +807,7 @@ export function transformLayout(data: RawTaskData, ruleset: LayoutRuleset): Tran
     // Group merged category groups by world (always go with top of mind)
     mergedCategoryGroups.forEach((group) => {
       if (group.tasks && group.tasks.length > 0) {
-        const world = getTaskWorld(group.tasks[0]);
-        const worldData = worldMap.get(world);
+        const worldData = worldMap.get(worldKey(getTaskWorld(group.tasks[0])));
         if (worldData) {
           worldData.topOfMindAndCategories.push(group);
         }
@@ -780,9 +815,9 @@ export function transformLayout(data: RawTaskData, ruleset: LayoutRuleset): Tran
     });
 
     // Process all incidentals (recurring and non-recurring) - add to topOfMindAndCategories
-    const incidentalsByWorld = new Map<World, Task[]>();
+    const incidentalsByWorld = new Map<string, Task[]>();
     [...sortedRecurringIncidentals, ...sortedIncidentals].forEach((task) => {
-      const world = getTaskWorld(task);
+      const world = worldKey(getTaskWorld(task));
       if (!incidentalsByWorld.has(world)) {
         incidentalsByWorld.set(world, []);
       }
@@ -1029,10 +1064,9 @@ export function transformLayout(data: RawTaskData, ruleset: LayoutRuleset): Tran
       return "documentId" in section && section.documentId === topOfMindProjectId;
     };
 
-    // Helper to filter out "day job" world
+    // Helper to exclude worlds flagged out of combined views (e.g. day job).
     const filterDayJob = (task: Task): boolean => {
-      const world = getTaskWorld(task);
-      return world !== "day job";
+      return !isExcludedWorld(getTaskWorld(task));
     };
 
     // Helper to filter and track tasks from a section
@@ -1325,17 +1359,16 @@ export function transformLayout(data: RawTaskData, ruleset: LayoutRuleset): Tran
     // Collect all non-completed tasks excluding "day job" world
     const allTasks: Task[] = [];
 
-    // Helper to filter out "day job" world
+    // Helper to exclude worlds flagged out of combined views (e.g. day job).
     const filterDayJob = (task: Task): boolean => {
-      const world = getTaskWorld(task);
-      return world !== "day job";
+      return !isExcludedWorld(getTaskWorld(task));
     };
 
     // Collect tasks from recurring projects
     sortedRecurringProjects.forEach((project) => {
       if ("documentId" in project && project.tasks) {
         project.tasks.forEach((task) => {
-          if (!task.completed && filterDayJob(task) && shouldIncludeTask(task, ruleset, getTaskWorld)) {
+          if (!task.completed && filterDayJob(task) && shouldIncludeTask(task, ruleset, visibleWorldIds, scopeAll)) {
             allTasks.push(task);
           }
         });
@@ -1346,7 +1379,7 @@ export function transformLayout(data: RawTaskData, ruleset: LayoutRuleset): Tran
     sortedRecurringCategoryGroups.forEach((group) => {
       if (group.tasks) {
         group.tasks.forEach((task) => {
-          if (!task.completed && filterDayJob(task) && shouldIncludeTask(task, ruleset, getTaskWorld)) {
+          if (!task.completed && filterDayJob(task) && shouldIncludeTask(task, ruleset, visibleWorldIds, scopeAll)) {
             allTasks.push(task);
           }
         });
@@ -1355,7 +1388,7 @@ export function transformLayout(data: RawTaskData, ruleset: LayoutRuleset): Tran
 
     // Collect recurring incidentals
     sortedRecurringIncidentals.forEach((task) => {
-      if (!task.completed && filterDayJob(task) && shouldIncludeTask(task, ruleset, getTaskWorld)) {
+      if (!task.completed && filterDayJob(task) && shouldIncludeTask(task, ruleset, visibleWorldIds, scopeAll)) {
         allTasks.push(task);
       }
     });
@@ -1364,7 +1397,7 @@ export function transformLayout(data: RawTaskData, ruleset: LayoutRuleset): Tran
     sortedProjects.forEach((project) => {
       if ("documentId" in project && project.tasks) {
         project.tasks.forEach((task) => {
-          if (!task.completed && filterDayJob(task) && shouldIncludeTask(task, ruleset, getTaskWorld)) {
+          if (!task.completed && filterDayJob(task) && shouldIncludeTask(task, ruleset, visibleWorldIds, scopeAll)) {
             allTasks.push(task);
           }
         });
@@ -1375,7 +1408,7 @@ export function transformLayout(data: RawTaskData, ruleset: LayoutRuleset): Tran
     sortedCategoryGroups.forEach((group) => {
       if (group.tasks) {
         group.tasks.forEach((task) => {
-          if (!task.completed && filterDayJob(task) && shouldIncludeTask(task, ruleset, getTaskWorld)) {
+          if (!task.completed && filterDayJob(task) && shouldIncludeTask(task, ruleset, visibleWorldIds, scopeAll)) {
             allTasks.push(task);
           }
         });
@@ -1384,7 +1417,7 @@ export function transformLayout(data: RawTaskData, ruleset: LayoutRuleset): Tran
 
     // Collect non-recurring incidentals
     sortedIncidentals.forEach((task) => {
-      if (!task.completed && filterDayJob(task) && shouldIncludeTask(task, ruleset, getTaskWorld)) {
+      if (!task.completed && filterDayJob(task) && shouldIncludeTask(task, ruleset, visibleWorldIds, scopeAll)) {
         allTasks.push(task);
       }
     });
@@ -1614,7 +1647,7 @@ export function transformLayout(data: RawTaskData, ruleset: LayoutRuleset): Tran
     // Like "done" but scoped to "day job" world, 60-day window, no upcoming
     const completedTasks = (data.completedTasks || []).filter((task) => {
       if (getTaskProjectType(task) === "in the mail" || getTaskProjectType(task) === "errands") return false;
-      return getTaskWorld(task) === "day job";
+      return isExcludedWorld(getTaskWorld(task));
     });
 
     // Group tasks by completion date (day)
@@ -1637,7 +1670,7 @@ export function transformLayout(data: RawTaskData, ruleset: LayoutRuleset): Tran
     });
 
     // Add "worked on" entries for long tasks with work sessions (day job only)
-    const longTasks = (data.longTasksWithSessions || []).filter((task) => getTaskWorld(task) === "day job");
+    const longTasks = (data.longTasksWithSessions || []).filter((task) => isExcludedWorld(getTaskWorld(task)));
 
     longTasks.forEach((task) => {
       if (task.workSessions && task.workSessions.length > 0) {

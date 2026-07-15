@@ -1,7 +1,17 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { transformLayout } from './layoutTransformers';
-import type { Task, Project, LayoutRuleset } from '@/app/types/index';
+import type { Task, Project, LayoutRuleset, World } from '@/app/types/index';
 import * as dateUtils from './dateUtils';
+
+const dayJobWorld: World = {
+  id: 1,
+  documentId: 'w-dayjob',
+  title: 'day job',
+  slug: 'day-job',
+  position: 0,
+  systemKey: null,
+  includeInCombinedViews: false,
+};
 
 // Mock date utilities (mirrors layoutTransformers.workSessions.test.ts)
 vi.mock('./dateUtils', async () => {
@@ -60,7 +70,7 @@ function createProject(overrides: Partial<Project>): Project {
     documentId: 'project-id',
     title: 'Project',
     description: [],
-    world: 'day job',
+    world: dayJobWorld,
     importance: 'normal',
     createdAt: '2026-01-01T00:00:00.000Z',
     updatedAt: '2026-01-01T00:00:00.000Z',
@@ -75,7 +85,7 @@ const worldRuleset: LayoutRuleset = {
   name: 'day job',
   showRecurring: true,
   showNonRecurring: true,
-  visibleWorlds: null,
+  worldScope: 'all',
   sortBy: 'creationDate',
   groupBy: 'world',
 };
@@ -110,8 +120,8 @@ describe('Layout Transformer - priority tier (world grouping)', () => {
       createProject({ documentId: 'omega', title: 'Omega p1', importance: 'later', createdAt: '2026-01-04T00:00:00.000Z' }),
     ];
 
-    const result = transformLayout(emptyData(projects), worldRuleset);
-    const dayJob = result.worldSections!.get('day job')!;
+    const result = transformLayout(emptyData(projects), worldRuleset, [dayJobWorld]);
+    const dayJob = result.worldSections!.get('w-dayjob')!;
 
     const ids = (sections: typeof dayJob.priority) =>
       sections.map((s) => ('documentId' in s ? s.documentId : s.title));

@@ -27,14 +27,33 @@ export type RecurrenceType =
   | 'summer solstice'
   | 'autumn equinox';
 
-// World types
-export type World =
-  | 'life stuff'
-  | 'music admin'
-  | 'make music'
-  | 'day job'
-  | 'computer'
-  | 'stuff';
+// World — a per-user, user-populated top-level bucket a project lives in.
+// Was a hardcoded string union; now a row of the `api::world.world` collection,
+// so users add/rename/reorder their own worlds. Reached from a task via its
+// project (`task.project.world`).
+export interface World {
+  id: number;
+  documentId: string;
+  title: string;
+  slug: string;
+  position: number;
+  // Stable handle for special-cased worlds. Only "stuff" is used today — it
+  // drives the enableStuffProjects gating and the stuff project types. null for
+  // ordinary user worlds.
+  systemKey: string | null;
+  // When false the world is left out of the combined views (good morning,
+  // everything, roulette, chores) — e.g. "day job". Defaults true.
+  includeInCombinedViews: boolean;
+}
+
+// Which worlds a view spans. Replaces the old static `visibleWorlds` array;
+// resolved against the user's worlds at transform time (see app/lib/worlds.ts).
+export type WorldScope =
+  | 'all' //                 every world (was visibleWorlds: null)
+  | 'combined' //            worlds with includeInCombinedViews === true
+  | 'excluded' //            worlds with includeInCombinedViews === false (invoicing)
+  | { systemKey: string } // the world with this systemKey, e.g. 'stuff'
+  | { worldId: string }; //  one specific world, by documentId
 
 // Practice type
 export type PracticeType = 
@@ -117,7 +136,7 @@ export interface Project {
   title: string;
   slug?: string; // URL-friendly, derived from title; unique per owner
   description: StrapiBlock[];
-  world?: World;
+  world?: World | null; // normalized from Strapi `worldRef` by the projects BFF
   importance?: ProjectImportance;
   projectType?: ProjectType;
   createdAt: string;
@@ -167,7 +186,7 @@ export interface LayoutRuleset {
   name: string;
   showRecurring: boolean;
   showNonRecurring: boolean;
-  visibleWorlds: World[] | null; // null = show all worlds
+  worldScope: WorldScope; // which worlds this view spans (resolved at transform time)
   visibleProjects?: string[]; // documentIds; omit/undefined = show all projects
   sortBy: "alphabetical" | "creationDate" | "dueDate" | "completedAt";
   groupBy: "recurring-separate" | "recurring-separate-world" | "merged" | "single-section" | "world" | "project" | "category" | "good-morning" | "roulette" | "stuff" | "later" | "done" | "invoicing" | "chores" | "recurring-review";

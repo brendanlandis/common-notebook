@@ -12,7 +12,10 @@ interface TaskGroup {
 type Section = Project | TaskGroup;
 
 interface WorldSectionsProps {
-  worldSections: Map<World, {
+  // Keyed by world documentId, in the user's position order (the engine seeds it
+  // that way); each entry carries its World object for heading/link rendering.
+  worldSections: Map<string, {
+    world: World;
     topOfMindAndCategories: Section[];
     priority: Section[];
     normal: Section[];
@@ -29,8 +32,6 @@ interface WorldSectionsProps {
   hideWorldName?: boolean;
 }
 
-const WORLD_ORDER: World[] = ['make music', 'music admin', 'life stuff', 'day job', 'computer'];
-
 export default function WorldSections({
   worldSections,
   onComplete,
@@ -42,34 +43,23 @@ export default function WorldSections({
   onEditProject,
   hideWorldName = false,
 }: WorldSectionsProps) {
-  const worlds = WORLD_ORDER.filter(world => {
-    const data = worldSections.get(world);
-    return data && (
+  const worldsWithContent = Array.from(worldSections.values()).filter(
+    (data) =>
       data.topOfMindAndCategories.length > 0 ||
       data.priority.length > 0 ||
       data.normal.length > 0 ||
       data.later.length > 0 ||
       (data.incidentals && data.incidentals.length > 0)
-    );
-  });
+  );
 
-  if (worlds.length === 0) {
+  if (worldsWithContent.length === 0) {
     return null;
   }
 
   return (
     <>
-      {worlds.map((world) => {
-        const data = worldSections.get(world);
-        if (!data || (
-          data.topOfMindAndCategories.length === 0 &&
-          data.priority.length === 0 &&
-          data.normal.length === 0 &&
-          data.later.length === 0 &&
-          (!data.incidentals || data.incidentals.length === 0)
-        )) {
-          return null;
-        }
+      {worldsWithContent.map((data) => {
+        const world = data.world;
 
         const hasTopOfMindOrCategories = data.topOfMindAndCategories.length > 0;
         const hasPriority = data.priority.length > 0;
@@ -79,15 +69,15 @@ export default function WorldSections({
         const hasFirstSection = hasTopOfMindOrCategories || hasIncidentals;
 
         return (
-          <div className="group-section" key={world}>
+          <div className="group-section" key={world.documentId}>
             {!hideWorldName && (
               <h2>
-                <Link href={`/todo/world/${encodeURIComponent(world)}`}>
-                  {world}
+                <Link href={`/todo/world/${encodeURIComponent(world.slug)}`}>
+                  {world.title}
                 </Link>
               </h2>
             )}
-            
+
             {/* Top of mind projects and categories */}
             {hasFirstSection && (
               <TaskSections
@@ -142,4 +132,3 @@ export default function WorldSections({
     </>
   );
 }
-

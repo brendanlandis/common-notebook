@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAccessToken } from '@/app/lib/strapiAuth';
 import { TOP_OF_MIND, demoteTopOfMindProjects } from '@/app/lib/projectImportance';
+import { normalizeProjectWorld, toStrapiProjectWrite } from '@/app/lib/worldNormalize';
 
 const STRAPI_API_URL = process.env.STRAPI_API_URL;
 
@@ -27,14 +28,14 @@ export async function PUT(
     }
 
     const response = await fetch(
-      `${STRAPI_API_URL}/api/projects/${documentId}`,
+      `${STRAPI_API_URL}/api/projects/${documentId}?populate=worldRef`,
       {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ data: body }),
+        body: JSON.stringify({ data: toStrapiProjectWrite(body) }),
       }
     );
 
@@ -47,7 +48,7 @@ export async function PUT(
     }
 
     const data = await response.json();
-    return NextResponse.json({ success: true, data: data.data });
+    return NextResponse.json({ success: true, data: normalizeProjectWorld(data.data) });
   } catch (error) {
     console.error('Error updating project:', error);
     return NextResponse.json(

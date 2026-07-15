@@ -23,6 +23,7 @@ const OWNED_TYPES = [
   // Kept in sync with OWNED_CONTENT_TYPES in src/ownership/rule.ts.
   'api::task.task',
   'api::project.project',
+  'api::world.world',
   'api::practice-log.practice-log',
   'api::system-setting.system-setting',
 ];

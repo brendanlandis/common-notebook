@@ -1,52 +1,67 @@
+import { useRouter, usePathname } from "next/navigation";
 import { LAYOUT_PRESETS } from "@/app/lib/layoutPresets";
 import { useStuffProjects } from "@/app/contexts/StuffProjectsContext";
+import { useWorlds } from "@/app/contexts/WorldsContext";
 
 interface LayoutSelectorProps {
-  value: string; // preset ID
+  value: string; // preset ID (or "" on a world/project route)
   onChange: (presetId: string) => void;
 }
 
 export default function LayoutSelector({ value, onChange }: LayoutSelectorProps) {
   const { stuffProjectsEnabled } = useStuffProjects();
+  const { worlds } = useWorlds();
+  const router = useRouter();
+  const pathname = usePathname();
 
-  // Organize presets into groups. The "stuff" view is hidden when stuff projects
-  // are disabled.
-  const specialPresets = LAYOUT_PRESETS.filter(
-    (preset) =>
-      (preset.id === "good-morning" || preset.id === "everything" || preset.id === "chipping-away" || preset.id === "roulette" || preset.id === "stuff" || preset.id === "later" || preset.id === "chores") &&
-      (preset.id !== "stuff" || stuffProjectsEnabled)
-  );
-  // Sort special presets to ensure correct order: good-morning, chores, everything, roulette, stuff, later
+  // Special (non-world) presets, in display order. The "stuff" view is hidden
+  // when stuff projects are disabled.
   const specialPresetOrder = ["good-morning", "chores", "everything", "chipping-away", "roulette", "stuff", "later"];
-  const sortedSpecialPresets = specialPresets.sort((a, b) => {
-    const indexA = specialPresetOrder.indexOf(a.id);
-    const indexB = specialPresetOrder.indexOf(b.id);
-    return indexA - indexB;
-  });
-  const byWorldPresets = LAYOUT_PRESETS.filter((preset) => preset.groupBy === "world");
-  const reviewPresets = LAYOUT_PRESETS.filter((preset) => preset.id === "done" || preset.id === "invoicing" || preset.id === "recurring");
+  const specialPresets = LAYOUT_PRESETS.filter(
+    (preset) => specialPresetOrder.includes(preset.id) && (preset.id !== "stuff" || stuffProjectsEnabled)
+  ).sort((a, b) => specialPresetOrder.indexOf(a.id) - specialPresetOrder.indexOf(b.id));
+
+  const reviewPresets = LAYOUT_PRESETS.filter(
+    (preset) => preset.id === "done" || preset.id === "invoicing" || preset.id === "recurring"
+  );
+
+  // Per-world entries come from the user's worlds now (not presets). The stuff
+  // world is surfaced by the "stuff" special preset, not here.
+  const worldOptions = worlds.filter((w) => w.systemKey !== "stuff");
 
   // On pages not represented by any preset (a world/project route), `value` is
   // "" — show a blank row at the top so the select has something to display.
   const valueIsKnownPreset = LAYOUT_PRESETS.some((preset) => preset.id === value);
 
+  const handleChange = (v: string) => {
+    if (v.startsWith("world:")) {
+      // Per-world views live on their own route.
+      router.push(`/todo/world/${v.slice("world:".length)}`);
+      return;
+    }
+    // A preset: set it, and if we're on a world/project route, go back to /todo
+    // so the selected view actually renders (that page reads the ruleset).
+    onChange(v);
+    if (pathname !== "/todo") router.push("/todo");
+  };
+
   return (
     <select
       value={value}
-      onChange={(e) => onChange(e.target.value)}
+      onChange={(e) => handleChange(e.target.value)}
       id="order-selector"
       suppressHydrationWarning
     >
       {!valueIsKnownPreset && <option value=""></option>}
-      {sortedSpecialPresets.map((preset) => (
+      {specialPresets.map((preset) => (
         <option key={preset.id} value={preset.id}>
           {preset.name}
         </option>
       ))}
       <optgroup label="worlds">
-        {byWorldPresets.map((preset) => (
-          <option key={preset.id} value={preset.id}>
-            {preset.name}
+        {worldOptions.map((world) => (
+          <option key={world.documentId} value={`world:${world.slug}`}>
+            {world.title}
           </option>
         ))}
       </optgroup>
@@ -63,4 +78,3 @@ export default function LayoutSelector({ value, onChange }: LayoutSelectorProps)
 
 // Export type for backward compatibility during transition
 export type LayoutMode = "recurring on top" | "separate" | "separate by world";
-

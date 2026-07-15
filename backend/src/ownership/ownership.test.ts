@@ -242,6 +242,10 @@ describe('task is an owned content type', () => {
     expect(OWNED_CONTENT_TYPES).not.toContain('api::todo.todo');
   });
 
+  it('OWNED_CONTENT_TYPES carries world (user-populated worlds are per-owner)', () => {
+    expect(OWNED_CONTENT_TYPES).toContain('api::world.world');
+  });
+
   it('scopes task reads to the caller', async () => {
     const mw = ownedMiddleware(fakeStrapi({ url: '/api/tasks', user: ALICE }));
     const params: any = {};

@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { Project, World, ProjectType } from "@/app/types/index";
+import type { Project, ProjectType } from "@/app/types/index";
 import { useStuffProjects } from "@/app/contexts/StuffProjectsContext";
+import { useWorlds } from "@/app/contexts/WorldsContext";
 
 interface ProjectSelectorProps {
   value: string | null;
@@ -14,6 +15,7 @@ export default function ProjectSelector({
   onChange,
 }: ProjectSelectorProps) {
   const { stuffProjectsEnabled } = useStuffProjects();
+  const { worlds } = useWorlds();
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -43,28 +45,28 @@ export default function ProjectSelector({
     );
   }
 
-  // Group projects by world (the "stuff" world holds the shopping/errands/
-  // wishlist projects that used to be categories). When stuff projects are
-  // disabled, hide the whole stuff world.
-  const worldOrder: (World | null)[] = stuffProjectsEnabled
-    ? ['make music', 'music admin', 'life stuff', 'day job', 'computer', 'stuff', null]
-    : ['make music', 'music admin', 'life stuff', 'day job', 'computer', null];
+  // Group projects under the user's worlds (in position order), plus a trailing
+  // "no world" group. When stuff projects are disabled, hide the stuff world.
+  const visibleWorlds = stuffProjectsEnabled
+    ? worlds
+    : worlds.filter((w) => w.systemKey !== "stuff");
   const visibleProjects = stuffProjectsEnabled
     ? projects
-    : projects.filter((p) => p.world !== 'stuff');
-  const projectsByWorld = visibleProjects.reduce((acc, project) => {
-    const world = project.world || null;
-    if (!acc[String(world)]) {
-      acc[String(world)] = [];
-    }
-    acc[String(world)].push(project);
-    return acc;
-  }, {} as Record<string, Project[]>);
+    : projects.filter((p) => p.world?.systemKey !== "stuff");
 
-  // Sort projects alphabetically within each world
-  Object.keys(projectsByWorld).forEach((world) => {
-    projectsByWorld[world].sort((a, b) => a.title.localeCompare(b.title));
-  });
+  const projectsByWorldId = new Map<string, Project[]>();
+  const noWorldProjects: Project[] = [];
+  for (const project of visibleProjects) {
+    const worldId = project.world?.documentId;
+    if (!worldId) {
+      noWorldProjects.push(project);
+      continue;
+    }
+    if (!projectsByWorldId.has(worldId)) projectsByWorldId.set(worldId, []);
+    projectsByWorldId.get(worldId)!.push(project);
+  }
+  projectsByWorldId.forEach((list) => list.sort((a, b) => a.title.localeCompare(b.title)));
+  noWorldProjects.sort((a, b) => a.title.localeCompare(b.title));
 
   return (
     <select
@@ -76,12 +78,11 @@ export default function ProjectSelector({
       }}
     >
       <option value="">project</option>
-      {worldOrder.map((world) => {
-        const worldProjects = projectsByWorld[String(world)];
+      {visibleWorlds.map((world) => {
+        const worldProjects = projectsByWorldId.get(world.documentId);
         if (!worldProjects || worldProjects.length === 0) return null;
-
         return (
-          <optgroup key={String(world)} label={world || "no world"}>
+          <optgroup key={world.documentId} label={world.title}>
             {worldProjects.map((project) => (
               <option key={project.documentId} value={project.documentId}>
                 {project.title}
@@ -90,6 +91,15 @@ export default function ProjectSelector({
           </optgroup>
         );
       })}
+      {noWorldProjects.length > 0 && (
+        <optgroup key="no-world" label="no world">
+          {noWorldProjects.map((project) => (
+            <option key={project.documentId} value={project.documentId}>
+              {project.title}
+            </option>
+          ))}
+        </optgroup>
+      )}
     </select>
   );
 }

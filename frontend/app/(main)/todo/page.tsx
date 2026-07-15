@@ -10,6 +10,7 @@ import {
 import { getPresetById, getDefaultPreset } from "@/app/lib/layoutPresets";
 import { useLayoutRuleset } from "@/app/contexts/LayoutRulesetContext";
 import { useStuffProjects } from "@/app/contexts/StuffProjectsContext";
+import { useWorlds } from "@/app/contexts/WorldsContext";
 import FaviconManager from "@/app/components/FaviconManager";
 import { useTaskData } from "./contexts/TaskDataContext";
 
@@ -35,6 +36,7 @@ export default function TaskPage() {
   } = useTaskData();
   const { selectedRulesetId: rawRulesetId } = useLayoutRuleset();
   const { stuffProjectsEnabled } = useStuffProjects();
+  const { worlds } = useWorlds();
 
   // Fall back off the "stuff" view when stuff projects are disabled (e.g. a
   // stale ?view=stuff URL or localStorage value).
@@ -70,13 +72,14 @@ export default function TaskPage() {
           ? longTasksWithSessions
           : undefined,
     };
-    return transformLayout(rawData, ruleset);
+    return transformLayout(rawData, ruleset, worlds);
   }, [
     selectedRulesetId,
     grouped,
     completedTasks,
     upcomingTasks,
     longTasksWithSessions,
+    worlds,
   ]);
 
   const ruleset = getPresetById(selectedRulesetId) || getDefaultPreset();

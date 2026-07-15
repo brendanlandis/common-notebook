@@ -79,6 +79,7 @@ export function TaskDataProvider({ children }: { children: ReactNode }) {
     updateTask,
     updateProject,
     addManualProject,
+    worldForProjectId,
     refetch: fetchTasks,
   } = useTasks();
   const { stuffProjectsEnabled } = useStuffProjects();
@@ -92,12 +93,20 @@ export function TaskDataProvider({ children }: { children: ReactNode }) {
   // reads from, so nothing stuff leaks through. When enabled they flow normally
   // (e.g. a "soon" stuff task still surfaces in Good Morning). The setting is
   // the sole gate. Mutation handlers still operate on the unfiltered state.
-  const isStuff = (t: Task) => (t.project as any)?.world === "stuff";
+  const isStuff = (t: Task) => t.project?.world?.systemKey === "stuff";
   const withoutStuff = (list: Task[]) =>
     stuffProjectsEnabled ? list : list.filter((t) => !isStuff(t));
-  const isStuffProject = (p: { world?: string }) => p.world === "stuff";
-  const withoutStuffProjects = <T extends { world?: string }>(list: T[]) =>
+  const isStuffProject = (p: Project) => p.world?.systemKey === "stuff";
+  const withoutStuffProjects = <T extends Project>(list: T[]) =>
     stuffProjectsEnabled ? list : list.filter((p) => !isStuffProject(p));
+
+  // completed/upcoming/long tasks are fetched separately with a shallow project,
+  // so stitch the world object onto them the way useTasks does for active tasks
+  // (the invoicing/done views and the stuff filter read task.project.world).
+  const enrichWorld = (task: Task): Task =>
+    task.project?.documentId
+      ? { ...task, project: { ...task.project, world: worldForProjectId(task.project.documentId) } }
+      : task;
 
   // Stuff tasks always live in stuff-world projects, so dropping those projects
   // removes every stuff task from the grouped views.
@@ -153,7 +162,7 @@ export function TaskDataProvider({ children }: { children: ReactNode }) {
 
       if (result.success) {
         const allCompletedTasks: Task[] = result.data;
-        setCompletedTasks(allCompletedTasks);
+        setCompletedTasks(allCompletedTasks.map(enrichWorld));
       }
     } catch (err) {
       console.error("Error fetching completed tasks:", err);
@@ -168,7 +177,7 @@ export function TaskDataProvider({ children }: { children: ReactNode }) {
 
       if (result.success) {
         const allUpcomingTasks: Task[] = result.data;
-        setUpcomingTasks(allUpcomingTasks);
+        setUpcomingTasks(allUpcomingTasks.map(enrichWorld));
       }
     } catch (err) {
       console.error("Error fetching upcoming tasks:", err);
@@ -182,7 +191,7 @@ export function TaskDataProvider({ children }: { children: ReactNode }) {
       const result = await response.json();
 
       if (result.success) {
-        setLongTasksWithSessions(result.data);
+        setLongTasksWithSessions(result.data.map(enrichWorld));
       }
     } catch (err) {
       console.error("Error fetching long tasks with sessions:", err);
@@ -573,16 +582,10 @@ export function TaskDataProvider({ children }: { children: ReactNode }) {
           // grouping useMemo will recompute layout placement automatically.
           updateProject(updatedProject);
         } else {
-          // New project created with no tasks yet. Show it in the layout
-          // until the next fetchTasks clears the manualProjects overlay.
-          if (
-            updatedProject.world === "life stuff" ||
-            updatedProject.world === "music admin" ||
-            updatedProject.world === "make music" ||
-            updatedProject.world === "computer"
-          ) {
-            addManualProject(updatedProject);
-          }
+          // New project created with no tasks yet. Show it in its world's view
+          // until the next fetchTasks clears the manualProjects overlay; the
+          // engine's world filtering decides where it appears.
+          addManualProject(updatedProject);
         }
       }
     } catch (err) {
