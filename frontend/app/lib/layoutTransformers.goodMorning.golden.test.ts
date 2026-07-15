@@ -11,12 +11,12 @@ import * as dateUtils from './dateUtils';
 // identical. See ~/.claude/plans/read-the-plan-at-dynamic-hartmanis.md.
 //
 // Captured behaviors:
-//  - Recurring section excludes day-job (includeInCombinedViews === false) worlds.
+//  - Recurring section is scoped `except [day job]`, so it drops day-job worlds.
 //  - Soon + top-of-mind section pulls soon tasks AND all tasks of the top-of-mind
 //    project from EVERY world (day job included), no day-job filter.
 //  - Future displayDate tasks are hidden.
-//  - Incidentals asymmetry: soon (no-world) incidentals show; recurring (no-world)
-//    incidentals do NOT (combined scope drops no-world tasks from the recurring pass).
+//  - Incidentals asymmetry: soon (no-world) incidentals show under worldMode "all";
+//    recurring (no-world) incidentals do NOT under worldMode "except".
 
 const musicWorld: World = {
   id: 1,
@@ -25,7 +25,6 @@ const musicWorld: World = {
   slug: 'make-music',
   position: 0,
   systemKey: null,
-  includeInCombinedViews: true,
 };
 
 const dayJobWorld: World = {
@@ -35,7 +34,6 @@ const dayJobWorld: World = {
   slug: 'day-job',
   position: 1,
   systemKey: null,
-  includeInCombinedViews: false,
 };
 
 vi.mock('./dateUtils', async () => {

@@ -54,14 +54,6 @@ export default function WorldsManager() {
     setBusy(false);
   };
 
-  const handleToggleCombined = async (world: World) => {
-    setBusy(true);
-    await updateWorld(world.documentId, {
-      includeInCombinedViews: !world.includeInCombinedViews,
-    });
-    setBusy(false);
-  };
-
   const handleMove = async (index: number, dir: -1 | 1) => {
     const target = index + dir;
     if (target < 0 || target >= worlds.length) return;
@@ -98,19 +90,6 @@ export default function WorldsManager() {
                 disabled={busy}
                 aria-label="world name"
               />
-              <label
-                className="settings-checkbox"
-                title="show in combined views (good morning, everything, roulette, chores)"
-              >
-                <input
-                  type="checkbox"
-                  className="checkbox"
-                  checked={world.includeInCombinedViews}
-                  onChange={() => handleToggleCombined(world)}
-                  disabled={busy || isStuff}
-                />
-                combined
-              </label>
               <button
                 type="button"
                 onClick={() => handleMove(i, -1)}

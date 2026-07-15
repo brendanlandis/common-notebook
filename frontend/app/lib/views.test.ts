@@ -2,8 +2,8 @@ import { describe, it, expect } from "vitest";
 import { viewToRuleset, sortViewsByPosition, findViewBySlug, CODE_PRESETS, findCodePreset } from "./views";
 import type { View, World } from "@/app/types/index";
 
-const music: World = { id: 1, documentId: "w-music", title: "make music", slug: "make-music", position: 0, systemKey: null, includeInCombinedViews: true };
-const dayJob: World = { id: 2, documentId: "w-day", title: "day job", slug: "day-job", position: 1, systemKey: null, includeInCombinedViews: false };
+const music: World = { id: 1, documentId: "w-music", title: "make music", slug: "make-music", position: 0, systemKey: null };
+const dayJob: World = { id: 2, documentId: "w-day", title: "day job", slug: "day-job", position: 1, systemKey: null };
 
 function view(overrides: Partial<View>): View {
   return {

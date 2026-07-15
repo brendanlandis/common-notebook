@@ -266,7 +266,7 @@ describe('Stats API Route - Work Session Counting', () => {
               project: {
                 documentId: 'work-proj',
                 title: 'Work Project',
-                worldRef: { title: 'day job', includeInCombinedViews: false },
+                worldRef: { title: 'day job' },
               },
             },
           ],
@@ -306,7 +306,7 @@ describe('Stats API Route - Work Session Counting', () => {
               project: {
                 documentId: 'proj-dayjob',
                 title: 'work chores',
-                worldRef: { title: 'day job', includeInCombinedViews: false },
+                worldRef: { title: 'day job' },
               },
               workSessions: [
                 { date: '2026-01-09', timestamp: '2026-01-09T10:00:00.000Z' },

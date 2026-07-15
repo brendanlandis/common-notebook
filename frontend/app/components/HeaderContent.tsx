@@ -44,13 +44,20 @@ export default function HeaderContent() {
   // add buttons work everywhere.
   if (pathname.startsWith("/todo")) {
     const isTaskIndex = pathname === "/todo";
+    // Keep the picker in sync with the route: the index shows the selected view;
+    // a per-world route shows that world's option; a per-project route has no
+    // matching option, so it falls back to the blank row.
+    const worldMatch = pathname.match(/^\/todo\/world\/(.+)$/);
+    const selectorValue = isTaskIndex
+      ? selectedRulesetId
+      : worldMatch
+        ? `world:${decodeURIComponent(worldMatch[1])}`
+        : "";
     return (
       <>
         {isHydrated && (
           <LayoutSelector
-            // On a world/project route the current view isn't a preset, so show
-            // the blank row; picking a real view sets it and returns to /todo.
-            value={isTaskIndex ? selectedRulesetId : ""}
+            value={selectorValue}
             onChange={(id) => {
               if (!id) return;
               setSelectedRulesetId(id);

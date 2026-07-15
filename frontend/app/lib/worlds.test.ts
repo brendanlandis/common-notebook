@@ -15,13 +15,12 @@ function w(overrides: Partial<World> & { documentId: string }): World {
     slug: overrides.documentId,
     position: 0,
     systemKey: null,
-    includeInCombinedViews: true,
     ...overrides,
   };
 }
 
 const lifeStuff = w({ documentId: "life", title: "life stuff", slug: "life-stuff", position: 2 });
-const dayJob = w({ documentId: "day", title: "day job", slug: "day-job", position: 3, includeInCombinedViews: false });
+const dayJob = w({ documentId: "day", title: "day job", slug: "day-job", position: 3 });
 const computer = w({ documentId: "comp", title: "computer", slug: "computer", position: 4 });
 const stuff = w({ documentId: "stuff", title: "stuff", slug: "stuff", position: 5, systemKey: "stuff" });
 const worlds = [lifeStuff, dayJob, computer, stuff];

@@ -174,8 +174,7 @@ export default function SettingsPage() {
           <h2>worlds</h2>
           <p>
             Your top-level buckets for projects. Rename, reorder, add, or remove
-            them. &quot;Combined&quot; controls whether a world shows in the
-            good-morning / everything / roulette / chores views.
+            them. Which worlds a view spans is set per view (in Views below).
           </p>
           <WorldsManager />
 

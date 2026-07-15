@@ -41,9 +41,6 @@ export interface World {
   // drives the enableStuffProjects gating and the stuff project types. null for
   // ordinary user worlds.
   systemKey: string | null;
-  // When false the world is left out of the combined views (good morning,
-  // everything, roulette, chores) — e.g. "day job". Defaults true.
-  includeInCombinedViews: boolean;
 }
 
 // ── User-configurable views (the `api::view.view` collection) ──────────────

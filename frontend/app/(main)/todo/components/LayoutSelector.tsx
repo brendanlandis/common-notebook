@@ -26,10 +26,13 @@ export default function LayoutSelector({ value, onChange }: LayoutSelectorProps)
   // the "stuff" view, not here.
   const worldOptions = worlds.filter((w) => w.systemKey !== "stuff");
 
-  // On pages not represented by any view (a world/project route), `value` is "" —
-  // show a blank row at the top so the select has something to display.
+  // On pages not represented by any option (a project route), `value` is "" —
+  // show a blank row at the top so the select has something to display. A view
+  // slug, a code preset, or a `world:<slug>` option all count as known.
   const valueIsKnownView =
-    views.some((v) => v.slug === value) || CODE_PRESETS.some((p) => p.slug === value);
+    views.some((v) => v.slug === value) ||
+    CODE_PRESETS.some((p) => p.slug === value) ||
+    worldOptions.some((w) => `world:${w.slug}` === value);
 
   const handleChange = (v: string) => {
     if (v.startsWith("world:")) {

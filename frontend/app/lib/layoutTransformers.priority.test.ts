@@ -10,7 +10,6 @@ const world: World = {
   slug: 'make-music',
   position: 0,
   systemKey: null,
-  includeInCombinedViews: true,
 };
 
 vi.mock('./dateUtils', async () => {
