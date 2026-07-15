@@ -24,10 +24,6 @@
     "systemKey": {
       "type": "string"
     },
-    "includeInCombinedViews": {
-      "type": "boolean",
-      "default": true
-    },
     "owner": {
       "type": "relation",
       "relation": "oneToOne",
