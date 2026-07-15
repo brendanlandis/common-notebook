@@ -452,7 +452,6 @@ export interface ApiInviteInvite extends Struct.CollectionTypeSchema {
     draftAndPublish: false;
   };
   attributes: {
-    betaAccess: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
     code: Schema.Attribute.String &
       Schema.Attribute.Required &
       Schema.Attribute.Unique;
@@ -1163,9 +1162,9 @@ export interface PluginUsersPermissionsUser
   };
   options: {
     draftAndPublish: false;
-    timestamps: true;
   };
   attributes: {
+    betaAccess: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
     blocked: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
     confirmationToken: Schema.Attribute.String & Schema.Attribute.Private;
     confirmed: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;

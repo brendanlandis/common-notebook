@@ -27,10 +27,6 @@
     },
     "usedByEmail": {
       "type": "string"
-    },
-    "betaAccess": {
-      "type": "boolean",
-      "default": false
     }
   }
 }
