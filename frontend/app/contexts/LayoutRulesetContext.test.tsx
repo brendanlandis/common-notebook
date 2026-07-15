@@ -11,14 +11,13 @@ vi.mock('next/navigation', () => ({
   usePathname: vi.fn(),
 }));
 
-// Mock layout presets
-vi.mock('@/app/lib/layoutPresets', () => ({
-  LAYOUT_PRESETS: [
-    { id: 'good-morning', name: 'good morning' },
-    { id: 'roulette', name: 'roulette' },
-    { id: 'stuff', name: 'stuff' },
-    { id: 'done', name: 'done' },
-  ],
+// Valid ids come from the user's views now (plus the done/recurring code presets
+// from the real views.ts). Mock the views the context validates against.
+vi.mock('@/app/contexts/ViewsContext', () => ({
+  useViews: () => ({
+    views: [{ slug: 'good-morning' }, { slug: 'roulette' }, { slug: 'stuff' }],
+    loading: false,
+  }),
 }));
 
 describe('LayoutRulesetContext', () => {
@@ -126,19 +125,21 @@ describe('LayoutRulesetContext', () => {
       });
     });
 
-    it('should ignore invalid URL parameter and use localStorage', async () => {
+    it('should reset an invalid URL parameter to the default once views load', async () => {
       const layoutData = {
         rulesetId: 'roulette',
         timestamp: Date.now(),
       };
       localStorageMock['task-layout-ruleset-id'] = JSON.stringify(layoutData);
-      
+
+      // A ?view= that matches no view or code preset (e.g. a deleted view). It's
+      // taken optimistically, then the validation effect falls back to default.
       mockSearchParams.get.mockReturnValue('invalid-preset');
 
       const { result } = renderHook(() => useLayoutRuleset(), { wrapper });
 
       await waitFor(() => {
-        expect(result.current.selectedRulesetId).toBe('roulette');
+        expect(result.current.selectedRulesetId).toBe('good-morning');
       });
     });
   });

@@ -1,37 +1,35 @@
 import { useRouter, usePathname } from "next/navigation";
-import { LAYOUT_PRESETS } from "@/app/lib/layoutPresets";
 import { useStuffProjects } from "@/app/contexts/StuffProjectsContext";
 import { useWorlds } from "@/app/contexts/WorldsContext";
+import { useViews } from "@/app/contexts/ViewsContext";
+import { sortViewsByPosition, CODE_PRESETS } from "@/app/lib/views";
 
 interface LayoutSelectorProps {
-  value: string; // preset ID (or "" on a world/project route)
-  onChange: (presetId: string) => void;
+  value: string; // view slug (or "" on a world/project route)
+  onChange: (slug: string) => void;
 }
 
 export default function LayoutSelector({ value, onChange }: LayoutSelectorProps) {
   const { stuffProjectsEnabled } = useStuffProjects();
   const { worlds } = useWorlds();
+  const { views } = useViews();
   const router = useRouter();
   const pathname = usePathname();
 
-  // Special (non-world) presets, in display order. The "stuff" view is hidden
+  // The user's composable views, in their own order. The "stuff" view is hidden
   // when stuff projects are disabled.
-  const specialPresetOrder = ["good-morning", "chores", "everything", "chipping-away", "roulette", "stuff", "later"];
-  const specialPresets = LAYOUT_PRESETS.filter(
-    (preset) => specialPresetOrder.includes(preset.id) && (preset.id !== "stuff" || stuffProjectsEnabled)
-  ).sort((a, b) => specialPresetOrder.indexOf(a.id) - specialPresetOrder.indexOf(b.id));
-
-  const reviewPresets = LAYOUT_PRESETS.filter(
-    (preset) => preset.id === "done" || preset.id === "invoicing" || preset.id === "recurring"
+  const dataViews = sortViewsByPosition(views).filter(
+    (v) => v.systemKey !== "stuff" || stuffProjectsEnabled
   );
 
-  // Per-world entries come from the user's worlds now (not presets). The stuff
-  // world is surfaced by the "stuff" special preset, not here.
+  // Per-world entries come from the user's worlds. The stuff world is surfaced by
+  // the "stuff" view, not here.
   const worldOptions = worlds.filter((w) => w.systemKey !== "stuff");
 
-  // On pages not represented by any preset (a world/project route), `value` is
-  // "" — show a blank row at the top so the select has something to display.
-  const valueIsKnownPreset = LAYOUT_PRESETS.some((preset) => preset.id === value);
+  // On pages not represented by any view (a world/project route), `value` is "" —
+  // show a blank row at the top so the select has something to display.
+  const valueIsKnownView =
+    views.some((v) => v.slug === value) || CODE_PRESETS.some((p) => p.slug === value);
 
   const handleChange = (v: string) => {
     if (v.startsWith("world:")) {
@@ -39,8 +37,8 @@ export default function LayoutSelector({ value, onChange }: LayoutSelectorProps)
       router.push(`/todo/world/${v.slice("world:".length)}`);
       return;
     }
-    // A preset: set it, and if we're on a world/project route, go back to /todo
-    // so the selected view actually renders (that page reads the ruleset).
+    // A view/preset: set it, and if we're on a world/project route, go back to
+    // /todo so the selected view actually renders (that page reads the ruleset).
     onChange(v);
     if (pathname !== "/todo") router.push("/todo");
   };
@@ -52,10 +50,10 @@ export default function LayoutSelector({ value, onChange }: LayoutSelectorProps)
       id="order-selector"
       suppressHydrationWarning
     >
-      {!valueIsKnownPreset && <option value=""></option>}
-      {specialPresets.map((preset) => (
-        <option key={preset.id} value={preset.id}>
-          {preset.name}
+      {!valueIsKnownView && <option value=""></option>}
+      {dataViews.map((view) => (
+        <option key={view.documentId} value={view.slug}>
+          {view.name}
         </option>
       ))}
       <optgroup label="worlds">
@@ -66,8 +64,8 @@ export default function LayoutSelector({ value, onChange }: LayoutSelectorProps)
         ))}
       </optgroup>
       <optgroup label="review">
-        {reviewPresets.map((preset) => (
-          <option key={preset.id} value={preset.id}>
+        {CODE_PRESETS.map((preset) => (
+          <option key={preset.slug} value={preset.slug}>
             {preset.name}
           </option>
         ))}
@@ -75,6 +73,3 @@ export default function LayoutSelector({ value, onChange }: LayoutSelectorProps)
     </select>
   );
 }
-
-// Export type for backward compatibility during transition
-export type LayoutMode = "recurring on top" | "separate" | "separate by world";

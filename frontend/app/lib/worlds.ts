@@ -1,45 +1,54 @@
-import type { World, WorldScope } from "@/app/types/index";
+import type { World, WorldMode } from "@/app/types/index";
 
 // Worlds are user-populated data now (the `api::world.world` collection), not a
-// hardcoded list. These pure helpers resolve a view's WorldScope against the
-// user's worlds; the list itself comes from WorldsContext / the /api/worlds BFF.
+// hardcoded list. These pure helpers resolve a view section's world selection
+// against the user's worlds; the list itself comes from WorldsContext / the
+// /api/worlds BFF.
 
 /** The stable handle of the special "stuff" world (wishlist/errands/…). */
 export const STUFF_SYSTEM_KEY = "stuff";
 
-function isStuffWorld(w: World): boolean {
+export function isStuffWorld(w: World): boolean {
   return w.systemKey === STUFF_SYSTEM_KEY;
 }
 
+/** True for any system world (a stable `systemKey`, e.g. stuff). */
+function isSystemWorld(w: World): boolean {
+  return w.systemKey != null && w.systemKey !== "";
+}
+
 /**
- * The set of world documentIds a view spans, resolved against the user's worlds.
+ * The set of world documentIds a section spans, resolved from its `worldMode`
+ * (`all`/`only`/`except`) + explicitly-named `worldIds` against the user's
+ * worlds.
  *
- * The stuff world is surfaced ONLY by a scope that names it explicitly
- * (`{ systemKey: 'stuff' }`, or `{ worldId }` pointing at it) — never by the
- * aggregate scopes ('all' / 'combined' / 'excluded'). This preserves the old
+ * System worlds (a `systemKey`, i.e. stuff) surface ONLY when named explicitly
+ * under `only`; `all` and `except` never include them. This preserves the old
  * behaviour where stuff appeared only in its own view.
  */
-export function resolveVisibleWorldIds(scope: WorldScope, worlds: World[]): Set<string> {
-  const namesStuffExplicitly =
-    typeof scope === "object" &&
-    (("systemKey" in scope && scope.systemKey === STUFF_SYSTEM_KEY) ||
-      ("worldId" in scope && worlds.some((w) => w.documentId === scope.worldId && isStuffWorld(w))));
-
+export function resolveVisibleWorldIds(
+  worldMode: WorldMode,
+  worldIds: string[],
+  worlds: World[]
+): Set<string> {
+  const named = new Set(worldIds);
   const pick = (w: World): boolean => {
-    if (isStuffWorld(w) && !namesStuffExplicitly) return false;
-    if (scope === "all") return true;
-    if (scope === "combined") return w.includeInCombinedViews;
-    if (scope === "excluded") return !w.includeInCombinedViews;
-    if ("systemKey" in scope) return w.systemKey === scope.systemKey;
-    return w.documentId === scope.worldId; // { worldId }
+    if (worldMode === "only") return named.has(w.documentId);
+    // `all` and `except` never surface system (stuff) worlds.
+    if (isSystemWorld(w)) return false;
+    if (worldMode === "all") return true;
+    return !named.has(w.documentId); // except
   };
-
   return new Set(worlds.filter(pick).map((w) => w.documentId));
 }
 
-/** The worlds a view spans, in the user's `position` order. */
-export function resolveVisibleWorlds(scope: WorldScope, worlds: World[]): World[] {
-  const ids = resolveVisibleWorldIds(scope, worlds);
+/** The worlds a section spans, in the user's `position` order. */
+export function resolveVisibleWorlds(
+  worldMode: WorldMode,
+  worldIds: string[],
+  worlds: World[]
+): World[] {
+  const ids = resolveVisibleWorldIds(worldMode, worldIds, worlds);
   return worlds.filter((w) => ids.has(w.documentId));
 }
 

@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { transformLayout } from './layoutTransformers';
-import type { Task, Project, LayoutRuleset, World } from '@/app/types/index';
+import { viewToRuleset } from './views';
+import type { Task, Project, View, World } from '@/app/types/index';
 import * as dateUtils from './dateUtils';
 
 // GOLDEN TEST — pins the CURRENT good-morning output so the composable-views
@@ -103,15 +104,40 @@ function createProject(overrides: Partial<Project>): Project {
   };
 }
 
-const goodMorningRuleset: LayoutRuleset = {
-  id: 'good-morning',
+// good morning as the SEEDED data view (exactly what migrate-views.js writes for
+// a user with a day-job world): two sections, render order [top of mind,
+// recurring]. Deriving the ruleset via viewToRuleset closes the loop —
+// View (populated worlds) -> ruleset -> transformLayout -> golden output.
+const goodMorningView: View = {
+  id: 1,
+  documentId: 'v-gm',
   name: 'good morning',
-  showRecurring: true,
-  showNonRecurring: true,
-  worldScope: 'combined',
-  sortBy: 'creationDate',
-  groupBy: 'good-morning',
+  slug: 'good-morning',
+  position: 0,
+  systemKey: null,
+  layout: 'projects',
+  sections: [
+    {
+      name: 'top of mind',
+      worldMode: 'all',
+      worlds: [],
+      importance: 'soonAndTopOfMind',
+      projectType: 'any',
+      recurrence: 'nonRecurring',
+      longOnly: false,
+    },
+    {
+      name: 'recurring',
+      worldMode: 'except',
+      worlds: [dayJobWorld],
+      importance: 'any',
+      projectType: 'any',
+      recurrence: 'recurring',
+      longOnly: false,
+    },
+  ],
 };
+const goodMorningRuleset = viewToRuleset(goodMorningView);
 
 // Project columns split across the recurring / non-recurring raw arrays exactly
 // how buildRawTaskData splits a project's tasks. Each task carries its own
@@ -165,17 +191,16 @@ function goldenData() {
   };
 }
 
-// Project | TaskGroup -> a readable { key, taskIds } projection.
-function projectSections(sections: unknown[] | undefined) {
-  if (!sections) return undefined;
-  return (sections as Array<Record<string, unknown>>).map((s) => ({
-    key: 'documentId' in s ? (s.documentId as string) : (s.title as string),
-    tasks: ((s.tasks as Task[]) ?? []).map((t) => t.documentId),
+// Reduce ProjectGroup[] to a readable { name, columns:[{key,taskIds}], incidentals }.
+function projectGroups(result: ReturnType<typeof transformLayout>) {
+  return (result.projectGroups ?? []).map((g) => ({
+    name: g.name,
+    columns: g.columns.map((s) => ({
+      key: 'documentId' in s ? s.documentId : s.title,
+      tasks: (('documentId' in s ? s.tasks : s.tasks) ?? []).map((t: Task) => t.documentId),
+    })),
+    incidentals: g.incidentals.map((t) => t.documentId),
   }));
-}
-
-function projectIncidentals(tasks: Task[] | undefined) {
-  return tasks ? tasks.map((t) => t.documentId) : undefined;
 }
 
 describe('good-morning golden output', () => {
@@ -184,52 +209,50 @@ describe('good-morning golden output', () => {
     vi.mocked(dateUtils.getNowInEST).mockReturnValue(new Date('2026-06-01T12:00:00'));
   });
 
-  it('produces the expected sections + incidentals', () => {
+  it('reproduces the two groups, columns + incidentals', () => {
     const result = transformLayout(goldenData(), goodMorningRuleset, [musicWorld, dayJobWorld]);
-
-    const projection = {
-      combinedSections: projectSections(result.combinedSections),
-      combinedIncidentals: projectIncidentals(result.combinedIncidentals),
-      topOfMindSections: projectSections(result.topOfMindSections),
-      topOfMindIncidentals: projectIncidentals(result.topOfMindIncidentals),
-    };
-
-    expect(projection).toMatchInlineSnapshot(`
-      {
-        "combinedIncidentals": undefined,
-        "combinedSections": [
-          {
-            "key": "p-band",
-            "tasks": [
-              "t-practice",
-            ],
-          },
-        ],
-        "topOfMindIncidentals": [
-          "t-callmom",
-        ],
-        "topOfMindSections": [
-          {
-            "key": "p-album",
-            "tasks": [
-              "t-mix",
-              "t-master",
-            ],
-          },
-          {
-            "key": "p-work",
-            "tasks": [
-              "t-reply",
-            ],
-          },
-          {
-            "key": "p-band",
-            "tasks": [
-              "t-show",
-            ],
-          },
-        ],
-      }
+    expect(projectGroups(result)).toMatchInlineSnapshot(`
+      [
+        {
+          "columns": [
+            {
+              "key": "p-album",
+              "tasks": [
+                "t-mix",
+                "t-master",
+              ],
+            },
+            {
+              "key": "p-work",
+              "tasks": [
+                "t-reply",
+              ],
+            },
+            {
+              "key": "p-band",
+              "tasks": [
+                "t-show",
+              ],
+            },
+          ],
+          "incidentals": [
+            "t-callmom",
+          ],
+          "name": "top of mind",
+        },
+        {
+          "columns": [
+            {
+              "key": "p-band",
+              "tasks": [
+                "t-practice",
+              ],
+            },
+          ],
+          "incidentals": [],
+          "name": "recurring",
+        },
+      ]
     `);
   });
 });

@@ -7,12 +7,17 @@ import {
   transformLayout,
   type RawTaskData,
 } from "@/app/lib/layoutTransformers";
-import { getPresetById, getDefaultPreset } from "@/app/lib/layoutPresets";
+import { viewToRuleset, findViewBySlug, findCodePreset } from "@/app/lib/views";
+import type { LayoutRuleset } from "@/app/types/index";
 import { useLayoutRuleset } from "@/app/contexts/LayoutRulesetContext";
 import { useStuffProjects } from "@/app/contexts/StuffProjectsContext";
 import { useWorlds } from "@/app/contexts/WorldsContext";
+import { useViews } from "@/app/contexts/ViewsContext";
 import FaviconManager from "@/app/components/FaviconManager";
 import { useTaskData } from "./contexts/TaskDataContext";
+
+const DEFAULT_VIEW_SLUG = "good-morning";
+const EMPTY_RULESET: LayoutRuleset = { slug: "", name: "", layout: "projects", sections: [] };
 
 export default function TaskPage() {
   const {
@@ -34,56 +39,47 @@ export default function TaskPage() {
     onSkipRecurring,
     onEditProject,
   } = useTaskData();
-  const { selectedRulesetId: rawRulesetId } = useLayoutRuleset();
+  const { selectedRulesetId } = useLayoutRuleset();
   const { stuffProjectsEnabled } = useStuffProjects();
   const { worlds } = useWorlds();
+  const { views } = useViews();
 
-  // Fall back off the "stuff" view when stuff projects are disabled (e.g. a
-  // stale ?view=stuff URL or localStorage value).
-  const selectedRulesetId =
-    rawRulesetId === "stuff" && !stuffProjectsEnabled
-      ? getDefaultPreset().id
-      : rawRulesetId;
+  // Resolve the selected id to a runtime ruleset: a code preset (done/recurring),
+  // a composable data view, or the default view — falling off the stuff view when
+  // stuff projects are disabled (a stale ?view=stuff URL / localStorage value).
+  const ruleset: LayoutRuleset = useMemo(() => {
+    const codePreset = findCodePreset(selectedRulesetId);
+    if (codePreset) return codePreset;
+    let view = findViewBySlug(selectedRulesetId, views);
+    if (view?.systemKey === "stuff" && !stuffProjectsEnabled) view = undefined;
+    view = view ?? findViewBySlug(DEFAULT_VIEW_SLUG, views);
+    return view ? viewToRuleset(view) : EMPTY_RULESET;
+  }, [selectedRulesetId, views, stuffProjectsEnabled]);
 
-  // Transform layout using selected ruleset
+  const isDone = ruleset.codePreset === "done";
+  const isRecurring = ruleset.codePreset === "recurring";
+  const effectiveSlug = ruleset.slug || selectedRulesetId;
+
+  // Transform layout using the resolved ruleset.
   const transformedData = useMemo(() => {
-    const ruleset = getPresetById(selectedRulesetId) || getDefaultPreset();
-    const useUnfilteredRecurring = selectedRulesetId === "recurring";
     const rawData: RawTaskData = {
       projects: grouped.projects,
       categoryGroups: grouped.categoryGroups,
       incidentals: grouped.incidentals,
-      recurringProjects: useUnfilteredRecurring
-        ? grouped.allRecurringProjects
-        : grouped.recurringProjects,
-      recurringCategoryGroups: useUnfilteredRecurring
+      // The recurring review shows every recurring task regardless of displayDate.
+      recurringProjects: isRecurring ? grouped.allRecurringProjects : grouped.recurringProjects,
+      recurringCategoryGroups: isRecurring
         ? grouped.allRecurringCategoryGroups
         : grouped.recurringCategoryGroups,
-      recurringIncidentals: useUnfilteredRecurring
-        ? grouped.allRecurringIncidentals
-        : grouped.recurringIncidentals,
-      completedTasks:
-        selectedRulesetId === "done" || selectedRulesetId === "invoicing"
-          ? completedTasks
-          : undefined,
-      upcomingTasks: selectedRulesetId === "done" ? upcomingTasks : undefined,
-      longTasksWithSessions:
-        selectedRulesetId === "done" || selectedRulesetId === "invoicing"
-          ? longTasksWithSessions
-          : undefined,
+      recurringIncidentals: isRecurring ? grouped.allRecurringIncidentals : grouped.recurringIncidentals,
+      completedTasks: isDone ? completedTasks : undefined,
+      upcomingTasks: isDone ? upcomingTasks : undefined,
+      longTasksWithSessions: isDone ? longTasksWithSessions : undefined,
     };
     return transformLayout(rawData, ruleset, worlds);
-  }, [
-    selectedRulesetId,
-    grouped,
-    completedTasks,
-    upcomingTasks,
-    longTasksWithSessions,
-    worlds,
-  ]);
+  }, [ruleset, isDone, isRecurring, grouped, completedTasks, upcomingTasks, longTasksWithSessions, worlds]);
 
-  const ruleset = getPresetById(selectedRulesetId) || getDefaultPreset();
-  const layoutClass = `layout-${selectedRulesetId}`;
+  const layoutClass = `layout-${effectiveSlug}`;
 
   if (loading) {
     return (
@@ -121,7 +117,7 @@ export default function TaskPage() {
           <LayoutRenderer
             transformedData={transformedData}
             ruleset={ruleset}
-            selectedRulesetId={selectedRulesetId}
+            selectedRulesetId={effectiveSlug}
             onComplete={onComplete}
             onEdit={onEdit}
             onDelete={onDelete}
@@ -130,7 +126,7 @@ export default function TaskPage() {
             onSkipRecurring={onSkipRecurring}
             onEditProject={onEditProject}
             recentStatsSection={
-              selectedRulesetId === "done" &&
+              isDone &&
               (recentStats.length > 0 || recentStats30Days.length > 0) ? (
                 <div className="task-section recent-stats-section">
                   <h3>recently</h3>

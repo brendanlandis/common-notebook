@@ -6,7 +6,7 @@ import {
   findStuffWorld,
   sortWorldsByPosition,
 } from "./worlds";
-import type { World } from "@/app/types/index";
+import type { World, WorldMode } from "@/app/types/index";
 
 function w(overrides: Partial<World> & { documentId: string }): World {
   return {
@@ -26,42 +26,45 @@ const computer = w({ documentId: "comp", title: "computer", slug: "computer", po
 const stuff = w({ documentId: "stuff", title: "stuff", slug: "stuff", position: 5, systemKey: "stuff" });
 const worlds = [lifeStuff, dayJob, computer, stuff];
 
-const idsOf = (scope: Parameters<typeof resolveVisibleWorldIds>[0]) =>
-  [...resolveVisibleWorldIds(scope, worlds)].sort();
+const idsOf = (mode: WorldMode, ids: string[]) =>
+  [...resolveVisibleWorldIds(mode, ids, worlds)].sort();
 
 describe("resolveVisibleWorldIds", () => {
   it("'all' spans every world EXCEPT stuff", () => {
-    expect(idsOf("all")).toEqual(["comp", "day", "life"]);
+    expect(idsOf("all", [])).toEqual(["comp", "day", "life"]);
   });
 
-  it("'combined' excludes day-job-like worlds and stuff", () => {
-    expect(idsOf("combined")).toEqual(["comp", "life"]);
+  it("'except [day]' drops the named world and stuff (the old 'combined')", () => {
+    expect(idsOf("except", ["day"])).toEqual(["comp", "life"]);
   });
 
-  it("'excluded' is only the worlds kept out of combined views (day job)", () => {
-    expect(idsOf("excluded")).toEqual(["day"]);
+  it("'except []' is every non-stuff world", () => {
+    expect(idsOf("except", [])).toEqual(["comp", "day", "life"]);
   });
 
-  it("{ systemKey: 'stuff' } names the stuff world explicitly", () => {
-    expect(idsOf({ systemKey: "stuff" })).toEqual(["stuff"]);
+  it("'only [day]' targets just that world (the old 'excluded')", () => {
+    expect(idsOf("only", ["day"])).toEqual(["day"]);
   });
 
-  it("{ worldId } targets one world — including stuff when named", () => {
-    expect(idsOf({ worldId: "life" })).toEqual(["life"]);
-    expect(idsOf({ worldId: "stuff" })).toEqual(["stuff"]);
+  it("'only [stuff]' surfaces the stuff world (named explicitly)", () => {
+    expect(idsOf("only", ["stuff"])).toEqual(["stuff"]);
   });
 
-  it("never leaks the stuff world into an aggregate scope", () => {
-    for (const scope of ["all", "combined", "excluded"] as const) {
-      expect([...resolveVisibleWorldIds(scope, worlds)]).not.toContain("stuff");
-    }
+  it("'only [life, comp]' spans exactly the named worlds", () => {
+    expect(idsOf("only", ["life", "comp"])).toEqual(["comp", "life"]);
+  });
+
+  it("never leaks the stuff world into 'all' or 'except'", () => {
+    expect(idsOf("all", [])).not.toContain("stuff");
+    expect(idsOf("except", [])).not.toContain("stuff");
+    expect(idsOf("except", ["day"])).not.toContain("stuff");
   });
 });
 
 describe("resolveVisibleWorlds", () => {
   it("preserves input order (the `worlds` array is already position-sorted upstream)", () => {
     // worlds is [life(2), day(3), comp(4), stuff(5)] → 'all' drops stuff.
-    expect(resolveVisibleWorlds("all", worlds).map((x) => x.documentId)).toEqual(["life", "day", "comp"]);
+    expect(resolveVisibleWorlds("all", [], worlds).map((x) => x.documentId)).toEqual(["life", "day", "comp"]);
   });
 
   it("sortWorldsByPosition orders by position", () => {

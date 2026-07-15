@@ -2,15 +2,10 @@
 
 import type { LayoutRuleset, Task, Project } from "@/app/types/index";
 import type { TransformedLayout } from "@/app/lib/layoutTransformers";
-import RecurringSeparateLayout from "./layouts/RecurringSeparateLayout";
-import RecurringSeparateWorldLayout from "./layouts/RecurringSeparateWorldLayout";
-import WorldLayout from "./layouts/WorldLayout";
-import GoodMorningLayout from "./layouts/GoodMorningLayout";
-import SingleSectionLayout from "./layouts/SingleSectionLayout";
-import DefaultLayout from "./layouts/DefaultLayout";
+import ProjectsLayout from "./layouts/ProjectsLayout";
+import ChronologicalLayout from "./layouts/ChronologicalLayout";
 import RouletteLayout from "./layouts/RouletteLayout";
-import StuffLayout from "./layouts/StuffLayout";
-import ChoresLayout from "./layouts/ChoresLayout";
+import DoneLayout from "./layouts/DoneLayout";
 import RecurringReviewLayout from "./layouts/RecurringReviewLayout";
 import type { LayoutRendererProps } from "./layouts/types";
 
@@ -28,23 +23,15 @@ interface LayoutRendererComponentProps {
   recentStatsSection?: React.ReactNode;
 }
 
-const LAYOUT_COMPONENTS: Record<string, React.ComponentType<LayoutRendererProps>> = {
-  "recurring-separate": RecurringSeparateLayout,
-  "recurring-separate-world": RecurringSeparateWorldLayout,
-  "world": WorldLayout,
-  "good-morning": GoodMorningLayout,
-  "single-section": SingleSectionLayout,
-  "merged": DefaultLayout,
-  "project": DefaultLayout,
-  "category": DefaultLayout,
-  "roulette": RouletteLayout,
-  "stuff": StuffLayout,
-  "later": DefaultLayout,
-  "chores": ChoresLayout,
-  "done": SingleSectionLayout,
-  "invoicing": SingleSectionLayout,
-  "recurring-review": RecurringReviewLayout,
-};
+// Two code presets (done, recurring) select bespoke components; every other view
+// maps by its `layout` engine.
+function pickComponent(ruleset: LayoutRuleset): React.ComponentType<LayoutRendererProps> {
+  if (ruleset.codePreset === "done") return DoneLayout;
+  if (ruleset.codePreset === "recurring") return RecurringReviewLayout;
+  if (ruleset.layout === "chronological") return ChronologicalLayout;
+  if (ruleset.layout === "roulette") return RouletteLayout;
+  return ProjectsLayout;
+}
 
 export default function LayoutRenderer({
   transformedData,
@@ -59,20 +46,12 @@ export default function LayoutRenderer({
   onEditProject,
   recentStatsSection,
 }: LayoutRendererComponentProps) {
-  // Use StuffLayout for "stuff" view (which uses category groupBy)
-  const LayoutComponent = ruleset.id === "stuff"
-    ? StuffLayout
-    : LAYOUT_COMPONENTS[ruleset.groupBy] || DefaultLayout;
-
-  // Single-target views (the /todo/world/[slug] route and the stuff view) hide
-  // the redundant per-world heading; multi-world scopes keep it.
-  const hideWorldName = typeof ruleset.worldScope === "object";
+  const LayoutComponent = pickComponent(ruleset);
 
   return (
     <LayoutComponent
       transformedData={transformedData}
       selectedRulesetId={selectedRulesetId}
-      hideWorldName={hideWorldName}
       onComplete={onComplete}
       onEdit={onEdit}
       onDelete={onDelete}

@@ -60,13 +60,14 @@ describe('layoutTransformers - recurring-review', () => {
 
   beforeEach(() => {
     recurringReviewRuleset = {
-      id: 'recurring',
+      slug: 'recurring',
       name: 'recurring',
-      showRecurring: true,
-      showNonRecurring: false,
-      visibleWorlds: null,
-      sortBy: 'alphabetical',
-      groupBy: 'recurring-review',
+      layout: 'projects',
+      sections: [
+        { worldMode: 'all', worldIds: [], importance: 'any', projectType: 'any', recurrence: 'both', longOnly: false },
+      ],
+      codePreset: 'recurring',
+      ignoreDisplayDate: true,
     };
   });
 

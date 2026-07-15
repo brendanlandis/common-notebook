@@ -133,9 +133,6 @@ export async function GET(req: NextRequest) {
 
     // Count projects and categories
     const projectCounts = new Map<string, { name: string; count: number }>();
-    // Worlds kept out of combined views (e.g. day job) are lumped into one entry
-    // per world (keyed by title) instead of listing each of their projects.
-    const excludedCounts = new Map<string, number>();
 
     // Count completed tasks (excluding recurring tasks)
     for (const task of allCompletedTasks) {
@@ -143,19 +140,14 @@ export async function GET(req: NextRequest) {
       if (task.isRecurring) {
         continue;
       }
-      
+
       if (task.project) {
-        const world = task.project.worldRef;
-        if (world && world.includeInCombinedViews === false) {
-          excludedCounts.set(world.title, (excludedCounts.get(world.title) ?? 0) + 1);
+        const projectId = task.project.documentId;
+        const projectName = task.project.title;
+        if (projectCounts.has(projectId)) {
+          projectCounts.get(projectId)!.count++;
         } else {
-          const projectId = task.project.documentId;
-          const projectName = task.project.title;
-          if (projectCounts.has(projectId)) {
-            projectCounts.get(projectId)!.count++;
-          } else {
-            projectCounts.set(projectId, { name: projectName, count: 1 });
-          }
+          projectCounts.set(projectId, { name: projectName, count: 1 });
         }
       }
       // Skip project-less tasks
@@ -176,23 +168,15 @@ export async function GET(req: NextRequest) {
 
         if (recentSessions.length > 0) {
           if (task.project) {
-            const world = task.project.worldRef;
-            if (world && world.includeInCombinedViews === false) {
-              excludedCounts.set(
-                world.title,
-                (excludedCounts.get(world.title) ?? 0) + recentSessions.length
-              );
+            const projectId = task.project.documentId;
+            const projectName = task.project.title;
+            if (projectCounts.has(projectId)) {
+              projectCounts.get(projectId)!.count += recentSessions.length;
             } else {
-              const projectId = task.project.documentId;
-              const projectName = task.project.title;
-              if (projectCounts.has(projectId)) {
-                projectCounts.get(projectId)!.count += recentSessions.length;
-              } else {
-                projectCounts.set(projectId, {
-                  name: projectName,
-                  count: recentSessions.length,
-                });
-              }
+              projectCounts.set(projectId, {
+                name: projectName,
+                count: recentSessions.length,
+              });
             }
           }
           // Skip project-less tasks
@@ -219,13 +203,6 @@ export async function GET(req: NextRequest) {
 
     // Combine projects and categories into a single list
     const stats: StatItem[] = [];
-
-    // Add one lumped entry per excluded world (e.g. day job).
-    for (const [name, count] of excludedCounts.entries()) {
-      if (count > 0) {
-        stats.push({ type: 'project', name, count });
-      }
-    }
 
     for (const [projectId, data] of projectCounts.entries()) {
       stats.push({

@@ -87,7 +87,7 @@ describe('Layout Transformer - Work Session Virtual Entries', () => {
         ],
       });
 
-      const ruleset = { groupBy: 'done' as const };
+      const ruleset = { codePreset: 'done' as const };
       const result = transformLayout(
         {
           projects: [],
@@ -102,11 +102,11 @@ describe('Layout Transformer - Work Session Virtual Entries', () => {
         ruleset
       );
 
-      expect(result.allSections).toBeDefined();
-      expect(result.allSections!.length).toBeGreaterThan(0);
+      expect(result.doneSections).toBeDefined();
+      expect(result.doneSections!.length).toBeGreaterThan(0);
       
       // Find the virtual entries
-      const allTasks = result.allSections!.flatMap(section => section.tasks);
+      const allTasks = result.doneSections!.flatMap(section => section.tasks);
       const virtualEntries = allTasks.filter(task => 
         task.documentId.includes('-worked-')
       );
@@ -126,7 +126,7 @@ describe('Layout Transformer - Work Session Virtual Entries', () => {
         ],
       });
 
-      const ruleset = { groupBy: 'done' as const };
+      const ruleset = { codePreset: 'done' as const };
       const result = transformLayout(
         {
           projects: [],
@@ -141,7 +141,7 @@ describe('Layout Transformer - Work Session Virtual Entries', () => {
         ruleset
       );
 
-      const allTasks = result.allSections.flatMap(section => section.tasks);
+      const allTasks = result.doneSections.flatMap(section => section.tasks);
       const virtualEntry = allTasks.find(task => task.documentId.includes('-worked-'));
       
       expect(virtualEntry).toBeDefined();
@@ -160,7 +160,7 @@ describe('Layout Transformer - Work Session Virtual Entries', () => {
         ],
       });
 
-      const ruleset = { groupBy: 'done' as const };
+      const ruleset = { codePreset: 'done' as const };
       const result = transformLayout(
         {
           projects: [],
@@ -175,7 +175,7 @@ describe('Layout Transformer - Work Session Virtual Entries', () => {
         ruleset
       );
 
-      const allTasks = result.allSections.flatMap(section => section.tasks);
+      const allTasks = result.doneSections.flatMap(section => section.tasks);
       const virtualEntry = allTasks.find(task => task.documentId.includes('-worked-'));
       
       expect(virtualEntry).toBeDefined();
@@ -193,7 +193,7 @@ describe('Layout Transformer - Work Session Virtual Entries', () => {
         ],
       });
 
-      const ruleset = { groupBy: 'done' as const };
+      const ruleset = { codePreset: 'done' as const };
       const result = transformLayout(
         {
           projects: [],
@@ -208,7 +208,7 @@ describe('Layout Transformer - Work Session Virtual Entries', () => {
         ruleset
       );
 
-      const allTasks = result.allSections.flatMap(section => section.tasks);
+      const allTasks = result.doneSections.flatMap(section => section.tasks);
       const virtualEntry = allTasks.find(task => task.documentId.includes('-worked-'));
       
       expect(virtualEntry!.completedAt).toBe(sessionTimestamp);
@@ -226,7 +226,7 @@ describe('Layout Transformer - Work Session Virtual Entries', () => {
         ],
       });
 
-      const ruleset = { groupBy: 'done' as const };
+      const ruleset = { codePreset: 'done' as const };
       const result = transformLayout(
         {
           projects: [],
@@ -242,13 +242,13 @@ describe('Layout Transformer - Work Session Virtual Entries', () => {
       );
 
       // Should have separate date sections for each work session
-      expect(result.allSections.length).toBeGreaterThanOrEqual(2);
+      expect(result.doneSections.length).toBeGreaterThanOrEqual(2);
       
       // Check that entries are in correct date sections
-      const jan5Section = result.allSections.find(s => 
+      const jan5Section = result.doneSections.find(s => 
         s.tasks.some(t => t.documentId === 'task-1-worked-2026-01-05')
       );
-      const jan4Section = result.allSections.find(s => 
+      const jan4Section = result.doneSections.find(s => 
         s.tasks.some(t => t.documentId === 'task-1-worked-2026-01-04')
       );
       
@@ -266,7 +266,7 @@ describe('Layout Transformer - Work Session Virtual Entries', () => {
         ],
       });
 
-      const ruleset = { groupBy: 'done' as const };
+      const ruleset = { codePreset: 'done' as const };
       const result = transformLayout(
         {
           projects: [],
@@ -281,7 +281,7 @@ describe('Layout Transformer - Work Session Virtual Entries', () => {
         ruleset
       );
 
-      const allTasks = result.allSections.flatMap(section => section.tasks);
+      const allTasks = result.doneSections.flatMap(section => section.tasks);
       const jan5Entry = allTasks.find(t => t.documentId === 'task-1-worked-2026-01-05');
       const dec1Entry = allTasks.find(t => t.documentId === 'task-1-worked-2025-12-01');
       
@@ -302,7 +302,7 @@ describe('Layout Transformer - Work Session Virtual Entries', () => {
         ],
       });
 
-      const ruleset = { groupBy: 'done' as const };
+      const ruleset = { codePreset: 'done' as const };
       const result = transformLayout(
         {
           projects: [],
@@ -317,7 +317,7 @@ describe('Layout Transformer - Work Session Virtual Entries', () => {
         ruleset
       );
 
-      const allTasks = result.allSections.flatMap(section => section.tasks);
+      const allTasks = result.doneSections.flatMap(section => section.tasks);
       const virtualEntries = allTasks.filter(task => 
         task.documentId.includes('multi-session-task-worked-')
       );
@@ -346,7 +346,7 @@ describe('Layout Transformer - Work Session Virtual Entries', () => {
         ],
       });
 
-      const ruleset = { groupBy: 'done' as const };
+      const ruleset = { codePreset: 'done' as const };
       const result = transformLayout(
         {
           projects: [],
@@ -361,7 +361,7 @@ describe('Layout Transformer - Work Session Virtual Entries', () => {
         ruleset
       );
 
-      const allTasks = result.allSections.flatMap(section => section.tasks);
+      const allTasks = result.doneSections.flatMap(section => section.tasks);
       const task1Entry = allTasks.find(t => t.documentId === 'task-1-worked-2026-01-05');
       const task2Entry = allTasks.find(t => t.documentId === 'task-2-worked-2026-01-05');
       
@@ -380,7 +380,7 @@ describe('Layout Transformer - Work Session Virtual Entries', () => {
         workSessions: [],
       });
 
-      const ruleset = { groupBy: 'done' as const };
+      const ruleset = { codePreset: 'done' as const };
       const result = transformLayout(
         {
           projects: [],
@@ -395,7 +395,7 @@ describe('Layout Transformer - Work Session Virtual Entries', () => {
         ruleset
       );
 
-      const allTasks = result.allSections.flatMap(section => section.tasks);
+      const allTasks = result.doneSections.flatMap(section => section.tasks);
       const virtualEntries = allTasks.filter(task => 
         task.documentId.includes('-worked-')
       );
@@ -410,7 +410,7 @@ describe('Layout Transformer - Work Session Virtual Entries', () => {
         workSessions: null,
       });
 
-      const ruleset = { groupBy: 'done' as const };
+      const ruleset = { codePreset: 'done' as const };
       const result = transformLayout(
         {
           projects: [],
@@ -425,7 +425,7 @@ describe('Layout Transformer - Work Session Virtual Entries', () => {
         ruleset
       );
 
-      const allTasks = result.allSections.flatMap(section => section.tasks);
+      const allTasks = result.doneSections.flatMap(section => section.tasks);
       const virtualEntries = allTasks.filter(task => 
         task.documentId.includes('-worked-')
       );
@@ -442,7 +442,14 @@ describe('Layout Transformer - Work Session Virtual Entries', () => {
         ],
       });
 
-      const ruleset = { groupBy: 'project' as const };
+      const ruleset = {
+        layout: 'projects' as const,
+        slug: 'p',
+        name: 'p',
+        sections: [
+          { worldMode: 'all' as const, worldIds: [], importance: 'any' as const, projectType: 'any' as const, recurrence: 'both' as const, longOnly: false },
+        ],
+      };
       const result = transformLayout(
         {
           projects: [],
@@ -457,8 +464,8 @@ describe('Layout Transformer - Work Session Virtual Entries', () => {
         ruleset
       );
 
-      // For non-done views, allSections should be empty or undefined
-      expect(result.allSections).toEqual([]);
+      // Only the `done` code preset synthesizes "worked on" virtual entries.
+      expect(result.doneSections).toBeUndefined();
     });
 
     it('should preserve all task properties in virtual entries', () => {
@@ -474,7 +481,7 @@ describe('Layout Transformer - Work Session Virtual Entries', () => {
         ],
       });
 
-      const ruleset = { groupBy: 'done' as const };
+      const ruleset = { codePreset: 'done' as const };
       const result = transformLayout(
         {
           projects: [],
@@ -489,7 +496,7 @@ describe('Layout Transformer - Work Session Virtual Entries', () => {
         ruleset
       );
 
-      const allTasks = result.allSections.flatMap(section => section.tasks);
+      const allTasks = result.doneSections.flatMap(section => section.tasks);
       const virtualEntry = allTasks.find(task => task.documentId.includes('-worked-'));
       
       expect(virtualEntry).toBeDefined();
@@ -518,7 +525,7 @@ describe('Layout Transformer - Work Session Virtual Entries', () => {
         ],
       });
 
-      const ruleset = { groupBy: 'done' as const };
+      const ruleset = { codePreset: 'done' as const };
       const result = transformLayout(
         {
           projects: [],
@@ -533,10 +540,10 @@ describe('Layout Transformer - Work Session Virtual Entries', () => {
         ruleset
       );
 
-      expect(result.allSections).toBeDefined();
-      expect(result.allSections!.length).toBeGreaterThan(0);
+      expect(result.doneSections).toBeDefined();
+      expect(result.doneSections!.length).toBeGreaterThan(0);
 
-      const allTasks = result.allSections!.flatMap(section => section.tasks);
+      const allTasks = result.doneSections!.flatMap(section => section.tasks);
       
       const completed = allTasks.find(t => t.documentId === 'completed-1');
       const workedOn = allTasks.find(t => t.documentId === 'long-1-worked-2026-01-05');

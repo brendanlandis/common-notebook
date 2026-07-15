@@ -30,18 +30,23 @@ export default function WorldPage() {
     onEditProject,
   } = useTaskData();
 
-  // Single-world ruleset: the engine already knows how to render one world
-  // (top-of-mind → priority → normal → later). A { worldId } scope makes
-  // LayoutRenderer hide the redundant per-world heading.
+  // Single-world ruleset: a projects view scoped to just this world. The engine
+  // orders its columns top-of-mind → priority → normal → later.
   const ruleset: LayoutRuleset = useMemo(
     () => ({
-      id: "world-view",
+      slug: `world:${slug}`,
       name: world?.title ?? slug,
-      showRecurring: true,
-      showNonRecurring: true,
-      worldScope: { worldId: world?.documentId ?? "__unknown__" },
-      sortBy: "creationDate",
-      groupBy: "world",
+      layout: "projects",
+      sections: [
+        {
+          worldMode: "only",
+          worldIds: [world?.documentId ?? "__unknown__"],
+          importance: "any",
+          projectType: "any",
+          recurrence: "both",
+          longOnly: false,
+        },
+      ],
     }),
     [world, slug]
   );
@@ -72,8 +77,9 @@ export default function WorldPage() {
     );
   }
 
-  const hasTasks =
-    !!transformedData.worldSections && transformedData.worldSections.size > 0;
+  const hasTasks = (transformedData.projectGroups ?? []).some(
+    (g) => g.columns.length > 0 || g.incidentals.length > 0
+  );
 
   return (
     <>
@@ -84,7 +90,7 @@ export default function WorldPage() {
           <LayoutRenderer
             transformedData={transformedData}
             ruleset={ruleset}
-            selectedRulesetId={ruleset.id}
+            selectedRulesetId={ruleset.slug}
             onComplete={onComplete}
             onEdit={onEdit}
             onDelete={onDelete}

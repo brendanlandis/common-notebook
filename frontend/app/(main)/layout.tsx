@@ -8,6 +8,7 @@ import { TaskActionsProvider } from "../contexts/TaskActionsContext";
 import { TimezoneProvider } from "../contexts/TimezoneContext";
 import { StuffProjectsProvider } from "../contexts/StuffProjectsContext";
 import { WorldsProvider } from "../contexts/WorldsContext";
+import { ViewsProvider } from "../contexts/ViewsContext";
 import HeaderIcon from "../components/HeaderIcon";
 import EscapeKeyHandler from "../components/EscapeKeyHandler";
 import SessionGuard from "../components/SessionGuard";
@@ -23,6 +24,7 @@ export default function MainLayout({
     <BetaAccessProvider>
     <TimezoneProvider>
       <WorldsProvider>
+      <ViewsProvider>
       <StuffProjectsProvider>
       <LayoutRulesetProvider>
         <PracticeContextProvider>
@@ -79,6 +81,7 @@ export default function MainLayout({
       </PracticeContextProvider>
     </LayoutRulesetProvider>
     </StuffProjectsProvider>
+    </ViewsProvider>
     </WorldsProvider>
     </TimezoneProvider>
     </BetaAccessProvider>

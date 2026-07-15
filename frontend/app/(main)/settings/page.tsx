@@ -18,6 +18,7 @@ import {
 import { saveStuffProjectsEnabledToStrapi } from "@/app/lib/stuffProjectsConfig";
 import { useStuffProjects } from "@/app/contexts/StuffProjectsContext";
 import WorldsManager from "./components/WorldsManager";
+import ViewsManager from "./components/ViewsManager";
 
 export default function SettingsPage() {
   const [visibilityMinutes, setVisibilityMinutes] = useState<number>(15); // Default to 15 minutes
@@ -177,6 +178,15 @@ export default function SettingsPage() {
             good-morning / everything / roulette / chores views.
           </p>
           <WorldsManager />
+
+          <h2>views</h2>
+          <p>
+            The entries in the To Do view picker. Create, rename, reorder, or
+            remove them, and compose each from a layout plus one or more filtered
+            sections. The &quot;done&quot; and &quot;recurring&quot; review views
+            are built in.
+          </p>
+          <ViewsManager />
 
           <h2>Stuff projects</h2>
           <p>

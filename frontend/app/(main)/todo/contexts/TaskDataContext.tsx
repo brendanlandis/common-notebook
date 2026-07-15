@@ -141,9 +141,6 @@ export function TaskDataProvider({ children }: { children: ReactNode }) {
       fetchLongTasksWithSessions();
       fetchRecentStats();
       fetchRecentStats30Days();
-    } else if (selectedRulesetId === "invoicing") {
-      fetchCompletedTasks(60);
-      fetchLongTasksWithSessions(60);
     }
   }, [selectedRulesetId]);
 
@@ -306,8 +303,7 @@ export function TaskDataProvider({ children }: { children: ReactNode }) {
           addTask(uncompletedTask);
         }
       } else if (
-        selectedRulesetId === "done" ||
-        selectedRulesetId === "invoicing"
+        selectedRulesetId === "done"
       ) {
         // Completing while viewing "done"/"invoicing": add to completedTasks
         // so it appears in the completed list immediately.
@@ -382,7 +378,7 @@ export function TaskDataProvider({ children }: { children: ReactNode }) {
       if (response.ok) {
         removeTask(actualDocumentId);
 
-        if (selectedRulesetId === "done" || selectedRulesetId === "invoicing") {
+        if (selectedRulesetId === "done") {
           setCompletedTasks((prev) =>
             prev.filter((t) => t.documentId !== actualDocumentId)
           );
@@ -432,7 +428,7 @@ export function TaskDataProvider({ children }: { children: ReactNode }) {
 
       if (response.ok) {
         // Optimistically remove the "worked on" entry from longTasksWithSessions
-        if (selectedRulesetId === "done" || selectedRulesetId === "invoicing") {
+        if (selectedRulesetId === "done") {
           setLongTasksWithSessions(
             (prev) =>
               prev

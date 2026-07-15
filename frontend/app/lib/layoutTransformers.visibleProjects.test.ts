@@ -72,15 +72,14 @@ function createTask(overrides: Partial<Task>): Task {
 const targetMeta = createProjectMeta({ documentId: 'target', title: 'Target project' });
 const otherMeta = createProjectMeta({ documentId: 'other', title: 'Other project' });
 
-// The per-project view builds this ruleset inline (project/[documentId]/page.tsx).
+// The per-project view builds this ruleset inline (project/[slug]/page.tsx).
 const baseRuleset: LayoutRuleset = {
-  id: 'project-view',
+  slug: 'project-view',
   name: 'project',
-  showRecurring: true,
-  showNonRecurring: true,
-  worldScope: 'all',
-  sortBy: 'creationDate',
-  groupBy: 'merged',
+  layout: 'projects',
+  sections: [
+    { worldMode: 'all', worldIds: [], importance: 'any', projectType: 'any', recurrence: 'both', longOnly: false },
+  ],
 };
 const projectRuleset: LayoutRuleset = { ...baseRuleset, visibleProjects: ['target'] };
 
@@ -108,28 +107,25 @@ describe('Layout Transformer - visibleProjects filter (per-project view)', () =>
 
   it('keeps only the targeted project and drops other projects, categories, and incidentals', () => {
     const result = transformLayout(dataWithBothProjects(), projectRuleset, []);
+    const columns = result.projectGroups![0].columns;
+    const sectionIds = columns.map((s) => ('documentId' in s ? s.documentId : s.title));
 
-    const sectionIds = (result.allSections || []).map((s) =>
-      'documentId' in s ? s.documentId : s.title
-    );
-
-    // Exactly the one requested project section survives.
+    // Exactly the one requested project column survives.
     expect(sectionIds).toEqual(['target']);
 
-    const targetSection = result.allSections!.find(
+    const targetSection = columns.find(
       (s) => 'documentId' in s && s.documentId === 'target'
     ) as Project;
     expect(targetSection.tasks!.map((t) => t.documentId)).toEqual(['t1']);
 
     // Project-less tasks (categories + incidentals) have no project.documentId,
     // so the guard removes them.
-    expect(result.incidentals).toBeUndefined();
+    expect(result.projectGroups![0].incidentals).toEqual([]);
   });
 
   it('shows all projects when visibleProjects is omitted', () => {
     const result = transformLayout(dataWithBothProjects(), baseRuleset, []);
-
-    const sectionIds = (result.allSections || []).map((s) =>
+    const sectionIds = result.projectGroups![0].columns.map((s) =>
       'documentId' in s ? s.documentId : s.title
     );
 

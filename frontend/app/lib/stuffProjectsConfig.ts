@@ -94,7 +94,6 @@ async function ensureStuffWorld(): Promise<string | null> {
       title: 'stuff',
       slug: 'stuff',
       systemKey: 'stuff',
-      includeInCombinedViews: true,
       position: nextPosition,
     }),
   });

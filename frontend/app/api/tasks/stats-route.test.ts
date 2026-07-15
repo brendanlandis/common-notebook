@@ -247,7 +247,7 @@ describe('Stats API Route - Work Session Counting', () => {
       expect(projectStat.count).toBe(3);
     });
 
-    it('should count work sessions for day job projects', async () => {
+    it('folds day-job project work sessions into a normal project bucket', async () => {
       setupMockFetch({
         'filters[completed][$eq]=true': {
           data: [],
@@ -285,13 +285,13 @@ describe('Stats API Route - Work Session Counting', () => {
       const response = await GET(request);
       const data = await response.json();
 
-      const dayJobStat = data.data.find((s: any) => s.name === 'day job');
-      expect(dayJobStat).toBeDefined();
-      expect(dayJobStat.count).toBe(2);
-      expect(dayJobStat.type).toBe('project');
+      const projectStat = data.data.find((s: any) => s.name === 'Work Project');
+      expect(projectStat).toBeDefined();
+      expect(projectStat.count).toBe(2);
+      expect(projectStat.type).toBe('project');
     });
 
-    it('should count work sessions for a day-job-world project', async () => {
+    it('counts a day-job-world project by its own name (no lumped world entry)', async () => {
       setupMockFetch({
         'filters[completed][$eq]=true': {
           data: [],
@@ -328,9 +328,9 @@ describe('Stats API Route - Work Session Counting', () => {
       const response = await GET(request);
       const data = await response.json();
 
-      const dayJobStat = data.data.find((s: any) => s.name === 'day job');
-      expect(dayJobStat).toBeDefined();
-      expect(dayJobStat.count).toBe(1);
+      const projectStat = data.data.find((s: any) => s.name === 'work chores');
+      expect(projectStat).toBeDefined();
+      expect(projectStat.count).toBe(1);
     });
   });
 

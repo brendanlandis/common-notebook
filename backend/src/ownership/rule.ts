@@ -24,6 +24,7 @@ export const OWNED_CONTENT_TYPES = [
   'api::task.task',
   'api::project.project',
   'api::world.world',
+  'api::view.view',
   'api::practice-log.practice-log',
   'api::system-setting.system-setting',
 ] as const;

@@ -48,20 +48,20 @@ export default function ProjectPage() {
   const projectTasks: Task[] = useMemo(() => {
     if (!documentId) return [];
     const ruleset: LayoutRuleset = {
-      id: "project-view",
+      slug: "project-view",
       name: project?.title || "project",
-      showRecurring: true,
-      showNonRecurring: true,
-      worldScope: "all", // project-scoped; the world filter is skipped when visibleProjects is set
+      layout: "projects",
+      // project-scoped; the world filter is skipped when visibleProjects is set.
       visibleProjects: [documentId],
-      sortBy: "creationDate",
-      groupBy: "merged",
+      sections: [
+        { worldMode: "all", worldIds: [], importance: "any", projectType: "any", recurrence: "both", longOnly: false },
+      ],
     };
     const transformed = transformLayout(buildRawTaskData(grouped), ruleset, []);
-    const section = (transformed.allSections || []).find(
+    const column = (transformed.projectGroups?.[0]?.columns ?? []).find(
       (s) => "documentId" in s && s.documentId === documentId
     );
-    return section && "documentId" in section ? section.tasks || [] : [];
+    return column && "documentId" in column ? column.tasks || [] : [];
   }, [grouped, documentId, project?.title]);
 
   if (loading) {
