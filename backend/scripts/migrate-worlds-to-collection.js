@@ -259,11 +259,30 @@ async function main() {
       process.exitCode = 1;
     }
   } finally {
+    // Strapi emits lifecycle/webhook events for our writes asynchronously. Give
+    // any still-pending ones a moment to flush *while Strapi is alive*, so they
+    // don't fire after destroy() has torn down the global `strapi` binding (see
+    // the unhandledRejection guard below).
+    await new Promise((resolve) => setTimeout(resolve, 1000));
     await app.destroy();
   }
 }
 
-main().catch((err) => {
+// A lifecycle event that fires after app.destroy() tries to sanitize its payload
+// using the now-deleted global `strapi`, throwing `strapi is not defined`. All DB
+// writes are awaited and committed before we get here, so this specific
+// post-teardown error is cosmetic — swallow only it, and let anything else crash.
+process.on('unhandledRejection', (err) => {
+  if (err instanceof ReferenceError && /strapi is not defined/.test(String(err && err.message))) {
+    return;
+  }
   console.error(err);
   process.exit(1);
 });
+
+main()
+  .then(() => process.exit(process.exitCode ?? 0))
+  .catch((err) => {
+    console.error(err);
+    process.exit(1);
+  });
