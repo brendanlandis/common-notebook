@@ -2,14 +2,14 @@
 
 import { useState, useEffect, useRef } from "react";
 import { MapPinIcon } from "@phosphor-icons/react";
-import {
-  saveTimezoneToStrapi,
-  setCachedTimezone,
-} from "@/app/lib/timezoneConfig";
-import { useTimezoneContext } from "@/app/contexts/TimezoneContext";
+import { saveSystemSetting } from "@/app/lib/systemSettingsClient";
+import { useDateTimeSettings } from "@/app/contexts/DateTimeSettingsContext";
 
 export default function TimezoneManager() {
-  const { timezone: currentTimezone, setTimezone: setContextTimezone } = useTimezoneContext();
+  const { timeZoneSettings, setTimeZoneSettings } = useDateTimeSettings();
+  const currentTimezone = timeZoneSettings.timezone;
+  const setContextTimezone = (timezone: string) =>
+    setTimeZoneSettings({ ...timeZoneSettings, timezone });
   const [allTimezones, setAllTimezones] = useState<
     Array<{ value: string; label: string; offset: number }>
   >([]);
@@ -134,7 +134,7 @@ export default function TimezoneManager() {
 
   const handleTimezoneChange = async (timezone: string) => {
     setIsSaving(true);
-    const success = await saveTimezoneToStrapi(timezone);
+    const success = await saveSystemSetting("timezone", timezone);
     if (success) {
       setContextTimezone(timezone);
     } else {
@@ -177,7 +177,7 @@ export default function TimezoneManager() {
 
           if (timezoneExists) {
             // Save to database without updating UI yet
-            const success = await saveTimezoneToStrapi(detectedTimezone);
+            const success = await saveSystemSetting("timezone", detectedTimezone);
             if (success) {
               // Store the timezone for later retrieval
               pendingTimezoneRef.current = detectedTimezone;

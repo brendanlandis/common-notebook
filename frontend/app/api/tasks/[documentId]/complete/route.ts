@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAccessToken } from '@/app/lib/strapiAuth';
 import { calculateNextRecurrence } from '@/app/lib/recurrence';
 import type { Task } from '@/app/types/index';
-import { getISOTimestampInEST } from '@/app/lib/dateUtils';
+import { getISOTimestamp } from '@/app/lib/dateUtils';
+import { getTimeZoneSettings } from '@/app/lib/strapiServer';
 
 const STRAPI_API_URL = process.env.STRAPI_API_URL;
 
@@ -20,6 +21,8 @@ export async function POST(
         { status: 401 }
       );
     }
+
+    const settings = await getTimeZoneSettings(token);
 
     // First, get the task to check if it's recurring
     const getTaskResponse = await fetch(
@@ -53,7 +56,7 @@ export async function POST(
         body: JSON.stringify({
           data: {
             completed: true,
-            completedAt: getISOTimestampInEST(),
+            completedAt: getISOTimestamp(settings),
           },
         }),
       }
@@ -70,7 +73,7 @@ export async function POST(
 
     // If recurring, create next instance
     if (task.isRecurring) {
-      const nextDates = calculateNextRecurrence(task);
+      const nextDates = calculateNextRecurrence(task, settings);
 
       if (nextDates.displayDate || nextDates.dueDate) {
         const createResponse = await fetch(`${STRAPI_API_URL}/api/tasks?populate=project`, {

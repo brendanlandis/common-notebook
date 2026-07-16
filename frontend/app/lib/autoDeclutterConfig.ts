@@ -4,32 +4,18 @@
  *
  * When on (the default), the workspace auto-refreshes on every new moon —
  * clearing "soon" flags and demoting "top of mind" projects, the same as the
- * manual declutter button. The gate lives in `moonPhaseReset.ts`; this module is
- * the client-side read/write used by the settings page.
+ * manual declutter button. The gate lives in `moonPhaseReset.ts`, which reads the
+ * setting server-side from the caller's token; this module is only the read/write
+ * used by the settings page UI.
+ *
+ * Deliberately holds no cached value: nothing reads this setting synchronously,
+ * and a module-level copy of a setting is what let two callers disagree about the
+ * day boundary for a year. See `timeZoneSettings.ts`.
  */
 
-const DEFAULT_AUTO_DECLUTTER = true;
+import { getDefault } from './defaultSettings';
 
-// Cache for the auto-declutter value
-let cachedAutoDeclutter: boolean | null = null;
-
-/**
- * Get the auto-declutter setting.
- * @returns whether the new-moon auto-declutter is enabled (defaults to true)
- */
-export function getAutoDeclutter(): boolean {
-  if (cachedAutoDeclutter !== null) {
-    return cachedAutoDeclutter;
-  }
-  return DEFAULT_AUTO_DECLUTTER;
-}
-
-/**
- * Set the cached auto-declutter value. Called after fetching from Strapi.
- */
-export function setCachedAutoDeclutter(enabled: boolean): void {
-  cachedAutoDeclutter = enabled;
-}
+const DEFAULT_AUTO_DECLUTTER = getDefault('autoDeclutter') === 'true';
 
 /**
  * Fetch the auto-declutter setting from Strapi.
@@ -43,9 +29,7 @@ export async function fetchAutoDeclutterFromStrapi(): Promise<boolean | null> {
 
     const data = await response.json();
     if (data.success && data.value) {
-      const enabled = data.value === 'true';
-      setCachedAutoDeclutter(enabled);
-      return enabled;
+      return data.value === 'true';
     } else if (data.success && !data.value) {
       // Setting doesn't exist, create it with the default value
       const success = await saveAutoDeclutterToStrapi(DEFAULT_AUTO_DECLUTTER);
@@ -78,11 +62,7 @@ export async function saveAutoDeclutterToStrapi(enabled: boolean): Promise<boole
       }),
     });
 
-    if (response.ok) {
-      setCachedAutoDeclutter(enabled);
-      return true;
-    }
-    return false;
+    return response.ok;
   } catch (e) {
     console.error('Failed to save auto-declutter setting to Strapi:', e);
     return false;

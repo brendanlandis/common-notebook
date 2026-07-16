@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { setAuthCookies } from '@/app/lib/strapiAuth';
-import { seedDefaultSettings } from '@/app/lib/defaultSettings';
+import { seedDefaultSettings } from '@/app/lib/strapiServer';
 import { checkRateLimit, resetRateLimit } from '../rate-limiter';
 
 const STRAPI_API_URL = process.env.STRAPI_API_URL;

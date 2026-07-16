@@ -8,6 +8,10 @@
  * more than one page's worth; page until `pageCount` is exhausted.
  */
 
+import { DEFAULT_SETTINGS } from './defaultSettings';
+import { DEFAULT_TIME_ZONE_SETTINGS, parseDayBoundaryHour, type TimeZoneSettings } from './timeZoneSettings';
+import { parseVisibilityMinutes } from './completedTaskVisibilityConfig';
+
 const STRAPI_API_URL = process.env.STRAPI_API_URL;
 
 /** `maxLimit` in backend/config/api.ts. Asking for more is silently clamped. */
@@ -126,4 +130,56 @@ export async function upsertSystemSetting(
     : await strapiFetch(token, `/api/system-settings`, { method: 'POST', headers, body });
 
   return response.ok;
+}
+
+/**
+ * Resolve the caller's time settings from their own token.
+ *
+ * Call this per request. Caching the result in module scope would hand one
+ * user's timezone to the next request in the same Node process — and a cache is
+ * also what let the server drift to a hardcoded EST/midnight for years, because
+ * nothing on the server ever primed one.
+ *
+ * A missing row falls back to `DEFAULT_TIME_ZONE_SETTINGS`, so an unseeded account
+ * behaves identically to a seeded one.
+ */
+export async function getTimeZoneSettings(token: string): Promise<TimeZoneSettings> {
+  const [timezone, dayBoundaryHour] = await Promise.all([
+    getSystemSetting(token, 'timezone'),
+    getSystemSetting(token, 'dayBoundaryHour'),
+  ]);
+
+  return {
+    timezone: timezone?.value || DEFAULT_TIME_ZONE_SETTINGS.timezone,
+    dayBoundaryHour: parseDayBoundaryHour(dayBoundaryHour?.value),
+  };
+}
+
+/**
+ * How long a completed task stays visible in the main list.
+ *
+ * Read separately from `getTimeZoneSettings` on purpose: no date function needs
+ * it — only `useTasks` does, to filter a list — so it stays out of the parameter
+ * that gets threaded through the pure date math and the API routes.
+ * `(main)/layout.tsx` loads it for the client; nothing server-side reads it.
+ */
+export async function getCompletedTaskVisibilityMinutes(token: string): Promise<number> {
+  const setting = await getSystemSetting(token, 'completedTaskVisibilityMinutes');
+  return parseVisibilityMinutes(setting?.value);
+}
+
+/**
+ * Seed a newly created user's settings. Best-effort: a failure leaves the app on
+ * the defaults in `defaultSettings.ts` rather than blocking account creation,
+ * which is safe precisely because those are the same values readers fall back to.
+ */
+export async function seedDefaultSettings(accessToken: string): Promise<void> {
+  for (const setting of DEFAULT_SETTINGS) {
+    try {
+      const ok = await upsertSystemSetting(accessToken, setting.title, { value: setting.value });
+      if (!ok) console.error(`Failed to seed default setting ${setting.title}`);
+    } catch (error) {
+      console.error(`Failed to seed default setting ${setting.title}:`, error);
+    }
+  }
 }

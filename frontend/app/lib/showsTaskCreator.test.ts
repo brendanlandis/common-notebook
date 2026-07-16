@@ -2,8 +2,8 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { createTasksFromShows } from './showsTaskCreator';
 
 vi.mock('./dateUtils', () => ({
-  getNowInEST: () => new Date('2026-07-09T12:00:00.000Z'),
-  toISODateInEST: (d: Date) => d.toISOString().slice(0, 10),
+  getNow: () => new Date('2026-07-09T12:00:00.000Z'),
+  toISODate: (d: Date) => d.toISOString().slice(0, 10),
 }));
 
 /** Every URL the function could touch, so a leak shows up as an unexpected call. */

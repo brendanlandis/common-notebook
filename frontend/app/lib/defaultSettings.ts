@@ -1,21 +1,30 @@
-import { upsertSystemSetting } from './strapiServer';
-
 /**
- * Settings every account needs on day one.
+ * The default value of every `system-setting`, and the list seeded onto a new
+ * account.
  *
- * `system-setting` rows are per-user now, so a brand-new account has none. The
- * app does have fallbacks, but they disagree: `dayBoundaryConfig.ts` defaults the
- * day boundary to 0 (midnight) and is what `dateUtils.ts` and
- * `layoutTransformers.ts` read, while `timezoneConfig.ts` defaults it to 4 and is
- * what `dayBoundaryHelpers.ts` reads. A user with no row silently gets both.
+ * Rows are per-user, so a brand-new account has none and a seed failure leaves
+ * some missing permanently. That is survivable only because this table is also
+ * what readers fall back to: `getTimeZoneSettings()` resolves a missing row to the
+ * value here, identically on the server and the client. Seeding's job is to make
+ * the settings visible and editable in /settings from day one, not to make
+ * readers correct.
  *
- * Seeding the rows at redemption sidesteps that: every module then reads the same
- * stored value. It also makes the settings visible and editable from day one
- * rather than implicit.
+ * Keep this the only place a default lives. Readers take their values as
+ * parameters (see `TimeZoneSettings`) — a module-level cache of a setting is how two
+ * callers end up disagreeing about the same value, which is a bug this codebase
+ * has already shipped once.
  *
- * These match production's values, and `4` matches `timezoneConfig`'s intent.
+ * These match production's values.
  */
-export const DEFAULT_SETTINGS: ReadonlyArray<{ title: string; value: string }> = [
+
+export type SettingTitle =
+  | 'timezone'
+  | 'dayBoundaryHour'
+  | 'completedTaskVisibilityMinutes'
+  | 'autoDeclutter'
+  | 'enableStuffProjects';
+
+export const DEFAULT_SETTINGS: ReadonlyArray<{ title: SettingTitle; value: string }> = [
   { title: 'timezone', value: 'America/New_York' },
   { title: 'dayBoundaryHour', value: '4' },
   { title: 'completedTaskVisibilityMinutes', value: '15' },
@@ -23,17 +32,8 @@ export const DEFAULT_SETTINGS: ReadonlyArray<{ title: string; value: string }> =
   { title: 'enableStuffProjects', value: 'true' },
 ];
 
-/**
- * Seed a newly created user's settings. Best-effort: a failure leaves the app on
- * its fallbacks rather than blocking account creation.
- */
-export async function seedDefaultSettings(accessToken: string): Promise<void> {
-  for (const setting of DEFAULT_SETTINGS) {
-    try {
-      const ok = await upsertSystemSetting(accessToken, setting.title, { value: setting.value });
-      if (!ok) console.error(`Failed to seed default setting ${setting.title}`);
-    } catch (error) {
-      console.error(`Failed to seed default setting ${setting.title}:`, error);
-    }
-  }
+export function getDefault(title: SettingTitle): string {
+  const setting = DEFAULT_SETTINGS.find((s) => s.title === title);
+  if (!setting) throw new Error(`No default defined for system setting "${title}"`);
+  return setting.value;
 }

@@ -1,5 +1,6 @@
 import * as Astronomy from 'astronomy-engine';
-import { getTodayInEST, toISODateInEST } from './dateUtils';
+import { getToday, toISODate } from './dateUtils';
+import type { TimeZoneSettings } from './timeZoneSettings';
 import { isAfter } from 'date-fns';
 
 /**
@@ -39,8 +40,8 @@ export type MoonPhaseIconName =
  * Check if a major phase transition occurs today
  * @returns The major phase (0, 90, 180, or 270) that transitions today, or null if none
  */
-function getPhaseTransitionToday(): number | null {
-  const today = getTodayInEST();
+function getPhaseTransitionToday(settings: TimeZoneSettings): number | null {
+  const today = getToday(settings);
   
   // Get tomorrow's start (end of today's range)
   const tomorrowStart = new Date(today);
@@ -71,10 +72,10 @@ function getPhaseTransitionToday(): number | null {
  * @param date - Optional date to calculate phase for (defaults to current time)
  * @returns The component name for the appropriate moon phase icon
  */
-export function getMoonPhaseIconName(date?: Date): MoonPhaseIconName {
+export function getMoonPhaseIconName(settings: TimeZoneSettings, date?: Date): MoonPhaseIconName {
   // Check if a major phase transition occurs today
   // If so, use that phase for the entire day (matches app reset logic)
-  const phaseToday = getPhaseTransitionToday();
+  const phaseToday = getPhaseTransitionToday(settings);
   if (phaseToday !== null) {
     if (phaseToday === 0) {
       return 'WiMoonNew';
@@ -137,8 +138,8 @@ export function getMoonPhaseIconName(date?: Date): MoonPhaseIconName {
  * @param lastResetDate - The date to check from (can be null for first run)
  * @returns true if a new moon has occurred since the last reset date (including today)
  */
-export function hasNewMoonSinceDate(lastResetDate: Date | null): boolean {
-  const today = getTodayInEST();
+export function hasNewMoonSinceDate(lastResetDate: Date | null, settings: TimeZoneSettings): boolean {
+  const today = getToday(settings);
   
   // If no previous reset date, check if there's been a new moon today or recently
   // Search backwards from today to find the most recent new moon

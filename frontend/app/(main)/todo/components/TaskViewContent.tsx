@@ -15,6 +15,7 @@ import {
 } from "@/app/lib/views";
 import type { LayoutRuleset } from "@/app/types/index";
 import { useStuffProjects } from "@/app/contexts/StuffProjectsContext";
+import { useDateTimeSettings } from "@/app/contexts/DateTimeSettingsContext";
 import { useWorlds } from "@/app/contexts/WorldsContext";
 import { useViews } from "@/app/contexts/ViewsContext";
 import FaviconManager from "@/app/components/FaviconManager";
@@ -27,6 +28,7 @@ const EMPTY_RULESET: LayoutRuleset = { slug: "", name: "", layout: "projects", s
 // param. All ruleset resolution + transform + render lives here so both routes
 // stay identical.
 export default function TaskViewContent({ slug }: { slug: string }) {
+  const { timeZoneSettings } = useDateTimeSettings();
   const {
     grouped,
     loading,
@@ -82,8 +84,8 @@ export default function TaskViewContent({ slug }: { slug: string }) {
       upcomingTasks: isDone ? upcomingTasks : undefined,
       longTasksWithSessions: isDone ? longTasksWithSessions : undefined,
     };
-    return transformLayout(rawData, ruleset, worlds);
-  }, [ruleset, isDone, isRecurring, grouped, completedTasks, upcomingTasks, longTasksWithSessions, worlds]);
+    return transformLayout(rawData, ruleset, timeZoneSettings, worlds);
+  }, [ruleset, isDone, isRecurring, grouped, completedTasks, upcomingTasks, longTasksWithSessions, worlds, timeZoneSettings]);
 
   const layoutClass = `layout-${effectiveSlug}`;
 

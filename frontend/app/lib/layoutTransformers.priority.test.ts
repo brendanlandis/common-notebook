@@ -2,6 +2,10 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { transformLayout } from './layoutTransformers';
 import type { Task, Project, LayoutRuleset, World } from '@/app/types/index';
 import * as dateUtils from './dateUtils';
+import type { TimeZoneSettings } from './timeZoneSettings';
+
+// The timezone and day boundary are parameters now; these tests pin them.
+const EST: TimeZoneSettings = { timezone: 'America/New_York', dayBoundaryHour: 4 };
 
 const world: World = {
   id: 1,
@@ -16,17 +20,13 @@ vi.mock('./dateUtils', async () => {
   const actual = await vi.importActual('./dateUtils');
   return {
     ...actual,
-    getTodayInEST: vi.fn(),
-    getNowInEST: vi.fn(),
-    parseInEST: (dateString: string) => new Date(dateString + 'T00:00:00'),
-    toISODateInEST: (date: Date) => date.toISOString().split('T')[0],
+    getToday: vi.fn(),
+    getNow: vi.fn(),
+    parseDate: (dateString: string) => new Date(dateString + 'T00:00:00'),
+    toISODate: (date: Date) => date.toISOString().split('T')[0],
   };
 });
 
-vi.mock('./timezoneConfig', () => ({
-  getTimezone: vi.fn(() => 'America/New_York'),
-  getDayBoundaryHour: vi.fn(() => 0),
-}));
 
 function createTask(overrides: Partial<Task>): Task {
   return {
@@ -102,8 +102,8 @@ function emptyData(projects: Project[]) {
 
 describe('Layout Transformer - projects layout column tiers', () => {
   beforeEach(() => {
-    vi.mocked(dateUtils.getTodayInEST).mockReturnValue(new Date('2026-06-01T00:00:00'));
-    vi.mocked(dateUtils.getNowInEST).mockReturnValue(new Date('2026-06-01T12:00:00'));
+    vi.mocked(dateUtils.getToday).mockReturnValue(new Date('2026-06-01T00:00:00'));
+    vi.mocked(dateUtils.getNow).mockReturnValue(new Date('2026-06-01T12:00:00'));
   });
 
   it('orders columns by tier: top of mind → pN (by number, creation tiebreak) → normal → later', () => {
@@ -119,7 +119,7 @@ describe('Layout Transformer - projects layout column tiers', () => {
       makeProject({ documentId: 'omega', title: 'Omega p1', importance: 'later', createdAt: '2026-01-04T00:00:00.000Z' }),
     ];
 
-    const result = transformLayout(emptyData(projects), worldRuleset, [world]);
+    const result = transformLayout(emptyData(projects), worldRuleset, EST, [world]);
     const columns = result.projectGroups![0].columns;
     const ids = columns.map((s) => ('documentId' in s ? s.documentId : s.title));
 

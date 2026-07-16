@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { useParams, notFound } from "next/navigation";
 import type { LayoutRuleset } from "@/app/types/index";
 import { transformLayout } from "@/app/lib/layoutTransformers";
+import { useDateTimeSettings } from "@/app/contexts/DateTimeSettingsContext";
 import { findWorldBySlug } from "@/app/lib/worlds";
 import { useWorlds } from "@/app/contexts/WorldsContext";
 import LayoutRenderer from "../../components/LayoutRenderer";
@@ -12,6 +13,7 @@ import { useTaskData } from "../../contexts/TaskDataContext";
 import { buildRawTaskData } from "../../utils/buildRawTaskData";
 
 export default function WorldPage() {
+  const { timeZoneSettings } = useDateTimeSettings();
   const params = useParams<{ world: string }>();
   const slug = decodeURIComponent(params.world);
   const { worlds, loading: worldsLoading } = useWorlds();
@@ -52,8 +54,8 @@ export default function WorldPage() {
   );
 
   const transformedData = useMemo(
-    () => transformLayout(buildRawTaskData(grouped), ruleset, worlds),
-    [grouped, ruleset, worlds]
+    () => transformLayout(buildRawTaskData(grouped), ruleset, timeZoneSettings, worlds),
+    [grouped, ruleset, worlds, timeZoneSettings]
   );
 
   // Only 404 once worlds have loaded and the slug truly matches none.

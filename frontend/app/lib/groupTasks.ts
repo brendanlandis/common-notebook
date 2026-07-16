@@ -1,5 +1,6 @@
 import type { Project, Task } from "@/app/types/index";
-import { parseInEST } from "@/app/lib/dateUtils";
+import { parseDate } from "@/app/lib/dateUtils";
+import type { TimeZoneSettings } from "@/app/lib/timeZoneSettings";
 import type { TaskGroup } from "@/app/lib/layoutTransformers";
 
 export interface GroupedTasks {
@@ -20,13 +21,17 @@ export interface GroupedTasks {
 // `tasks` is assumed to already be visibility-filtered and phase-enriched.
 // `today` is used to filter recurring tasks by displayDate (unfiltered set is
 // also returned for the recurring-review view).
-export function groupTasksForLayout(tasks: Task[], today: Date): GroupedTasks {
+export function groupTasksForLayout(
+  tasks: Task[],
+  today: Date,
+  settings: TimeZoneSettings
+): GroupedTasks {
   const allRecurringTasksUnfiltered = tasks.filter((task) => task.isRecurring);
 
   const recurringTasks = tasks.filter((task) => {
     if (!task.isRecurring) return false;
     if (!task.displayDate) return true;
-    const startDate = parseInEST(task.displayDate);
+    const startDate = parseDate(task.displayDate, settings);
     return startDate <= today;
   });
   const nonRecurringTasks = tasks.filter((task) => !task.isRecurring);

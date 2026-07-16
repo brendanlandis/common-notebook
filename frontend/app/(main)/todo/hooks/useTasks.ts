@@ -3,15 +3,15 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import type { Project, Task, World } from "@/app/types/index";
 import {
-  getTodayInEST,
-  getNowInEST,
+  getToday,
+  getNow,
 } from "@/app/lib/dateUtils";
 import {
   getCompletedTaskVisibilityMinutes,
   fetchVisibilityMinutesFromStrapi,
 } from "@/app/lib/completedTaskVisibilityConfig";
 import { getWorkedOnPhase } from "@/app/lib/dayBoundaryHelpers";
-import { getDayBoundaryHour } from "@/app/lib/timezoneConfig";
+import { useDateTimeSettings } from "@/app/contexts/DateTimeSettingsContext";
 import { groupTasksForLayout, type GroupedTasks } from "@/app/lib/groupTasks";
 import { createTasksFromShows } from "@/app/lib/showsTaskCreator";
 
@@ -35,6 +35,7 @@ export interface UseTasksResult {
 // Mutations go through addTask/removeTask/updateTask so the UI rerenders
 // consistently without per-handler array bookkeeping.
 export function useTasks(): UseTasksResult {
+  const { timeZoneSettings } = useDateTimeSettings();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [manualProjects, setManualProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
@@ -46,6 +47,9 @@ export function useTasks(): UseTasksResult {
   // layout engine can group by world. Rename-stable: refetched, not derived from
   // a stale enum.
   const projectsByIdRef = useRef<Map<string, Project>>(new Map());
+
+  // Monotonic stamp so a slow refetch can't overwrite a newer one's result.
+  const latestRequestRef = useRef(0);
 
   const enrichTaskWorld = useCallback((task: Task): Task => {
     const proj = task.project as Project | null | undefined;
@@ -104,6 +108,13 @@ export function useTasks(): UseTasksResult {
   }, []);
 
   const refetch = useCallback(async (showLoading = true) => {
+    // Mount fires two refetches (the initial load and, if shows created tasks,
+    // createTasksFromShows) with nothing sequencing them. Stamp each attempt and
+    // let only the newest one write, so a slow earlier response can't land on top
+    // of a newer one.
+    const requestId = ++latestRequestRef.current;
+    const isStale = () => requestId !== latestRequestRef.current;
+
     try {
       if (showLoading) setLoading(true);
       const [tasksResponse, projectsResponse] = await Promise.all([
@@ -112,6 +123,8 @@ export function useTasks(): UseTasksResult {
       ]);
       const result = await tasksResponse.json();
       const projectsResult = await projectsResponse.json();
+
+      if (isStale()) return;
 
       // Build the project→world map before enriching tasks below.
       if (projectsResult.success) {
@@ -125,9 +138,8 @@ export function useTasks(): UseTasksResult {
 
         // Filter out long tasks worked on in the current "phase 2" window and
         // completed tasks older than the visibility window.
-        const now = getNowInEST();
+        const now = getNow(timeZoneSettings);
         const visibilityMinutes = getCompletedTaskVisibilityMinutes();
-        const dayBoundaryHour = getDayBoundaryHour();
 
         const visibleTasks = allTasks.filter((task: Task) => {
           if (task.long && task.workSessions && task.workSessions.length > 0) {
@@ -144,7 +156,7 @@ export function useTasks(): UseTasksResult {
                 mostRecentSession.timestamp,
                 now,
                 visibilityMinutes,
-                dayBoundaryHour
+                timeZoneSettings
               );
               if (phase === 2) return false;
             }
@@ -176,7 +188,7 @@ export function useTasks(): UseTasksResult {
                 mostRecentSession.timestamp,
                 now,
                 visibilityMinutes,
-                dayBoundaryHour
+                timeZoneSettings
               );
               return { ...task, workedOnPhase: phase };
             }
@@ -190,18 +202,18 @@ export function useTasks(): UseTasksResult {
         setError(result.error);
       }
     } catch (err) {
-      setError("Failed to fetch tasks");
       console.error("Error fetching tasks:", err);
+      if (!isStale()) setError("Failed to fetch tasks");
     } finally {
-      if (showLoading) setLoading(false);
+      if (showLoading && !isStale()) setLoading(false);
     }
-  }, [enrichTaskWorld]);
+  }, [enrichTaskWorld, timeZoneSettings]);
 
   // Derive all groupings from `tasks`. Empty user-created projects are spliced
   // in from `manualProjects` so they show until the next refetch clears them.
   const grouped = useMemo<GroupedTasks>(() => {
-    const today = getTodayInEST();
-    const base = groupTasksForLayout(tasks, today);
+    const today = getToday(timeZoneSettings);
+    const base = groupTasksForLayout(tasks, today, timeZoneSettings);
     if (manualProjects.length > 0) {
       const existingIds = new Set(base.projects.map((p) => p.documentId));
       const extras = manualProjects
@@ -212,7 +224,7 @@ export function useTasks(): UseTasksResult {
       }
     }
     return base;
-  }, [tasks, manualProjects]);
+  }, [tasks, manualProjects, timeZoneSettings]);
 
   // Initial load: prime the visibility cache before fetching tasks.
   useEffect(() => {
@@ -234,7 +246,7 @@ export function useTasks(): UseTasksResult {
   useEffect(() => {
     const checkAndCreate = async () => {
       try {
-        const result = await createTasksFromShows();
+        const result = await createTasksFromShows(timeZoneSettings);
         if (result.success && result.tasksCreated > 0) {
           console.log(
             `Created ${result.tasksCreated} tasks from ${result.showsProcessed} shows`

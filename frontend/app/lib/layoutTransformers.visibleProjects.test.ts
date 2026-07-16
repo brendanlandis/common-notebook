@@ -2,23 +2,23 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { transformLayout } from './layoutTransformers';
 import type { Task, Project, LayoutRuleset } from '@/app/types/index';
 import * as dateUtils from './dateUtils';
+import type { TimeZoneSettings } from './timeZoneSettings';
+
+// The timezone and day boundary are parameters now; these tests pin them.
+const EST: TimeZoneSettings = { timezone: 'America/New_York', dayBoundaryHour: 4 };
 
 // Mock date utilities (mirrors layoutTransformers.priority.test.ts)
 vi.mock('./dateUtils', async () => {
   const actual = await vi.importActual('./dateUtils');
   return {
     ...actual,
-    getTodayInEST: vi.fn(),
-    getNowInEST: vi.fn(),
-    parseInEST: (dateString: string) => new Date(dateString + 'T00:00:00'),
-    toISODateInEST: (date: Date) => date.toISOString().split('T')[0],
+    getToday: vi.fn(),
+    getNow: vi.fn(),
+    parseDate: (dateString: string) => new Date(dateString + 'T00:00:00'),
+    toISODate: (date: Date) => date.toISOString().split('T')[0],
   };
 });
 
-vi.mock('./timezoneConfig', () => ({
-  getTimezone: vi.fn(() => 'America/New_York'),
-  getDayBoundaryHour: vi.fn(() => 0),
-}));
 
 function createProjectMeta(overrides: Partial<Project>): Project {
   return {
@@ -101,12 +101,12 @@ function dataWithBothProjects() {
 
 describe('Layout Transformer - visibleProjects filter (per-project view)', () => {
   beforeEach(() => {
-    vi.mocked(dateUtils.getTodayInEST).mockReturnValue(new Date('2026-06-01T00:00:00'));
-    vi.mocked(dateUtils.getNowInEST).mockReturnValue(new Date('2026-06-01T12:00:00'));
+    vi.mocked(dateUtils.getToday).mockReturnValue(new Date('2026-06-01T00:00:00'));
+    vi.mocked(dateUtils.getNow).mockReturnValue(new Date('2026-06-01T12:00:00'));
   });
 
   it('keeps only the targeted project and drops other projects, categories, and incidentals', () => {
-    const result = transformLayout(dataWithBothProjects(), projectRuleset, []);
+    const result = transformLayout(dataWithBothProjects(), projectRuleset, EST, []);
     const columns = result.projectGroups![0].columns;
     const sectionIds = columns.map((s) => ('documentId' in s ? s.documentId : s.title));
 
@@ -124,7 +124,7 @@ describe('Layout Transformer - visibleProjects filter (per-project view)', () =>
   });
 
   it('shows all projects when visibleProjects is omitted', () => {
-    const result = transformLayout(dataWithBothProjects(), baseRuleset, []);
+    const result = transformLayout(dataWithBothProjects(), baseRuleset, EST, []);
     const sectionIds = result.projectGroups![0].columns.map((s) =>
       'documentId' in s ? s.documentId : s.title
     );

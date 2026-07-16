@@ -1,4 +1,5 @@
-import { toISODateInEST, getNowInEST } from './dateUtils';
+import { toISODate, getNow } from './dateUtils';
+import type { TimeZoneSettings } from './timeZoneSettings';
 import { subDays } from 'date-fns';
 
 const SYSTEM_SETTINGS_TITLE = 'lastShowTasksCheck';
@@ -56,7 +57,7 @@ async function showTasksEnabled(): Promise<boolean> {
  * Fetch past band shows and create tasks for them
  * @returns Object with success status and counts of tasks created
  */
-export async function createTasksFromShows(): Promise<{
+export async function createTasksFromShows(timeZoneSettings: TimeZoneSettings): Promise<{
   success: boolean;
   tasksCreated: number;
   showsProcessed: number;
@@ -71,10 +72,10 @@ export async function createTasksFromShows(): Promise<{
     }
 
     // Calculate yesterday's date in EST
-    const now = getNowInEST();
+    const now = getNow(timeZoneSettings);
     const yesterday = subDays(now, 1);
-    const yesterdayStr = toISODateInEST(yesterday);
-    const todayStr = toISODateInEST(now);
+    const yesterdayStr = toISODate(yesterday, timeZoneSettings);
+    const todayStr = toISODate(now, timeZoneSettings);
 
     // Fetch lastShowTasksCheck from system-settings
     const settingsResponse = await fetch(
@@ -99,7 +100,7 @@ export async function createTasksFromShows(): Promise<{
       // No lastShowTasksCheck found, create it with a date 30 days ago
       console.log('No lastShowTasksCheck found, creating initial setting');
       const thirtyDaysAgo = subDays(now, 30);
-      const initialDate = toISODateInEST(thirtyDaysAgo);
+      const initialDate = toISODate(thirtyDaysAgo, timeZoneSettings);
       
       const createResponse = await fetch('/api/system-settings', {
         method: 'PUT',

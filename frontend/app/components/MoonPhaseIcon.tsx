@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { getMoonPhaseIconName, type MoonPhaseIconName } from '../lib/moonPhase';
-import { useTimezoneContext } from '../contexts/TimezoneContext';
+import { useDateTimeSettings } from '../contexts/DateTimeSettingsContext';
 import {
   MoonNew,
   MoonWaxingCrescent1,
@@ -72,20 +72,20 @@ const moonPhaseComponents: Record<MoonPhaseIconName, React.ComponentType<{ size?
 };
 
 export default function MoonPhaseIcon({ size = 25, className }: MoonPhaseIconProps) {
-  const { timezone, isLoaded } = useTimezoneContext();
+  const { timeZoneSettings } = useDateTimeSettings();
   const [iconName, setIconName] = useState<MoonPhaseIconName>('WiMoonNew');
   const [isCalculated, setIsCalculated] = useState(false);
 
-  // Calculate moon phase on mount and when timezone changes
+  // Calculate moon phase on mount and when the time settings change
   useEffect(() => {
     const calculateIcon = () => {
-      const newIconName = getMoonPhaseIconName();
+      const newIconName = getMoonPhaseIconName(timeZoneSettings);
       setIconName(newIconName);
       setIsCalculated(true);
     };
 
     calculateIcon();
-  }, [timezone, isLoaded]);
+  }, [timeZoneSettings]);
 
   const IconComponent = moonPhaseComponents[iconName];
 

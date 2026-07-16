@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from "vitest";
 import { renderHook, act, waitFor } from "@testing-library/react";
+import { createElement, type ReactNode } from "react";
 import type { Task, Project } from "@/app/types/index";
 
 // Mocks must be declared before importing the hook so vi.mock hoists correctly.
@@ -15,6 +16,17 @@ vi.mock("@/app/lib/showsTaskCreator", () => ({
 }));
 
 import { useTasks } from "./useTasks";
+import { DateTimeSettingsProvider } from "@/app/contexts/DateTimeSettingsContext";
+
+// useTasks reads its timezone and day boundary from the provider. Supplying
+// `initial` keeps the provider from fetching, so the fetch assertions below
+// still only see the hook's own calls.
+const wrapper = ({ children }: { children: ReactNode }) =>
+  createElement(
+    DateTimeSettingsProvider,
+    { initial: { timezone: "America/New_York", dayBoundaryHour: 4 } },
+    children
+  );
 
 const makeTask = (overrides: Partial<Task> = {}): Task =>
   ({
@@ -93,7 +105,7 @@ describe("useTasks", () => {
       json: async () => ({ success: true, data: [task] }),
     });
 
-    const { result } = renderHook(() => useTasks());
+    const { result } = renderHook(() => useTasks(), { wrapper });
 
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.tasks).toHaveLength(1);
@@ -101,7 +113,7 @@ describe("useTasks", () => {
   });
 
   it("addTask appends a task without refetching", async () => {
-    const { result } = renderHook(() => useTasks());
+    const { result } = renderHook(() => useTasks(), { wrapper });
     await waitFor(() => expect(result.current.loading).toBe(false));
 
     const fetchCallsBefore = fetchMock.mock.calls.length;
@@ -127,7 +139,7 @@ describe("useTasks", () => {
       }),
     });
 
-    const { result } = renderHook(() => useTasks());
+    const { result } = renderHook(() => useTasks(), { wrapper });
     await waitFor(() => expect(result.current.tasks).toHaveLength(2));
 
     act(() => {
@@ -147,7 +159,7 @@ describe("useTasks", () => {
       }),
     });
 
-    const { result } = renderHook(() => useTasks());
+    const { result } = renderHook(() => useTasks(), { wrapper });
     await waitFor(() => expect(result.current.tasks).toHaveLength(1));
 
     act(() => {
@@ -173,7 +185,7 @@ describe("useTasks", () => {
       }),
     });
 
-    const { result } = renderHook(() => useTasks());
+    const { result } = renderHook(() => useTasks(), { wrapper });
     await waitFor(() => expect(result.current.tasks).toHaveLength(2));
 
     expect(result.current.grouped.projects).toHaveLength(1);
@@ -188,7 +200,7 @@ describe("useTasks", () => {
   });
 
   it("addManualProject shows an empty project until refetch", async () => {
-    const { result } = renderHook(() => useTasks());
+    const { result } = renderHook(() => useTasks(), { wrapper });
     await waitFor(() => expect(result.current.loading).toBe(false));
 
     act(() => {
@@ -220,7 +232,7 @@ describe("useTasks", () => {
       }),
     });
 
-    const { result } = renderHook(() => useTasks());
+    const { result } = renderHook(() => useTasks(), { wrapper });
     await waitFor(() => expect(result.current.tasks).toHaveLength(1));
 
     expect(result.current.grouped.projects[0].title).toBe("Old name");

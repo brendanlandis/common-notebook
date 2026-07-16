@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAccessToken } from '@/app/lib/strapiAuth';
-import { fetchAllPages } from '@/app/lib/strapiServer';
-import { getTodayForRecurrence, toISODateInEST } from '@/app/lib/dateUtils';
+import { fetchAllPages, getTimeZoneSettings } from '@/app/lib/strapiServer';
+import { getTodayForRecurrence, toISODate } from '@/app/lib/dateUtils';
 import type { PracticeType } from '@/app/types/index';
 
 const PRACTICE_TYPES: PracticeType[] = ['guitar', 'voice', 'drums', 'writing', 'composing', 'ear training'];
@@ -34,10 +34,11 @@ export async function GET(req: NextRequest) {
     }
 
     // Calculate date range for past 30 days, respecting day boundary hour
-    const today = getTodayForRecurrence();
+    const settings = await getTimeZoneSettings(token);
+    const today = getTodayForRecurrence(settings);
     const thirtyDaysAgo = new Date(today);
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 29); // 29 days ago + today = 30 days total
-    const startDate = toISODateInEST(thirtyDaysAgo);
+    const startDate = toISODate(thirtyDaysAgo, settings);
 
     // Fetch every practice log in the past 30 days.
     //
@@ -54,7 +55,7 @@ export async function GET(req: NextRequest) {
     for (let i = 0; i < 30; i++) {
       const date = new Date(thirtyDaysAgo);
       date.setDate(date.getDate() + i);
-      dateRange.push(toISODateInEST(date));
+      dateRange.push(toISODate(date, settings));
     }
 
     // Process logs by type

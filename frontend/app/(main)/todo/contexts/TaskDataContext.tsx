@@ -10,11 +10,11 @@ import {
 import type { Project, Task } from "@/app/types/index";
 import type { GroupedTasks } from "@/app/lib/groupTasks";
 import { usePathname } from "next/navigation";
-import { getISOTimestampInEST } from "@/app/lib/dateUtils";
+import { getISOTimestamp } from "@/app/lib/dateUtils";
 import { getDefaultViewSlug } from "@/app/lib/views";
 import { useViews } from "@/app/contexts/ViewsContext";
 import { useTaskActions } from "@/app/contexts/TaskActionsContext";
-import { useTimezoneContext } from "@/app/contexts/TimezoneContext";
+import { useDateTimeSettings } from "@/app/contexts/DateTimeSettingsContext";
 import { useStuffProjects } from "@/app/contexts/StuffProjectsContext";
 import { useTasks } from "../hooks/useTasks";
 
@@ -135,7 +135,7 @@ export function TaskDataProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const { drawerContent, openTaskForm, openProjectForm, closeDrawer } =
     useTaskActions();
-  const { timezone } = useTimezoneContext();
+  const { timeZoneSettings } = useDateTimeSettings();
 
   // The active view slug, derived from the route: /todo shows the default view,
   // /todo/view/<slug> shows that one. Only the "done" preset needs the secondary
@@ -292,7 +292,7 @@ export function TaskDataProvider({ children }: { children: ReactNode }) {
           updateTask({
             ...currentInActive,
             completed: newCompletedState,
-            completedAt: newCompletedState ? getISOTimestampInEST() : null,
+            completedAt: newCompletedState ? getISOTimestamp(timeZoneSettings) : null,
           });
         }
       }
@@ -323,7 +323,7 @@ export function TaskDataProvider({ children }: { children: ReactNode }) {
         const completedTask: Task = {
           ...currentTask,
           completed: true,
-          completedAt: getISOTimestampInEST(),
+          completedAt: getISOTimestamp(timeZoneSettings),
         };
         setCompletedTasks((prev) => [completedTask, ...prev]);
       }
@@ -410,12 +410,9 @@ export function TaskDataProvider({ children }: { children: ReactNode }) {
 
   const handleWorkSession = async (documentId: string) => {
     try {
+      // No body: the route resolves the timezone from the caller's token now.
       const response = await fetch(`/api/tasks/${documentId}/work-session`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ timezone }),
       });
 
       if (response.ok) {

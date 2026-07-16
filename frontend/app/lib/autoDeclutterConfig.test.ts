@@ -1,7 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-
-// Module state (the cache) is module-level, so reimport between tests to reset.
-let mod: typeof import('./autoDeclutterConfig');
+import * as mod from './autoDeclutterConfig';
 
 global.fetch = vi.fn();
 const mockFetch = global.fetch as ReturnType<typeof vi.fn>;
@@ -11,33 +9,18 @@ function jsonResponse(body: unknown, ok = true) {
 }
 
 describe('autoDeclutterConfig', () => {
-  beforeEach(async () => {
+  beforeEach(() => {
     vi.clearAllMocks();
-    vi.resetModules();
-    mod = await import('./autoDeclutterConfig');
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
   });
 
-  describe('getAutoDeclutter', () => {
-    it('defaults to true when the cache is empty', () => {
-      expect(mod.getAutoDeclutter()).toBe(true);
-    });
-
-    it('returns the cached value once set', () => {
-      mod.setCachedAutoDeclutter(false);
-      expect(mod.getAutoDeclutter()).toBe(false);
-    });
-  });
-
   describe('fetchAutoDeclutterFromStrapi', () => {
-    it('parses "false" as disabled and caches it', async () => {
+    it('parses "false" as disabled', async () => {
       mockFetch.mockResolvedValueOnce(jsonResponse({ success: true, value: 'false' }));
-      const result = await mod.fetchAutoDeclutterFromStrapi();
-      expect(result).toBe(false);
-      expect(mod.getAutoDeclutter()).toBe(false);
+      expect(await mod.fetchAutoDeclutterFromStrapi()).toBe(false);
     });
 
     it('parses "true" as enabled', async () => {
@@ -65,7 +48,7 @@ describe('autoDeclutterConfig', () => {
   });
 
   describe('saveAutoDeclutterToStrapi', () => {
-    it('PUTs the boolean as a string and caches it', async () => {
+    it('PUTs the boolean as a string', async () => {
       mockFetch.mockResolvedValueOnce(jsonResponse({}, true));
       const ok = await mod.saveAutoDeclutterToStrapi(false);
       expect(ok).toBe(true);
@@ -73,7 +56,11 @@ describe('autoDeclutterConfig', () => {
       expect(url).toBe('/api/system-settings');
       expect(init.method).toBe('PUT');
       expect(JSON.parse(init.body)).toEqual({ title: 'autoDeclutter', value: 'false' });
-      expect(mod.getAutoDeclutter()).toBe(false);
+    });
+
+    it('reports failure when the request is rejected', async () => {
+      mockFetch.mockResolvedValueOnce(jsonResponse({}, false));
+      expect(await mod.saveAutoDeclutterToStrapi(true)).toBe(false);
     });
   });
 });

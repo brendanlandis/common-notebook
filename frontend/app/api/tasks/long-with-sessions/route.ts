@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAccessToken } from '@/app/lib/strapiAuth';
-import { getTodayForRecurrence, toISODateInEST } from '@/app/lib/dateUtils';
+import { getTodayForRecurrence, toISODate } from '@/app/lib/dateUtils';
+import { getTimeZoneSettings } from '@/app/lib/strapiServer';
 
 const STRAPI_API_URL = process.env.STRAPI_API_URL;
 
@@ -19,10 +20,11 @@ export async function GET(req: NextRequest) {
     // Calculate the cutoff date to filter work sessions, respecting day boundary hour
     const daysParam = req.nextUrl.searchParams.get('days');
     const days = daysParam ? parseInt(daysParam, 10) : 30;
-    const today = getTodayForRecurrence();
+    const settings = await getTimeZoneSettings(token);
+    const today = getTodayForRecurrence(settings);
     const cutoffDate = new Date(today);
     cutoffDate.setDate(cutoffDate.getDate() - days);
-    const cutoffDateString = toISODateInEST(cutoffDate);
+    const cutoffDateString = toISODate(cutoffDate, settings);
 
     // Fetch incomplete long tasks with their project relationship populated
     // Filter for: completed=false AND long=true

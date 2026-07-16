@@ -1,9 +1,10 @@
-import { toISODateInEST, getTodayInEST, parseInEST } from './dateUtils';
+import { toISODate, getToday, parseDate } from './dateUtils';
 import { hasNewMoonSinceDate } from './moonPhase';
 import { demoteTopOfMindProjects } from './projectImportance';
 import {
   fetchAllPages,
   getSystemSetting,
+  getTimeZoneSettings,
   strapiFetch,
   upsertSystemSetting,
 } from './strapiServer';
@@ -51,8 +52,9 @@ export async function performMoonPhaseReset(token: string): Promise<{
 
 /** Record that the reset has run, so it does not run again until the next new moon. */
 export async function updateMoonPhaseResetDate(token: string): Promise<void> {
+  const settings = await getTimeZoneSettings(token);
   const ok = await upsertSystemSetting(token, MOON_PHASE_SETTING, {
-    date: toISODateInEST(getTodayInEST()),
+    date: toISODate(getToday(settings), settings),
   });
   if (!ok) console.error('Moon-phase reset: failed to record the reset date');
 }
@@ -96,10 +98,11 @@ export async function runMoonPhaseResetIfDue(token: string, userKey: string): Pr
       const auto = await getSystemSetting(token, AUTO_DECLUTTER_SETTING);
       if (auto?.value === 'false') return;
 
+      const settings = await getTimeZoneSettings(token);
       const setting = await getSystemSetting(token, MOON_PHASE_SETTING);
-      const lastResetDate = setting?.date ? parseInEST(setting.date) : null;
+      const lastResetDate = setting?.date ? parseDate(setting.date, settings) : null;
 
-      if (!hasNewMoonSinceDate(lastResetDate)) return;
+      if (!hasNewMoonSinceDate(lastResetDate, settings)) return;
 
       await performMoonPhaseReset(token);
       await updateMoonPhaseResetDate(token);

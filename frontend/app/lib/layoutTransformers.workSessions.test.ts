@@ -2,18 +2,21 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { transformLayout } from './layoutTransformers';
 import type { Task, Project } from '@/app/types/index';
 import * as dateUtils from './dateUtils';
-import * as timezoneConfig from './timezoneConfig';
+import type { TimeZoneSettings } from './timeZoneSettings';
+
+// The timezone and day boundary are parameters now; these tests pin them.
+const EST: TimeZoneSettings = { timezone: 'America/New_York', dayBoundaryHour: 4 };
 
 // Mock date utilities
 vi.mock('./dateUtils', async () => {
   const actual = await vi.importActual('./dateUtils');
   return {
     ...actual,
-    getTodayInEST: vi.fn(),
-    getNowInEST: vi.fn(),
-    parseInEST: (dateString: string) => new Date(dateString + 'T00:00:00'),
-    toISODateInEST: (date: Date) => date.toISOString().split('T')[0],
-    formatInEST: (date: Date, format: string) => {
+    getToday: vi.fn(),
+    getNow: vi.fn(),
+    parseDate: (dateString: string) => new Date(dateString + 'T00:00:00'),
+    toISODate: (date: Date) => date.toISOString().split('T')[0],
+    formatInTimezone: (date: Date, format: string) => {
       // Simple mock for date formatting
       const month = date.getMonth() + 1;
       const day = date.getDate();
@@ -22,11 +25,6 @@ vi.mock('./dateUtils', async () => {
   };
 });
 
-// Mock timezone config
-vi.mock('./timezoneConfig', () => ({
-  getTimezone: vi.fn(() => 'America/New_York'),
-  getDayBoundaryHour: vi.fn(() => 0),
-}));
 
 // Helper to create minimal task
 function createTask(overrides: Partial<Task>): Task {
@@ -66,10 +64,10 @@ function createTask(overrides: Partial<Task>): Task {
 describe('Layout Transformer - Work Session Virtual Entries', () => {
   beforeEach(() => {
     // Set a fixed "today" for all tests - Monday, Jan 5, 2026
-    vi.mocked(dateUtils.getTodayInEST).mockReturnValue(
+    vi.mocked(dateUtils.getToday).mockReturnValue(
       new Date('2026-01-05T00:00:00')
     );
-    vi.mocked(dateUtils.getNowInEST).mockReturnValue(
+    vi.mocked(dateUtils.getNow).mockReturnValue(
       new Date('2026-01-05T12:00:00')
     );
   });
@@ -100,7 +98,8 @@ describe('Layout Transformer - Work Session Virtual Entries', () => {
           recurringIncidentals: [],
         },
         ruleset
-      );
+      ,
+        EST);
 
       expect(result.doneSections).toBeDefined();
       expect(result.doneSections!.length).toBeGreaterThan(0);
@@ -139,7 +138,8 @@ describe('Layout Transformer - Work Session Virtual Entries', () => {
           recurringIncidentals: [],
         },
         ruleset
-      );
+      ,
+        EST);
 
       const allTasks = result.doneSections.flatMap(section => section.tasks);
       const virtualEntry = allTasks.find(task => task.documentId.includes('-worked-'));
@@ -173,7 +173,8 @@ describe('Layout Transformer - Work Session Virtual Entries', () => {
           recurringIncidentals: [],
         },
         ruleset
-      );
+      ,
+        EST);
 
       const allTasks = result.doneSections.flatMap(section => section.tasks);
       const virtualEntry = allTasks.find(task => task.documentId.includes('-worked-'));
@@ -206,7 +207,8 @@ describe('Layout Transformer - Work Session Virtual Entries', () => {
           recurringIncidentals: [],
         },
         ruleset
-      );
+      ,
+        EST);
 
       const allTasks = result.doneSections.flatMap(section => section.tasks);
       const virtualEntry = allTasks.find(task => task.documentId.includes('-worked-'));
@@ -239,7 +241,8 @@ describe('Layout Transformer - Work Session Virtual Entries', () => {
           recurringIncidentals: [],
         },
         ruleset
-      );
+      ,
+        EST);
 
       // Should have separate date sections for each work session
       expect(result.doneSections.length).toBeGreaterThanOrEqual(2);
@@ -279,7 +282,8 @@ describe('Layout Transformer - Work Session Virtual Entries', () => {
           recurringIncidentals: [],
         },
         ruleset
-      );
+      ,
+        EST);
 
       const allTasks = result.doneSections.flatMap(section => section.tasks);
       const jan5Entry = allTasks.find(t => t.documentId === 'task-1-worked-2026-01-05');
@@ -315,7 +319,8 @@ describe('Layout Transformer - Work Session Virtual Entries', () => {
           recurringIncidentals: [],
         },
         ruleset
-      );
+      ,
+        EST);
 
       const allTasks = result.doneSections.flatMap(section => section.tasks);
       const virtualEntries = allTasks.filter(task => 
@@ -359,7 +364,8 @@ describe('Layout Transformer - Work Session Virtual Entries', () => {
           recurringIncidentals: [],
         },
         ruleset
-      );
+      ,
+        EST);
 
       const allTasks = result.doneSections.flatMap(section => section.tasks);
       const task1Entry = allTasks.find(t => t.documentId === 'task-1-worked-2026-01-05');
@@ -393,7 +399,8 @@ describe('Layout Transformer - Work Session Virtual Entries', () => {
           recurringIncidentals: [],
         },
         ruleset
-      );
+      ,
+        EST);
 
       const allTasks = result.doneSections.flatMap(section => section.tasks);
       const virtualEntries = allTasks.filter(task => 
@@ -423,7 +430,8 @@ describe('Layout Transformer - Work Session Virtual Entries', () => {
           recurringIncidentals: [],
         },
         ruleset
-      );
+      ,
+        EST);
 
       const allTasks = result.doneSections.flatMap(section => section.tasks);
       const virtualEntries = allTasks.filter(task => 
@@ -462,7 +470,8 @@ describe('Layout Transformer - Work Session Virtual Entries', () => {
           recurringIncidentals: [],
         },
         ruleset
-      );
+      ,
+        EST);
 
       // Only the `done` code preset synthesizes "worked on" virtual entries.
       expect(result.doneSections).toBeUndefined();
@@ -494,7 +503,8 @@ describe('Layout Transformer - Work Session Virtual Entries', () => {
           recurringIncidentals: [],
         },
         ruleset
-      );
+      ,
+        EST);
 
       const allTasks = result.doneSections.flatMap(section => section.tasks);
       const virtualEntry = allTasks.find(task => task.documentId.includes('-worked-'));
@@ -538,7 +548,8 @@ describe('Layout Transformer - Work Session Virtual Entries', () => {
           recurringIncidentals: [],
         },
         ruleset
-      );
+      ,
+        EST);
 
       expect(result.doneSections).toBeDefined();
       expect(result.doneSections!.length).toBeGreaterThan(0);

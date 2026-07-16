@@ -12,7 +12,8 @@ import {
   CookieIcon,
   ArrowClockwiseIcon,
 } from "@phosphor-icons/react";
-import { getNowInEST, parseInEST, formatInEST } from "@/app/lib/dateUtils";
+import { getNow, parseDate, formatInTimezone } from "@/app/lib/dateUtils";
+import { useDateTimeSettings } from "@/app/contexts/DateTimeSettingsContext";
 import RichTextDisplay from "@/app/components/RichTextDisplay";
 
 interface TaskItemProps {
@@ -36,6 +37,7 @@ export default function TaskItem({
   onSkipRecurring,
   showProjectName = false,
 }: TaskItemProps) {
+  const { timeZoneSettings } = useDateTimeSettings();
   const [isChecked, setIsChecked] = useState(task.completed);
   const hasDescription = task.description && task.description.length > 0;
 
@@ -69,8 +71,8 @@ export default function TaskItem({
   }, [task.completed]);
 
   const formatDueDate = (dateString: string) => {
-    const date = parseInEST(dateString);
-    const now = getNowInEST();
+    const date = parseDate(dateString, timeZoneSettings);
+    const now = getNow(timeZoneSettings);
     const daysUntilDue = differenceInDays(date, now);
 
     if (isToday(date)) {
@@ -105,14 +107,14 @@ export default function TaskItem({
       return "over a month ago";
     }
     if (daysUntilDue < 7) {
-      return formatInEST(date, "EEEE").toLowerCase();
+      return formatInTimezone(date, "EEEE", timeZoneSettings).toLowerCase();
     }
     return `in ${daysUntilDue} days`;
   };
 
   const formatCompletedTime = (completedAt: string) => {
     const date = new Date(completedAt);
-    return formatInEST(date, "h:mm a");
+    return formatInTimezone(date, "h:mm a", timeZoneSettings);
   };
 
   return (

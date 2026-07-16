@@ -1,13 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { getEffectiveDayForTimestamp, getWorkedOnPhase } from './dayBoundaryHelpers';
-import * as timezoneConfig from './timezoneConfig';
-import * as dateUtils from './dateUtils';
+import type { TimeZoneSettings } from './timeZoneSettings';
 
-// Mock timezone config - using UTC for testing (no timezone offset)
-vi.mock('./timezoneConfig', () => ({
-  getTimezone: vi.fn(() => 'UTC'),
-  getDayBoundaryHour: vi.fn(() => 4),
-}));
+// The timezone travels with the boundary now, so each case builds its own
+// settings instead of mocking an ambient module. UTC keeps the arithmetic
+// offset-free.
+const utc = (dayBoundaryHour: number): TimeZoneSettings => ({ timezone: 'UTC', dayBoundaryHour });
 
 // Mock date utilities
 vi.mock('./dateUtils', () => ({
@@ -19,7 +17,7 @@ vi.mock('./dateUtils', () => ({
     // The implementation will use getUTCHours() etc. to access values
     return date;
   },
-  toISODateInEST: (date: Date) => {
+  toISODate: (date: Date) => {
     // Extract date components using UTC methods (since we're testing in UTC)
     const year = date.getUTCFullYear();
     const month = String(date.getUTCMonth() + 1).padStart(2, '0');
@@ -39,7 +37,7 @@ describe('Day Boundary Helpers', () => {
       const timestamp = new Date('2026-01-05T10:00:00.000Z');
       const dayBoundaryHour = 4; // 4 AM
 
-      const result = getEffectiveDayForTimestamp(timestamp, dayBoundaryHour);
+      const result = getEffectiveDayForTimestamp(timestamp, utc(dayBoundaryHour));
 
       expect(result).toBe('2026-01-05');
     });
@@ -49,7 +47,7 @@ describe('Day Boundary Helpers', () => {
       const timestamp = new Date('2026-01-05T02:00:00.000Z');
       const dayBoundaryHour = 4; // 4 AM
 
-      const result = getEffectiveDayForTimestamp(timestamp, dayBoundaryHour);
+      const result = getEffectiveDayForTimestamp(timestamp, utc(dayBoundaryHour));
 
       expect(result).toBe('2026-01-04');
     });
@@ -59,7 +57,7 @@ describe('Day Boundary Helpers', () => {
       const timestamp = new Date('2026-01-05T04:00:00.000Z');
       const dayBoundaryHour = 4;
 
-      const result = getEffectiveDayForTimestamp(timestamp, dayBoundaryHour);
+      const result = getEffectiveDayForTimestamp(timestamp, utc(dayBoundaryHour));
 
       expect(result).toBe('2026-01-05');
     });
@@ -69,7 +67,7 @@ describe('Day Boundary Helpers', () => {
       const timestamp = new Date('2026-01-05T01:00:00.000Z');
       const dayBoundaryHour = 0;
 
-      const result = getEffectiveDayForTimestamp(timestamp, dayBoundaryHour);
+      const result = getEffectiveDayForTimestamp(timestamp, utc(dayBoundaryHour));
 
       expect(result).toBe('2026-01-05');
     });
@@ -79,7 +77,7 @@ describe('Day Boundary Helpers', () => {
       const timestamp = new Date('2026-01-05T10:00:00.000Z');
       const dayBoundaryHour = 12;
 
-      const result = getEffectiveDayForTimestamp(timestamp, dayBoundaryHour);
+      const result = getEffectiveDayForTimestamp(timestamp, utc(dayBoundaryHour));
 
       expect(result).toBe('2026-01-04'); // Before noon, so previous day
     });
@@ -89,7 +87,7 @@ describe('Day Boundary Helpers', () => {
       const timestamp = new Date('2026-01-05T23:00:00.000Z');
       const dayBoundaryHour = 23;
 
-      const result = getEffectiveDayForTimestamp(timestamp, dayBoundaryHour);
+      const result = getEffectiveDayForTimestamp(timestamp, utc(dayBoundaryHour));
 
       // 23 is NOT < 23, so no adjustment
       // Effective day is Jan 5
@@ -106,7 +104,7 @@ describe('Day Boundary Helpers', () => {
         const visibilityMinutes = 60; // 1 hour
         const dayBoundaryHour = 4;
 
-        const phase = getWorkedOnPhase(workSessionTimestamp, now, visibilityMinutes, dayBoundaryHour);
+        const phase = getWorkedOnPhase(workSessionTimestamp, now, visibilityMinutes, utc(dayBoundaryHour));
 
         expect(phase).toBe(1);
       });
@@ -118,7 +116,7 @@ describe('Day Boundary Helpers', () => {
         const visibilityMinutes = 60;
         const dayBoundaryHour = 4;
 
-        const phase = getWorkedOnPhase(workSessionTimestamp, now, visibilityMinutes, dayBoundaryHour);
+        const phase = getWorkedOnPhase(workSessionTimestamp, now, visibilityMinutes, utc(dayBoundaryHour));
 
         expect(phase).toBe(1);
       });
@@ -132,7 +130,7 @@ describe('Day Boundary Helpers', () => {
         const visibilityMinutes = 60;
         const dayBoundaryHour = 4;
 
-        const phase = getWorkedOnPhase(workSessionTimestamp, now, visibilityMinutes, dayBoundaryHour);
+        const phase = getWorkedOnPhase(workSessionTimestamp, now, visibilityMinutes, utc(dayBoundaryHour));
 
         expect(phase).toBe(2);
       });
@@ -145,7 +143,7 @@ describe('Day Boundary Helpers', () => {
         const visibilityMinutes = 60;
         const dayBoundaryHour = 4;
 
-        const phase = getWorkedOnPhase(workSessionTimestamp, now, visibilityMinutes, dayBoundaryHour);
+        const phase = getWorkedOnPhase(workSessionTimestamp, now, visibilityMinutes, utc(dayBoundaryHour));
 
         expect(phase).toBe(2);
       });
@@ -159,7 +157,7 @@ describe('Day Boundary Helpers', () => {
         const visibilityMinutes = 60;
         const dayBoundaryHour = 4;
 
-        const phase = getWorkedOnPhase(workSessionTimestamp, now, visibilityMinutes, dayBoundaryHour);
+        const phase = getWorkedOnPhase(workSessionTimestamp, now, visibilityMinutes, utc(dayBoundaryHour));
 
         // 10 AM Jan 5 -> after 4 AM boundary -> effective day is Jan 5
         // 5 AM Jan 6 -> after 4 AM boundary -> effective day is Jan 6
@@ -175,7 +173,7 @@ describe('Day Boundary Helpers', () => {
         const visibilityMinutes = 60;
         const dayBoundaryHour = 4;
 
-        const phase = getWorkedOnPhase(workSessionTimestamp, now, visibilityMinutes, dayBoundaryHour);
+        const phase = getWorkedOnPhase(workSessionTimestamp, now, visibilityMinutes, utc(dayBoundaryHour));
 
         // 11:50 PM Jan 5 -> before 4 AM boundary, effective day is Jan 5
         // 12:10 AM Jan 6 -> before 4 AM boundary, effective day is Jan 5
@@ -190,7 +188,7 @@ describe('Day Boundary Helpers', () => {
         const visibilityMinutes = 60;
         const dayBoundaryHour = 4;
 
-        const phase = getWorkedOnPhase(workSessionTimestamp, now, visibilityMinutes, dayBoundaryHour);
+        const phase = getWorkedOnPhase(workSessionTimestamp, now, visibilityMinutes, utc(dayBoundaryHour));
 
         // 11:50 PM Jan 5 -> before 4 AM boundary -> effective day is Jan 5
         // 5:00 AM Jan 6 -> after 4 AM boundary -> effective day is Jan 6
@@ -208,7 +206,7 @@ describe('Day Boundary Helpers', () => {
         const visibilityMinutes = 1440;
         const dayBoundaryHour = 4;
 
-        const phase = getWorkedOnPhase(workSessionTimestamp, now, visibilityMinutes, dayBoundaryHour);
+        const phase = getWorkedOnPhase(workSessionTimestamp, now, visibilityMinutes, utc(dayBoundaryHour));
 
         // 19 hours passed (1140 minutes), within 1440 minute window
         // BUT: 10 AM Jan 5 -> effective day is Jan 5
@@ -225,7 +223,7 @@ describe('Day Boundary Helpers', () => {
         const visibilityMinutes = 1440;
         const dayBoundaryHour = 4;
 
-        const phase = getWorkedOnPhase(workSessionTimestamp, now, visibilityMinutes, dayBoundaryHour);
+        const phase = getWorkedOnPhase(workSessionTimestamp, now, visibilityMinutes, utc(dayBoundaryHour));
 
         // 13 hours have passed, within 1440 minute window, same effective day
         expect(phase).toBe(1);
@@ -240,7 +238,7 @@ describe('Day Boundary Helpers', () => {
         const visibilityMinutes = 15;
         const dayBoundaryHour = 4;
 
-        const phase = getWorkedOnPhase(workSessionTimestamp, now, visibilityMinutes, dayBoundaryHour);
+        const phase = getWorkedOnPhase(workSessionTimestamp, now, visibilityMinutes, utc(dayBoundaryHour));
 
         // 3:50 AM -> before 4 AM boundary -> effective day is Jan 4
         // 4:10 AM -> after 4 AM boundary -> effective day is Jan 5
@@ -257,7 +255,7 @@ describe('Day Boundary Helpers', () => {
         const visibilityMinutes = 0;
         const dayBoundaryHour = 4;
 
-        const phase = getWorkedOnPhase(workSessionTimestamp, now, visibilityMinutes, dayBoundaryHour);
+        const phase = getWorkedOnPhase(workSessionTimestamp, now, visibilityMinutes, utc(dayBoundaryHour));
 
         expect(phase).toBe(2);
       });

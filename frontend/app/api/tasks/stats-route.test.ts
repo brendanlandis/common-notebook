@@ -6,7 +6,7 @@ import * as dateUtils from '@/app/lib/dateUtils';
 // Mock date utilities
 vi.mock('@/app/lib/dateUtils', () => ({
   getTodayForRecurrence: vi.fn(),
-  toISODateInEST: vi.fn(),
+  toISODate: vi.fn(),
 }));
 
 // Helper to create mock request
@@ -51,7 +51,7 @@ describe('Stats API Route - Work Session Counting', () => {
     // Set up default date mocks
     const today = new Date('2026-01-10T00:00:00.000Z');
     vi.mocked(dateUtils.getTodayForRecurrence).mockReturnValue(today);
-    vi.mocked(dateUtils.toISODateInEST).mockImplementation((date: Date) => {
+    vi.mocked(dateUtils.toISODate).mockImplementation((date: Date) => {
       return date.toISOString().split('T')[0];
     });
   });

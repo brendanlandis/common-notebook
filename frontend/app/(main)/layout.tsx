@@ -4,7 +4,7 @@ import HeaderContent from "../components/HeaderContent";
 import TaskActionsDrawer from "../components/TaskActionsDrawer";
 import { PracticeContextProvider } from "../contexts/PracticeContext";
 import { TaskActionsProvider } from "../contexts/TaskActionsContext";
-import { TimezoneProvider } from "../contexts/TimezoneContext";
+import { DateTimeSettingsProvider } from "../contexts/DateTimeSettingsContext";
 import { StuffProjectsProvider } from "../contexts/StuffProjectsContext";
 import { WorldsProvider } from "../contexts/WorldsContext";
 import { ViewsProvider } from "../contexts/ViewsContext";
@@ -13,15 +13,31 @@ import EscapeKeyHandler from "../components/EscapeKeyHandler";
 import SessionGuard from "../components/SessionGuard";
 import { BetaAccessProvider } from "../contexts/BetaAccessContext";
 import BetaGuard from "../components/BetaGuard";
+import { getAccessTokenServer } from "@/app/lib/strapiAuth";
+import { getTimeZoneSettings } from "@/app/lib/strapiServer";
 
-export default function MainLayout({
+/**
+ * Resolve the owner's time settings here, on the server, so every client date
+ * renders in their timezone on the first paint. The same `getTimeZoneSettings` backs
+ * the API routes, which is what makes the setting a single source of truth rather
+ * than two copies that drift.
+ *
+ * A null token means `getAccessTokenServer()` could not tell (a stale token it
+ * won't refresh from a Server Component — see `page.tsx`). Pass null through and
+ * let the provider resolve it client-side rather than pinning the session to the
+ * defaults.
+ */
+export default async function MainLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const token = await getAccessTokenServer();
+  const timeZoneSettings = token ? await getTimeZoneSettings(token) : null;
+
   return (
     <BetaAccessProvider>
-    <TimezoneProvider>
+    <DateTimeSettingsProvider initial={timeZoneSettings}>
       <WorldsProvider>
       <ViewsProvider>
       <StuffProjectsProvider>
@@ -80,7 +96,7 @@ export default function MainLayout({
     </StuffProjectsProvider>
     </ViewsProvider>
     </WorldsProvider>
-    </TimezoneProvider>
+    </DateTimeSettingsProvider>
     </BetaAccessProvider>
   );
 }

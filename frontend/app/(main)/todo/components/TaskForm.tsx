@@ -3,12 +3,14 @@
 import { useForm, SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import ProjectSelector from "./ProjectSelector";
 import type { Task, RecurrenceType, ProjectType, StrapiBlock } from "@/app/types/index";
 import { getTaskProjectType } from "@/app/lib/taskProjectType";
-import { getNowInEST, toISODateInEST } from "@/app/lib/dateUtils";
+import { getNow, toISODate } from "@/app/lib/dateUtils";
 import { calculateNextRecurrence } from "@/app/lib/recurrence";
+import { useDateTimeSettings } from "@/app/contexts/DateTimeSettingsContext";
+import { useTaskData } from "../contexts/TaskDataContext";
 import RichTextEditor from "@/app/components/RichTextEditor";
 import {
   showTrackingUrl,
@@ -110,6 +112,8 @@ interface TaskFormProps {
 }
 
 export default function TaskForm({ task, onSubmit, onCancel }: TaskFormProps) {
+  const { timeZoneSettings } = useDateTimeSettings();
+  const { tasks } = useTaskData();
   const [recurrenceType, setRecurrenceType] = useState<RecurrenceType>(
     task?.recurrenceType || "none"
   );
@@ -123,8 +127,6 @@ export default function TaskForm({ task, onSubmit, onCancel }: TaskFormProps) {
   const [displayDateOffset, setDisplayDateOffset] = useState<number>(
     task?.displayDateOffset ?? 0
   );
-  const [wishListCategorySuggestions, setWishListCategorySuggestions] =
-    useState<string[]>([]);
   const [wishListCategoryInput, setWishListCategoryInput] = useState<string>(
     task?.wishListCategory || ""
   );
@@ -193,32 +195,19 @@ export default function TaskForm({ task, onSubmit, onCancel }: TaskFormProps) {
   const isRecurring = watch("isRecurring");
   const unifiedValue = selectedProject || null;
 
-  // Fetch wishlist category suggestions when the selected project is a wishlist
-  useEffect(() => {
-    if (selectedProjectType === "wishlist") {
-      fetchWishListCategorySuggestions();
-    }
-  }, [selectedProjectType]);
-
-  const fetchWishListCategorySuggestions = async () => {
-    try {
-      const response = await fetch("/api/tasks");
-      const result = await response.json();
-      if (result.success) {
-        const allTasks: Task[] = result.data;
-        // Get unique, non-null wishListCategory values from wishlist tasks
-        const categories = new Set<string>();
-        allTasks.forEach((task) => {
-          if (getTaskProjectType(task) === "wishlist" && task.wishListCategory) {
-            categories.add(task.wishListCategory.trim());
-          }
-        });
-        setWishListCategorySuggestions(Array.from(categories).sort());
+  // Wishlist category suggestions, derived from the tasks already in context.
+  // This form remounts on every drawer open, so fetching /api/tasks here meant a
+  // full task list over the wire each time to build a handful of strings.
+  const wishListCategorySuggestions = useMemo(() => {
+    if (selectedProjectType !== "wishlist") return [];
+    const categories = new Set<string>();
+    tasks.forEach((task) => {
+      if (getTaskProjectType(task) === "wishlist" && task.wishListCategory) {
+        categories.add(task.wishListCategory.trim());
       }
-    } catch (error) {
-      console.error("Error fetching wishlist category suggestions:", error);
-    }
-  };
+    });
+    return Array.from(categories).sort();
+  }, [selectedProjectType, tasks]);
 
   // Filter suggestions based on input
   const filteredWishListCategorySuggestions = wishListCategoryInput
@@ -294,7 +283,7 @@ export default function TaskForm({ task, onSubmit, onCancel }: TaskFormProps) {
 
       // Calculate proper dates based on recurrence
       // Pass true for isInitialCreation to get correct initial displayDate
-      const calculatedDates = calculateNextRecurrence(tempTask, true);
+      const calculatedDates = calculateNextRecurrence(tempTask, timeZoneSettings, true);
       dueDate = calculatedDates.dueDate;
       displayDate = calculatedDates.displayDate;
       displayDateOffset = hasEventDate ? data.displayDateOffset ?? 0 : null;

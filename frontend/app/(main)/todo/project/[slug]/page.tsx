@@ -6,12 +6,14 @@ import Link from "next/link";
 import { PencilIcon } from "@phosphor-icons/react";
 import type { LayoutRuleset, Project, Task } from "@/app/types/index";
 import { transformLayout } from "@/app/lib/layoutTransformers";
+import { useDateTimeSettings } from "@/app/contexts/DateTimeSettingsContext";
 import TaskSections from "../../components/TaskSections";
 import FaviconManager from "@/app/components/FaviconManager";
 import { useTaskData } from "../../contexts/TaskDataContext";
 import { buildRawTaskData } from "../../utils/buildRawTaskData";
 
 export default function ProjectPage() {
+  const { timeZoneSettings } = useDateTimeSettings();
   const params = useParams<{ slug: string }>();
   const slugOrId = params.slug;
 
@@ -57,7 +59,7 @@ export default function ProjectPage() {
         { worldMode: "all", worldIds: [], importance: "any", projectType: "any", recurrence: "both", longOnly: false },
       ],
     };
-    const transformed = transformLayout(buildRawTaskData(grouped), ruleset, []);
+    const transformed = transformLayout(buildRawTaskData(grouped), ruleset, timeZoneSettings, []);
     const column = (transformed.projectGroups?.[0]?.columns ?? []).find(
       (s) => "documentId" in s && s.documentId === documentId
     );

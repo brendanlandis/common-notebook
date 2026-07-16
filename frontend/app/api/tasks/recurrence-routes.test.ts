@@ -14,21 +14,14 @@ vi.mock('@/app/lib/dateUtils', async () => {
   return {
     ...actual,
     getTodayForRecurrence: vi.fn(),
-    getTodayInEST: vi.fn(),
-    getNowInEST: vi.fn(),
-    parseInEST: (dateString: string) => new Date(dateString + 'T00:00:00'),
-    toISODateInEST: (date: Date) => date.toISOString().split('T')[0],
-    getISOTimestampInEST: vi.fn(() => '2026-01-05T12:00:00.000Z'),
+    getToday: vi.fn(),
+    getNow: vi.fn(),
+    parseDate: (dateString: string) => new Date(dateString + 'T00:00:00'),
+    toISODate: (date: Date) => date.toISOString().split('T')[0],
+    getISOTimestamp: vi.fn(() => '2026-01-05T12:00:00.000Z'),
   };
 });
 
-// Mock timezone config
-vi.mock('@/app/lib/timezoneConfig', () => ({
-  getTimezone: vi.fn(() => 'America/New_York'),
-  setCachedTimezone: vi.fn(),
-  fetchTimezoneFromStrapi: vi.fn(),
-  saveTimezoneToStrapi: vi.fn(),
-}));
 
 // Helper to create minimal task for testing
 function createTask(overrides: Partial<Task>): Task {
@@ -94,10 +87,10 @@ describe('Recurring Task Routes - Skip vs Complete', () => {
     vi.mocked(dateUtils.getTodayForRecurrence).mockReturnValue(
       new Date('2026-01-05T00:00:00')
     );
-    vi.mocked(dateUtils.getTodayInEST).mockReturnValue(
+    vi.mocked(dateUtils.getToday).mockReturnValue(
       new Date('2026-01-05T00:00:00')
     );
-    vi.mocked(dateUtils.getNowInEST).mockReturnValue(
+    vi.mocked(dateUtils.getNow).mockReturnValue(
       new Date('2026-01-05T12:00:00')
     );
     

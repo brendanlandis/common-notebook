@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { PencilIcon, TrashIcon } from "@phosphor-icons/react";
 import type { PracticeLog } from "@/app/types/index";
-import { formatInEST } from "@/app/lib/dateUtils";
+import { formatInTimezone } from "@/app/lib/dateUtils";
+import { useDateTimeSettings } from "@/app/contexts/DateTimeSettingsContext";
 import PracticeForm from "./PracticeForm";
 import RichTextDisplay from "@/app/components/RichTextDisplay";
 
@@ -18,6 +19,7 @@ export default function PracticeSessionItem({
   onUpdate,
   onDelete,
 }: PracticeSessionItemProps) {
+  const { timeZoneSettings } = useDateTimeSettings();
   const [isEditing, setIsEditing] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -68,7 +70,7 @@ export default function PracticeSessionItem({
   }
 
   const startDate = new Date(practiceLog.start);
-  const date = formatInEST(startDate, "EEEE M/d");
+  const date = formatInTimezone(startDate, "EEEE M/d", timeZoneSettings);
 
   return (
     <div className="practice-session-item">

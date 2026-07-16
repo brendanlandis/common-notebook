@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAccessToken } from '@/app/lib/strapiAuth';
-import { getTodayInEST, toISODateInEST } from '@/app/lib/dateUtils';
+import { getToday, toISODate } from '@/app/lib/dateUtils';
+import { getTimeZoneSettings } from '@/app/lib/strapiServer';
 import { addDays } from 'date-fns';
 
 const STRAPI_API_URL = process.env.STRAPI_API_URL;
@@ -17,17 +18,18 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Calculate tomorrow and 4 days from now in EST
-    // getTodayInEST() returns midnight EST on the current EST day
-    const today = getTodayInEST();
-    
+    // Calculate tomorrow and 4 days from now in the owner's timezone
+    // getToday() returns midnight on their current day
+    const settings = await getTimeZoneSettings(token);
+    const today = getToday(settings);
+
     // Use addDays from date-fns to ensure proper date arithmetic
     // that works consistently across different server timezones
     const tomorrow = addDays(today, 1);
     const fourDaysOut = addDays(today, 4);
-    
-    const tomorrowString = toISODateInEST(tomorrow);
-    const fourDaysOutString = toISODateInEST(fourDaysOut);
+
+    const tomorrowString = toISODate(tomorrow, settings);
+    const fourDaysOutString = toISODate(fourDaysOut, settings);
 
     // Fetch incomplete tasks with displayDate in the next 4 days (excluding today)
     // Fetch all pages to ensure we get all tasks

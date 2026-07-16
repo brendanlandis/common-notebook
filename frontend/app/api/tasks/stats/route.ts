@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAccessToken } from '@/app/lib/strapiAuth';
-import { getTodayForRecurrence, toISODateInEST } from '@/app/lib/dateUtils';
+import { getTodayForRecurrence, toISODate } from '@/app/lib/dateUtils';
+import { getTimeZoneSettings } from '@/app/lib/strapiServer';
 
 const STRAPI_API_URL = process.env.STRAPI_API_URL;
 
@@ -27,10 +28,11 @@ export async function GET(req: NextRequest) {
     const days = parseInt(searchParams.get('days') || '7', 10);
 
     // Calculate the date range, respecting day boundary hour
-    const today = getTodayForRecurrence();
+    const settings = await getTimeZoneSettings(token);
+    const today = getTodayForRecurrence(settings);
     const daysAgo = new Date(today);
     daysAgo.setDate(daysAgo.getDate() - days);
-    const daysAgoString = toISODateInEST(daysAgo);
+    const daysAgoString = toISODate(daysAgo, settings);
 
     // Fetch completed tasks from the specified time range
     let allCompletedTasks: any[] = [];

@@ -7,10 +7,12 @@ import PracticeTimer from "./components/PracticeTimer";
 import PracticeSessionItem from "./components/PracticeSessionItem";
 import RichTextEditor from "@/app/components/RichTextEditor";
 import PracticeCharts from "./components/PracticeCharts";
-import { toISODateInEST, getTodayInEST } from "@/app/lib/dateUtils";
+import { toISODate, getToday } from "@/app/lib/dateUtils";
+import { useDateTimeSettings } from "@/app/contexts/DateTimeSettingsContext";
 import FaviconManager from "@/app/components/FaviconManager";
 
 export default function PracticePage() {
+  const { timeZoneSettings } = useDateTimeSettings();
   const { selectedPracticeType } = usePractice();
   const [practiceLogs, setPracticeLogs] = useState<PracticeLog[]>([]);
   const [activeSession, setActiveSession] = useState<PracticeLog | null>(null);
@@ -71,7 +73,7 @@ export default function PracticePage() {
       setIsStarting(true);
       const now = new Date();
       const startTime = now.toISOString();
-      const date = toISODateInEST(now);
+      const date = toISODate(now, timeZoneSettings);
 
       const response = await fetch("/api/practice-logs", {
         method: "POST",
@@ -230,10 +232,10 @@ export default function PracticePage() {
   }
 
   // Filter out active session and only show sessions from past 30 days
-  const today = getTodayInEST();
+  const today = getToday(timeZoneSettings);
   const thirtyDaysAgo = new Date(today);
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 29); // 29 days ago + today = 30 days total
-  const thirtyDaysAgoString = toISODateInEST(thirtyDaysAgo);
+  const thirtyDaysAgoString = toISODate(thirtyDaysAgo, timeZoneSettings);
   
   const completedLogs = practiceLogs.filter((log) => 
     log.stop !== null && log.date >= thirtyDaysAgoString

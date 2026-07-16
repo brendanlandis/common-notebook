@@ -1,19 +1,28 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render as rtlRender, screen } from '@testing-library/react';
 import TaskItem from './TaskItem';
+import { DateTimeSettingsProvider } from '@/app/contexts/DateTimeSettingsContext';
 import type { Task } from '@/app/types/index';
+
+// TaskItem resolves its dates against the provider's settings.
+const Wrapper = ({ children }: { children: React.ReactNode }) => (
+  <DateTimeSettingsProvider initial={{ timezone: 'America/New_York', dayBoundaryHour: 4 }}>
+    {children}
+  </DateTimeSettingsProvider>
+);
+const render = (ui: React.ReactElement) => rtlRender(ui, { wrapper: Wrapper });
 
 // Mock date utilities
 vi.mock('@/app/lib/dateUtils', () => ({
-  getNowInEST: vi.fn(() => new Date('2026-01-10T12:00:00.000Z')),
-  parseInEST: (dateString: string) => new Date(dateString + 'T00:00:00'),
-  formatInEST: (date: Date, format: string) => {
+  getNow: vi.fn(() => new Date('2026-01-10T12:00:00.000Z')),
+  parseDate: (dateString: string) => new Date(dateString + 'T00:00:00'),
+  formatInTimezone: (date: Date, format: string) => {
     if (format === 'h:mm a') {
       return '10:00 AM';
     }
     return 'Monday';
   },
-  toISODateInEST: (date: Date) => date.toISOString().split('T')[0],
+  toISODate: (date: Date) => date.toISOString().split('T')[0],
 }));
 
 // Helper to create minimal task

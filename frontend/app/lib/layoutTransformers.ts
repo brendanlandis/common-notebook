@@ -8,9 +8,8 @@ import type {
   ImportanceFilter,
   RecurrenceType,
 } from "@/app/types/index";
-import { getTodayInEST, parseInEST, formatInEST, toISODateInEST, toZonedTime } from "@/app/lib/dateUtils";
-import { getTimezone } from "@/app/lib/timezoneConfig";
-import { getDayBoundaryHour } from "@/app/lib/dayBoundaryConfig";
+import { getToday, parseDate, formatInTimezone, toISODate, toZonedTime } from "@/app/lib/dateUtils";
+import type { TimeZoneSettings } from "@/app/lib/timeZoneSettings";
 import { getProjectPriority } from "@/app/lib/projectPriority";
 import { getTaskProjectType } from "@/app/lib/taskProjectType";
 import { resolveVisibleWorldIds, STUFF_SYSTEM_KEY } from "@/app/lib/worlds";
@@ -105,7 +104,8 @@ function taskMatchesSection(
   task: Task,
   section: FilterSet,
   ctx: SectionContext,
-  ruleset: LayoutRuleset
+  ruleset: LayoutRuleset,
+  settings: TimeZoneSettings
 ): boolean {
   // Recurrence
   if (section.recurrence === "recurring" && !task.isRecurring) return false;
@@ -114,7 +114,7 @@ function taskMatchesSection(
   // Global "hidden until" gate: a future displayDate hides a task in every view.
   // Recurring tasks are pre-filtered by displayDate at the source (groupTasks).
   if (!ruleset.ignoreDisplayDate && !task.isRecurring && task.displayDate) {
-    if (parseInEST(task.displayDate) > getTodayInEST()) return false;
+    if (parseDate(task.displayDate, settings) > getToday(settings)) return false;
   }
 
   // World scope — skipped when the view is project-scoped (the per-project
@@ -162,7 +162,8 @@ function collectSectionTasks(
   section: FilterSet,
   ruleset: LayoutRuleset,
   worlds: World[],
-  claimed: Set<string>
+  claimed: Set<string>,
+  settings: TimeZoneSettings
 ): Task[] {
   const ctx: SectionContext = {
     visibleWorldIds: resolveVisibleWorldIds(section.worldMode, section.worldIds, worlds),
@@ -171,7 +172,7 @@ function collectSectionTasks(
   const matched: Task[] = [];
   for (const task of allTasks) {
     if (claimed.has(task.documentId)) continue;
-    if (!taskMatchesSection(task, section, ctx, ruleset)) continue;
+    if (!taskMatchesSection(task, section, ctx, ruleset, settings)) continue;
     claimed.add(task.documentId);
     matched.push(task);
   }
@@ -326,14 +327,14 @@ function groupByStuffCategory(tasks: Task[]): { columns: Section[]; incidentals:
 
 // ── Layout: projects ─────────────────────────────────────────────────────────
 
-function transformProjects(data: RawTaskData, ruleset: LayoutRuleset, worlds: World[]): TransformedLayout {
+function transformProjects(data: RawTaskData, ruleset: LayoutRuleset, worlds: World[], settings: TimeZoneSettings): TransformedLayout {
   const isStuff = ruleset.systemKey === STUFF_SYSTEM_KEY;
   const allTasks = allTasksFrom(data);
   const claimed = new Set<string>();
   const projectGroups: ProjectGroup[] = [];
 
   for (const section of ruleset.sections) {
-    const matched = collectSectionTasks(allTasks, section, ruleset, worlds, claimed);
+    const matched = collectSectionTasks(allTasks, section, ruleset, worlds, claimed, settings);
     const grouped = isStuff ? groupByStuffCategory(matched) : groupByProject(matched);
     projectGroups.push({
       name: section.name || undefined,
@@ -347,19 +348,19 @@ function transformProjects(data: RawTaskData, ruleset: LayoutRuleset, worlds: Wo
 
 // ── Layout: chronological ────────────────────────────────────────────────────
 
-function transformChronological(data: RawTaskData, ruleset: LayoutRuleset, worlds: World[]): TransformedLayout {
+function transformChronological(data: RawTaskData, ruleset: LayoutRuleset, worlds: World[], settings: TimeZoneSettings): TransformedLayout {
   const section = ruleset.sections[0];
   if (!section) return { chronologicalTasks: [] };
-  const matched = collectSectionTasks(allTasksFrom(data), section, ruleset, worlds, new Set());
+  const matched = collectSectionTasks(allTasksFrom(data), section, ruleset, worlds, new Set(), settings);
   return { chronologicalTasks: sortTasks(matched, "creationDate") };
 }
 
 // ── Layout: roulette ─────────────────────────────────────────────────────────
 
-function transformRoulette(data: RawTaskData, ruleset: LayoutRuleset, worlds: World[]): TransformedLayout {
+function transformRoulette(data: RawTaskData, ruleset: LayoutRuleset, worlds: World[], settings: TimeZoneSettings): TransformedLayout {
   const section = ruleset.sections[0];
   if (!section) return { rouletteTasks: [] };
-  const matched = collectSectionTasks(allTasksFrom(data), section, ruleset, worlds, new Set());
+  const matched = collectSectionTasks(allTasksFrom(data), section, ruleset, worlds, new Set(), settings);
   return { rouletteTasks: matched.filter((t) => !t.completed) };
 }
 
@@ -459,7 +460,7 @@ function transformRecurringReview(data: RawTaskData): TransformedLayout {
 
 // ── Code preset: done ────────────────────────────────────────────────────────
 
-function transformDone(data: RawTaskData): TransformedLayout {
+function transformDone(data: RawTaskData, settings: TimeZoneSettings): TransformedLayout {
   // Completed tasks, excluding "in the mail" / "errands" project types.
   const completedTasks = (data.completedTasks || []).filter(
     (task) => getTaskProjectType(task) !== "in the mail" && getTaskProjectType(task) !== "errands"
@@ -468,11 +469,11 @@ function transformDone(data: RawTaskData): TransformedLayout {
   const tasksByDate = new Map<string, Task[]>();
   completedTasks.forEach((task) => {
     if (task.completedAt) {
-      const completedDate = toZonedTime(new Date(task.completedAt), getTimezone());
+      const completedDate = toZonedTime(new Date(task.completedAt), settings.timezone);
       const hour = completedDate.getUTCHours();
       const adjustedDate = new Date(completedDate);
-      if (hour < getDayBoundaryHour()) adjustedDate.setDate(adjustedDate.getDate() - 1);
-      const dateKey = toISODateInEST(adjustedDate);
+      if (hour < settings.dayBoundaryHour) adjustedDate.setDate(adjustedDate.getDate() - 1);
+      const dateKey = toISODate(adjustedDate, settings);
       if (!tasksByDate.has(dateKey)) tasksByDate.set(dateKey, []);
       tasksByDate.get(dateKey)!.push(task);
     }
@@ -496,26 +497,26 @@ function transformDone(data: RawTaskData): TransformedLayout {
   });
 
   // 30-day window (today + 29 prior), most-recent first.
-  const nowInEST = toZonedTime(new Date(), getTimezone());
+  const nowInEST = toZonedTime(new Date(), settings.timezone);
   const hour = nowInEST.getUTCHours();
-  const todayDate = new Date(getTodayInEST());
-  if (hour < getDayBoundaryHour()) todayDate.setDate(todayDate.getDate() - 1);
+  const todayDate = new Date(getToday(settings));
+  if (hour < settings.dayBoundaryHour) todayDate.setDate(todayDate.getDate() - 1);
   const thirtyDaysAgo = new Date(todayDate);
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 29);
-  const cutoffDateISO = toISODateInEST(thirtyDaysAgo);
+  const cutoffDateISO = toISODate(thirtyDaysAgo, settings);
 
   const doneSections: TaskGroup[] = Array.from(tasksByDate.entries())
     .filter(([dateKey]) => dateKey >= cutoffDateISO)
     .sort(([dateA], [dateB]) => dateB.localeCompare(dateA))
     .map(([dateKey, tasks]) => {
-      const date = parseInEST(dateKey);
+      const date = parseDate(dateKey, settings);
       const yesterdayDate = new Date(todayDate);
       yesterdayDate.setDate(yesterdayDate.getDate() - 1);
-      const dateISO = toISODateInEST(date);
+      const dateISO = toISODate(date, settings);
       let dateTitle: string;
-      if (dateISO === toISODateInEST(todayDate)) dateTitle = "today";
-      else if (dateISO === toISODateInEST(yesterdayDate)) dateTitle = "yesterday";
-      else dateTitle = formatInEST(date, "EEE MM/d").toLowerCase();
+      if (dateISO === toISODate(todayDate, settings)) dateTitle = "today";
+      else if (dateISO === toISODate(yesterdayDate, settings)) dateTitle = "yesterday";
+      else dateTitle = formatInTimezone(date, "EEE MM/d", settings).toLowerCase();
 
       const sortedTasks = tasks.sort((a, b) => {
         if (!a.completedAt && !b.completedAt) return 0;
@@ -534,13 +535,13 @@ function transformDone(data: RawTaskData): TransformedLayout {
       upcomingByDate.get(task.displayDate)!.push(task);
     }
   });
-  const actualToday = getTodayInEST();
+  const actualToday = getToday(settings);
   const upcomingTasksByDay: TaskGroup[] = [];
   for (let i = 0; i < 4; i++) {
     const currentDate = addDays(actualToday, i + 1);
-    const dateKey = toISODateInEST(currentDate);
+    const dateKey = toISODate(currentDate, settings);
     const tasks = upcomingByDate.get(dateKey) || [];
-    const dateTitle = i === 0 ? "tomorrow" : formatInEST(currentDate, "EEEE").toLowerCase();
+    const dateTitle = i === 0 ? "tomorrow" : formatInTimezone(currentDate, "EEEE", settings).toLowerCase();
     upcomingTasksByDay.push({ title: dateTitle, tasks });
   }
 
@@ -552,19 +553,20 @@ function transformDone(data: RawTaskData): TransformedLayout {
 export function transformLayout(
   data: RawTaskData,
   ruleset: LayoutRuleset,
+  settings: TimeZoneSettings,
   worlds: World[] = []
 ): TransformedLayout {
   // Code presets win over `layout`.
   if (ruleset.codePreset === "recurring") return transformRecurringReview(data);
-  if (ruleset.codePreset === "done") return transformDone(data);
+  if (ruleset.codePreset === "done") return transformDone(data, settings);
 
   switch (ruleset.layout) {
     case "chronological":
-      return transformChronological(data, ruleset, worlds);
+      return transformChronological(data, ruleset, worlds, settings);
     case "roulette":
-      return transformRoulette(data, ruleset, worlds);
+      return transformRoulette(data, ruleset, worlds, settings);
     case "projects":
     default:
-      return transformProjects(data, ruleset, worlds);
+      return transformProjects(data, ruleset, worlds, settings);
   }
 }

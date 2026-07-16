@@ -1,7 +1,8 @@
 import { addDays, addMonths, addYears, nextDay, setDate, setMonth, getDay, startOfMonth, lastDayOfMonth, subDays, addWeeks, type Day } from 'date-fns';
 import * as Astronomy from 'astronomy-engine';
 import type { Task } from '../types/index';
-import { getNowInEST, getTodayInEST, toISODateInEST, parseInEST, getTodayForRecurrence } from './dateUtils';
+import { toISODate, parseDate, getTodayForRecurrence } from './dateUtils';
+import type { TimeZoneSettings } from './timeZoneSettings';
 import { validateRecurrenceFields } from './recurrenceSpec';
 
 /**
@@ -40,10 +41,15 @@ function hasEventDate(recurrenceType: string): boolean {
  * and use appropriate calculation modes based on recurrence type.
  * 
  * @param task - The task item with recurrence settings
+ * @param settings - The owner's timezone and day boundary hour
  * @param isInitialCreation - True when creating a new recurring task, false when calculating next occurrence after completion
  * @returns Object with dueDate and displayDate, or null values if not recurring
  */
-export function calculateNextRecurrence(task: Task, isInitialCreation: boolean = false): { dueDate: string | null; displayDate: string | null } {
+export function calculateNextRecurrence(
+  task: Task,
+  settings: TimeZoneSettings,
+  isInitialCreation: boolean = false
+): { dueDate: string | null; displayDate: string | null } {
   if (!task.isRecurring) {
     return { dueDate: null, displayDate: null };
   }
@@ -59,21 +65,21 @@ export function calculateNextRecurrence(task: Task, isInitialCreation: boolean =
   
   if (isEventBased) {
     // Calculate the actual event date
-    const eventDate = calculateEventDate(task);
+    const eventDate = calculateEventDate(task, settings);
     if (!eventDate) {
       return { dueDate: null, displayDate: null };
     }
-    
+
     const offset = task.displayDateOffset ?? 0;
-    
+
     if (offset > 0) {
       // When offset > 0: show task before the event
       // displayDate = when to show the task (event - offset)
       // dueDate = the actual event date
-      const eventDateObj = parseInEST(eventDate);
+      const eventDateObj = parseDate(eventDate, settings);
       const displayDateObj = subDays(eventDateObj, offset);
-      const displayDate = toISODateInEST(displayDateObj);
-      
+      const displayDate = toISODate(displayDateObj, settings);
+
       return { dueDate: eventDate, displayDate };
     } else {
       // When offset is 0 or null: show task on the day of the event
@@ -83,7 +89,7 @@ export function calculateNextRecurrence(task: Task, isInitialCreation: boolean =
     }
   } else {
     // Simple recurring tasks (daily, weekly, etc.) - only displayDate needed
-    const displayDate = calculateNextDisplayDate(task, isInitialCreation);
+    const displayDate = calculateNextDisplayDate(task, settings, isInitialCreation);
     return { dueDate: null, displayDate };
   }
 }
@@ -93,17 +99,18 @@ export function calculateNextRecurrence(task: Task, isInitialCreation: boolean =
  * Uses max(completionDate, eventDate) to prevent duplicate occurrences
  * 
  * @param task - The task item with recurrence settings
+ * @param settings - The owner's timezone and day boundary hour
  * @returns The next event date as ISO string, or null
  */
-function calculateEventDate(task: Task): string | null {
-  const today = getTodayForRecurrence();
+function calculateEventDate(task: Task, settings: TimeZoneSettings): string | null {
+  const today = getTodayForRecurrence(settings);
   
   // Reference date is the later of: completion date or existing event date
   // This prevents creating duplicate events when completing before the event date
   const existingEventDate = task.dueDate 
-    ? parseInEST(task.dueDate) 
+    ? parseDate(task.dueDate, settings) 
     : task.displayDate 
-    ? parseInEST(task.displayDate) 
+    ? parseDate(task.displayDate, settings) 
     : null;
   
   const comparisonDate = existingEventDate && existingEventDate > today
@@ -132,12 +139,12 @@ function calculateEventDate(task: Task): string | null {
       // Always move to the next month after comparisonDate
       // Compare ISO date strings in configured timezone instead of using startOfDay()
       // which uses system timezone and causes issues on UTC servers
-      if (toISODateInEST(targetDate) <= toISODateInEST(comparisonDate)) {
+      if (toISODate(targetDate, settings) <= toISODate(comparisonDate, settings)) {
         const monthAdded = addMonths(comparisonDate, 1);
         targetDate = setDayOfMonth(monthAdded, task.recurrenceDayOfMonth);
       }
       
-      return toISODateInEST(targetDate);
+      return toISODate(targetDate, settings);
 
     case 'monthly day':
       if (
@@ -183,11 +190,11 @@ function calculateEventDate(task: Task): string | null {
       
       // Always move to the next month after comparisonDate
       // Compare ISO date strings in configured timezone (startOfDay uses system timezone)
-      if (toISODateInEST(targetMonthlyDate) <= toISODateInEST(comparisonDate)) {
+      if (toISODate(targetMonthlyDate, settings) <= toISODate(comparisonDate, settings)) {
         targetMonthlyDate = findNthWeekdayOfMonth(addMonths(comparisonDate, 1));
       }
       
-      return toISODateInEST(targetMonthlyDate);
+      return toISODate(targetMonthlyDate, settings);
 
     case 'annually':
       if (
@@ -215,62 +222,62 @@ function calculateEventDate(task: Task): string | null {
       
       // Always move to the next year after comparisonDate
       // Compare ISO date strings in configured timezone (startOfDay uses system timezone)
-      if (toISODateInEST(annualDate) <= toISODateInEST(comparisonDate)) {
+      if (toISODate(annualDate, settings) <= toISODate(comparisonDate, settings)) {
         const nextYear = addYears(comparisonDate, 1);
         annualDate = setAnnualDate(nextYear, task.recurrenceMonth, task.recurrenceDayOfMonth);
       }
       
-      return toISODateInEST(annualDate);
+      return toISODate(annualDate, settings);
 
     case 'full moon':
       // Start search from the day after comparisonDate to ensure we get the NEXT full moon
       const fullMoonSearchStart = addDays(comparisonDate, 1);
       const nextFullMoon = Astronomy.SearchMoonPhase(180, fullMoonSearchStart, 40);
       if (!nextFullMoon) return null;
-      return toISODateInEST(nextFullMoon.date);
+      return toISODate(nextFullMoon.date, settings);
 
     case 'new moon':
       // Start search from the day after comparisonDate to ensure we get the NEXT new moon
       const searchStartDate = addDays(comparisonDate, 1);
       const nextNewMoon = Astronomy.SearchMoonPhase(0, searchStartDate, 40);
       if (!nextNewMoon) return null;
-      return toISODateInEST(nextNewMoon.date);
+      return toISODate(nextNewMoon.date, settings);
 
     case 'spring equinox':
       const springYear = comparisonDate.getFullYear();
       let springEquinox = Astronomy.Seasons(springYear).mar_equinox;
       // Compare ISO date strings in configured timezone (startOfDay uses system timezone)
-      if (toISODateInEST(springEquinox.date) <= toISODateInEST(comparisonDate)) {
+      if (toISODate(springEquinox.date, settings) <= toISODate(comparisonDate, settings)) {
         springEquinox = Astronomy.Seasons(springYear + 1).mar_equinox;
       }
-      return toISODateInEST(springEquinox.date);
+      return toISODate(springEquinox.date, settings);
 
     case 'summer solstice':
       const summerYear = comparisonDate.getFullYear();
       let summerSolstice = Astronomy.Seasons(summerYear).jun_solstice;
       // Compare ISO date strings in configured timezone (startOfDay uses system timezone)
-      if (toISODateInEST(summerSolstice.date) <= toISODateInEST(comparisonDate)) {
+      if (toISODate(summerSolstice.date, settings) <= toISODate(comparisonDate, settings)) {
         summerSolstice = Astronomy.Seasons(summerYear + 1).jun_solstice;
       }
-      return toISODateInEST(summerSolstice.date);
+      return toISODate(summerSolstice.date, settings);
 
     case 'autumn equinox':
       const autumnYear = comparisonDate.getFullYear();
       let autumnEquinox = Astronomy.Seasons(autumnYear).sep_equinox;
       // Compare ISO date strings in configured timezone (startOfDay uses system timezone)
-      if (toISODateInEST(autumnEquinox.date) <= toISODateInEST(comparisonDate)) {
+      if (toISODate(autumnEquinox.date, settings) <= toISODate(comparisonDate, settings)) {
         autumnEquinox = Astronomy.Seasons(autumnYear + 1).sep_equinox;
       }
-      return toISODateInEST(autumnEquinox.date);
+      return toISODate(autumnEquinox.date, settings);
 
     case 'winter solstice':
       const winterYear = comparisonDate.getFullYear();
       let winterSolstice = Astronomy.Seasons(winterYear).dec_solstice;
       // Compare ISO date strings in configured timezone (startOfDay uses system timezone)
-      if (toISODateInEST(winterSolstice.date) <= toISODateInEST(comparisonDate)) {
+      if (toISODate(winterSolstice.date, settings) <= toISODate(comparisonDate, settings)) {
         winterSolstice = Astronomy.Seasons(winterYear + 1).dec_solstice;
       }
-      return toISODateInEST(winterSolstice.date);
+      return toISODate(winterSolstice.date, settings);
 
     case 'every season':
       const seasonYear = comparisonDate.getFullYear();
@@ -286,9 +293,9 @@ function calculateEventDate(task: Task): string | null {
       ];
       
       // Compare ISO date strings in configured timezone (startOfDay uses system timezone)
-      const comparisonDayISO = toISODateInEST(comparisonDate);
-      const nextSeason = allSeasons.find(date => toISODateInEST(date) > comparisonDayISO);
-      return nextSeason ? toISODateInEST(nextSeason) : null;
+      const comparisonDayISO = toISODate(comparisonDate, settings);
+      const nextSeason = allSeasons.find(date => toISODate(date, settings) > comparisonDayISO);
+      return nextSeason ? toISODate(nextSeason, settings) : null;
 
     default:
       return null;
@@ -300,30 +307,35 @@ function calculateEventDate(task: Task): string | null {
  * Respects day boundary hour for determining "today"
  * 
  * @param task - The task item with recurrence settings
+ * @param settings - The owner's timezone and day boundary hour
  * @param isInitialCreation - True when creating a new recurring task
  * @returns The next display date as ISO string, or null
  */
-function calculateNextDisplayDate(task: Task, isInitialCreation: boolean = false): string | null {
-  // Use getTodayForRecurrence() which respects day boundary hour
-  const today = getTodayForRecurrence();
+function calculateNextDisplayDate(
+  task: Task,
+  settings: TimeZoneSettings,
+  isInitialCreation: boolean = false
+): string | null {
+  // Use getTodayForRecurrence(settings) which respects day boundary hour
+  const today = getTodayForRecurrence(settings);
 
   switch (task.recurrenceType) {
     case 'daily':
       if (isInitialCreation) {
         // On initial creation, display today
-        return toISODateInEST(today);
+        return toISODate(today, settings);
       }
       // After completion, next occurrence is tomorrow
-      return toISODateInEST(addDays(today, 1));
+      return toISODate(addDays(today, 1), settings);
 
     case 'every x days':
       if (!task.recurrenceInterval) return null;
       if (isInitialCreation) {
         // On initial creation, display today
-        return toISODateInEST(today);
+        return toISODate(today, settings);
       }
       // After completion, next occurrence is X days from today
-      return toISODateInEST(addDays(today, task.recurrenceInterval));
+      return toISODate(addDays(today, task.recurrenceInterval), settings);
 
     case 'weekly':
       if (task.recurrenceDayOfWeek === null || task.recurrenceDayOfWeek === undefined) return null;
@@ -333,7 +345,7 @@ function calculateNextDisplayDate(task: Task, isInitialCreation: boolean = false
       if (isInitialCreation) {
         // On initial creation, find next occurrence of target weekday (not today)
         const nextWeekDay = nextDay(today, dayOfWeek as Day);
-        return toISODateInEST(nextWeekDay);
+        return toISODate(nextWeekDay, settings);
       }
       
       // After completion, find next occurrence of target weekday
@@ -341,11 +353,11 @@ function calculateNextDisplayDate(task: Task, isInitialCreation: boolean = false
       
       if (completionDay === dayOfWeek) {
         // Completed on the correct day, next occurrence is 7 days later
-        return toISODateInEST(addDays(today, 7));
+        return toISODate(addDays(today, 7), settings);
       } else {
         // Completed on different day, find next occurrence of target day
         const nextWeekDay = nextDay(today, dayOfWeek as Day);
-        return toISODateInEST(nextWeekDay);
+        return toISODate(nextWeekDay, settings);
       }
 
     case 'biweekly':
@@ -356,32 +368,22 @@ function calculateNextDisplayDate(task: Task, isInitialCreation: boolean = false
       if (isInitialCreation) {
         // On initial creation, find next occurrence of target weekday
         const nextBiweeklyDay = nextDay(today, biweeklyDayOfWeek as Day);
-        return toISODateInEST(nextBiweeklyDay);
+        return toISODate(nextBiweeklyDay, settings);
       }
       
       // After completion, maintain 14-day cycle from displayDate anchor
       // Add 14 days repeatedly until we get a future date
       if (!task.displayDate) return null;
       
-      let nextDate = parseInEST(task.displayDate);
+      let nextDate = parseDate(task.displayDate, settings);
       do {
         nextDate = addDays(nextDate, 14);
       } while (nextDate <= today);
       
-      return toISODateInEST(nextDate);
+      return toISODate(nextDate, settings);
 
     default:
       return null;
   }
-}
-
-/**
- * Legacy function for backward compatibility
- * @deprecated Use calculateNextRecurrence instead
- */
-export function calculateNextDueDate(task: Task): string | null {
-  const result = calculateNextRecurrence(task);
-  // Return whichever date is set (displayDate for most types, dueDate for event types)
-  return result.displayDate || result.dueDate;
 }
 

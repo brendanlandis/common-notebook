@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAccessToken } from '@/app/lib/strapiAuth';
+import { getTimeZoneSettings } from '@/app/lib/strapiServer';
 import type { Task } from '@/app/types/index';
 import { toZonedTime } from 'date-fns-tz';
 import { format as formatTz } from 'date-fns-tz';
@@ -22,30 +23,9 @@ export async function POST(
       );
     }
 
-    // Get timezone from request body
-    const body = await req.json();
-    const timezone = body.timezone || 'America/New_York';
-
-    // Fetch day boundary hour setting
-    const dayBoundaryResponse = await fetch(
-      `${req.nextUrl.origin}/api/system-settings?title=dayBoundaryHour`,
-      {
-        headers: {
-          Cookie: req.headers.get('cookie') || '',
-        },
-      }
-    );
-
-    let dayBoundaryHour = 0; // Default to midnight
-    if (dayBoundaryResponse.ok) {
-      const dayBoundaryData = await dayBoundaryResponse.json();
-      if (dayBoundaryData.success && dayBoundaryData.value) {
-        const parsedHour = parseInt(dayBoundaryData.value, 10);
-        if (!isNaN(parsedHour) && parsedHour >= 0 && parsedHour <= 23) {
-          dayBoundaryHour = parsedHour;
-        }
-      }
-    }
+    // The client used to post its own timezone here, because the server had no
+    // way to resolve one. It does now, from the caller's token.
+    const { timezone, dayBoundaryHour } = await getTimeZoneSettings(token);
 
     // Get the task
     const getTaskResponse = await fetch(

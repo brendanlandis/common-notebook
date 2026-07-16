@@ -8,23 +8,24 @@ import {
   saveVisibilityMinutesToStrapi,
 } from "@/app/lib/completedTaskVisibilityConfig";
 import {
-  fetchDayBoundaryHourFromStrapi,
-  saveDayBoundaryHourToStrapi,
-} from "@/app/lib/dayBoundaryConfig";
-import {
   fetchAutoDeclutterFromStrapi,
   saveAutoDeclutterToStrapi,
 } from "@/app/lib/autoDeclutterConfig";
 import { saveStuffProjectsEnabledToStrapi } from "@/app/lib/stuffProjectsConfig";
+import { saveSystemSetting } from "@/app/lib/systemSettingsClient";
 import { useStuffProjects } from "@/app/contexts/StuffProjectsContext";
+import { useDateTimeSettings } from "@/app/contexts/DateTimeSettingsContext";
 import WorldsManager from "./components/WorldsManager";
 import ViewsManager from "./components/ViewsManager";
 
 export default function SettingsPage() {
   const [visibilityMinutes, setVisibilityMinutes] = useState<number>(15); // Default to 15 minutes
-  const [dayBoundaryHour, setDayBoundaryHour] = useState<number>(0); // Default to midnight
   const [autoDeclutter, setAutoDeclutter] = useState<boolean>(true); // Default on
   const { stuffProjectsEnabled, setStuffProjectsEnabled } = useStuffProjects();
+  // The day boundary is owned by DateTimeSettingsProvider (loaded server-side in the
+  // layout), so this page edits it in place rather than keeping a second copy.
+  const { timeZoneSettings, setTimeZoneSettings } = useDateTimeSettings();
+  const dayBoundaryHour = timeZoneSettings.dayBoundaryHour;
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -35,10 +36,6 @@ export default function SettingsPage() {
       const minutes = await fetchVisibilityMinutesFromStrapi();
       if (minutes !== null) {
         setVisibilityMinutes(minutes);
-      }
-      const hour = await fetchDayBoundaryHourFromStrapi();
-      if (hour !== null) {
-        setDayBoundaryHour(hour);
       }
       const declutter = await fetchAutoDeclutterFromStrapi();
       if (declutter !== null) {
@@ -69,11 +66,12 @@ export default function SettingsPage() {
     event: React.ChangeEvent<HTMLSelectElement>
   ) => {
     const newValue = parseInt(event.target.value, 10);
-    setDayBoundaryHour(newValue);
     setIsSaving(true);
 
-    const success = await saveDayBoundaryHourToStrapi(newValue);
-    if (!success) {
+    const success = await saveSystemSetting("dayBoundaryHour", String(newValue));
+    if (success) {
+      setTimeZoneSettings({ ...timeZoneSettings, dayBoundaryHour: newValue });
+    } else {
       console.error("Failed to save day boundary setting");
     }
 

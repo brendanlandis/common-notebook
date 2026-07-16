@@ -13,6 +13,7 @@ vi.mock('./strapiServer', () => ({
   upsertSystemSetting: (...a: unknown[]) => upsertSystemSetting(...a),
   fetchAllPages: (...a: unknown[]) => fetchAllPages(...a),
   strapiFetch: (...a: unknown[]) => strapiFetch(...a),
+  getTimeZoneSettings: async () => ({ timezone: 'America/New_York', dayBoundaryHour: 4 }),
 }));
 
 const hasNewMoonSinceDate = vi.fn();

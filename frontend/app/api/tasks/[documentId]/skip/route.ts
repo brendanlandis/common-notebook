@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAccessToken } from '@/app/lib/strapiAuth';
 import { calculateNextRecurrence } from '@/app/lib/recurrence';
 import type { Task } from '@/app/types/index';
+import { getTimeZoneSettings } from '@/app/lib/strapiServer';
 
 const STRAPI_API_URL = process.env.STRAPI_API_URL;
 
@@ -51,7 +52,8 @@ export async function POST(
     let newTask = null;
 
     // Create next instance
-    const nextDates = calculateNextRecurrence(task);
+    const settings = await getTimeZoneSettings(token);
+    const nextDates = calculateNextRecurrence(task, settings);
 
     if (nextDates.displayDate || nextDates.dueDate) {
       const createResponse = await fetch(`${STRAPI_API_URL}/api/tasks?populate=project`, {

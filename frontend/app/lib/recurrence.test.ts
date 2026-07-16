@@ -2,6 +2,10 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { calculateNextRecurrence } from './recurrence';
 import type { Task } from '@/app/types/index';
 import * as dateUtils from './dateUtils';
+import type { TimeZoneSettings } from './timeZoneSettings';
+
+// The timezone and day boundary are parameters now; these tests pin them.
+const EST: TimeZoneSettings = { timezone: 'America/New_York', dayBoundaryHour: 4 };
 
 // Mock the date utilities to have consistent test dates
 vi.mock('./dateUtils', async () => {
@@ -9,19 +13,12 @@ vi.mock('./dateUtils', async () => {
   return {
     ...actual,
     getTodayForRecurrence: vi.fn(),
-    getTodayInEST: vi.fn(),
-    parseInEST: (dateString: string) => new Date(dateString + 'T00:00:00'),
-    toISODateInEST: (date: Date) => date.toISOString().split('T')[0],
+    getToday: vi.fn(),
+    parseDate: (dateString: string) => new Date(dateString + 'T00:00:00'),
+    toISODate: (date: Date) => date.toISOString().split('T')[0],
   };
 });
 
-// Mock the timezone config to ensure consistent behavior across environments
-vi.mock('./timezoneConfig', () => ({
-  getTimezone: vi.fn(() => 'America/New_York'),
-  setCachedTimezone: vi.fn(),
-  fetchTimezoneFromStrapi: vi.fn(),
-  saveTimezoneToStrapi: vi.fn(),
-}));
 
 // Helper to create minimal task for testing
 function createTask(overrides: Partial<Task>): Task {
@@ -63,7 +60,7 @@ describe('Recurrence Logic', () => {
     vi.mocked(dateUtils.getTodayForRecurrence).mockReturnValue(
       new Date('2026-01-05T00:00:00')
     );
-    vi.mocked(dateUtils.getTodayInEST).mockReturnValue(
+    vi.mocked(dateUtils.getToday).mockReturnValue(
       new Date('2026-01-05T00:00:00')
     );
   });
@@ -76,7 +73,7 @@ describe('Recurrence Logic', () => {
         displayDate: null,
       });
 
-      const result = calculateNextRecurrence(task, true);
+      const result = calculateNextRecurrence(task, EST, true);
 
       expect(result.displayDate).toBe('2026-01-05'); // Today
       expect(result.dueDate).toBe(null);
@@ -89,7 +86,7 @@ describe('Recurrence Logic', () => {
         displayDate: '2026-01-05',
       });
 
-      const result = calculateNextRecurrence(task, false);
+      const result = calculateNextRecurrence(task, EST, false);
 
       expect(result.displayDate).toBe('2026-01-06'); // Tomorrow
       expect(result.dueDate).toBe(null);
@@ -107,7 +104,7 @@ describe('Recurrence Logic', () => {
         displayDate: '2026-01-05',
       });
 
-      const result = calculateNextRecurrence(task, false);
+      const result = calculateNextRecurrence(task, EST, false);
 
       expect(result.displayDate).toBe('2026-01-11'); // Day after actual completion
     });
@@ -121,7 +118,7 @@ describe('Recurrence Logic', () => {
         recurrenceInterval: 3,
       });
 
-      const result = calculateNextRecurrence(task, true);
+      const result = calculateNextRecurrence(task, EST, true);
 
       expect(result.displayDate).toBe('2026-01-05'); // Today
     });
@@ -134,7 +131,7 @@ describe('Recurrence Logic', () => {
         displayDate: '2026-01-05',
       });
 
-      const result = calculateNextRecurrence(task, false);
+      const result = calculateNextRecurrence(task, EST, false);
 
       expect(result.displayDate).toBe('2026-01-08'); // 3 days later
     });
@@ -146,7 +143,7 @@ describe('Recurrence Logic', () => {
         recurrenceInterval: 7,
       });
 
-      const result = calculateNextRecurrence(task, false);
+      const result = calculateNextRecurrence(task, EST, false);
 
       expect(result.displayDate).toBe('2026-01-12'); // 7 days later
     });
@@ -158,7 +155,7 @@ describe('Recurrence Logic', () => {
         recurrenceInterval: null,
       });
 
-      const result = calculateNextRecurrence(task, false);
+      const result = calculateNextRecurrence(task, EST, false);
 
       expect(result.displayDate).toBe(null);
     });
@@ -173,7 +170,7 @@ describe('Recurrence Logic', () => {
         recurrenceDayOfWeek: 3, // Wednesday
       });
 
-      const result = calculateNextRecurrence(task, true);
+      const result = calculateNextRecurrence(task, EST, true);
 
       expect(result.displayDate).toBe('2026-01-07'); // Next Wednesday
     });
@@ -187,7 +184,7 @@ describe('Recurrence Logic', () => {
         displayDate: '2026-01-05',
       });
 
-      const result = calculateNextRecurrence(task, false);
+      const result = calculateNextRecurrence(task, EST, false);
 
       expect(result.displayDate).toBe('2026-01-12'); // Next Monday (7 days, NOT 14)
     });
@@ -201,7 +198,7 @@ describe('Recurrence Logic', () => {
         displayDate: '2026-01-01',
       });
 
-      const result = calculateNextRecurrence(task, false);
+      const result = calculateNextRecurrence(task, EST, false);
 
       expect(result.displayDate).toBe('2026-01-07'); // Next Wednesday
     });
@@ -214,7 +211,7 @@ describe('Recurrence Logic', () => {
         recurrenceDayOfWeek: 7, // Sunday
       });
 
-      const result = calculateNextRecurrence(task, false);
+      const result = calculateNextRecurrence(task, EST, false);
 
       expect(result.displayDate).toBe('2026-01-11'); // Next Sunday
     });
@@ -226,7 +223,7 @@ describe('Recurrence Logic', () => {
         recurrenceDayOfWeek: null,
       });
 
-      const result = calculateNextRecurrence(task, false);
+      const result = calculateNextRecurrence(task, EST, false);
 
       expect(result.displayDate).toBe(null);
     });
@@ -240,7 +237,7 @@ describe('Recurrence Logic', () => {
         recurrenceDayOfWeek: 1, // Monday
       });
 
-      const result = calculateNextRecurrence(task, true);
+      const result = calculateNextRecurrence(task, EST, true);
 
       // nextDay() skips today, so next Monday is 7 days away
       expect(result.displayDate).toBe('2026-01-12'); // Next Monday
@@ -254,7 +251,7 @@ describe('Recurrence Logic', () => {
         displayDate: '2026-01-05',
       });
 
-      const result = calculateNextRecurrence(task, false);
+      const result = calculateNextRecurrence(task, EST, false);
 
       expect(result.displayDate).toBe('2026-01-19'); // Jan 5 + 14 days
     });
@@ -272,7 +269,7 @@ describe('Recurrence Logic', () => {
         displayDate: '2026-01-05',
       });
 
-      const result = calculateNextRecurrence(task, false);
+      const result = calculateNextRecurrence(task, EST, false);
 
       // Should maintain original cycle: Jan 5 + 14 = Jan 19
       expect(result.displayDate).toBe('2026-01-19');
@@ -291,7 +288,7 @@ describe('Recurrence Logic', () => {
         displayDate: '2026-01-05',
       });
 
-      const result = calculateNextRecurrence(task, false);
+      const result = calculateNextRecurrence(task, EST, false);
 
       // Jan 5 + 14 = Jan 19 (past)
       // Jan 19 + 14 = Feb 2 (today, not future)
@@ -307,7 +304,7 @@ describe('Recurrence Logic', () => {
         displayDate: '2026-01-05',
       });
 
-      const result = calculateNextRecurrence(task, false);
+      const result = calculateNextRecurrence(task, EST, false);
 
       expect(result.displayDate).toBe(null);
     });
@@ -320,7 +317,7 @@ describe('Recurrence Logic', () => {
         displayDate: null,
       });
 
-      const result = calculateNextRecurrence(task, false);
+      const result = calculateNextRecurrence(task, EST, false);
 
       expect(result.displayDate).toBe(null);
     });
@@ -337,7 +334,7 @@ describe('Recurrence Logic', () => {
         displayDateOffset: 7, // Need offset to get both dates
       });
 
-      const result = calculateNextRecurrence(task, false);
+      const result = calculateNextRecurrence(task, EST, false);
 
       expect(result.dueDate).toBe('2026-02-15');
       expect(result.displayDate).toBe('2026-02-08'); // 7 days before
@@ -353,7 +350,7 @@ describe('Recurrence Logic', () => {
         displayDateOffset: 7,
       });
 
-      const result = calculateNextRecurrence(task, false);
+      const result = calculateNextRecurrence(task, EST, false);
 
       expect(result.dueDate).toBe('2026-02-15');
       expect(result.displayDate).toBe('2026-02-08'); // 7 days before
@@ -368,7 +365,7 @@ describe('Recurrence Logic', () => {
         displayDateOffset: 0,
       });
 
-      const result = calculateNextRecurrence(task, false);
+      const result = calculateNextRecurrence(task, EST, false);
 
       expect(result.displayDate).toBe('2026-02-15');
       expect(result.dueDate).toBe(null);
@@ -383,7 +380,7 @@ describe('Recurrence Logic', () => {
         dueDate: '2026-01-31',
       });
 
-      const result = calculateNextRecurrence(task, false);
+      const result = calculateNextRecurrence(task, EST, false);
 
       // Feb 2026 has 28 days (not a leap year)
       expect(result.displayDate).toBe('2026-02-28');
@@ -403,7 +400,7 @@ describe('Recurrence Logic', () => {
         dueDate: '2028-01-29',
       });
 
-      const result = calculateNextRecurrence(task, false);
+      const result = calculateNextRecurrence(task, EST, false);
 
       expect(result.displayDate).toBe('2028-02-29'); // Leap year!
     });
@@ -421,7 +418,7 @@ describe('Recurrence Logic', () => {
         displayDateOffset: 7,
       });
 
-      const result = calculateNextRecurrence(task, false);
+      const result = calculateNextRecurrence(task, EST, false);
 
       expect(result.dueDate).toBe('2026-02-10'); // 2nd Tuesday of Feb
       expect(result.displayDate).toBe('2026-02-03'); // 7 days before
@@ -438,7 +435,7 @@ describe('Recurrence Logic', () => {
         displayDateOffset: 7,
       });
 
-      const result = calculateNextRecurrence(task, false);
+      const result = calculateNextRecurrence(task, EST, false);
 
       expect(result.dueDate).toBe('2026-02-27'); // Last Friday of Feb
       expect(result.displayDate).toBe('2026-02-20'); // 7 days before
@@ -455,7 +452,7 @@ describe('Recurrence Logic', () => {
         displayDateOffset: 7,
       });
 
-      const result = calculateNextRecurrence(task, false);
+      const result = calculateNextRecurrence(task, EST, false);
 
       expect(result.dueDate).toBe('2026-02-10');
       expect(result.displayDate).toBe('2026-02-03'); // 7 days before
@@ -473,7 +470,7 @@ describe('Recurrence Logic', () => {
         dueDate: '2026-03-15',
       });
 
-      const result = calculateNextRecurrence(task, false);
+      const result = calculateNextRecurrence(task, EST, false);
 
       expect(result.displayDate).toBe('2027-03-15');
     });
@@ -492,7 +489,7 @@ describe('Recurrence Logic', () => {
         dueDate: '2026-02-28',
       });
 
-      const result = calculateNextRecurrence(task, false);
+      const result = calculateNextRecurrence(task, EST, false);
 
       // 2028 is a leap year, so Feb 29 exists
       expect(result.displayDate).toBe('2028-02-29');
@@ -509,7 +506,7 @@ describe('Recurrence Logic', () => {
         displayDateOffset: 7,
       });
 
-      const result = calculateNextRecurrence(task, false);
+      const result = calculateNextRecurrence(task, EST, false);
 
       expect(result.dueDate).toBe('2027-03-15');
       expect(result.displayDate).toBe('2027-03-08');
@@ -523,7 +520,7 @@ describe('Recurrence Logic', () => {
         recurrenceType: 'none',
       });
 
-      const result = calculateNextRecurrence(task, false);
+      const result = calculateNextRecurrence(task, EST, false);
 
       expect(result.displayDate).toBe(null);
       expect(result.dueDate).toBe(null);
@@ -539,7 +536,7 @@ describe('Recurrence Logic', () => {
         dueDate: '2026-01-05',
       });
 
-      const result = calculateNextRecurrence(task, false);
+      const result = calculateNextRecurrence(task, EST, false);
 
       // Should calculate next full moon after today
       expect(result.displayDate).not.toBe(null);
@@ -554,7 +551,7 @@ describe('Recurrence Logic', () => {
         dueDate: '2026-01-05',
       });
 
-      const result = calculateNextRecurrence(task, false);
+      const result = calculateNextRecurrence(task, EST, false);
 
       expect(result.displayDate).not.toBe(null);
       expect(result.displayDate).not.toBe('2026-01-05');
@@ -568,7 +565,7 @@ describe('Recurrence Logic', () => {
         dueDate: '2026-03-20',
       });
 
-      const result = calculateNextRecurrence(task, false);
+      const result = calculateNextRecurrence(task, EST, false);
 
       // Next spring equinox should be in 2027
       expect(result.displayDate).not.toBe(null);
@@ -583,7 +580,7 @@ describe('Recurrence Logic', () => {
         dueDate: '2026-06-21',
       });
 
-      const result = calculateNextRecurrence(task, false);
+      const result = calculateNextRecurrence(task, EST, false);
 
       // Next summer solstice should be in 2027
       expect(result.displayDate).not.toBe(null);
@@ -598,7 +595,7 @@ describe('Recurrence Logic', () => {
         dueDate: '2026-09-23', // Actual 2026 autumn equinox date
       });
 
-      const result = calculateNextRecurrence(task, false);
+      const result = calculateNextRecurrence(task, EST, false);
 
       // Next autumn equinox should be in 2027
       expect(result.displayDate).not.toBe(null);
@@ -613,7 +610,7 @@ describe('Recurrence Logic', () => {
         dueDate: '2025-12-21',
       });
 
-      const result = calculateNextRecurrence(task, false);
+      const result = calculateNextRecurrence(task, EST, false);
 
       // Next winter solstice should be in 2026
       expect(result.displayDate).not.toBe(null);
@@ -628,7 +625,7 @@ describe('Recurrence Logic', () => {
         dueDate: '2026-01-05',
       });
 
-      const result = calculateNextRecurrence(task, false);
+      const result = calculateNextRecurrence(task, EST, false);
 
       // Next season from Jan 5 should be spring equinox around March 20
       expect(result.displayDate).not.toBe(null);
@@ -644,7 +641,7 @@ describe('Recurrence Logic', () => {
         displayDateOffset: 7,
       });
 
-      const result = calculateNextRecurrence(task, false);
+      const result = calculateNextRecurrence(task, EST, false);
 
       // Should have both dueDate and displayDate
       expect(result.dueDate).not.toBe(null);
@@ -664,7 +661,7 @@ describe('Recurrence Logic', () => {
         displayDateOffset: 0,
       });
 
-      const result = calculateNextRecurrence(task, false);
+      const result = calculateNextRecurrence(task, EST, false);
 
       // With no offset, should only have displayDate, no dueDate
       expect(result.displayDate).not.toBe(null);
@@ -680,7 +677,7 @@ describe('Recurrence Logic', () => {
         recurrenceDayOfWeek: null, // Missing required field
       });
 
-      const result = calculateNextRecurrence(task, false);
+      const result = calculateNextRecurrence(task, EST, false);
 
       expect(result.displayDate).toBe(null);
     });
