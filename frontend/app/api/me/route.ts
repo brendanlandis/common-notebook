@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAccessToken } from '@/app/lib/strapiAuth';
-
-const STRAPI_API_URL = process.env.STRAPI_API_URL;
+import { fetchBetaAccess } from '@/app/lib/currentUser';
 
 /**
  * The current user's own beta-access flag.
@@ -17,6 +16,9 @@ const STRAPI_API_URL = process.env.STRAPI_API_URL;
  * affirmatively says the caller may see it.
  *
  * This is the natural home for future current-user fields (username, id).
+ *
+ * The lookup itself lives in `app/lib/currentUser.ts`, shared with the `/` Server
+ * Component, which needs the same answer before it renders.
  */
 export async function GET(req: NextRequest) {
   const token = await getAccessToken(req);
@@ -24,19 +26,5 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
   }
 
-  let betaAccess = false;
-  try {
-    const response = await fetch(`${STRAPI_API_URL}/api/users/me`, {
-      headers: { Authorization: `Bearer ${token}` },
-      cache: 'no-store',
-    });
-    if (response.ok) {
-      const user = await response.json();
-      betaAccess = Boolean(user?.betaAccess);
-    }
-  } catch {
-    // fail closed — leave betaAccess false
-  }
-
-  return NextResponse.json({ success: true, betaAccess });
+  return NextResponse.json({ success: true, betaAccess: await fetchBetaAccess(token) });
 }

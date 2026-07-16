@@ -236,6 +236,28 @@ export async function getAccessToken(req: NextRequest): Promise<string | null> {
   return tokens.access;
 }
 
+/**
+ * The access token, for callers that have no `NextRequest` — i.e. Server
+ * Components, which read cookies from the request scope rather than a `req`.
+ *
+ * Deliberately does **not** refresh, which is the whole difference from
+ * `getAccessToken()`. A Server Component cannot write cookies (`persistTokens`
+ * silently no-ops there), so refreshing would rotate the session, fail to hand
+ * the browser its new tokens, and mint an orphan `strapi_sessions` row on every
+ * render. Instead a stale token returns null and the caller falls back to the
+ * client path, where `/api/me` refreshes properly through a route handler.
+ *
+ * So: null means "cannot tell from here", not "logged out".
+ */
+export async function getAccessTokenServer(): Promise<string | null> {
+  // Local dev: mints/refreshes its own tokens in-process, no cookies involved.
+  if (devAuthBypassEnabled()) return getDevAccessToken();
+
+  const jar = await cookies();
+  const access = jar.get(ACCESS_COOKIE)?.value ?? null;
+  return access && !isExpiringSoon(access) ? access : null;
+}
+
 /** Set both cookies on a response. Used by the login and redemption routes. */
 export function setAuthCookies(res: NextResponse, tokens: Tokens): void {
   res.cookies.set(ACCESS_COOKIE, tokens.access, COOKIE_OPTIONS);

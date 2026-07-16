@@ -9,11 +9,14 @@ import {
 import MenuClose from "./MenuClose";
 import ThemeToggle from "./ThemeToggle";
 import LogoutButton from "./LogoutButton";
-import { isBetaPath } from "@/app/lib/betaConfig";
+import { soleDestination, visiblePages } from "@/app/lib/pages";
 import { useBetaAccess } from "@/app/contexts/BetaAccessContext";
 
 export default function MenuItems() {
   const { betaAccess } = useBetaAccess();
+  const pages = visiblePages(betaAccess);
+  // Home redirects to the sole destination, so a link to it would be a dead entry.
+  const showHome = soleDestination(betaAccess) === null;
   const closeDrawer = () => {
     const drawerCheckbox = document.getElementById(
       "mainMenu"
@@ -25,19 +28,21 @@ export default function MenuItems() {
       <li className="main-menu-header">
         <MenuClose />
       </li>
-      <li>
-        <Link href="/" onClick={closeDrawer}>
-          <BirdIcon size={30} weight="thin" />
-          <span>home</span>
-        </Link>
-      </li>
+      {showHome && (
+        <li>
+          <Link href="/" onClick={closeDrawer}>
+            <BirdIcon size={30} weight="thin" />
+            <span>home</span>
+          </Link>
+        </li>
+      )}
       <li>
         <Link href="/todo" onClick={closeDrawer}>
           <BroomIcon size={30} weight="thin" />
           <span>to do</span>
         </Link>
       </li>
-      {(!isBetaPath("/practice") || betaAccess) && (
+      {pages.includes("/practice") && (
         <li>
           <Link href="/practice" onClick={closeDrawer}>
             <MetronomeIcon size={30} weight="thin" />
