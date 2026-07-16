@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import type { View, ViewSection, ViewSectionInput, ViewLayout, WorldMode } from "@/app/types/index";
-import { useViews } from "@/app/contexts/ViewsContext";
-import { useWorlds } from "@/app/contexts/WorldsContext";
+import { useViews } from "@/app/hooks/useViews";
+import { useWorlds } from "@/app/hooks/useWorlds";
 import {
   sortViewsByPosition,
   LAYOUT_OPTIONS,

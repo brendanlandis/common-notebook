@@ -6,7 +6,7 @@ import { render } from "@testing-library/react";
 vi.mock("next/navigation", () => ({
   usePathname: () => "/todo",
 }));
-vi.mock("@/app/contexts/ViewsContext", () => ({
+vi.mock("@/app/hooks/useViews", () => ({
   useViews: () => ({ views: [{ slug: "good-morning" }], loading: false }),
 }));
 vi.mock("@/app/contexts/StuffProjectsContext", () => ({

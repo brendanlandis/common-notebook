@@ -3,7 +3,7 @@
 import TaskViewContent from "./components/TaskViewContent";
 import { getDefaultViewSlug } from "@/app/lib/views";
 import { useStuffProjects } from "@/app/contexts/StuffProjectsContext";
-import { useViews } from "@/app/contexts/ViewsContext";
+import { useViews } from "@/app/hooks/useViews";
 
 // Bare /todo renders the default view — the first view in the user's ordering.
 // Every other view lives at /todo/view/<slug>.

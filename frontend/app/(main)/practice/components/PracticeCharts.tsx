@@ -1,44 +1,11 @@
-import { useState, useEffect } from 'react';
+'use client';
+
 import PracticeChart from './PracticeChart';
-import type { PracticeType } from '@/app/types/index';
-
-interface DayData {
-  date: string;
-  minutes: number;
-}
-
-interface TypeStats {
-  type: PracticeType;
-  data: DayData[];
-}
+// Co-located with the logs query on purpose: stopping a session invalidates both.
+import { usePracticeStats } from '../hooks/usePracticeLogs';
 
 export default function PracticeCharts() {
-  const [stats, setStats] = useState<TypeStats[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    fetchStats();
-  }, []);
-
-  const fetchStats = async () => {
-    try {
-      setLoading(true);
-      const response = await fetch('/api/practice-logs/stats');
-      const result = await response.json();
-
-      if (result.success) {
-        setStats(result.data);
-      } else {
-        setError(result.error);
-      }
-    } catch (err) {
-      console.error('Error fetching practice stats:', err);
-      setError('Failed to fetch practice statistics');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { stats, loading, error } = usePracticeStats();
 
   if (loading) {
     return null;
@@ -63,4 +30,3 @@ export default function PracticeCharts() {
     </div>
   );
 }
-

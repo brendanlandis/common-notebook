@@ -7,7 +7,7 @@ import { useState } from "react";
 import type { Project, ProjectImportance, StrapiBlock } from "@/app/types/index";
 import RichTextEditor from "@/app/components/RichTextEditor";
 import { slugify } from "@/app/lib/slugify";
-import { useWorlds } from "@/app/contexts/WorldsContext";
+import { useWorlds } from "@/app/hooks/useWorlds";
 
 const schema = z.object({
   title: z.string().min(1, "Title is required"),

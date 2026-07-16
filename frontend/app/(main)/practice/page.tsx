@@ -2,212 +2,84 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { usePractice } from "@/app/contexts/PracticeContext";
 import { PlayIcon, StopIcon } from "@phosphor-icons/react";
-import type { PracticeLog, StrapiBlock } from "@/app/types/index";
+import type { StrapiBlock } from "@/app/types/index";
 import PracticeTimer from "./components/PracticeTimer";
 import PracticeSessionItem from "./components/PracticeSessionItem";
 import RichTextEditor from "@/app/components/RichTextEditor";
 import PracticeCharts from "./components/PracticeCharts";
 import { toISODate, getToday } from "@/app/lib/dateUtils";
 import { useDateTimeSettings } from "@/app/contexts/DateTimeSettingsContext";
+import { usePracticeLogs } from "./hooks/usePracticeLogs";
 import FaviconManager from "@/app/components/FaviconManager";
 
 export default function PracticePage() {
   const { timeZoneSettings } = useDateTimeSettings();
   const { selectedPracticeType } = usePractice();
-  const [practiceLogs, setPracticeLogs] = useState<PracticeLog[]>([]);
-  const [activeSession, setActiveSession] = useState<PracticeLog | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [isStarting, setIsStarting] = useState(false);
-  const [isStopping, setIsStopping] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const [activeSessionNotes, setActiveSessionNotes] = useState<StrapiBlock[]>(
-    []
-  );
+  const {
+    logs,
+    activeSession,
+    loading,
+    error,
+    start,
+    stop,
+    update,
+    remove,
+    saveNotes,
+    isStarting,
+    isStopping,
+    isSavingNotes,
+  } = usePracticeLogs(selectedPracticeType);
+
+  const [activeSessionNotes, setActiveSessionNotes] = useState<StrapiBlock[]>([]);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Seed the editor when a *different* session becomes active — not on every
+  // refetch. The list refetches on window focus now, and the old code re-seeded
+  // the editor from the response every time, which would drop whatever had been
+  // typed since. Keyed on identity so an unrelated refetch leaves the text alone.
+  const seededSessionIdRef = useRef<string | null>(null);
   useEffect(() => {
-    fetchPracticeLogs();
-  }, [selectedPracticeType]);
-
-  const fetchPracticeLogs = async () => {
-    try {
-      setLoading(true);
-      const response = await fetch(
-        `/api/practice-logs?type=${encodeURIComponent(selectedPracticeType)}`
-      );
-      const result = await response.json();
-
-      if (result.success) {
-        const logs: PracticeLog[] = result.data;
-        setPracticeLogs(logs);
-
-        // Find active session (one without stop time)
-        const active = logs.find((log) => !log.stop);
-        setActiveSession(active || null);
-
-        // Update active session notes state
-        if (active) {
-          setActiveSessionNotes(active.notes || []);
-        } else {
-          setActiveSessionNotes([]);
-        }
-      } else {
-        setError(result.error);
-      }
-    } catch (err) {
-      setError("Failed to fetch practice logs");
-      console.error("Error fetching practice logs:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
+    const activeId = activeSession?.documentId ?? null;
+    if (activeId === seededSessionIdRef.current) return;
+    seededSessionIdRef.current = activeId;
+    setActiveSessionNotes(activeSession?.notes ?? []);
+  }, [activeSession]);
 
   const handleStart = async () => {
-    if (activeSession) {
-      // Shouldn't happen, but prevent starting if there's already an active session
-      return;
-    }
-
-    try {
-      setIsStarting(true);
-      const now = new Date();
-      const startTime = now.toISOString();
-      const date = toISODate(now, timeZoneSettings);
-
-      const response = await fetch("/api/practice-logs", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          start: startTime,
-          stop: null,
-          type: selectedPracticeType,
-          notes: [],
-          duration: 0,
-          date: date,
-        }),
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        if (result.success) {
-          await fetchPracticeLogs();
-        }
-      }
-    } catch (err) {
-      console.error("error starting practice session:", err);
-      setError("failed to start practice session");
-    } finally {
-      setIsStarting(false);
-    }
+    if (activeSession) return; // guard: never two open sessions
+    const now = new Date();
+    await start({
+      start: now.toISOString(),
+      stop: null,
+      type: selectedPracticeType,
+      notes: [],
+      duration: 0,
+      date: toISODate(now, timeZoneSettings),
+    });
   };
 
   const handleStop = async () => {
     if (!activeSession) return;
-
-    try {
-      setIsStopping(true);
-      const response = await fetch(
-        `/api/practice-logs/${activeSession.documentId}/stop`,
-        {
-          method: "POST",
-        }
-      );
-
-      if (response.ok) {
-        const result = await response.json();
-        if (result.success) {
-          await fetchPracticeLogs();
-        }
-      }
-    } catch (err) {
-      console.error("error stopping practice session:", err);
-      setError("failed to stop practice session");
-    } finally {
-      setIsStopping(false);
-    }
+    await stop(activeSession.documentId);
   };
 
-  const handleUpdate = async (documentId: string, data: any) => {
-    try {
-      const response = await fetch(`/api/practice-logs/${documentId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-
-      if (response.ok) {
-        await fetchPracticeLogs();
-      } else {
-        const errorData = await response.json();
-        console.error("error updating practice log:", errorData);
-        setError(errorData.error || "failed to update practice session");
-      }
-    } catch (err) {
-      console.error("error updating practice log:", err);
-      setError("failed to update practice session");
-    }
-  };
-
-  const handleDelete = async (documentId: string) => {
-    try {
-      const response = await fetch(`/api/practice-logs/${documentId}`, {
-        method: "DELETE",
-      });
-
-      if (response.ok) {
-        await fetchPracticeLogs();
-      }
-    } catch (err) {
-      console.error("error deleting practice log:", err);
-      setError("failed to delete practice session");
-    }
-  };
-
-  // Manual save handler
   const handleManualSave = async () => {
     if (!activeSession) return;
-
-    setIsSaving(true);
-    try {
-      await fetch(`/api/practice-logs/${activeSession.documentId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ notes: activeSessionNotes }),
-      });
-    } catch (err) {
-      console.error("error saving notes:", err);
-    } finally {
-      setIsSaving(false);
-    }
+    await saveNotes(activeSession.documentId, activeSessionNotes);
   };
 
   // Debounced auto-save for active session notes
   const handleNotesChange = useCallback(
     (notes: StrapiBlock[]) => {
       setActiveSessionNotes(notes);
+      if (!activeSession) return;
 
-      if (activeSession) {
-        // Clear existing timeout
-        if (saveTimeoutRef.current) {
-          clearTimeout(saveTimeoutRef.current);
-        }
-
-        // Set new timeout for auto-save
-        saveTimeoutRef.current = setTimeout(async () => {
-          try {
-            await fetch(`/api/practice-logs/${activeSession.documentId}`, {
-              method: "PUT",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ notes }),
-            });
-          } catch (err) {
-            console.error("error auto-saving notes:", err);
-          }
-        }, 500);
-      }
+      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+      saveTimeoutRef.current = setTimeout(() => {
+        void saveNotes(activeSession.documentId, notes);
+      }, 500);
     },
-    [activeSession]
+    [activeSession, saveNotes]
   );
 
   // Cleanup timeout on unmount
@@ -236,9 +108,9 @@ export default function PracticePage() {
   const thirtyDaysAgo = new Date(today);
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 29); // 29 days ago + today = 30 days total
   const thirtyDaysAgoString = toISODate(thirtyDaysAgo, timeZoneSettings);
-  
-  const completedLogs = practiceLogs.filter((log) => 
-    log.stop !== null && log.date >= thirtyDaysAgoString
+
+  const completedLogs = logs.filter(
+    (log) => log.stop !== null && log.date >= thirtyDaysAgoString
   );
 
   return (
@@ -264,9 +136,9 @@ export default function PracticePage() {
                 <button
                   className="btn save-button"
                   onClick={handleManualSave}
-                  disabled={isSaving}
+                  disabled={isSavingNotes}
                 >
-                  {isSaving ? "saving..." : "save"}
+                  {isSavingNotes ? "saving..." : "save"}
                 </button>
               </div>
             </div>
@@ -290,8 +162,8 @@ export default function PracticePage() {
               <PracticeSessionItem
                 key={log.documentId}
                 practiceLog={log}
-                onUpdate={handleUpdate}
-                onDelete={handleDelete}
+                onUpdate={update}
+                onDelete={remove}
               />
             ))}
           </div>

@@ -17,7 +17,21 @@ License: AGPL v3.
 - Editor: TipTap 3 (`@tiptap/*` all `^3.27.1`) + `@strapi/blocks-react-renderer`.
 - Forms: react-hook-form 7 + zod 4. Charts: recharts 3. Icons: `@phosphor-icons/react`.
 - Dates: `date-fns` + `date-fns-tz`; also `astronomy-engine` (moon-phase / solstice recurrence).
-- No global state library — React hooks + Context only.
+- **Server state lives in TanStack Query** (`@tanstack/react-query` 5): `useQuery` for reads,
+  `useMutation` + `invalidateQueries` for writes, optimistic `onMutate`/`onError` where a failure
+  would otherwise leave the wrong thing on screen. Context is for **UI state only** (drawer,
+  selection) and for values the server hands down as props (`DateTimeSettingsProvider`).
+  *Migration in progress:* `useViews`/`useWorlds`/`useBetaAccess` and `practice/hooks/usePracticeLogs`
+  are query-backed; `todo/hooks/useTasks.ts` + `todo/contexts/TaskDataContext.tsx` are the remaining
+  hand-rolled work. New server state goes in the cache — don't add a fetching Context.
+- **Related keys share a prefix so one invalidate covers them.** `['practice-logs','list',<type>]` and
+  `['practice-logs','stats']` both sit under `['practice-logs']`, so stopping a session refreshes the
+  list *and* the chart. Nest new keys the same way rather than invalidating several by hand.
+- **A mutation that writes what an open editor is holding must not invalidate.** `saveNotes` in
+  `usePracticeLogs` is the case: the notes editor is controlled local state, and a refetch would hand
+  it the server's copy and drop whatever was typed since. Same reason `practice/page.tsx` seeds the
+  editor only when the active session's `documentId` changes, not on every query result — queries
+  refetch on window focus now, and re-seeding on each result would wipe in-progress text.
 - Tests: Vitest 4 + jsdom + Testing Library; co-located as `*.test.ts(x)` siblings next to the
   code under test. No Prettier config.
 
@@ -115,6 +129,12 @@ throughout the frontend. Node engine constraint: `>=18 <=22.x`.
 - CI runs `npm run build` (both apps) + `npm run test:run` (both apps). **Lint and `tsc` are not
   CI-gated.** `npm run lint` (`eslint .`) reports ~168 pre-existing findings and `tsc --noEmit` has
   pre-existing errors in some test files — don't chase these as if new; scope checks to files you touched.
+- **Never call `fetch` from a query/mutation function — use `apiFetch`/`apiSend` (`app/lib/apiFetch.ts`).**
+  `fetch` resolves on a 401 and the handlers answer `{success:false}`, so a raw `fetch` in a `queryFn`
+  turns every failure into a *successful* query holding `undefined` — an empty list where an error
+  belongs, silently. `apiFetch` throws on both shapes. `swallow()` is there because the pre-TanStack
+  callers didn't try/catch; a screen with real error UI should read `useMutation`'s `error` instead.
+  `LogoutButton` must keep calling `queryClient.clear()` — the cache is keyed by URL, not by user.
 - Tests co-locate as `*.test.ts(x)` siblings next to their subject. Date-dependent suites pass a
   `TimeZoneSettings` literal rather than mocking config modules; `layoutTransformers`/`recurrence`
   tests still `vi.mock('./dateUtils')` to pin `getTodayForRecurrence` (see
@@ -124,6 +144,11 @@ throughout the frontend. Node engine constraint: `>=18 <=22.x`.
   a regression there. Components/hooks reading `useDateTimeSettings()` need a
   `DateTimeSettingsProvider` wrapper in tests; pass `initial` so the provider doesn't fetch (see
   `app/(main)/todo/hooks/useTasks.test.ts`).
+  Query-backed hooks need a `QueryClientProvider` wrapper with a **per-test client** and
+  **`retry: false`** — the app default of 1 makes every failure case sit through a backoff before the
+  assertion runs (see `app/hooks/useWorlds.test.ts`). Component tests that only care about a hook's
+  *output* should `vi.mock` the hook instead (see `app/components/HeaderContent.test.tsx`); there is
+  no global fetch mock, so an unmocked query in a component test hits a real relative URL.
 - **Everything runs Node 25 / npm 11** — prod, local, and all four CI jobs — even though
   `backend/package.json` still declares `engines: >=18 <=22.x` (harmless `EBADENGINE` warnings).
   Don't "fix" a CI job back to Node 22: Node 22 ships npm 10, which rejects an npm 11 lockfile with

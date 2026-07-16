@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { Project, World } from "@/app/types/index";
-import { useWorlds } from "@/app/contexts/WorldsContext";
+import { useWorlds } from "@/app/hooks/useWorlds";
 
 // Create / rename / reorder / delete the user's worlds. Deletion is blocked
 // while any project still references the world (a count is shown instead); the

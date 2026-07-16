@@ -10,7 +10,7 @@ import MenuClose from "./MenuClose";
 import ThemeToggle from "./ThemeToggle";
 import LogoutButton from "./LogoutButton";
 import { soleDestination, visiblePages } from "@/app/lib/pages";
-import { useBetaAccess } from "@/app/contexts/BetaAccessContext";
+import { useBetaAccess } from "@/app/hooks/useBetaAccess";
 
 export default function MenuItems() {
   const { betaAccess } = useBetaAccess();

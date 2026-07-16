@@ -1,11 +1,13 @@
 "use client";
 
 import { useRouter, usePathname } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { PlugsIcon } from "@phosphor-icons/react";
 
 export default function LogoutButton() {
   const router = useRouter();
   const pathname = usePathname();
+  const queryClient = useQueryClient();
 
   // Hide logout button on login page
   if (pathname === "/login") {
@@ -19,6 +21,10 @@ export default function LogoutButton() {
       });
 
       if (response.ok) {
+        // The cache is keyed by URL, not by user. On a shared browser the next
+        // person to log in would otherwise be handed the previous user's views
+        // and worlds until each query happened to refetch.
+        queryClient.clear();
         router.push("/login");
       }
     } catch (error) {

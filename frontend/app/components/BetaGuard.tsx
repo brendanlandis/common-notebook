@@ -3,7 +3,7 @@
 import { usePathname, notFound } from 'next/navigation';
 import { ReactNode } from 'react';
 import { isBetaPath } from '@/app/lib/betaConfig';
-import { useBetaAccess } from '@/app/contexts/BetaAccessContext';
+import { useBetaAccess } from "@/app/hooks/useBetaAccess";
 
 /**
  * Gates every route in BETA_PATHS (and its sub-routes) to users whose Strapi

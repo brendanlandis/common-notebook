@@ -12,7 +12,7 @@ import type { GroupedTasks } from "@/app/lib/groupTasks";
 import { usePathname } from "next/navigation";
 import { getISOTimestamp } from "@/app/lib/dateUtils";
 import { getDefaultViewSlug } from "@/app/lib/views";
-import { useViews } from "@/app/contexts/ViewsContext";
+import { useViews } from "@/app/hooks/useViews";
 import { useTaskActions } from "@/app/contexts/TaskActionsContext";
 import { useDateTimeSettings } from "@/app/contexts/DateTimeSettingsContext";
 import { useStuffProjects } from "@/app/contexts/StuffProjectsContext";

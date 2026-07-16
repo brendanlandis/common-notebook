@@ -4,7 +4,7 @@ import { usePathname } from "next/navigation";
 import LayoutSelector from "../(main)/todo/components/LayoutSelector";
 import PracticeSelector from "../(main)/practice/components/PracticeSelector";
 import { getDefaultViewSlug } from "../lib/views";
-import { useViews } from "../contexts/ViewsContext";
+import { useViews } from "../hooks/useViews";
 import { useStuffProjects } from "../contexts/StuffProjectsContext";
 import { usePractice } from "../contexts/PracticeContext";
 import { useTaskActions } from "../contexts/TaskActionsContext";

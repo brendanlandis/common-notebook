@@ -1,7 +1,7 @@
 import { useRouter } from "next/navigation";
 import { useStuffProjects } from "@/app/contexts/StuffProjectsContext";
-import { useWorlds } from "@/app/contexts/WorldsContext";
-import { useViews } from "@/app/contexts/ViewsContext";
+import { useWorlds } from "@/app/hooks/useWorlds";
+import { useViews } from "@/app/hooks/useViews";
 import { sortViewsByPosition, getDefaultViewSlug, CODE_PRESETS } from "@/app/lib/views";
 
 interface LayoutSelectorProps {

@@ -6,12 +6,10 @@ import { PracticeContextProvider } from "../contexts/PracticeContext";
 import { TaskActionsProvider } from "../contexts/TaskActionsContext";
 import { DateTimeSettingsProvider } from "../contexts/DateTimeSettingsContext";
 import { StuffProjectsProvider } from "../contexts/StuffProjectsContext";
-import { WorldsProvider } from "../contexts/WorldsContext";
-import { ViewsProvider } from "../contexts/ViewsContext";
+import QueryProvider from "../providers/QueryProvider";
 import HeaderIcon from "../components/HeaderIcon";
 import EscapeKeyHandler from "../components/EscapeKeyHandler";
 import SessionGuard from "../components/SessionGuard";
-import { BetaAccessProvider } from "../contexts/BetaAccessContext";
 import BetaGuard from "../components/BetaGuard";
 import { getAccessTokenServer } from "@/app/lib/strapiAuth";
 import {
@@ -47,13 +45,11 @@ export default async function MainLayout({
     : null;
 
   return (
-    <BetaAccessProvider>
-    <DateTimeSettingsProvider initial={dateTimeSettings}>
-      <WorldsProvider>
-      <ViewsProvider>
-      <StuffProjectsProvider>
-        <PracticeContextProvider>
-          <TaskActionsProvider>
+    <QueryProvider>
+      <DateTimeSettingsProvider initial={dateTimeSettings}>
+        <StuffProjectsProvider>
+          <PracticeContextProvider>
+            <TaskActionsProvider>
             <SessionGuard />
             <EscapeKeyHandler />
             <div className="drawer">
@@ -102,12 +98,10 @@ export default async function MainLayout({
             </div>
             <TaskActionsDrawer />
           </div>
-        </TaskActionsProvider>
-      </PracticeContextProvider>
-    </StuffProjectsProvider>
-    </ViewsProvider>
-    </WorldsProvider>
-    </DateTimeSettingsProvider>
-    </BetaAccessProvider>
+            </TaskActionsProvider>
+          </PracticeContextProvider>
+        </StuffProjectsProvider>
+      </DateTimeSettingsProvider>
+    </QueryProvider>
   );
 }

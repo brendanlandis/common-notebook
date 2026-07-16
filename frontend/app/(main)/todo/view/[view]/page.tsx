@@ -9,7 +9,7 @@ import {
   findCodePreset,
 } from "@/app/lib/views";
 import { useStuffProjects } from "@/app/contexts/StuffProjectsContext";
-import { useViews } from "@/app/contexts/ViewsContext";
+import { useViews } from "@/app/hooks/useViews";
 
 // Per-view route. The default view canonicalizes to bare /todo, so its own path
 // (and any unknown/unavailable slug) forwards there.

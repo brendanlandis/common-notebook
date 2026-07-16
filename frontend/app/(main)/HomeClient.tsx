@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import FaviconManager from "@/app/components/FaviconManager";
-import { useBetaAccess } from "@/app/contexts/BetaAccessContext";
+import { useBetaAccess } from "@/app/hooks/useBetaAccess";
 import { soleDestination } from "@/app/lib/pages";
 
 /**

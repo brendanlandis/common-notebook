@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import type { Project, ProjectType } from "@/app/types/index";
 import { useStuffProjects } from "@/app/contexts/StuffProjectsContext";
-import { useWorlds } from "@/app/contexts/WorldsContext";
+import { useWorlds } from "@/app/hooks/useWorlds";
 
 interface ProjectSelectorProps {
   value: string | null;

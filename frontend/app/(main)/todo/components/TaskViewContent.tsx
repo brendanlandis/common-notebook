@@ -16,8 +16,8 @@ import {
 import type { LayoutRuleset } from "@/app/types/index";
 import { useStuffProjects } from "@/app/contexts/StuffProjectsContext";
 import { useDateTimeSettings } from "@/app/contexts/DateTimeSettingsContext";
-import { useWorlds } from "@/app/contexts/WorldsContext";
-import { useViews } from "@/app/contexts/ViewsContext";
+import { useWorlds } from "@/app/hooks/useWorlds";
+import { useViews } from "@/app/hooks/useViews";
 import FaviconManager from "@/app/components/FaviconManager";
 import { useTaskData } from "../contexts/TaskDataContext";
 

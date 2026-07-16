@@ -6,7 +6,7 @@ import type { LayoutRuleset } from "@/app/types/index";
 import { transformLayout } from "@/app/lib/layoutTransformers";
 import { useDateTimeSettings } from "@/app/contexts/DateTimeSettingsContext";
 import { findWorldBySlug } from "@/app/lib/worlds";
-import { useWorlds } from "@/app/contexts/WorldsContext";
+import { useWorlds } from "@/app/hooks/useWorlds";
 import LayoutRenderer from "../../components/LayoutRenderer";
 import FaviconManager from "@/app/components/FaviconManager";
 import { useTaskData } from "../../contexts/TaskDataContext";
