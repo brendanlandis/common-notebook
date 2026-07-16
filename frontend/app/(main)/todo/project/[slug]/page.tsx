@@ -101,6 +101,7 @@ export default function ProjectPage() {
               onClick={() => onEditProject(project)}
               className="tooltip tooltip-bottom"
               data-tip="edit project"
+              aria-label="edit project"
             >
               <PencilIcon size={20} />
             </button>

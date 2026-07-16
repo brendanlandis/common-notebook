@@ -7,7 +7,9 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'jsdom',
-    include: ['**/*.{test,spec}.{ts,tsx}'],
+    // Scoped to app/ so the Playwright specs in e2e/ stay out. An unscoped glob
+    // picks them up and runs @playwright/test's `test`/`expect` against jsdom.
+    include: ['app/**/*.{test,spec}.{ts,tsx}'],
     setupFiles: ['./vitest.setup.ts'],
   },
   resolve: {

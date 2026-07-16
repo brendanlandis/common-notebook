@@ -226,12 +226,13 @@ export default function TaskItem({
               <LinkIcon size={18} />
             </a>
           )}
-          <button onClick={() => onEdit(task)} key={`edit-${themeKey}`}>
+          <button onClick={() => onEdit(task)} key={`edit-${themeKey}`} aria-label="edit task">
             <PencilIcon size={18} />
           </button>
           <button
             onClick={() => onDelete(task.documentId)}
             key={`delete-${themeKey}`}
+            aria-label="delete task"
           >
             <TrashIcon size={18} />
           </button>

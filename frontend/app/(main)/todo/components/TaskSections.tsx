@@ -77,7 +77,10 @@ export default function TaskSections({
                   title
                 )}
                 {"documentId" in section && onEditProject && (
-                  <button onClick={() => onEditProject(section as Project)}>
+                  <button
+                    onClick={() => onEditProject(section as Project)}
+                    aria-label="edit project"
+                  >
                     <PencilIcon size={18} />
                   </button>
                 )}
