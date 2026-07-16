@@ -14,10 +14,13 @@ import SessionGuard from "../components/SessionGuard";
 import { BetaAccessProvider } from "../contexts/BetaAccessContext";
 import BetaGuard from "../components/BetaGuard";
 import { getAccessTokenServer } from "@/app/lib/strapiAuth";
-import { getTimeZoneSettings } from "@/app/lib/strapiServer";
+import {
+  getCompletedTaskVisibilityMinutes,
+  getTimeZoneSettings,
+} from "@/app/lib/strapiServer";
 
 /**
- * Resolve the owner's time settings here, on the server, so every client date
+ * Resolve the owner's date/time settings here, on the server, so every client date
  * renders in their timezone on the first paint. The same `getTimeZoneSettings` backs
  * the API routes, which is what makes the setting a single source of truth rather
  * than two copies that drift.
@@ -33,11 +36,19 @@ export default async function MainLayout({
   children: React.ReactNode;
 }) {
   const token = await getAccessTokenServer();
-  const timeZoneSettings = token ? await getTimeZoneSettings(token) : null;
+  const dateTimeSettings = token
+    ? await Promise.all([
+        getTimeZoneSettings(token),
+        getCompletedTaskVisibilityMinutes(token),
+      ]).then(([timeZoneSettings, completedTaskVisibilityMinutes]) => ({
+        timeZoneSettings,
+        completedTaskVisibilityMinutes,
+      }))
+    : null;
 
   return (
     <BetaAccessProvider>
-    <DateTimeSettingsProvider initial={timeZoneSettings}>
+    <DateTimeSettingsProvider initial={dateTimeSettings}>
       <WorldsProvider>
       <ViewsProvider>
       <StuffProjectsProvider>

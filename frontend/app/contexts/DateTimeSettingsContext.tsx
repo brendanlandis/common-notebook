@@ -13,26 +13,46 @@ import {
   parseDayBoundaryHour,
   type TimeZoneSettings,
 } from '@/app/lib/timeZoneSettings';
+import { parseVisibilityMinutes } from '@/app/lib/completedTaskVisibilityConfig';
 
 /**
- * Supplies the owner's `TimeZoneSettings` to the client tree.
+ * Supplies the owner's date/time settings to the client tree.
  *
  * `(main)/layout.tsx` resolves these server-side and passes them as `initial`, so
  * the first paint already has the right timezone — no fetch, no flash, and no
  * localStorage copy to leak into the next user's session on a shared browser.
  *
+ * Note the two shapes are deliberately not one object. `timeZoneSettings` is the
+ * parameter threaded through every pure date function and resolved per-request in
+ * the API routes; `completedTaskVisibilityMinutes` is read in exactly one place
+ * (`useTasks`, filtering a list) and never on the server. Folding the window into
+ * `TimeZoneSettings` would hand a visibility duration to `getTodayForRecurrence`
+ * and make every test literal invent a value that cannot affect its assertion.
+ *
  * `initial` is null only when `getAccessTokenServer()` could not resolve a token
- * (a stale one a Server Component cannot refresh — see `(main)/page.tsx`). That
- * is not "logged out", so rather than serve the defaults for the whole session we
+ * (a stale one a Server Component cannot refresh — see `(main)/page.tsx`). That is
+ * not "logged out", so rather than serve the defaults for the whole session we
  * fall back to fetching them the slow way, which does refresh the token.
  */
-interface DateTimeSettingsContextType {
+export interface DateTimeSettings {
   timeZoneSettings: TimeZoneSettings;
-  /** Reflect a save from /settings without a reload. */
-  setTimeZoneSettings: (settings: TimeZoneSettings) => void;
+  completedTaskVisibilityMinutes: number;
 }
 
-const DateTimeSettingsContext = createContext<DateTimeSettingsContextType | undefined>(undefined);
+interface DateTimeSettingsContextType extends DateTimeSettings {
+  /** Reflect a save from /settings without a reload. */
+  setTimeZoneSettings: (settings: TimeZoneSettings) => void;
+  setCompletedTaskVisibilityMinutes: (minutes: number) => void;
+}
+
+const DateTimeSettingsContext = createContext<DateTimeSettingsContextType | undefined>(
+  undefined
+);
+
+const DEFAULTS: DateTimeSettings = {
+  timeZoneSettings: DEFAULT_TIME_ZONE_SETTINGS,
+  completedTaskVisibilityMinutes: parseVisibilityMinutes(null),
+};
 
 async function fetchSetting(title: string): Promise<string | null> {
   try {
@@ -49,26 +69,28 @@ export function DateTimeSettingsProvider({
   initial,
   children,
 }: {
-  initial: TimeZoneSettings | null;
+  initial: DateTimeSettings | null;
   children: ReactNode;
 }) {
-  const [timeZoneSettings, setTimeZoneSettings] = useState<TimeZoneSettings>(
-    initial ?? DEFAULT_TIME_ZONE_SETTINGS
-  );
+  const [settings, setSettings] = useState<DateTimeSettings>(initial ?? DEFAULTS);
 
   useEffect(() => {
     if (initial !== null) return;
 
     let cancelled = false;
     (async () => {
-      const [timezone, dayBoundaryHour] = await Promise.all([
+      const [timezone, dayBoundaryHour, visibilityMinutes] = await Promise.all([
         fetchSetting('timezone'),
         fetchSetting('dayBoundaryHour'),
+        fetchSetting('completedTaskVisibilityMinutes'),
       ]);
       if (cancelled) return;
-      setTimeZoneSettings({
-        timezone: timezone || DEFAULT_TIME_ZONE_SETTINGS.timezone,
-        dayBoundaryHour: parseDayBoundaryHour(dayBoundaryHour),
+      setSettings({
+        timeZoneSettings: {
+          timezone: timezone || DEFAULT_TIME_ZONE_SETTINGS.timezone,
+          dayBoundaryHour: parseDayBoundaryHour(dayBoundaryHour),
+        },
+        completedTaskVisibilityMinutes: parseVisibilityMinutes(visibilityMinutes),
       });
     })();
 
@@ -77,10 +99,22 @@ export function DateTimeSettingsProvider({
     };
   }, [initial]);
 
-  const update = useCallback((settings: TimeZoneSettings) => setTimeZoneSettings(settings), []);
+  const setTimeZoneSettings = useCallback(
+    (timeZoneSettings: TimeZoneSettings) =>
+      setSettings((prev) => ({ ...prev, timeZoneSettings })),
+    []
+  );
+
+  const setCompletedTaskVisibilityMinutes = useCallback(
+    (completedTaskVisibilityMinutes: number) =>
+      setSettings((prev) => ({ ...prev, completedTaskVisibilityMinutes })),
+    []
+  );
 
   return (
-    <DateTimeSettingsContext.Provider value={{ timeZoneSettings, setTimeZoneSettings: update }}>
+    <DateTimeSettingsContext.Provider
+      value={{ ...settings, setTimeZoneSettings, setCompletedTaskVisibilityMinutes }}
+    >
       {children}
     </DateTimeSettingsContext.Provider>
   );

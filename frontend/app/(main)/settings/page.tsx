@@ -3,10 +3,7 @@
 import { useState, useEffect } from "react";
 import TimezoneManager from "@/app/components/TimezoneManager";
 import FaviconManager from "@/app/components/FaviconManager";
-import {
-  fetchVisibilityMinutesFromStrapi,
-  saveVisibilityMinutesToStrapi,
-} from "@/app/lib/completedTaskVisibilityConfig";
+import { saveVisibilityMinutesToStrapi } from "@/app/lib/completedTaskVisibilityConfig";
 import {
   fetchAutoDeclutterFromStrapi,
   saveAutoDeclutterToStrapi,
@@ -19,13 +16,19 @@ import WorldsManager from "./components/WorldsManager";
 import ViewsManager from "./components/ViewsManager";
 
 export default function SettingsPage() {
-  const [visibilityMinutes, setVisibilityMinutes] = useState<number>(15); // Default to 15 minutes
   const [autoDeclutter, setAutoDeclutter] = useState<boolean>(true); // Default on
   const { stuffProjectsEnabled, setStuffProjectsEnabled } = useStuffProjects();
-  // The day boundary is owned by DateTimeSettingsProvider (loaded server-side in the
-  // layout), so this page edits it in place rather than keeping a second copy.
-  const { timeZoneSettings, setTimeZoneSettings } = useDateTimeSettings();
+  // The day boundary and the visibility window are owned by
+  // DateTimeSettingsProvider (loaded server-side in the layout), so this page
+  // edits them in place rather than keeping a second copy.
+  const {
+    timeZoneSettings,
+    setTimeZoneSettings,
+    completedTaskVisibilityMinutes,
+    setCompletedTaskVisibilityMinutes,
+  } = useDateTimeSettings();
   const dayBoundaryHour = timeZoneSettings.dayBoundaryHour;
+  const visibilityMinutes = completedTaskVisibilityMinutes;
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -33,10 +36,6 @@ export default function SettingsPage() {
   useEffect(() => {
     const fetchSettings = async () => {
       setIsLoading(true);
-      const minutes = await fetchVisibilityMinutesFromStrapi();
-      if (minutes !== null) {
-        setVisibilityMinutes(minutes);
-      }
       const declutter = await fetchAutoDeclutterFromStrapi();
       if (declutter !== null) {
         setAutoDeclutter(declutter);
@@ -51,11 +50,12 @@ export default function SettingsPage() {
     event: React.ChangeEvent<HTMLSelectElement>
   ) => {
     const newValue = parseInt(event.target.value, 10);
-    setVisibilityMinutes(newValue);
     setIsSaving(true);
 
     const success = await saveVisibilityMinutesToStrapi(newValue);
-    if (!success) {
+    if (success) {
+      setCompletedTaskVisibilityMinutes(newValue);
+    } else {
       console.error("Failed to save visibility setting");
     }
 

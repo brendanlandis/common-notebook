@@ -6,10 +6,6 @@ import {
   getToday,
   getNow,
 } from "@/app/lib/dateUtils";
-import {
-  getCompletedTaskVisibilityMinutes,
-  fetchVisibilityMinutesFromStrapi,
-} from "@/app/lib/completedTaskVisibilityConfig";
 import { getWorkedOnPhase } from "@/app/lib/dayBoundaryHelpers";
 import { useDateTimeSettings } from "@/app/contexts/DateTimeSettingsContext";
 import { groupTasksForLayout, type GroupedTasks } from "@/app/lib/groupTasks";
@@ -35,7 +31,7 @@ export interface UseTasksResult {
 // Mutations go through addTask/removeTask/updateTask so the UI rerenders
 // consistently without per-handler array bookkeeping.
 export function useTasks(): UseTasksResult {
-  const { timeZoneSettings } = useDateTimeSettings();
+  const { timeZoneSettings, completedTaskVisibilityMinutes } = useDateTimeSettings();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [manualProjects, setManualProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
@@ -139,7 +135,7 @@ export function useTasks(): UseTasksResult {
         // Filter out long tasks worked on in the current "phase 2" window and
         // completed tasks older than the visibility window.
         const now = getNow(timeZoneSettings);
-        const visibilityMinutes = getCompletedTaskVisibilityMinutes();
+        const visibilityMinutes = completedTaskVisibilityMinutes;
 
         const visibleTasks = allTasks.filter((task: Task) => {
           if (task.long && task.workSessions && task.workSessions.length > 0) {
@@ -207,7 +203,7 @@ export function useTasks(): UseTasksResult {
     } finally {
       if (showLoading && !isStale()) setLoading(false);
     }
-  }, [enrichTaskWorld, timeZoneSettings]);
+  }, [enrichTaskWorld, timeZoneSettings, completedTaskVisibilityMinutes]);
 
   // Derive all groupings from `tasks`. Empty user-created projects are spliced
   // in from `manualProjects` so they show until the next refetch clears them.
@@ -226,13 +222,11 @@ export function useTasks(): UseTasksResult {
     return base;
   }, [tasks, manualProjects, timeZoneSettings]);
 
-  // Initial load: prime the visibility cache before fetching tasks.
+  // Initial load. This used to await a fetch that primed a module cache before
+  // refetching, purely because the filter below read that cache synchronously.
+  // The visibility window now arrives with the provider, so the hop is gone.
   useEffect(() => {
-    const init = async () => {
-      await fetchVisibilityMinutesFromStrapi();
-      refetch();
-    };
-    init();
+    refetch();
   }, [refetch]);
 
   // Moon-phase reset event listener (fired by /api/system-settings updates).

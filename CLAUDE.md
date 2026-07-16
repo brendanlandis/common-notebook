@@ -85,19 +85,28 @@ throughout the frontend. Node engine constraint: `>=18 <=22.x`.
   `visibleProjects`) — presets in `layoutPresets.ts`, applied in `layoutTransformers.ts`.
   World views order projects by tier: top-of-mind → priority (`pN` title marker, see
   `projectPriority.ts`) → normal → later, sorted by creation date within each tier.
-- **Date logic takes `TimeSettings`, never reads it ambiently.** `{ timezone, dayBoundaryHour }`
-  (`app/lib/timeSettings.ts`) is threaded as a parameter into `getToday`/`getNow`/`parseDate`/
+- **Date logic takes `TimeZoneSettings`, never reads it ambiently.** `{ timezone, dayBoundaryHour }`
+  (`app/lib/timeZoneSettings.ts`) is threaded as a parameter into `getToday`/`getNow`/`parseDate`/
   `toISODate`/`formatInTimezone`/`getTodayForRecurrence` (`app/lib/dateUtils.ts`) and on into
   `recurrence.ts`, `layoutTransformers.ts`, `groupTasks.ts`, `dayBoundaryHelpers.ts`. Server code
-  resolves it **per request** from the caller's token via `getTimeSettings(token)`
-  (`app/lib/strapiServer.ts`); client code reads `useTimeSettings()`, which `(main)/layout.tsx` fills
-  server-side so the first paint is already in the user's zone. Defaults for every setting live in
-  exactly one table, `app/lib/defaultSettings.ts` (EST, 4am boundary).
+  resolves it **per request** from the caller's token via `getTimeZoneSettings(token)`
+  (`app/lib/strapiServer.ts`); client code reads `useDateTimeSettings().timeZoneSettings`, which
+  `(main)/layout.tsx` fills server-side so the first paint is already in the user's zone. Defaults for
+  every setting live in exactly one table, `app/lib/defaultSettings.ts` (EST, 4am boundary).
+  **`TimeZoneSettings` is a function parameter, not a settings bag** — its membership is decided by
+  what the pure date math reads, not by what sounds time-related. `completedTaskVisibilityMinutes` is
+  time-ish but sits *beside* it on `DateTimeSettingsProvider`, because no date function reads it (only
+  `useTasks`, filtering a list) and no server route needs it; folding it in would hand a visibility
+  duration to `getTodayForRecurrence` and make ~12 test literals invent a value that cannot affect
+  their assertion.
   **Never add a module-level cache for a setting.** Two modules each caching `dayBoundaryHour` with
   different defaults is why the server computed every date in EST at midnight regardless of the user's
-  setting, and why completing a recurring task wrote a date the form never predicted. A cache also
-  cannot be primed on the server (no localStorage, no mount effect) and, if it were, would leak one
-  user's settings to the next request. Keep date logic pure and unit-tested.
+  setting, and why completing a recurring task wrote a date the form never predicted. The same shape
+  hid just-completed tasks on the first load of /todo until you visited /settings. A cache also cannot
+  be primed on the server (no localStorage, no mount effect) and, if it were, would leak one user's
+  settings to the next request. There are no `NEXT_PUBLIC_*` overrides for these: settings are
+  per-user rows, so a build-time env var would override every user at once. Keep date logic pure and
+  unit-tested.
 - Naming: PascalCase components, camelCase lib/util files, `use*` hooks, `*.test.ts(x)` siblings for tests.
 
 # Gotchas
@@ -107,12 +116,14 @@ throughout the frontend. Node engine constraint: `>=18 <=22.x`.
   CI-gated.** `npm run lint` (`eslint .`) reports ~168 pre-existing findings and `tsc --noEmit` has
   pre-existing errors in some test files — don't chase these as if new; scope checks to files you touched.
 - Tests co-locate as `*.test.ts(x)` siblings next to their subject. Date-dependent suites pass a
-  `TimeSettings` literal rather than mocking config modules; `layoutTransformers`/`recurrence` tests
-  still `vi.mock('./dateUtils')` to pin `getTodayForRecurrence` (see `app/lib/layoutTransformers.*.test.ts`).
-  **`app/lib/recurrence.timeSettings.test.ts` deliberately does not mock `./dateUtils`** — the mocked
-  suites stub out the exact seam the timezone bug lived in, so only an unmocked test can catch a
-  regression there. Components/hooks reading `useTimeSettings()` need a `TimeSettingsProvider` wrapper
-  in tests; pass `initial` so the provider doesn't fetch (see `app/(main)/todo/hooks/useTasks.test.ts`).
+  `TimeZoneSettings` literal rather than mocking config modules; `layoutTransformers`/`recurrence`
+  tests still `vi.mock('./dateUtils')` to pin `getTodayForRecurrence` (see
+  `app/lib/layoutTransformers.*.test.ts`).
+  **`app/lib/recurrence.timeZoneSettings.test.ts` deliberately does not mock `./dateUtils`** — the
+  mocked suites stub out the exact seam the timezone bug lived in, so only an unmocked test can catch
+  a regression there. Components/hooks reading `useDateTimeSettings()` need a
+  `DateTimeSettingsProvider` wrapper in tests; pass `initial` so the provider doesn't fetch (see
+  `app/(main)/todo/hooks/useTasks.test.ts`).
 - **Everything runs Node 25 / npm 11** — prod, local, and all four CI jobs — even though
   `backend/package.json` still declares `engines: >=18 <=22.x` (harmless `EBADENGINE` warnings).
   Don't "fix" a CI job back to Node 22: Node 22 ships npm 10, which rejects an npm 11 lockfile with
