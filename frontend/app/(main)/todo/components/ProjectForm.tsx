@@ -14,8 +14,10 @@ const schema = z.object({
   description: z.array(z.any()).optional(),
   world: z.string().optional(), // a world documentId ("" = no world)
   importance: z.enum(["normal", "top of mind", "later"]),
+  // `default`, not `normal` — that is importance's ordinary value. These must
+  // match the Strapi enum or the save 400s.
   projectType: z.enum([
-    "normal",
+    "default",
     "chores",
     "wishlist",
     "errands",
@@ -54,7 +56,8 @@ export default function ProjectForm({
       description: project?.description || [],
       world: project?.world?.documentId ?? "",
       importance: project?.importance || "normal",
-      projectType: project?.projectType || "normal",
+      // Most existing rows store null rather than 'default'; both mean ordinary.
+      projectType: project?.projectType || "default",
     },
   });
 
@@ -136,7 +139,7 @@ export default function ProjectForm({
       <div>
         <label htmlFor="projectType">type</label>
         <select id="projectType" {...register("projectType")}>
-          <option value="normal">normal</option>
+          <option value="default">default</option>
           <option value="chores">chores</option>
           <option value="wishlist">wishlist</option>
           <option value="errands">errands</option>

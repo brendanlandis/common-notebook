@@ -20,20 +20,23 @@ export interface UseTasksResult {
   removeTask: (id: string) => void;
   updateTask: (t: Task) => void;
   updateProject: (p: Project) => void;
-  addManualProject: (p: Project) => void;
+  addProject: (p: Project) => void;
   refetch: (showLoading?: boolean) => Promise<void>;
   /** The world of a project by documentId, from the normalized projects map. */
   worldForProjectId: (documentId?: string | null) => World | null;
 }
 
-// Owns the active-tasks data domain: the flat `tasks` array, the empty-project
-// overlay (`manualProjects`), and all the derived groupings via useMemo.
+// Owns the active-tasks data domain: the flat `tasks` array, the user's
+// `projects`, and all the derived groupings via useMemo.
 // Mutations go through addTask/removeTask/updateTask so the UI rerenders
 // consistently without per-handler array bookkeeping.
 export function useTasks(): UseTasksResult {
   const { timeZoneSettings, completedTaskVisibilityMinutes } = useDateTimeSettings();
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [manualProjects, setManualProjects] = useState<Project[]>([]);
+  // The full project list, not just the ones tasks reference — an empty project
+  // has to survive a refetch, which the old `manualProjects` overlay could not do
+  // (it was cleared on every refetch, so a new project vanished).
+  const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -77,16 +80,22 @@ export function useTasks(): UseTasksResult {
     [enrichTaskWorld]
   );
 
-  const addManualProject = useCallback((p: Project) => {
+  // Show a newly created project at once. Unlike the overlay this replaced, the
+  // next refetch keeps it: /api/projects returns it too.
+  const addProject = useCallback((p: Project) => {
     projectsByIdRef.current.set(p.documentId, p);
-    setManualProjects((prev) => [...prev, p]);
+    setProjects((prev) =>
+      prev.some((x) => x.documentId === p.documentId) ? prev : [...prev, p]
+    );
   }, []);
 
-  // Project metadata lives on each task's `project` relation. When metadata
-  // changes, propagate to every task that references it. Also update any
-  // matching entry in manualProjects so renames show before tasks are added.
+  // Project metadata lives both in `projects` and on each task's `project`
+  // relation, so a rename has to land in both.
   const updateProject = useCallback((updated: Project) => {
     projectsByIdRef.current.set(updated.documentId, updated);
+    setProjects((prev) =>
+      prev.map((p) => (p.documentId === updated.documentId ? updated : p))
+    );
     setTasks((prev) =>
       prev.map((t) => {
         const proj = t.project as any;
@@ -95,11 +104,6 @@ export function useTasks(): UseTasksResult {
         }
         return t;
       })
-    );
-    setManualProjects((prev) =>
-      prev.map((p) =>
-        p.documentId === updated.documentId ? updated : p
-      )
     );
   }, []);
 
@@ -122,11 +126,13 @@ export function useTasks(): UseTasksResult {
 
       if (isStale()) return;
 
-      // Build the project→world map before enriching tasks below.
+      // Build the project→world map before enriching tasks below. The ref is
+      // what `enrichTaskWorld` reads synchronously here and in addTask/updateTask;
+      // the state is what the grouping renders from.
       if (projectsResult.success) {
-        projectsByIdRef.current = new Map(
-          (projectsResult.data as Project[]).map((p) => [p.documentId, p])
-        );
+        const projectList = projectsResult.data as Project[];
+        projectsByIdRef.current = new Map(projectList.map((p) => [p.documentId, p]));
+        setProjects(projectList);
       }
 
       if (result.success) {
@@ -193,7 +199,6 @@ export function useTasks(): UseTasksResult {
         });
 
         setTasks(tasksWithPhaseInfo.map(enrichTaskWorld));
-        setManualProjects([]);
       } else {
         setError(result.error);
       }
@@ -205,22 +210,12 @@ export function useTasks(): UseTasksResult {
     }
   }, [enrichTaskWorld, timeZoneSettings, completedTaskVisibilityMinutes]);
 
-  // Derive all groupings from `tasks`. Empty user-created projects are spliced
-  // in from `manualProjects` so they show until the next refetch clears them.
-  const grouped = useMemo<GroupedTasks>(() => {
-    const today = getToday(timeZoneSettings);
-    const base = groupTasksForLayout(tasks, today, timeZoneSettings);
-    if (manualProjects.length > 0) {
-      const existingIds = new Set(base.projects.map((p) => p.documentId));
-      const extras = manualProjects
-        .filter((p) => !existingIds.has(p.documentId))
-        .map((p) => ({ ...p, tasks: [] }));
-      if (extras.length > 0) {
-        return { ...base, projects: [...base.projects, ...extras] };
-      }
-    }
-    return base;
-  }, [tasks, manualProjects, timeZoneSettings]);
+  // Derive all groupings from `tasks` + `projects`. Projects with no tasks come
+  // through with an empty `tasks` array rather than being spliced in afterwards.
+  const grouped = useMemo<GroupedTasks>(
+    () => groupTasksForLayout(tasks, projects, getToday(timeZoneSettings), timeZoneSettings),
+    [tasks, projects, timeZoneSettings]
+  );
 
   // Initial load. This used to await a fetch that primed a module cache before
   // refetching, purely because the filter below read that cache synchronously.
@@ -265,7 +260,7 @@ export function useTasks(): UseTasksResult {
     removeTask,
     updateTask,
     updateProject,
-    addManualProject,
+    addProject,
     refetch,
     worldForProjectId,
   };

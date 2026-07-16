@@ -19,10 +19,16 @@ export interface GroupedTasks {
 
 // Group a flat list of tasks by project; project-less tasks become incidentals.
 // `tasks` is assumed to already be visibility-filtered and phase-enriched.
+// `projects` is the user's full project list (from /api/projects) and seeds the
+// `projects` bucket, so a project with no tasks is still present — with an empty
+// `tasks` array. That is what lets `/todo/project/<slug>` resolve a project you
+// just made, and it replaces the `manualProjects` overlay that used to splice
+// new projects in and lose them on the next refetch.
 // `today` is used to filter recurring tasks by displayDate (unfiltered set is
 // also returned for the recurring-review view).
 export function groupTasksForLayout(
   tasks: Task[],
+  projects: Project[],
   today: Date,
   settings: TimeZoneSettings
 ): GroupedTasks {
@@ -37,9 +43,21 @@ export function groupTasksForLayout(
   const nonRecurringTasks = tasks.filter((task) => !task.isRecurring);
 
   // Split a task list into project groups + project-less incidentals.
-  const groupByProject = (list: Task[]) => {
+  //
+  // `seed` is only for the `projects` bucket: it means "every project the user
+  // has", where the recurring buckets mean "projects with recurring tasks due".
+  // Seeding costs nothing downstream — the layout engine builds its columns from
+  // tasks (`layoutTransformers.groupByProject`), so an empty project still
+  // renders no column.
+  const groupByProject = (list: Task[], seed: Project[] = []) => {
     const projectMap = new Map<string, Project>();
     const incidentals: Task[] = [];
+
+    // Seeded first, so the authoritative record from /api/projects (which carries
+    // the populated `world`) wins over a task's shallow `project` relation.
+    seed.forEach((project) => {
+      projectMap.set(project.documentId, { ...project, tasks: [] });
+    });
 
     list.forEach((task) => {
       if (task.project) {
@@ -56,7 +74,7 @@ export function groupTasksForLayout(
     return { projects: Array.from(projectMap.values()), incidentals };
   };
 
-  const nonRecurring = groupByProject(nonRecurringTasks);
+  const nonRecurring = groupByProject(nonRecurringTasks, projects);
   const recurring = groupByProject(recurringTasks);
   const allRecurring = groupByProject(allRecurringTasksUnfiltered);
 

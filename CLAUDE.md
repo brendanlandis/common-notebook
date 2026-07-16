@@ -78,7 +78,7 @@ throughout the frontend. Node engine constraint: `>=18 <=22.x`.
   `stuff` (`app/types/index.ts`). A project belongs to one world.
 - **Importance** — project tier: `top of mind`, `normal`, `later`. World views order projects
   top-of-mind → priority (`pN` title marker) → normal → later, creation-date within each.
-- **Project type** — a project's `projectType` (`app/types/index.ts`): `normal`, `chores`, plus the four
+- **Project type** — a project's `projectType` (`app/types/index.ts`): `default`, `chores`, plus the four
   `STUFF_PROJECT_TYPES` (`wishlist`, `errands`, `in the mail`, `buy stuff`) that live in the `stuff` world
   and are gated by the `enableStuffProjects` setting (`app/lib/stuffProjectsConfig.ts`). This **replaced the
   old per-task `category` enum** — see `backend/scripts/migrate-categories-to-projects.js`.
@@ -160,6 +160,18 @@ throughout the frontend. Node engine constraint: `>=18 <=22.x`.
   no error — that shipped wrong practice stats and a project-demotion bug. Never hand-roll a Strapi list
   fetch: use `fetchAllPages()` from `app/lib/strapiServer.ts`, which pages properly and throws instead of
   truncating. Filter server-side (`filters[...]`), never in JS over a partial page.
+- **`projectType`'s ordinary value is `default`; `importance`'s is `normal`. Don't mix them up.**
+  Fixed 2026-07-16 — until then `ProjectType` and `ProjectForm` used `'normal'` for *both*, so every
+  save of an ordinary project sent `projectType: 'normal'`, which Strapi's enum
+  (`['default','chores','wishlist','errands','in the mail','buy stuff']`) rejects with
+  `400 projectType must be one of the following values: default, …`. It went unnoticed for so long
+  because `handleProjectFormSubmit` closes the drawer *before* awaiting and had no `else` on
+  `if (response.ok)`: the edit looked saved and wasn't.
+  **Most rows store `null`, not `'default'`** — both mean "ordinary", and `getTaskProjectType` returns
+  null for them. Nothing backfills; a project picks up `'default'` only when someone saves it. Treat
+  `null` and `'default'` as the same thing, and never reintroduce a third spelling.
+  A rejected save is still only logged, not shown — surfacing it needs the drawer to stay open until
+  the request resolves.
 - **Two separate rules reject fields in a content-API request body**, both with the same unhelpful
   `400 ValidationError: Invalid key <field>`:
   1. `throw-private.js` — the attribute is `private: true`.

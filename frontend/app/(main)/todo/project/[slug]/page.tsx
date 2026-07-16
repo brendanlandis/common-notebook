@@ -31,17 +31,15 @@ export default function ProjectPage() {
   } = useTaskData();
 
   // Resolve the project by slug first, falling back to documentId so any older
-  // documentId-based links keep working. Metadata rides along on the loaded
-  // tasks' populated `project` relation (empty projects won't resolve — a v1
-  // limitation, reachable only by clicking a project that has tasks).
-  const project: Project | null = useMemo(() => {
-    const all = [
-      ...grouped.projects,
-      ...grouped.recurringProjects,
-      ...grouped.allRecurringProjects,
-    ];
-    return all.find((p) => p.slug === slugOrId || p.documentId === slugOrId) || null;
-  }, [grouped, slugOrId]);
+  // documentId-based links keep working. `grouped.projects` is the user's whole
+  // project list, so a project with no tasks resolves too — it used not to, and
+  // opening one showed "project not found".
+  const project: Project | null = useMemo(
+    () =>
+      grouped.projects.find((p) => p.slug === slugOrId || p.documentId === slugOrId) ??
+      null,
+    [grouped.projects, slugOrId]
+  );
 
   const documentId = project?.documentId;
 
@@ -86,8 +84,7 @@ export default function ProjectPage() {
     return (
       <div id="container-task" className="layout-project-view" suppressHydrationWarning>
         <p>
-          project not found, or it has no active tasks.{" "}
-          <Link href="/todo">back to to do</Link>
+          project not found. <Link href="/todo">back to to do</Link>
         </p>
       </div>
     );

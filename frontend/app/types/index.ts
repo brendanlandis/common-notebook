@@ -146,10 +146,15 @@ export type ProjectImportance =
   | 'later';
 
 // Project type — stable handle that replaces the task `category` enum.
-// `normal`/`chores` are ordinary worlds; the four "stuff" types drive
+// `default`/`chores` are ordinary worlds; the four "stuff" types drive
 // shopping-list form fields, the price badge, and wishlist sub-grouping.
+//
+// The ordinary value is `default`, matching the Strapi enum. It is *not* `normal`
+// — that is `ProjectImportance`'s ordinary value, and the two were conflated:
+// the frontend sent `projectType: 'normal'`, which Strapi rejects, so saving an
+// ordinary project failed (silently, since the handler ignored the 400).
 export type ProjectType =
-  | 'normal'
+  | 'default'
   | 'chores'
   | 'wishlist'
   | 'errands'

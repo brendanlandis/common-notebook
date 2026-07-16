@@ -317,27 +317,68 @@ describe("useTasks", () => {
     expect(result.current.grouped.incidentals[0].documentId).toBe("c");
   });
 
-  it("addManualProject shows an empty project until refetch", async () => {
-    const { result } = renderHook(() => useTasks(), { wrapper });
-    await waitFor(() => expect(result.current.loading).toBe(false));
+  // `refetch` fetches /api/tasks and /api/projects together, so a test that cares
+  // about both has to answer per URL rather than rely on Promise.all ordering.
+  const mockApi = ({ tasks = [], projects = [] }: { tasks?: Task[]; projects?: Project[] }) =>
+    fetchMock.mockImplementation((url: string) =>
+      Promise.resolve({
+        ok: true,
+        json: async () => ({
+          success: true,
+          data: String(url).startsWith("/api/projects") ? projects : tasks,
+        }),
+      })
+    );
 
-    act(() => {
-      result.current.addManualProject(makeProject({ documentId: "empty-1" }));
+  describe("projects with no tasks", () => {
+    it("addProject shows a new empty project immediately", async () => {
+      const { result } = renderHook(() => useTasks(), { wrapper });
+      await waitFor(() => expect(result.current.loading).toBe(false));
+
+      act(() => {
+        result.current.addProject(makeProject({ documentId: "empty-1" }));
+      });
+
+      expect(result.current.grouped.projects).toHaveLength(1);
+      expect(result.current.grouped.projects[0].documentId).toBe("empty-1");
+      expect(result.current.grouped.projects[0].tasks).toEqual([]);
     });
 
-    expect(result.current.grouped.projects).toHaveLength(1);
-    expect(result.current.grouped.projects[0].documentId).toBe("empty-1");
-    expect(result.current.grouped.projects[0].tasks).toEqual([]);
+    it("keeps an empty project across a refetch", async () => {
+      // The overlay this replaced was cleared on every refetch, so a project you
+      // had just created vanished — and would vanish on window focus now.
+      const { result } = renderHook(() => useTasks(), { wrapper });
+      await waitFor(() => expect(result.current.loading).toBe(false));
 
-    fetchMock.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ success: true, data: [] }),
-    });
-    await act(async () => {
-      await result.current.refetch(false);
+      mockApi({ tasks: [], projects: [makeProject({ documentId: "empty-1" })] });
+      await act(async () => {
+        await result.current.refetch(false);
+      });
+
+      expect(result.current.grouped.projects).toHaveLength(1);
+      expect(result.current.grouped.projects[0].documentId).toBe("empty-1");
+      expect(result.current.grouped.projects[0].tasks).toEqual([]);
     });
 
-    expect(result.current.grouped.projects).toHaveLength(0);
+    it("carries the project's own world, not the task's shallow copy", async () => {
+      // /api/projects is the authoritative record (it populates `world`);
+      // /api/tasks only shallow-populates the relation. The seeded copy wins.
+      const withWorld = makeProject({
+        documentId: "proj-1",
+        world: { documentId: "w1", title: "make music", systemKey: null },
+      } as Partial<Project>);
+      mockApi({
+        tasks: [makeTask({ documentId: "a", project: { documentId: "proj-1" } as any })],
+        projects: [withWorld],
+      });
+
+      const { result } = renderHook(() => useTasks(), { wrapper });
+      await waitFor(() => expect(result.current.tasks).toHaveLength(1));
+
+      const project = result.current.grouped.projects.find((p) => p.documentId === "proj-1");
+      expect(project?.world?.title).toBe("make music");
+      expect(project?.tasks).toHaveLength(1);
+    });
   });
 
   it("updateProject propagates new metadata to tasks that reference the project", async () => {

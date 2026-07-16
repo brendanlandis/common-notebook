@@ -80,7 +80,7 @@ export function TaskDataProvider({ children }: { children: ReactNode }) {
     removeTask,
     updateTask,
     updateProject,
-    addManualProject,
+    addProject,
     worldForProjectId,
     refetch: fetchTasks,
   } = useTasks();
@@ -588,11 +588,19 @@ export function TaskDataProvider({ children }: { children: ReactNode }) {
           // grouping useMemo will recompute layout placement automatically.
           updateProject(updatedProject);
         } else {
-          // New project created with no tasks yet. Show it in its world's view
-          // until the next fetchTasks clears the manualProjects overlay; the
-          // engine's world filtering decides where it appears.
-          addManualProject(updatedProject);
+          // New project, no tasks yet. Splice it into the project list so it is
+          // navigable at once; the next refetch returns it from /api/projects, so
+          // unlike the overlay this replaced, it does not disappear.
+          addProject(updatedProject);
         }
+      } else {
+        // The drawer is already closed by this point, so a rejected save looks
+        // identical to a successful one. That is how `projectType: 'normal'` —
+        // a value Strapi's enum never allowed — went unnoticed: every edit of an
+        // ordinary project 400'd and said nothing. Surfacing this to the user
+        // needs the drawer to stay open (or a toast); logging is the floor.
+        const body = await response.json().catch(() => null);
+        console.error("Failed to save project:", body?.error ?? response.statusText);
       }
     } catch (err) {
       console.error("Error saving project:", err);

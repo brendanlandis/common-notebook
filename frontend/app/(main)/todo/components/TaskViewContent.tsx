@@ -105,9 +105,12 @@ export default function TaskViewContent({ slug }: { slug: string }) {
     );
   }
 
+  // Count tasks, not projects: `grouped.projects` is every project the user has
+  // now, including empty ones, so its length says nothing about having anything
+  // to do. Checking it would mean the empty state never showed again.
   const hasAnyTasks =
-    grouped.projects.length > 0 ||
-    grouped.categoryGroups.length > 0 ||
+    grouped.projects.some((p) => (p.tasks?.length ?? 0) > 0) ||
+    grouped.categoryGroups.some((g) => (g.tasks?.length ?? 0) > 0) ||
     grouped.incidentals.length > 0;
   const hasRecurringTasks =
     grouped.recurringProjects.length > 0 ||
