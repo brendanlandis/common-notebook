@@ -1,9 +1,38 @@
 import { addDays, addMonths, addYears, nextDay, setDate, setMonth, getDay, startOfMonth, lastDayOfMonth, subDays, addWeeks, type Day } from 'date-fns';
 import * as Astronomy from 'astronomy-engine';
 import type { Task } from '../types/index';
-import { toISODate, parseDate, getTodayForRecurrence } from './dateUtils';
+import { toISODate, parseDate, getTodayForRecurrence, toZonedTime } from './dateUtils';
 import type { TimeZoneSettings } from './timeZoneSettings';
 import { validateRecurrenceFields } from './recurrenceSpec';
+
+/**
+ * Calendar arithmetic has to happen on the user's wall clock, not the machine's.
+ *
+ * Every date-fns function here (setDate, startOfMonth, nextDay, addWeeks, getDay,
+ * addDays…) reads and writes a Date's *local* components. The dates flowing through
+ * this file are real instants — `parseDate('2026-01-13', EST)` is 05:00Z — so doing
+ * that arithmetic on them directly runs it in whatever calendar the machine happens
+ * to be in. On a UTC server with an EST user, the 2nd Tuesday of February was
+ * computed as 2026-02-10T00:00Z, which *is* Feb 9 in New York: every monthly and
+ * annual recurrence landed a day early. It looked correct on a laptop whose zone
+ * matched the setting, which is why it survived.
+ *
+ * `toZonedTime` puts the user's wall clock into the local components, so date-fns
+ * then operates in their calendar. `zonedYMD` reads it back out — it must not go
+ * through toISODate, which would convert a second time. The comparison fix at the
+ * old call sites ("compare ISO strings, not startOfDay") was half of this: it
+ * corrected how the results were compared but not how they were computed.
+ */
+function toWallClock(date: Date, settings: TimeZoneSettings): Date {
+  return toZonedTime(date, settings.timezone);
+}
+
+function zonedYMD(wallClock: Date): string {
+  const year = wallClock.getFullYear();
+  const month = String(wallClock.getMonth() + 1).padStart(2, '0');
+  const day = String(wallClock.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
 
 /**
  * Convert day of week from our app format (1-7 where 1=Monday, 7=Sunday)
@@ -76,9 +105,8 @@ export function calculateNextRecurrence(
       // When offset > 0: show task before the event
       // displayDate = when to show the task (event - offset)
       // dueDate = the actual event date
-      const eventDateObj = parseDate(eventDate, settings);
-      const displayDateObj = subDays(eventDateObj, offset);
-      const displayDate = toISODate(displayDateObj, settings);
+      const eventWallClock = toWallClock(parseDate(eventDate, settings), settings);
+      const displayDate = zonedYMD(subDays(eventWallClock, offset));
 
       return { dueDate: eventDate, displayDate };
     } else {
@@ -113,9 +141,18 @@ function calculateEventDate(task: Task, settings: TimeZoneSettings): string | nu
     ? parseDate(task.displayDate, settings) 
     : null;
   
+  // Both are real instants, so this picks the later moment correctly.
   const comparisonDate = existingEventDate && existingEventDate > today
     ? existingEventDate
     : today;
+
+  // The same moment on the user's wall clock, for the calendar arithmetic below.
+  // The astronomy branches deliberately keep `comparisonDate`: Astronomy.Seasons and
+  // SearchMoonPhase want a true instant, and handing them a shifted one would move
+  // the event itself.
+  const comparisonWallClock = toWallClock(comparisonDate, settings);
+  const comparisonISO = zonedYMD(comparisonWallClock);
+  const comparisonYear = comparisonWallClock.getFullYear();
 
   switch (task.recurrenceType) {
     case 'monthly date':
@@ -133,18 +170,16 @@ function calculateEventDate(task: Task, settings: TimeZoneSettings): string | nu
         return setDate(baseDate, targetDay);
       };
       
-      // Start from comparisonDate and find the next occurrence
-      let targetDate = setDayOfMonth(comparisonDate, task.recurrenceDayOfMonth);
-      
-      // Always move to the next month after comparisonDate
-      // Compare ISO date strings in configured timezone instead of using startOfDay()
-      // which uses system timezone and causes issues on UTC servers
-      if (toISODate(targetDate, settings) <= toISODate(comparisonDate, settings)) {
-        const monthAdded = addMonths(comparisonDate, 1);
+      // Start from the comparison day and find the next occurrence
+      let targetDate = setDayOfMonth(comparisonWallClock, task.recurrenceDayOfMonth);
+
+      // Always move to the next month after the comparison day
+      if (zonedYMD(targetDate) <= comparisonISO) {
+        const monthAdded = addMonths(comparisonWallClock, 1);
         targetDate = setDayOfMonth(monthAdded, task.recurrenceDayOfMonth);
       }
-      
-      return toISODate(targetDate, settings);
+
+      return zonedYMD(targetDate);
 
     case 'monthly day':
       if (
@@ -185,16 +220,15 @@ function calculateEventDate(task: Task, settings: TimeZoneSettings): string | nu
         return targetDate;
       };
       
-      // Start from comparisonDate and find the next occurrence
-      let targetMonthlyDate = findNthWeekdayOfMonth(comparisonDate);
-      
-      // Always move to the next month after comparisonDate
-      // Compare ISO date strings in configured timezone (startOfDay uses system timezone)
-      if (toISODate(targetMonthlyDate, settings) <= toISODate(comparisonDate, settings)) {
-        targetMonthlyDate = findNthWeekdayOfMonth(addMonths(comparisonDate, 1));
+      // Start from the comparison day and find the next occurrence
+      let targetMonthlyDate = findNthWeekdayOfMonth(comparisonWallClock);
+
+      // Always move to the next month after the comparison day
+      if (zonedYMD(targetMonthlyDate) <= comparisonISO) {
+        targetMonthlyDate = findNthWeekdayOfMonth(addMonths(comparisonWallClock, 1));
       }
-      
-      return toISODate(targetMonthlyDate, settings);
+
+      return zonedYMD(targetMonthlyDate);
 
     case 'annually':
       if (
@@ -217,17 +251,16 @@ function calculateEventDate(task: Task, settings: TimeZoneSettings): string | nu
         return setDate(withMonth, day);
       };
       
-      // Start from comparisonDate and find the next occurrence
-      let annualDate = setAnnualDate(comparisonDate, task.recurrenceMonth, task.recurrenceDayOfMonth);
-      
-      // Always move to the next year after comparisonDate
-      // Compare ISO date strings in configured timezone (startOfDay uses system timezone)
-      if (toISODate(annualDate, settings) <= toISODate(comparisonDate, settings)) {
-        const nextYear = addYears(comparisonDate, 1);
+      // Start from the comparison day and find the next occurrence
+      let annualDate = setAnnualDate(comparisonWallClock, task.recurrenceMonth, task.recurrenceDayOfMonth);
+
+      // Always move to the next year after the comparison day
+      if (zonedYMD(annualDate) <= comparisonISO) {
+        const nextYear = addYears(comparisonWallClock, 1);
         annualDate = setAnnualDate(nextYear, task.recurrenceMonth, task.recurrenceDayOfMonth);
       }
-      
-      return toISODate(annualDate, settings);
+
+      return zonedYMD(annualDate);
 
     case 'full moon':
       // Start search from the day after comparisonDate to ensure we get the NEXT full moon
@@ -244,43 +277,43 @@ function calculateEventDate(task: Task, settings: TimeZoneSettings): string | nu
       return toISODate(nextNewMoon.date, settings);
 
     case 'spring equinox':
-      const springYear = comparisonDate.getFullYear();
+      const springYear = comparisonYear;
       let springEquinox = Astronomy.Seasons(springYear).mar_equinox;
       // Compare ISO date strings in configured timezone (startOfDay uses system timezone)
-      if (toISODate(springEquinox.date, settings) <= toISODate(comparisonDate, settings)) {
+      if (toISODate(springEquinox.date, settings) <= comparisonISO) {
         springEquinox = Astronomy.Seasons(springYear + 1).mar_equinox;
       }
       return toISODate(springEquinox.date, settings);
 
     case 'summer solstice':
-      const summerYear = comparisonDate.getFullYear();
+      const summerYear = comparisonYear;
       let summerSolstice = Astronomy.Seasons(summerYear).jun_solstice;
       // Compare ISO date strings in configured timezone (startOfDay uses system timezone)
-      if (toISODate(summerSolstice.date, settings) <= toISODate(comparisonDate, settings)) {
+      if (toISODate(summerSolstice.date, settings) <= comparisonISO) {
         summerSolstice = Astronomy.Seasons(summerYear + 1).jun_solstice;
       }
       return toISODate(summerSolstice.date, settings);
 
     case 'autumn equinox':
-      const autumnYear = comparisonDate.getFullYear();
+      const autumnYear = comparisonYear;
       let autumnEquinox = Astronomy.Seasons(autumnYear).sep_equinox;
       // Compare ISO date strings in configured timezone (startOfDay uses system timezone)
-      if (toISODate(autumnEquinox.date, settings) <= toISODate(comparisonDate, settings)) {
+      if (toISODate(autumnEquinox.date, settings) <= comparisonISO) {
         autumnEquinox = Astronomy.Seasons(autumnYear + 1).sep_equinox;
       }
       return toISODate(autumnEquinox.date, settings);
 
     case 'winter solstice':
-      const winterYear = comparisonDate.getFullYear();
+      const winterYear = comparisonYear;
       let winterSolstice = Astronomy.Seasons(winterYear).dec_solstice;
       // Compare ISO date strings in configured timezone (startOfDay uses system timezone)
-      if (toISODate(winterSolstice.date, settings) <= toISODate(comparisonDate, settings)) {
+      if (toISODate(winterSolstice.date, settings) <= comparisonISO) {
         winterSolstice = Astronomy.Seasons(winterYear + 1).dec_solstice;
       }
       return toISODate(winterSolstice.date, settings);
 
     case 'every season':
-      const seasonYear = comparisonDate.getFullYear();
+      const seasonYear = comparisonYear;
       const seasons = Astronomy.Seasons(seasonYear);
       const nextYearSeasons = Astronomy.Seasons(seasonYear + 1);
       
@@ -293,8 +326,7 @@ function calculateEventDate(task: Task, settings: TimeZoneSettings): string | nu
       ];
       
       // Compare ISO date strings in configured timezone (startOfDay uses system timezone)
-      const comparisonDayISO = toISODate(comparisonDate, settings);
-      const nextSeason = allSeasons.find(date => toISODate(date, settings) > comparisonDayISO);
+      const nextSeason = allSeasons.find(date => toISODate(date, settings) > comparisonISO);
       return nextSeason ? toISODate(nextSeason, settings) : null;
 
     default:
@@ -316,26 +348,31 @@ function calculateNextDisplayDate(
   settings: TimeZoneSettings,
   isInitialCreation: boolean = false
 ): string | null {
-  // Use getTodayForRecurrence(settings) which respects day boundary hour
-  const today = getTodayForRecurrence(settings);
+  // Use getTodayForRecurrence(settings) which respects day boundary hour, then move
+  // onto the user's wall clock for the same reason the event paths above do: every
+  // date-fns call here works on local components. These cases happen to survive an
+  // instant (a 4am EST boundary is 09:00Z, still mid-day in most zones, so getDay
+  // reads the same weekday) — but that is luck, not design, and it is one settings
+  // change away from being wrong.
+  const today = toWallClock(getTodayForRecurrence(settings), settings);
 
   switch (task.recurrenceType) {
     case 'daily':
       if (isInitialCreation) {
         // On initial creation, display today
-        return toISODate(today, settings);
+        return zonedYMD(today);
       }
       // After completion, next occurrence is tomorrow
-      return toISODate(addDays(today, 1), settings);
+      return zonedYMD(addDays(today, 1));
 
     case 'every x days':
       if (!task.recurrenceInterval) return null;
       if (isInitialCreation) {
         // On initial creation, display today
-        return toISODate(today, settings);
+        return zonedYMD(today);
       }
       // After completion, next occurrence is X days from today
-      return toISODate(addDays(today, task.recurrenceInterval), settings);
+      return zonedYMD(addDays(today, task.recurrenceInterval));
 
     case 'weekly':
       if (task.recurrenceDayOfWeek === null || task.recurrenceDayOfWeek === undefined) return null;
@@ -345,7 +382,7 @@ function calculateNextDisplayDate(
       if (isInitialCreation) {
         // On initial creation, find next occurrence of target weekday (not today)
         const nextWeekDay = nextDay(today, dayOfWeek as Day);
-        return toISODate(nextWeekDay, settings);
+        return zonedYMD(nextWeekDay);
       }
       
       // After completion, find next occurrence of target weekday
@@ -353,11 +390,11 @@ function calculateNextDisplayDate(
       
       if (completionDay === dayOfWeek) {
         // Completed on the correct day, next occurrence is 7 days later
-        return toISODate(addDays(today, 7), settings);
+        return zonedYMD(addDays(today, 7));
       } else {
         // Completed on different day, find next occurrence of target day
         const nextWeekDay = nextDay(today, dayOfWeek as Day);
-        return toISODate(nextWeekDay, settings);
+        return zonedYMD(nextWeekDay);
       }
 
     case 'biweekly':
@@ -368,19 +405,19 @@ function calculateNextDisplayDate(
       if (isInitialCreation) {
         // On initial creation, find next occurrence of target weekday
         const nextBiweeklyDay = nextDay(today, biweeklyDayOfWeek as Day);
-        return toISODate(nextBiweeklyDay, settings);
+        return zonedYMD(nextBiweeklyDay);
       }
       
       // After completion, maintain 14-day cycle from displayDate anchor
       // Add 14 days repeatedly until we get a future date
       if (!task.displayDate) return null;
       
-      let nextDate = parseDate(task.displayDate, settings);
+      let nextDate = toWallClock(parseDate(task.displayDate, settings), settings);
       do {
         nextDate = addDays(nextDate, 14);
       } while (nextDate <= today);
       
-      return toISODate(nextDate, settings);
+      return zonedYMD(nextDate);
 
     default:
       return null;

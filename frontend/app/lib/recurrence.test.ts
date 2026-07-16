@@ -14,8 +14,6 @@ vi.mock('./dateUtils', async () => {
     ...actual,
     getTodayForRecurrence: vi.fn(),
     getToday: vi.fn(),
-    parseDate: (dateString: string) => new Date(dateString + 'T00:00:00'),
-    toISODate: (date: Date) => date.toISOString().split('T')[0],
   };
 });
 
@@ -58,10 +56,10 @@ describe('Recurrence Logic', () => {
   beforeEach(() => {
     // Set a fixed "today" for all tests - Monday, Jan 5, 2026
     vi.mocked(dateUtils.getTodayForRecurrence).mockReturnValue(
-      new Date('2026-01-05T00:00:00')
+      dateUtils.parseDate('2026-01-05', EST)
     );
     vi.mocked(dateUtils.getToday).mockReturnValue(
-      new Date('2026-01-05T00:00:00')
+      dateUtils.parseDate('2026-01-05', EST)
     );
   });
 
@@ -95,7 +93,7 @@ describe('Recurrence Logic', () => {
     it('should drift from actual completion date', () => {
       // Simulate completing on Jan 10 instead of Jan 5
       vi.mocked(dateUtils.getTodayForRecurrence).mockReturnValue(
-        new Date('2026-01-10T00:00:00')
+        dateUtils.parseDate('2026-01-10', EST)
       );
 
       const task = createTask({
@@ -259,7 +257,7 @@ describe('Recurrence Logic', () => {
     it('should maintain schedule even when completed 5 days late', () => {
       // Completed on Jan 10, but displayDate was Jan 5
       vi.mocked(dateUtils.getTodayForRecurrence).mockReturnValue(
-        new Date('2026-01-10T00:00:00')
+        dateUtils.parseDate('2026-01-10', EST)
       );
 
       const task = createTask({
@@ -278,7 +276,7 @@ describe('Recurrence Logic', () => {
     it('should skip to next valid cycle if completed very late', () => {
       // Completed on Feb 2, displayDate was Jan 5
       vi.mocked(dateUtils.getTodayForRecurrence).mockReturnValue(
-        new Date('2026-02-02T00:00:00')
+        dateUtils.parseDate('2026-02-02', EST)
       );
 
       const task = createTask({
@@ -389,7 +387,7 @@ describe('Recurrence Logic', () => {
     it('should handle Feb 29 in leap year', () => {
       // 2028 is a leap year
       vi.mocked(dateUtils.getTodayForRecurrence).mockReturnValue(
-        new Date('2028-01-31T00:00:00')
+        dateUtils.parseDate('2028-01-31', EST)
       );
 
       const task = createTask({
@@ -477,7 +475,7 @@ describe('Recurrence Logic', () => {
 
     it('should handle Feb 29 in non-leap year', () => {
       vi.mocked(dateUtils.getTodayForRecurrence).mockReturnValue(
-        new Date('2027-02-28T00:00:00')
+        dateUtils.parseDate('2027-02-28', EST)
       );
 
       const task = createTask({

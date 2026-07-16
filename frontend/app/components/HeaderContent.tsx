@@ -10,6 +10,9 @@ import { usePractice } from "../contexts/PracticeContext";
 import { useTaskActions } from "../contexts/TaskActionsContext";
 import { PlusCircleIcon, FolderSimplePlusIcon } from "@phosphor-icons/react";
 import MoonPhaseIcon from "./MoonPhaseIcon";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiSend, swallow } from "../lib/apiFetch";
+import { TASKS_ROOT } from "../(main)/todo/hooks/useTasks";
 
 export default function HeaderContent() {
   const pathname = usePathname();
@@ -17,28 +20,21 @@ export default function HeaderContent() {
   const { stuffProjectsEnabled } = useStuffProjects();
   const { selectedPracticeType, setSelectedPracticeType } = usePractice();
   const { openTaskForm, openProjectForm } = useTaskActions();
+  const queryClient = useQueryClient();
 
-  const handleResetMoonPhase = async () => {
-    try {
-      const response = await fetch("/api/reset-moon-phase", {
-        method: "POST",
-      });
+  // Resetting the moon phase changes which tasks are due, so the lists have to be
+  // re-read. This header sits outside TaskDataProvider and so had no way to call
+  // refetch — it dispatched a `moon-phase-reset` CustomEvent that useTasks listened
+  // for. The cache is the shared state now, so the bus is just an invalidate, and
+  // one keyed on the ['tasks'] root refreshes every list rather than only the one
+  // the old listener knew about.
+  const resetMoonPhaseMutation = useMutation({
+    mutationFn: () => apiSend("/api/reset-moon-phase", "POST"),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: TASKS_ROOT }),
+  });
 
-      if (response.ok) {
-        const result = await response.json();
-        if (result.success) {
-          // Emit event to trigger task refresh without full page reload
-          window.dispatchEvent(new CustomEvent('moon-phase-reset'));
-        } else {
-          console.error("Failed to reset moon phase:", result.error);
-        }
-      } else {
-        console.error("Failed to reset moon phase:", response.statusText);
-      }
-    } catch (error) {
-      console.error("Error resetting moon phase:", error);
-    }
-  };
+  const handleResetMoonPhase = () =>
+    swallow("reset moon phase", resetMoonPhaseMutation.mutateAsync());
 
   // Task pages (index + per-world / per-project routes) share one header. The
   // shared TaskForms drawer is mounted for the whole /todo route group, so the

@@ -14,8 +14,6 @@ vi.mock('./dateUtils', async () => {
     ...actual,
     getTodayForRecurrence: vi.fn(),
     getToday: vi.fn(),
-    parseDate: (dateString: string) => new Date(dateString + 'T00:00:00'),
-    toISODate: (date: Date) => date.toISOString().split('T')[0],
   };
 });
 
@@ -57,10 +55,10 @@ describe('Regression Tests - Fixed Bugs', () => {
   beforeEach(() => {
     // Set a fixed "today" for all tests - Monday, Jan 5, 2026
     vi.mocked(dateUtils.getTodayForRecurrence).mockReturnValue(
-      new Date('2026-01-05T00:00:00')
+      dateUtils.parseDate('2026-01-05', EST)
     );
     vi.mocked(dateUtils.getToday).mockReturnValue(
-      new Date('2026-01-05T00:00:00')
+      dateUtils.parseDate('2026-01-05', EST)
     );
   });
 
@@ -68,7 +66,7 @@ describe('Regression Tests - Fixed Bugs', () => {
     it('should be exactly 14 days when Monday task completed on Monday', () => {
       // Monday, Jan 5, 2026
       vi.mocked(dateUtils.getTodayForRecurrence).mockReturnValue(
-        new Date('2026-01-05T00:00:00')
+        dateUtils.parseDate('2026-01-05', EST)
       );
 
       const task = createTask({
@@ -93,7 +91,7 @@ describe('Regression Tests - Fixed Bugs', () => {
     it('should be 14 days from original displayDate when completed on Tuesday', () => {
       // Tuesday, Jan 6, 2026 (completing a Monday task 1 day late)
       vi.mocked(dateUtils.getTodayForRecurrence).mockReturnValue(
-        new Date('2026-01-06T00:00:00')
+        dateUtils.parseDate('2026-01-06', EST)
       );
 
       const task = createTask({
@@ -112,7 +110,7 @@ describe('Regression Tests - Fixed Bugs', () => {
     it('should be 14 days from original when completed on Friday', () => {
       // Friday, Jan 9, 2026 (completing a Monday task 4 days late)
       vi.mocked(dateUtils.getTodayForRecurrence).mockReturnValue(
-        new Date('2026-01-09T00:00:00')
+        dateUtils.parseDate('2026-01-09', EST)
       );
 
       const task = createTask({
@@ -133,7 +131,7 @@ describe('Regression Tests - Fixed Bugs', () => {
     it('should be 7 days when Monday task completed on Monday, not 14', () => {
       // Monday, Jan 5, 2026
       vi.mocked(dateUtils.getTodayForRecurrence).mockReturnValue(
-        new Date('2026-01-05T00:00:00')
+        dateUtils.parseDate('2026-01-05', EST)
       );
 
       const task = createTask({
@@ -152,7 +150,7 @@ describe('Regression Tests - Fixed Bugs', () => {
     it('should be 7 days when Tuesday task completed on Tuesday', () => {
       // Tuesday, Jan 6, 2026
       vi.mocked(dateUtils.getTodayForRecurrence).mockReturnValue(
-        new Date('2026-01-06T00:00:00')
+        dateUtils.parseDate('2026-01-06', EST)
       );
 
       const task = createTask({
@@ -173,7 +171,7 @@ describe('Regression Tests - Fixed Bugs', () => {
     it('should not duplicate monthly 15th when completed on 10th', () => {
       // Jan 10, 2026 - completing a Jan 15 task early
       vi.mocked(dateUtils.getTodayForRecurrence).mockReturnValue(
-        new Date('2026-01-10T00:00:00')
+        dateUtils.parseDate('2026-01-10', EST)
       );
 
       const task = createTask({
@@ -193,7 +191,7 @@ describe('Regression Tests - Fixed Bugs', () => {
     it('should not duplicate monthly 15th when completed late on Feb 5', () => {
       // Feb 5, 2026 - completing Jan 15 task very late
       vi.mocked(dateUtils.getTodayForRecurrence).mockReturnValue(
-        new Date('2026-02-05T00:00:00')
+        dateUtils.parseDate('2026-02-05', EST)
       );
 
       const task = createTask({
@@ -261,7 +259,7 @@ describe('Regression Tests - Fixed Bugs', () => {
     it('should maintain cycle even when completed 2 weeks late', () => {
       // Jan 19, 2026 - completing a Jan 5 task 14 days late
       vi.mocked(dateUtils.getTodayForRecurrence).mockReturnValue(
-        new Date('2026-01-19T00:00:00')
+        dateUtils.parseDate('2026-01-19', EST)
       );
 
       const task = createTask({
@@ -281,7 +279,7 @@ describe('Regression Tests - Fixed Bugs', () => {
     it('should handle very late completion (4 weeks)', () => {
       // Feb 2, 2026 - completing a Jan 5 task 28 days late
       vi.mocked(dateUtils.getTodayForRecurrence).mockReturnValue(
-        new Date('2026-02-02T00:00:00')
+        dateUtils.parseDate('2026-02-02', EST)
       );
 
       const task = createTask({
@@ -306,7 +304,7 @@ describe('Regression Tests - Fixed Bugs', () => {
     it('should advance to next month when completing monthly date task ON the due date', () => {
       // Feb 1, 2026 - completing a Feb 1st monthly task on Feb 1st
       vi.mocked(dateUtils.getTodayForRecurrence).mockReturnValue(
-        new Date('2026-02-01T00:00:00')
+        dateUtils.parseDate('2026-02-01', EST)
       );
 
       const task = createTask({
@@ -345,7 +343,7 @@ describe('Regression Tests - Fixed Bugs', () => {
     it('should advance to next month when completing monthly day task ON the due date', () => {
       // Jan 13, 2026 is the 2nd Tuesday of January
       vi.mocked(dateUtils.getTodayForRecurrence).mockReturnValue(
-        new Date('2026-01-13T00:00:00')
+        dateUtils.parseDate('2026-01-13', EST)
       );
 
       const task = createTask({
@@ -366,7 +364,7 @@ describe('Regression Tests - Fixed Bugs', () => {
     it('should advance to next year when completing annual task ON the due date', () => {
       // Mar 15, 2026 - completing annual task on its date
       vi.mocked(dateUtils.getTodayForRecurrence).mockReturnValue(
-        new Date('2026-03-15T00:00:00')
+        dateUtils.parseDate('2026-03-15', EST)
       );
 
       const task = createTask({
@@ -386,7 +384,7 @@ describe('Regression Tests - Fixed Bugs', () => {
     it('should handle monthly date at end of month (31st)', () => {
       // Jan 31, 2026 - completing on the 31st
       vi.mocked(dateUtils.getTodayForRecurrence).mockReturnValue(
-        new Date('2026-01-31T00:00:00')
+        dateUtils.parseDate('2026-01-31', EST)
       );
 
       const task = createTask({
@@ -436,7 +434,7 @@ describe('Regression Tests - Fixed Bugs', () => {
     it('should use event date when completing before event', () => {
       // Jan 10 - completing before Jan 15 event
       vi.mocked(dateUtils.getTodayForRecurrence).mockReturnValue(
-        new Date('2026-01-10T00:00:00')
+        dateUtils.parseDate('2026-01-10', EST)
       );
 
       const task = createTask({
@@ -456,7 +454,7 @@ describe('Regression Tests - Fixed Bugs', () => {
     it('should use completion date when completing after event', () => {
       // Feb 5 - completing after Jan 15 event
       vi.mocked(dateUtils.getTodayForRecurrence).mockReturnValue(
-        new Date('2026-02-05T00:00:00')
+        dateUtils.parseDate('2026-02-05', EST)
       );
 
       const task = createTask({

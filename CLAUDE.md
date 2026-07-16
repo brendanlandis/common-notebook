@@ -162,6 +162,20 @@ throughout the frontend. Node engine constraint: `>=18 <=22.x`.
   and is correct; its other formats pass an already-zoned date to `formatTz` and are not.
   **Any test for this must run in more than one system zone** and must not mock `dateUtils` — see the
   Gotchas note below.
+- **Calendar arithmetic runs on the user's wall clock, never on an instant.** Every date-fns function
+  (`setDate`, `startOfMonth`, `nextDay`, `addWeeks`, `addDays`, `getDay`, `lastDayOfMonth`…) reads and
+  writes a Date's **local** components, so applying one to an instant does the arithmetic in the
+  *machine's* calendar. `recurrence.ts` converts once via `toWallClock` and formats with `zonedYMD`
+  (which reads those components back without converting again) — see the header comment there. Fixed
+  2026-07-16: on a UTC server with an EST user, the 2nd Tuesday of February came out as
+  `2026-02-10T00:00Z`, which *is* Feb 9 in New York, so **every monthly and annual recurrence was
+  scheduled a day early in production** while being perfect on a laptop whose zone matched the setting.
+  An earlier fix had corrected how those results were *compared* ("compare ISO strings, not
+  `startOfDay`") but not how they were *computed*, which is why the comments looked reassuring.
+  Astronomy calls (`Astronomy.Seasons`, `SearchMoonPhase`) are the exception and must keep the real
+  instant — a wall-clock value would move the event itself. Nothing pins `TZ` for the Next server, and
+  `calculateNextRecurrence` runs there (`/api/tasks/[id]/complete` and `/skip`): **prod is UTC and
+  Brendan's laptop is not**, which is exactly how this class of bug reaches production unseen.
 - Naming: PascalCase components, camelCase lib/util files, `use*` hooks, `*.test.ts(x)` siblings for tests.
 
 # Gotchas
@@ -188,8 +202,11 @@ throughout the frontend. Node engine constraint: `>=18 <=22.x`.
   passed for months while the day boundary sat five hours off. It is now unmocked, and **a
   timezone-sensitive suite must be run in more than one system zone** (`TZ=UTC`, `TZ=America/New_York`,
   and something with a half-hour offset like `TZ=Asia/Kolkata`) — a green run on one zone proves
-  nothing. `TZ=Europe/Berlin` currently fails 46 pre-existing tests in `recurrence*.test.ts` (they mock
-  `dateUtils`); UTC and New York pass, which is why CI and Brendan's laptop are both quiet about it.
+  nothing. `recurrence*.test.ts` was the other instance: it stubbed `parseDate` as system-local
+  midnight and `toISODate` as a UTC-component reader, a pair that does not round-trip for any positive
+  UTC offset, and pinned "today" with naive `new Date('2026-01-05T00:00:00')` literals that mean
+  whatever zone the machine is in. Both are fixed; the suites now mock only the clock
+  (`getTodayForRecurrence`/`getToday`), pin it with `parseDate('…', EST)`, and pass in five zones.
   Components/hooks reading `useDateTimeSettings()` need a `DateTimeSettingsProvider` wrapper in tests;
   pass `initial` so the provider doesn't fetch (see `app/(main)/todo/hooks/useTasks.test.ts`).
   Query-backed hooks need a `QueryClientProvider` wrapper with a **per-test client** and

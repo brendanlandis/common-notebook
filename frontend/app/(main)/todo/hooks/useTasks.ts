@@ -231,16 +231,6 @@ export function useTasks(): UseTasksResult {
     [queryClient]
   );
 
-  // Moon-phase reset event listener (fired by /api/system-settings updates).
-  // Retiring this bus for a plain invalidate is Stage 6.
-  useEffect(() => {
-    const handler = () => {
-      void refetch(false);
-    };
-    window.addEventListener("moon-phase-reset", handler);
-    return () => window.removeEventListener("moon-phase-reset", handler);
-  }, [refetch]);
-
   // Auto-create tasks from new band shows.
   useEffect(() => {
     const checkAndCreate = async () => {
