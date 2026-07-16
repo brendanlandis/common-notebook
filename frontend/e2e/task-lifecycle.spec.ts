@@ -40,6 +40,40 @@ test.describe('task lifecycle', () => {
     }
   });
 
+  // The checkbox is local state in TaskItem, flipped on click before anything is
+  // known about the request. The old handler returned early on a non-ok response
+  // without reverting, so a rejected complete left the box ticked and lying until
+  // something else happened to refetch. onMutate/onError now put it back.
+  test('a rejected complete rolls the checkbox back', async ({ page, request }) => {
+    const project = await createProject(request);
+    const task = await createTask(request, { project: project.documentId });
+
+    try {
+      await gotoProject(page, project.documentId);
+      const row = taskRow(page, task.documentId);
+      const checkbox = page.locator(`#task-${task.documentId}`);
+
+      // A 500 rather than an abort: an aborted request throws, and the old code's
+      // catch refetched, which hid the missing rollback. This is the real hole.
+      await page.route('**/api/tasks/*/complete', (route) =>
+        route.fulfill({
+          status: 500,
+          contentType: 'application/json',
+          body: JSON.stringify({ success: false, error: 'boom' }),
+        })
+      );
+
+      await checkbox.check();
+
+      await expect(checkbox).not.toBeChecked();
+      await expect(row).not.toHaveClass(/completed/);
+      expect(await isCompletedOnServer(request, task.documentId)).toBe(false);
+    } finally {
+      await deleteTask(request, task.documentId);
+      await deleteProject(request, project.documentId);
+    }
+  });
+
   test('completing a task persists to the server', async ({ page, request }) => {
     const project = await createProject(request);
     const task = await createTask(request, { project: project.documentId });

@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import type { Project, ProjectType } from "@/app/types/index";
 import { useStuffProjects } from "@/app/contexts/StuffProjectsContext";
 import { useWorlds } from "@/app/hooks/useWorlds";
+import { useProjects } from "@/app/hooks/useProjects";
 
 interface ProjectSelectorProps {
   value: string | null;
@@ -16,26 +16,10 @@ export default function ProjectSelector({
 }: ProjectSelectorProps) {
   const { stuffProjectsEnabled } = useStuffProjects();
   const { worlds } = useWorlds();
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetchProjects();
-  }, []);
-
-  const fetchProjects = async () => {
-    try {
-      const response = await fetch("/api/projects");
-      const result = await response.json();
-      if (result.success) {
-        setProjects(result.data);
-      }
-    } catch (error) {
-      console.error("Error fetching projects:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // The same ['projects'] query the task views read. This used to be its own fetch
+  // on every mount of the form, holding a second copy of the list that a project
+  // rename elsewhere would not reach.
+  const { projects, loading } = useProjects();
 
   if (loading) {
     return (

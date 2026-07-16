@@ -16,14 +16,38 @@ import { useViews } from "@/app/hooks/useViews";
 import { useTaskActions } from "@/app/contexts/TaskActionsContext";
 import { useDateTimeSettings } from "@/app/contexts/DateTimeSettingsContext";
 import { useStuffProjects } from "@/app/contexts/StuffProjectsContext";
-import { useTasks } from "../hooks/useTasks";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiSend, swallow } from "@/app/lib/apiFetch";
+import { useTasks, TASKS_ROOT, TASKS_ACTIVE_KEY } from "../hooks/useTasks";
+import {
+  useTaskLists,
+  completedTasksKey,
+  COMPLETED_TASK_DAYS,
+  type RecentStatItem,
+} from "../hooks/useTaskLists";
 
-// Stats shape used by the "done" view's RecentStats panels.
-export type RecentStatItem = {
-  type: "project" | "category";
-  name: string;
-  count: number;
-};
+export type { RecentStatItem };
+
+// POST /complete answers { success, newTask } — no `data`; the un-complete PUT
+// answers { success, data }.
+interface CompleteResult {
+  success?: boolean;
+  data?: Task;
+  newTask?: Task;
+}
+
+// `success` is not decoration: apiSend's generic is constrained to ApiBody, whose
+// members are all optional, so a shape with no property in common with it is
+// rejected outright by TypeScript's weak-type check.
+interface TaskSaveResult {
+  success?: boolean;
+  data?: Task;
+}
+
+interface ProjectSaveResult {
+  success?: boolean;
+  data?: Project;
+}
 
 interface TaskDataContextType {
   // Active-task data (shared by every /todo route)
@@ -81,15 +105,35 @@ export function TaskDataProvider({ children }: { children: ReactNode }) {
     updateTask,
     updateProject,
     addProject,
-    worldForProjectId,
     refetch: fetchTasks,
   } = useTasks();
   const { stuffProjectsEnabled } = useStuffProjects();
-  const [completedTasks, setCompletedTasks] = useState<Task[]>([]);
-  const [upcomingTasks, setUpcomingTasks] = useState<Task[]>([]);
-  const [longTasksWithSessions, setLongTasksWithSessions] = useState<Task[]>(
-    []
-  );
+  const { views } = useViews();
+  const pathname = usePathname();
+  const queryClient = useQueryClient();
+
+  // The active view slug, derived from the route: /todo shows the default view,
+  // /todo/view/<slug> shows that one. Only the "done" preset needs the secondary
+  // completed/upcoming/stats lists, which is what gates the queries below.
+  const viewMatch = pathname.match(/^\/todo\/view\/(.+)$/);
+  const activeViewSlug = viewMatch
+    ? decodeURIComponent(viewMatch[1])
+    : pathname === "/todo"
+      ? getDefaultViewSlug(views, stuffProjectsEnabled)
+      : null;
+
+  const {
+    completedTasks,
+    upcomingTasks,
+    longTasksWithSessions,
+    recentStats,
+    statsLoading,
+    recentStats30Days,
+    statsLoading30Days,
+    setCompletedTasks,
+    setUpcomingTasks,
+    setLongTasksWithSessions,
+  } = useTaskLists(activeViewSlug === "done");
 
   // When stuff projects are disabled, hide stuff-world tasks everywhere the UI
   // reads from, so nothing stuff leaks through. When enabled they flow normally
@@ -101,14 +145,6 @@ export function TaskDataProvider({ children }: { children: ReactNode }) {
   const isStuffProject = (p: Project) => p.world?.systemKey === "stuff";
   const withoutStuffProjects = <T extends Project>(list: T[]) =>
     stuffProjectsEnabled ? list : list.filter((p) => !isStuffProject(p));
-
-  // completed/upcoming/long tasks are fetched separately with a shallow project,
-  // so stitch the world object onto them the way useTasks does for active tasks
-  // (the invoicing/done views and the stuff filter read task.project.world).
-  const enrichWorld = (task: Task): Task =>
-    task.project?.documentId
-      ? { ...task, project: { ...task.project, world: worldForProjectId(task.project.documentId) } }
-      : task;
 
   // Stuff tasks always live in stuff-world projects, so dropping those projects
   // removes every stuff task from the grouped views.
@@ -123,39 +159,11 @@ export function TaskDataProvider({ children }: { children: ReactNode }) {
   const visibleCompletedTasks = withoutStuff(completedTasks);
   const visibleUpcomingTasks = withoutStuff(upcomingTasks);
   const visibleLongTasksWithSessions = withoutStuff(longTasksWithSessions);
-  const [recentStats, setRecentStats] = useState<RecentStatItem[]>([]);
-  const [statsLoading, setStatsLoading] = useState(false);
-  const [recentStats30Days, setRecentStats30Days] = useState<RecentStatItem[]>(
-    []
-  );
-  const [statsLoading30Days, setStatsLoading30Days] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
-  const { views } = useViews();
-  const pathname = usePathname();
   const { drawerContent, openTaskForm, openProjectForm, closeDrawer } =
     useTaskActions();
   const { timeZoneSettings } = useDateTimeSettings();
-
-  // The active view slug, derived from the route: /todo shows the default view,
-  // /todo/view/<slug> shows that one. Only the "done" preset needs the secondary
-  // completed/upcoming/stats fetches below.
-  const viewMatch = pathname.match(/^\/todo\/view\/(.+)$/);
-  const activeViewSlug = viewMatch
-    ? decodeURIComponent(viewMatch[1])
-    : pathname === "/todo"
-      ? getDefaultViewSlug(views, stuffProjectsEnabled)
-      : null;
-
-  useEffect(() => {
-    if (activeViewSlug === "done") {
-      fetchCompletedTasks();
-      fetchUpcomingTasks();
-      fetchLongTasksWithSessions();
-      fetchRecentStats();
-      fetchRecentStats30Days();
-    }
-  }, [activeViewSlug]);
 
   // Reset editing state when drawer closes
   useEffect(() => {
@@ -165,178 +173,105 @@ export function TaskDataProvider({ children }: { children: ReactNode }) {
     }
   }, [drawerContent]);
 
-  const fetchCompletedTasks = async (days: number = 30) => {
-    try {
-      const response = await fetch(`/api/tasks/completed?days=${days}`);
-      const result = await response.json();
-
-      if (result.success) {
-        const allCompletedTasks: Task[] = result.data;
-        setCompletedTasks(allCompletedTasks.map(enrichWorld));
-      }
-    } catch (err) {
-      console.error("Error fetching completed tasks:", err);
-      setCompletedTasks([]);
-    }
-  };
-
-  const fetchUpcomingTasks = async () => {
-    try {
-      const response = await fetch("/api/tasks/upcoming");
-      const result = await response.json();
-
-      if (result.success) {
-        const allUpcomingTasks: Task[] = result.data;
-        setUpcomingTasks(allUpcomingTasks.map(enrichWorld));
-      }
-    } catch (err) {
-      console.error("Error fetching upcoming tasks:", err);
-      setUpcomingTasks([]);
-    }
-  };
-
-  const fetchLongTasksWithSessions = async (days: number = 30) => {
-    try {
-      const response = await fetch(`/api/tasks/long-with-sessions?days=${days}`);
-      const result = await response.json();
-
-      if (result.success) {
-        setLongTasksWithSessions(result.data.map(enrichWorld));
-      }
-    } catch (err) {
-      console.error("Error fetching long tasks with sessions:", err);
-      setLongTasksWithSessions([]);
-    }
-  };
-
-  const fetchRecentStats = async () => {
-    try {
-      setStatsLoading(true);
-      const response = await fetch("/api/tasks/stats?days=7");
-      const result = await response.json();
-
-      if (result.success) {
-        setRecentStats(result.data);
-      } else {
-        console.error("Error fetching recent stats:", result.error);
-        setRecentStats([]);
-      }
-    } catch (err) {
-      console.error("Error fetching recent stats:", err);
-      setRecentStats([]);
-    } finally {
-      setStatsLoading(false);
-    }
-  };
-
-  const fetchRecentStats30Days = async () => {
-    try {
-      setStatsLoading30Days(true);
-      const response = await fetch("/api/tasks/stats?days=30");
-      const result = await response.json();
-
-      if (result.success) {
-        setRecentStats30Days(result.data);
-      } else {
-        console.error("Error fetching 30-day stats:", result.error);
-        setRecentStats30Days([]);
-      }
-    } catch (err) {
-      console.error("Error fetching 30-day stats:", err);
-      setRecentStats30Days([]);
-    } finally {
-      setStatsLoading30Days(false);
-    }
-  };
-
-  const handleComplete = async (documentId: string) => {
-    try {
-      // Look up the task in the active list first; fall back to completedTasks
-      // (which is populated only in "done"/"invoicing" views).
-      const currentTask =
-        tasks.find((t) => t.documentId === documentId) ||
-        completedTasks.find((t) => t.documentId === documentId);
-
-      if (!currentTask) {
-        console.error("Task not found");
-        return;
-      }
-
-      const isCurrentlyCompleted = currentTask.completed;
-      let response;
-      let result: any;
-
-      if (isCurrentlyCompleted) {
-        response = await fetch(`/api/tasks/${documentId}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ completed: false, completedAt: null }),
-        });
-        if (response.ok) result = await response.json();
-      } else {
-        response = await fetch(`/api/tasks/${documentId}/complete`, {
-          method: "POST",
-        });
-        if (response.ok) result = await response.json();
-      }
-
-      if (!response.ok) return;
-
-      const newCompletedState = !isCurrentlyCompleted;
-      const taskIsInActiveList = tasks.some((t) => t.documentId === documentId);
-
-      if (taskIsInActiveList) {
-        // Toggle completed/completedAt on the single source of truth.
-        const currentInActive = tasks.find((t) => t.documentId === documentId);
-        if (currentInActive) {
-          updateTask({
-            ...currentInActive,
-            completed: newCompletedState,
-            completedAt: newCompletedState ? getISOTimestamp(timeZoneSettings) : null,
-          });
-        }
-      }
-
-      // Maintain the separate `completedTasks` list used only by the "done"
-      // and "invoicing" views.
-      if (isCurrentlyCompleted) {
-        // Uncompleting: drop from completedTasks.
-        setCompletedTasks((prev) =>
-          prev.filter((t) => t.documentId !== documentId)
-        );
-        // If the task was visible only in completedTasks (not in active
-        // tasks), splice it back into the active list so it appears once the
-        // user switches views.
-        if (!taskIsInActiveList) {
-          const uncompletedTask: Task = result?.data || {
-            ...currentTask,
+  // Completing is a toggle across two endpoints and two lists. The optimistic flip
+  // happens in `onMutate` so the checkbox costs no round trip, and — the part that
+  // was missing — `onError` puts the old value back. TaskItem holds `isChecked` as
+  // local state synced from `task.completed`, so before this a failed request left
+  // the box ticked and lying until something else refetched.
+  const completeMutation = useMutation({
+    mutationFn: ({
+      documentId,
+      isCurrentlyCompleted,
+    }: {
+      documentId: string;
+      isCurrentlyCompleted: boolean;
+    }) =>
+      isCurrentlyCompleted
+        ? apiSend<CompleteResult>(`/api/tasks/${documentId}`, "PUT", {
             completed: false,
             completedAt: null,
-          };
-          addTask(uncompletedTask);
-        }
-      } else if (
-        activeViewSlug === "done"
-      ) {
-        // Completing while viewing "done"/"invoicing": add to completedTasks
-        // so it appears in the completed list immediately.
-        const completedTask: Task = {
-          ...currentTask,
-          completed: true,
-          completedAt: getISOTimestamp(timeZoneSettings),
-        };
-        setCompletedTasks((prev) => [completedTask, ...prev]);
+          })
+        : apiSend<CompleteResult>(`/api/tasks/${documentId}/complete`, "POST"),
+
+    onMutate: async ({ documentId, isCurrentlyCompleted }) => {
+      await queryClient.cancelQueries({ queryKey: TASKS_ROOT });
+      const previousActive = queryClient.getQueryData(TASKS_ACTIVE_KEY);
+      const previousCompleted = queryClient.getQueryData(
+        completedTasksKey(COMPLETED_TASK_DAYS)
+      );
+
+      const currentTask =
+        tasks.find((t) => t.documentId === documentId) ??
+        completedTasks.find((t) => t.documentId === documentId);
+      const taskIsInActiveList = tasks.some((t) => t.documentId === documentId);
+      const newCompletedState = !isCurrentlyCompleted;
+      const completedAt = newCompletedState ? getISOTimestamp(timeZoneSettings) : null;
+
+      if (taskIsInActiveList && currentTask) {
+        updateTask({ ...currentTask, completed: newCompletedState, completedAt });
       }
 
-      // If completing a recurring task created the next occurrence, add it.
-      if (result?.newTask) {
-        addTask(result.newTask);
+      // The separate `completedTasks` list, read only by the "done" view.
+      if (isCurrentlyCompleted) {
+        setCompletedTasks((prev) => prev.filter((t) => t.documentId !== documentId));
+        // Visible only in completedTasks: splice it back into the active list so it
+        // is there when the user switches views.
+        if (!taskIsInActiveList && currentTask) {
+          addTask({ ...currentTask, completed: false, completedAt: null });
+        }
+      } else if (activeViewSlug === "done" && currentTask) {
+        setCompletedTasks((prev) => [{ ...currentTask, completed: true, completedAt }, ...prev]);
       }
-    } catch (err) {
-      console.error("Error completing task:", err);
-      // On error, re-fetch to ensure UI is in sync
-      await fetchTasks();
+
+      return { previousActive, previousCompleted };
+    },
+
+    onError: (_error, _variables, context) => {
+      if (context?.previousActive !== undefined) {
+        queryClient.setQueryData(TASKS_ACTIVE_KEY, context.previousActive);
+      }
+      if (context?.previousCompleted !== undefined) {
+        queryClient.setQueryData(
+          completedTasksKey(COMPLETED_TASK_DAYS),
+          context.previousCompleted
+        );
+      }
+    },
+
+    onSuccess: (result) => {
+      // A recurring task's next occurrence is created server-side and cannot be
+      // predicted optimistically, so it arrives here.
+      if (result?.newTask) addTask(result.newTask);
+    },
+
+    // Deliberately does NOT invalidate ['tasks','active'] — only the lists the
+    // "done" view reads. /api/tasks applies the same completed-visibility window
+    // server-side, so on an account with a 0-minute window a refetch would drop the
+    // task the user has just ticked: the row would vanish under the cursor instead
+    // of fading, and un-completing it would become impossible. The optimistic write
+    // above already holds the new state; the next real load reconciles it. Same
+    // reasoning as saveNotes in usePracticeLogs.
+    onSettled: () =>
+      queryClient.invalidateQueries({
+        queryKey: TASKS_ROOT,
+        predicate: (query) => query.queryKey[1] !== "active",
+      }),
+  });
+
+  const handleComplete = (documentId: string) => {
+    const currentTask =
+      tasks.find((t) => t.documentId === documentId) ??
+      completedTasks.find((t) => t.documentId === documentId);
+
+    if (!currentTask) {
+      console.error("Task not found");
+      return;
     }
+
+    completeMutation.mutate({
+      documentId,
+      isCurrentlyCompleted: Boolean(currentTask.completed),
+    });
   };
 
   const handleEdit = (task: Task) => {
@@ -374,116 +309,89 @@ export function TaskDataProvider({ children }: { children: ReactNode }) {
     openProjectForm();
   };
 
-  const handleDelete = async (documentId: string) => {
+  const deleteMutation = useMutation({
+    mutationFn: (documentId: string) => apiSend(`/api/tasks/${documentId}`, "DELETE"),
+    onSuccess: (_result, actualDocumentId) => {
+      removeTask(actualDocumentId);
+
+      if (activeViewSlug === "done") {
+        const drop = (prev: Task[]) => prev.filter((t) => t.documentId !== actualDocumentId);
+        setCompletedTasks(drop);
+        setUpcomingTasks(drop);
+        setLongTasksWithSessions(drop);
+      }
+    },
+  });
+
+  const handleDelete = (documentId: string) => {
     if (!confirm("Are you sure you want to delete this task?")) return;
 
-    try {
-      // Pattern: originalDocumentId-worked-YYYY-MM-DD (a "worked on" virtual entry)
-      const workedOnMatch = documentId.match(
-        /^(.+)-worked-(\d{4}-\d{2}-\d{2})$/
-      );
-      const actualDocumentId = workedOnMatch ? workedOnMatch[1] : documentId;
+    // Pattern: originalDocumentId-worked-YYYY-MM-DD (a "worked on" virtual entry)
+    const workedOnMatch = documentId.match(/^(.+)-worked-(\d{4}-\d{2}-\d{2})$/);
+    const actualDocumentId = workedOnMatch ? workedOnMatch[1] : documentId;
 
-      const response = await fetch(`/api/tasks/${actualDocumentId}`, {
-        method: "DELETE",
-      });
-
-      if (response.ok) {
-        removeTask(actualDocumentId);
-
-        if (activeViewSlug === "done") {
-          setCompletedTasks((prev) =>
-            prev.filter((t) => t.documentId !== actualDocumentId)
-          );
-          setUpcomingTasks((prev) =>
-            prev.filter((t) => t.documentId !== actualDocumentId)
-          );
-          setLongTasksWithSessions((prev) =>
-            prev.filter((t) => t.documentId !== actualDocumentId)
-          );
-        }
-      }
-    } catch (err) {
-      console.error("Error deleting task:", err);
-    }
+    swallow("delete task", deleteMutation.mutateAsync(actualDocumentId));
   };
+
+  // No body: the route resolves the timezone from the caller's token. Refetching
+  // the active list is the point here rather than a side effect — the phase-based
+  // visibility rules are applied over the fresh payload, and that is what makes a
+  // long task drop out of the main views once it is worked on.
+  const workSessionMutation = useMutation({
+    mutationFn: (documentId: string) =>
+      apiSend(`/api/tasks/${documentId}/work-session`, "POST"),
+    onSuccess: () => fetchTasks(false),
+  });
+
+  const removeWorkSessionMutation = useMutation({
+    mutationFn: ({
+      originalDocumentId,
+      date,
+    }: {
+      originalDocumentId: string;
+      date: string;
+    }) => apiSend(`/api/tasks/${originalDocumentId}/work-session/${date}`, "DELETE"),
+    onSuccess: (_result, { originalDocumentId, date }) => {
+      // Drop the "worked on" entry from the done view's list, and the task with it
+      // once it has no sessions left.
+      if (activeViewSlug === "done") {
+        setLongTasksWithSessions((prev) =>
+          prev
+            .map((task) =>
+              task.documentId === originalDocumentId && task.workSessions
+                ? {
+                    ...task,
+                    workSessions: task.workSessions.filter((ws) => ws.date !== date),
+                  }
+                : task
+            )
+            .filter((task) => !task.workSessions || task.workSessions.length > 0)
+        );
+      }
+      return fetchTasks(false);
+    },
+  });
+
+  const skipMutation = useMutation({
+    mutationFn: (documentId: string) => apiSend(`/api/tasks/${documentId}/skip`, "POST"),
+    // The skipped occurrence is gone; the new one appears on the next fetch, once
+    // its displayDate arrives.
+    onSuccess: (_result, documentId) => removeTask(documentId),
+  });
 
   const handleWorkSession = async (documentId: string) => {
-    try {
-      // No body: the route resolves the timezone from the caller's token now.
-      const response = await fetch(`/api/tasks/${documentId}/work-session`, {
-        method: "POST",
-      });
-
-      if (response.ok) {
-        // Refresh tasks to apply phase-based visibility logic
-        await fetchTasks(false);
-      }
-    } catch (err) {
-      console.error("Error adding work session:", err);
-    }
+    await swallow("add work session", workSessionMutation.mutateAsync(documentId));
   };
 
-  const handleRemoveWorkSession = async (
-    originalDocumentId: string,
-    date: string
-  ) => {
-    try {
-      const response = await fetch(
-        `/api/tasks/${originalDocumentId}/work-session/${date}`,
-        {
-          method: "DELETE",
-        }
-      );
-
-      if (response.ok) {
-        // Optimistically remove the "worked on" entry from longTasksWithSessions
-        if (activeViewSlug === "done") {
-          setLongTasksWithSessions(
-            (prev) =>
-              prev
-                .map((task) => {
-                  if (
-                    task.documentId === originalDocumentId &&
-                    task.workSessions
-                  ) {
-                    return {
-                      ...task,
-                      workSessions: task.workSessions.filter(
-                        (ws) => ws.date !== date
-                      ),
-                    };
-                  }
-                  return task;
-                })
-                .filter(
-                  (task) => !task.workSessions || task.workSessions.length > 0
-                ) // Remove tasks with no sessions left
-          );
-        }
-
-        // Refresh the main tasks in the background (without showing loading state)
-        await fetchTasks(false);
-      }
-    } catch (err) {
-      console.error("Error removing work session:", err);
-    }
+  const handleRemoveWorkSession = async (originalDocumentId: string, date: string) => {
+    await swallow(
+      "remove work session",
+      removeWorkSessionMutation.mutateAsync({ originalDocumentId, date })
+    );
   };
 
   const handleSkipRecurring = async (documentId: string) => {
-    try {
-      const response = await fetch(`/api/tasks/${documentId}/skip`, {
-        method: "POST",
-      });
-
-      if (response.ok) {
-        // The skipped occurrence is gone; the new occurrence will appear on
-        // the next fetchTasks when its displayDate arrives.
-        removeTask(documentId);
-      }
-    } catch (err) {
-      console.error("Error skipping recurring task:", err);
-    }
+    await swallow("skip recurring task", skipMutation.mutateAsync(documentId));
   };
 
   const handleFormSubmit = async (data: any) => {
@@ -501,15 +409,10 @@ export function TaskDataProvider({ children }: { children: ReactNode }) {
       closeDrawer();
       setEditingTask(null);
 
-      const response = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
+      const result = await apiSend<TaskSaveResult>(url, method, data);
+      const updatedTask = result.data as Task;
 
-      if (response.ok) {
-        const result = await response.json();
-        const updatedTask: Task = result.data;
+      {
 
         // The task may live in the "done" view's separate state arrays. Update
         // those directly so the user sees their edit reflected there too.
@@ -573,37 +476,28 @@ export function TaskDataProvider({ children }: { children: ReactNode }) {
       closeDrawer();
       setEditingProject(null);
 
-      const response = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
+      const result = await apiSend<ProjectSaveResult>(url, method, data);
+      const updatedProject = result.data as Project;
 
-      if (response.ok) {
-        const result = await response.json();
-        const updatedProject: Project = result.data;
-
-        if (wasEditingProject) {
-          // Propagate metadata to every task that references this project; the
-          // grouping useMemo will recompute layout placement automatically.
-          updateProject(updatedProject);
-        } else {
-          // New project, no tasks yet. Splice it into the project list so it is
-          // navigable at once; the next refetch returns it from /api/projects, so
-          // unlike the overlay this replaced, it does not disappear.
-          addProject(updatedProject);
-        }
+      if (wasEditingProject) {
+        // Propagate metadata to every task that references this project; the
+        // grouping useMemo will recompute layout placement automatically.
+        updateProject(updatedProject);
       } else {
-        // The drawer is already closed by this point, so a rejected save looks
-        // identical to a successful one. That is how `projectType: 'normal'` —
-        // a value Strapi's enum never allowed — went unnoticed: every edit of an
-        // ordinary project 400'd and said nothing. Surfacing this to the user
-        // needs the drawer to stay open (or a toast); logging is the floor.
-        const body = await response.json().catch(() => null);
-        console.error("Failed to save project:", body?.error ?? response.statusText);
+        // New project, no tasks yet. Splice it into the project list so it is
+        // navigable at once; the next refetch returns it from /api/projects, so
+        // unlike the overlay this replaced, it does not disappear.
+        addProject(updatedProject);
       }
     } catch (err) {
-      console.error("Error saving project:", err);
+      // The drawer is already closed by this point, so a rejected save still looks
+      // identical to a successful one. That is how `projectType: 'normal'` — a value
+      // Strapi's enum never allowed — went unnoticed: every edit of an ordinary
+      // project 400'd and said nothing. apiSend now throws on both a non-ok status
+      // and a {success:false} body, so this catch sees every failure rather than
+      // only the thrown ones; surfacing it to the user still needs the drawer to
+      // stay open (or a toast). Logging remains the floor.
+      console.error("Failed to save project:", err);
     }
   };
 

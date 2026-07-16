@@ -2,14 +2,19 @@
 
 import { useCallback, useEffect, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import type { Project, Task, World } from "@/app/types/index";
+import type { Project, Task } from "@/app/types/index";
 import { getToday } from "@/app/lib/dateUtils";
 import { getWorkedOnPhase } from "@/app/lib/dayBoundaryHelpers";
 import { useDateTimeSettings } from "@/app/contexts/DateTimeSettingsContext";
 import { groupTasksForLayout, type GroupedTasks } from "@/app/lib/groupTasks";
 import { createTasksFromShows } from "@/app/lib/showsTaskCreator";
 import { apiFetch } from "@/app/lib/apiFetch";
-import { PROJECTS_QUERY_KEY, useProjects, type ProjectsResponse } from "@/app/hooks/useProjects";
+import {
+  PROJECTS_QUERY_KEY,
+  useProjects,
+  withProjectWorld,
+  type ProjectsResponse,
+} from "@/app/hooks/useProjects";
 
 export interface UseTasksResult {
   tasks: Task[];
@@ -22,8 +27,6 @@ export interface UseTasksResult {
   updateProject: (p: Project) => void;
   addProject: (p: Project) => void;
   refetch: (showLoading?: boolean) => Promise<void>;
-  /** The world of a project by documentId, from the normalized projects map. */
-  worldForProjectId: (documentId?: string | null) => World | null;
 }
 
 // Keys nest under one `['tasks']` root so a single invalidate covers every list
@@ -54,21 +57,10 @@ export function useTasks(): UseTasksResult {
   // project (no worldRef), so it's stitched on from the projects list. This used to
   // be a ref written inside the same Promise.all that fetched the tasks — the one
   // thing that guaranteed the map was built before any task was enriched. As two
-  // queries plus a derivation the ordering is correct by construction: whatever the
-  // two arrive in, the join only ever runs over what's currently in the cache.
+  // queries plus a derivation the ordering is correct by construction: whatever
+  // order the two arrive in, the join only ever runs over what's in the cache now.
   const enrichTaskWorld = useCallback(
-    (task: Task): Task => {
-      const proj = task.project as Project | null | undefined;
-      if (!proj?.documentId) return task;
-      const full = projectsById.get(proj.documentId);
-      return { ...task, project: { ...proj, world: full?.world ?? null } };
-    },
-    [projectsById]
-  );
-
-  const worldForProjectId = useCallback(
-    (documentId?: string | null): World | null =>
-      documentId ? projectsById.get(documentId)?.world ?? null : null,
+    (task: Task): Task => withProjectWorld(task, projectsById),
     [projectsById]
   );
 
@@ -282,6 +274,5 @@ export function useTasks(): UseTasksResult {
     updateProject,
     addProject,
     refetch,
-    worldForProjectId,
   };
 }
