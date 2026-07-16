@@ -21,19 +21,44 @@ License: AGPL v3.
   `useMutation` + `invalidateQueries` for writes, optimistic `onMutate`/`onError` where a failure
   would otherwise leave the wrong thing on screen. Context is for **UI state only** (drawer,
   selection) and for values the server hands down as props (`DateTimeSettingsProvider`).
-  *Migration in progress:* `useViews`/`useWorlds`/`useBetaAccess` and `practice/hooks/usePracticeLogs`
-  are query-backed; `todo/hooks/useTasks.ts` + `todo/contexts/TaskDataContext.tsx` are the remaining
-  hand-rolled work. New server state goes in the cache — don't add a fetching Context.
+  *Migration in progress:* `useViews`/`useWorlds`/`useBetaAccess`, `practice/hooks/usePracticeLogs`,
+  `hooks/useProjects`, `todo/hooks/useTasks` and `todo/hooks/useTaskLists` are query-backed; all of
+  `todo/`'s reads and mutations now go through the cache. What remains is shrinking
+  `todo/contexts/TaskDataContext.tsx` to `editingTask`/`editingProject` and pointing its five consumers
+  at the hooks. New server state goes in the cache — don't add a fetching Context.
 - **Related keys share a prefix so one invalidate covers them.** `['practice-logs','list',<type>]` and
   `['practice-logs','stats']` both sit under `['practice-logs']`, so stopping a session refreshes the
-  list *and* the chart. Nest new keys the same way rather than invalidating several by hand.
+  list *and* the chart. Tasks mirror this: `['tasks','active']`, `['tasks','completed',<days>]`,
+  `['tasks','upcoming']`, `['tasks','long-with-sessions',<days>]` and `['tasks','stats',<days>]` all sit
+  under `['tasks']`, with `['projects']` a sibling root. Nest new keys the same way rather than
+  invalidating several by hand.
 - **A mutation that writes what an open editor is holding must not invalidate.** `saveNotes` in
   `usePracticeLogs` is the case: the notes editor is controlled local state, and a refetch would hand
   it the server's copy and drop whatever was typed since. Same reason `practice/page.tsx` seeds the
   editor only when the active session's `documentId` changes, not on every query result — queries
   refetch on window focus now, and re-seeding on each result would wipe in-progress text.
+  The task-complete mutation is the same shape for a different reason: it invalidates the `['tasks']`
+  root with a `predicate` that **excludes `['tasks','active']`**, because `/api/tasks` applies the
+  completed-visibility window server-side. On an account whose `completedTaskVisibilityMinutes` is 0
+  (Brendan's), a refetch would drop the row the user just ticked — it would vanish mid-click instead of
+  fading, and un-completing it would be impossible. The optimistic write already holds the new state.
+- **A local `setQueryData` must pin `updatedAt` when anything derives from the query's clock.**
+  `setQueryData(key, updater)` stamps the cache with the current time by default. `useTasks` filters on
+  `tasksQuery.dataUpdatedAt` — "when the server last told us this" — so an unpinned local write drags
+  that clock to the moment of the write, and a task completed at that instant is instantly older than a
+  0-minute visibility window. The row vanished on click, and only when Strapi's `completedAt` happened
+  to land a few ms *behind* the browser's clock, which made it fail about one run in three. Only a real
+  fetch may advance `now`: see `withPinnedTimestamp` in `useTasks.ts`.
 - Tests: Vitest 4 + jsdom + Testing Library; co-located as `*.test.ts(x)` siblings next to the
   code under test. No Prettier config.
+- **E2E: Playwright, `frontend/e2e/*.spec.ts`, `npm run test:e2e`** (local only; not CI-gated). It
+  exists because the app is client-rendered — SSR returns `loading...`, so curl and unit tests cannot
+  prove the UI works, and that is how a `projectType` bug survived 434 green unit tests. Vitest's
+  `include` is scoped to `app/**` precisely so it does not swallow these specs. The config starts Strapi
+  (with `EMAIL_ENABLED=false`) and **`next dev`** — never `next start`, which sets
+  `NODE_ENV=production` and kills `DEV_AUTH_BYPASS`. Specs run against `DEV_AUTH_USER`'s real local data,
+  so each creates its own `[e2e] <timestamp>` rows and deletes them; they cannot assert on fixed
+  fixtures. See `e2e/helpers.ts` for the shared setup and the waits.
 
 ## Layout (`frontend/app/`)
 - `(main)/` — authed route group (`layout.tsx`). Features: `todo/`, `practice/`, `settings/`, home.
@@ -121,6 +146,22 @@ throughout the frontend. Node engine constraint: `>=18 <=22.x`.
   settings to the next request. There are no `NEXT_PUBLIC_*` overrides for these: settings are
   per-user rows, so a build-time env var would override every user at once. Keep date logic pure and
   unit-tested.
+- **A `Date` here is one of two incompatible things, and mixing them is the bug that keeps recurring.**
+  A *real instant* (`new Date()`, `completedAt`, a work session's `timestamp`) versus a *zoned
+  wall-clock* value — what `toZonedTime`, and therefore `getNow(settings)`, returns. A zoned value's
+  `getTime()` is **shifted by the zone's offset and is not the current moment**, so it may only be
+  formatted or compared against another zoned value, never subtracted from a real timestamp. It also
+  must never be passed to something that zones it again: `getWorkedOnPhase`/`getEffectiveDayForTimestamp`
+  and `toISODate` all take a **real instant** and convert internally. Both mistakes are invisible on a
+  machine whose OS zone equals the user's setting (offset 0, so the two domains coincide) — Brendan's
+  laptop — and CI runs UTC, where a *different* subset works. Fixed 2026-07-16 in `useTasks` (which fed
+  a zoned `now` into elapsed-minute math: five hours out under UTC, keeping tasks it should have
+  dropped) and in `getEffectiveDayForTimestamp` (which read `getUTCHours()` off a zoned Date — the wall
+  clock lives in the **local** components — then re-converted through `toISODate`, putting the 4am day
+  boundary at 9am for every non-UTC user). `formatInTimezone`'s `yyyy-MM-dd` branch reads local getters
+  and is correct; its other formats pass an already-zoned date to `formatTz` and are not.
+  **Any test for this must run in more than one system zone** and must not mock `dateUtils` — see the
+  Gotchas note below.
 - Naming: PascalCase components, camelCase lib/util files, `use*` hooks, `*.test.ts(x)` siblings for tests.
 
 # Gotchas
@@ -141,14 +182,30 @@ throughout the frontend. Node engine constraint: `>=18 <=22.x`.
   `app/lib/layoutTransformers.*.test.ts`).
   **`app/lib/recurrence.timeZoneSettings.test.ts` deliberately does not mock `./dateUtils`** — the
   mocked suites stub out the exact seam the timezone bug lived in, so only an unmocked test can catch
-  a regression there. Components/hooks reading `useDateTimeSettings()` need a
-  `DateTimeSettingsProvider` wrapper in tests; pass `initial` so the provider doesn't fetch (see
-  `app/(main)/todo/hooks/useTasks.test.ts`).
+  a regression there. `app/lib/dayBoundaryHelpers.test.ts` is the cautionary tale: it mocked
+  `toZonedTime` as the identity function and `toISODate` as a reader of UTC components, which is only
+  true when the timezone *and* the machine are UTC — so it hard-coded the bug into the fixture and
+  passed for months while the day boundary sat five hours off. It is now unmocked, and **a
+  timezone-sensitive suite must be run in more than one system zone** (`TZ=UTC`, `TZ=America/New_York`,
+  and something with a half-hour offset like `TZ=Asia/Kolkata`) — a green run on one zone proves
+  nothing. `TZ=Europe/Berlin` currently fails 46 pre-existing tests in `recurrence*.test.ts` (they mock
+  `dateUtils`); UTC and New York pass, which is why CI and Brendan's laptop are both quiet about it.
+  Components/hooks reading `useDateTimeSettings()` need a `DateTimeSettingsProvider` wrapper in tests;
+  pass `initial` so the provider doesn't fetch (see `app/(main)/todo/hooks/useTasks.test.ts`).
   Query-backed hooks need a `QueryClientProvider` wrapper with a **per-test client** and
   **`retry: false`** — the app default of 1 makes every failure case sit through a backoff before the
   assertion runs (see `app/hooks/useWorlds.test.ts`). Component tests that only care about a hook's
   *output* should `vi.mock` the hook instead (see `app/components/HeaderContent.test.tsx`); there is
   no global fetch mock, so an unmocked query in a component test hits a real relative URL.
+  **A cache write is not visible to `result.current` when `act()` returns.** TanStack notifies observers
+  on a microtask, so `act(() => result.current.addTask(t))` followed by a bare `expect` reads the *old*
+  render — where the pre-query `setState` version flushed synchronously. Assert with `await waitFor(...)`
+  after any mutator; an `await act(async ...)` alone is not enough.
+- **A failing request in a browser is not one thing.** An aborted request rejects; a 500 *resolves*.
+  Code guarded by `if (!response.ok) return` therefore does nothing on a 500 while an abort still lands
+  in `catch`, so a Playwright test using `route.abort()` can pass against code that mishandles a real
+  server error. Use `route.fulfill({ status: 500 })` to test a rejected write, and `route.abort()` only
+  where a network failure is the actual case (see `e2e/task-lifecycle.spec.ts` vs `e2e/view-reorder.spec.ts`).
 - **Everything runs Node 25 / npm 11** — prod, local, and all four CI jobs — even though
   `backend/package.json` still declares `engines: >=18 <=22.x` (harmless `EBADENGINE` warnings).
   Don't "fix" a CI job back to Node 22: Node 22 ships npm 10, which rejects an npm 11 lockfile with

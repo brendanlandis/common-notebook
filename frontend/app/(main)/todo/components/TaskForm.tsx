@@ -10,7 +10,7 @@ import { getTaskProjectType } from "@/app/lib/taskProjectType";
 import { getNow, toISODate } from "@/app/lib/dateUtils";
 import { calculateNextRecurrence } from "@/app/lib/recurrence";
 import { useDateTimeSettings } from "@/app/contexts/DateTimeSettingsContext";
-import { useTaskData } from "../contexts/TaskDataContext";
+import { useTasks } from "../hooks/useTasks";
 import RichTextEditor from "@/app/components/RichTextEditor";
 import {
   showTrackingUrl,
@@ -113,7 +113,10 @@ interface TaskFormProps {
 
 export default function TaskForm({ task, onSubmit, onCancel }: TaskFormProps) {
   const { timeZoneSettings } = useDateTimeSettings();
-  const { tasks } = useTaskData();
+  // Straight from the query rather than through TaskDataContext: this form only
+  // needs the task list, and pulling the whole context re-rendered it on every
+  // unrelated change. The cache is shared, so this costs no extra request.
+  const { tasks } = useTasks();
   const [recurrenceType, setRecurrenceType] = useState<RecurrenceType>(
     task?.recurrenceType || "none"
   );
