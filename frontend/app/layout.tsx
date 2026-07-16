@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
+import { IBM_Plex_Serif } from "next/font/google";
 import "./css/screen.css";
 
 export const metadata: Metadata = {
@@ -7,19 +8,16 @@ export const metadata: Metadata = {
   description: "minimal, no-brand personal utilities",
 };
 
-const fontClash = localFont({
-  src: "./fonts/ClashGrotesk.woff2",
-  variable: "--font-clash",
-});
-
-const fontChillax = localFont({
-  src: "./fonts/Chillax.woff2",
-  variable: "--font-chillax",
-});
-
 const fontSweetheart = localFont({
-  src: "./fonts/Sweetheart.otf",
+  src: "./fonts/Sweetheart.woff2",
   variable: "--font-sweetheart",
+});
+
+const fontPlexSerif = IBM_Plex_Serif({
+  subsets: ["latin"],
+  weight: ["100", "200", "300", "400", "500", "600", "700"],
+  style: ["normal", "italic"],
+  variable: "--font-plex-serif",
 });
 
 export default function RootLayout({
@@ -90,9 +88,8 @@ export default function RootLayout({
       </head>
       <body
         className={`
-          ${fontClash.variable}
-          ${fontChillax.variable}
           ${fontSweetheart.variable}
+          ${fontPlexSerif.variable}
         `}
       >
         {children}
