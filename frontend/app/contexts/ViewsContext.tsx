@@ -12,10 +12,10 @@ import type { View, ViewInput } from "@/app/types/index";
 import { sortViewsByPosition } from "@/app/lib/views";
 
 // Provides the current user's views (the user-populated `api::view.view`
-// collection) app-wide: the To Do view-picker, the LayoutRuleset context (which
-// validates `?view=` against these), and the Settings management UI all read
-// from here. Fetched once and mutated in place so a create/rename/reorder shows
-// immediately. Mirrors WorldsContext.
+// collection) app-wide: the To Do view-picker, the per-view routes
+// (/todo, /todo/view/<slug>) that resolve a slug to a ruleset, and the Settings
+// management UI all read from here. Fetched once and mutated in place so a
+// create/rename/reorder shows immediately. Mirrors WorldsContext.
 
 interface ViewsContextType {
   views: View[];

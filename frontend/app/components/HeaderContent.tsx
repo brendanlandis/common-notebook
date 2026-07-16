@@ -1,9 +1,11 @@
 "use client";
 
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import LayoutSelector from "../(main)/todo/components/LayoutSelector";
 import PracticeSelector from "../(main)/practice/components/PracticeSelector";
-import { useLayoutRuleset } from "../contexts/LayoutRulesetContext";
+import { getDefaultViewSlug } from "../lib/views";
+import { useViews } from "../contexts/ViewsContext";
+import { useStuffProjects } from "../contexts/StuffProjectsContext";
 import { usePractice } from "../contexts/PracticeContext";
 import { useTaskActions } from "../contexts/TaskActionsContext";
 import { PlusCircleIcon, FolderSimplePlusIcon } from "@phosphor-icons/react";
@@ -11,9 +13,8 @@ import MoonPhaseIcon from "./MoonPhaseIcon";
 
 export default function HeaderContent() {
   const pathname = usePathname();
-  const router = useRouter();
-  const { selectedRulesetId, setSelectedRulesetId, isHydrated } =
-    useLayoutRuleset();
+  const { views } = useViews();
+  const { stuffProjectsEnabled } = useStuffProjects();
   const { selectedPracticeType, setSelectedPracticeType } = usePractice();
   const { openTaskForm, openProjectForm } = useTaskActions();
 
@@ -43,28 +44,23 @@ export default function HeaderContent() {
   // shared TaskForms drawer is mounted for the whole /todo route group, so the
   // add buttons work everywhere.
   if (pathname.startsWith("/todo")) {
-    const isTaskIndex = pathname === "/todo";
-    // Keep the picker in sync with the route: the index shows the selected view;
-    // a per-world route shows that world's option; a per-project route has no
-    // matching option, so it falls back to the blank row.
+    // Keep the picker in sync with the route: /todo shows the default view;
+    // /todo/view/<slug> shows that view; /todo/world/<slug> shows that world's
+    // option; a per-project route has no matching option, so it falls back to
+    // the blank row. LayoutSelector navigates on change.
+    const viewMatch = pathname.match(/^\/todo\/view\/(.+)$/);
     const worldMatch = pathname.match(/^\/todo\/world\/(.+)$/);
-    const selectorValue = isTaskIndex
-      ? selectedRulesetId
-      : worldMatch
-        ? `world:${decodeURIComponent(worldMatch[1])}`
-        : "";
+    const selectorValue =
+      pathname === "/todo"
+        ? getDefaultViewSlug(views, stuffProjectsEnabled)
+        : viewMatch
+          ? decodeURIComponent(viewMatch[1])
+          : worldMatch
+            ? `world:${decodeURIComponent(worldMatch[1])}`
+            : "";
     return (
       <>
-        {isHydrated && (
-          <LayoutSelector
-            value={selectorValue}
-            onChange={(id) => {
-              if (!id) return;
-              setSelectedRulesetId(id);
-              if (!isTaskIndex) router.push("/todo");
-            }}
-          />
-        )}
+        <LayoutSelector value={selectorValue} />
         <button
           onClick={openTaskForm}
           className="tooltip tooltip-bottom"

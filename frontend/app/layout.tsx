@@ -17,6 +17,11 @@ const fontChillax = localFont({
   variable: "--font-chillax",
 });
 
+const fontSweetheart = localFont({
+  src: "./fonts/Sweetheart.otf",
+  variable: "--font-sweetheart",
+});
+
 export default function RootLayout({
   children,
 }: {
@@ -87,6 +92,7 @@ export default function RootLayout({
         className={`
           ${fontClash.variable}
           ${fontChillax.variable}
+          ${fontSweetheart.variable}
         `}
       >
         {children}

@@ -2,7 +2,6 @@ import { ListIcon } from "@phosphor-icons/react/dist/ssr";
 import MenuItems from "../components/MenuItems";
 import HeaderContent from "../components/HeaderContent";
 import TaskActionsDrawer from "../components/TaskActionsDrawer";
-import { LayoutRulesetProvider } from "../contexts/LayoutRulesetContext";
 import { PracticeContextProvider } from "../contexts/PracticeContext";
 import { TaskActionsProvider } from "../contexts/TaskActionsContext";
 import { TimezoneProvider } from "../contexts/TimezoneContext";
@@ -26,7 +25,6 @@ export default function MainLayout({
       <WorldsProvider>
       <ViewsProvider>
       <StuffProjectsProvider>
-      <LayoutRulesetProvider>
         <PracticeContextProvider>
           <TaskActionsProvider>
             <SessionGuard />
@@ -79,7 +77,6 @@ export default function MainLayout({
           </div>
         </TaskActionsProvider>
       </PracticeContextProvider>
-    </LayoutRulesetProvider>
     </StuffProjectsProvider>
     </ViewsProvider>
     </WorldsProvider>

@@ -9,8 +9,10 @@ import {
 } from "react";
 import type { Project, Task } from "@/app/types/index";
 import type { GroupedTasks } from "@/app/lib/groupTasks";
+import { usePathname } from "next/navigation";
 import { getISOTimestampInEST } from "@/app/lib/dateUtils";
-import { useLayoutRuleset } from "@/app/contexts/LayoutRulesetContext";
+import { getDefaultViewSlug } from "@/app/lib/views";
+import { useViews } from "@/app/contexts/ViewsContext";
 import { useTaskActions } from "@/app/contexts/TaskActionsContext";
 import { useTimezoneContext } from "@/app/contexts/TimezoneContext";
 import { useStuffProjects } from "@/app/contexts/StuffProjectsContext";
@@ -129,20 +131,31 @@ export function TaskDataProvider({ children }: { children: ReactNode }) {
   const [statsLoading30Days, setStatsLoading30Days] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
-  const { selectedRulesetId } = useLayoutRuleset();
+  const { views } = useViews();
+  const pathname = usePathname();
   const { drawerContent, openTaskForm, openProjectForm, closeDrawer } =
     useTaskActions();
   const { timezone } = useTimezoneContext();
 
+  // The active view slug, derived from the route: /todo shows the default view,
+  // /todo/view/<slug> shows that one. Only the "done" preset needs the secondary
+  // completed/upcoming/stats fetches below.
+  const viewMatch = pathname.match(/^\/todo\/view\/(.+)$/);
+  const activeViewSlug = viewMatch
+    ? decodeURIComponent(viewMatch[1])
+    : pathname === "/todo"
+      ? getDefaultViewSlug(views, stuffProjectsEnabled)
+      : null;
+
   useEffect(() => {
-    if (selectedRulesetId === "done") {
+    if (activeViewSlug === "done") {
       fetchCompletedTasks();
       fetchUpcomingTasks();
       fetchLongTasksWithSessions();
       fetchRecentStats();
       fetchRecentStats30Days();
     }
-  }, [selectedRulesetId]);
+  }, [activeViewSlug]);
 
   // Reset editing state when drawer closes
   useEffect(() => {
@@ -303,7 +316,7 @@ export function TaskDataProvider({ children }: { children: ReactNode }) {
           addTask(uncompletedTask);
         }
       } else if (
-        selectedRulesetId === "done"
+        activeViewSlug === "done"
       ) {
         // Completing while viewing "done"/"invoicing": add to completedTasks
         // so it appears in the completed list immediately.
@@ -378,7 +391,7 @@ export function TaskDataProvider({ children }: { children: ReactNode }) {
       if (response.ok) {
         removeTask(actualDocumentId);
 
-        if (selectedRulesetId === "done") {
+        if (activeViewSlug === "done") {
           setCompletedTasks((prev) =>
             prev.filter((t) => t.documentId !== actualDocumentId)
           );
@@ -428,7 +441,7 @@ export function TaskDataProvider({ children }: { children: ReactNode }) {
 
       if (response.ok) {
         // Optimistically remove the "worked on" entry from longTasksWithSessions
-        if (selectedRulesetId === "done") {
+        if (activeViewSlug === "done") {
           setLongTasksWithSessions(
             (prev) =>
               prev

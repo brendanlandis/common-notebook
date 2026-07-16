@@ -1,20 +1,18 @@
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useStuffProjects } from "@/app/contexts/StuffProjectsContext";
 import { useWorlds } from "@/app/contexts/WorldsContext";
 import { useViews } from "@/app/contexts/ViewsContext";
-import { sortViewsByPosition, CODE_PRESETS } from "@/app/lib/views";
+import { sortViewsByPosition, getDefaultViewSlug, CODE_PRESETS } from "@/app/lib/views";
 
 interface LayoutSelectorProps {
-  value: string; // view slug (or "" on a world/project route)
-  onChange: (slug: string) => void;
+  value: string; // view slug, `world:<slug>`, or "" on a project route
 }
 
-export default function LayoutSelector({ value, onChange }: LayoutSelectorProps) {
+export default function LayoutSelector({ value }: LayoutSelectorProps) {
   const { stuffProjectsEnabled } = useStuffProjects();
   const { worlds } = useWorlds();
   const { views } = useViews();
   const router = useRouter();
-  const pathname = usePathname();
 
   // The user's composable views, in their own order. The "stuff" view is hidden
   // when stuff projects are disabled.
@@ -35,15 +33,19 @@ export default function LayoutSelector({ value, onChange }: LayoutSelectorProps)
     worldOptions.some((w) => `world:${w.slug}` === value);
 
   const handleChange = (v: string) => {
+    if (!v) return;
     if (v.startsWith("world:")) {
       // Per-world views live on their own route.
       router.push(`/todo/world/${v.slice("world:".length)}`);
       return;
     }
-    // A view/preset: set it, and if we're on a world/project route, go back to
-    // /todo so the selected view actually renders (that page reads the ruleset).
-    onChange(v);
-    if (pathname !== "/todo") router.push("/todo");
+    // A view/preset lives at /todo/view/<slug>, except the default view, which
+    // canonicalizes to bare /todo.
+    if (v === getDefaultViewSlug(views, stuffProjectsEnabled)) {
+      router.push("/todo");
+    } else {
+      router.push(`/todo/view/${v}`);
+    }
   };
 
   return (

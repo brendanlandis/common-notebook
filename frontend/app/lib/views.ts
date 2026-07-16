@@ -13,6 +13,9 @@ import type {
 // hardcoded LAYOUT_PRESETS. These pure helpers work over the user's views; the
 // list itself comes from ViewsContext / the /api/views BFF.
 
+/** Fallback default when the user has no eligible views yet. */
+export const DEFAULT_VIEW_SLUG = "good-morning";
+
 /** Ascending by `position`; input order is the stable tiebreaker. */
 export function sortViewsByPosition(views: View[]): View[] {
   return views
@@ -23,6 +26,23 @@ export function sortViewsByPosition(views: View[]): View[] {
 
 export function findViewBySlug(slug: string, views: View[]): View | undefined {
   return views.find((v) => v.slug === slug);
+}
+
+/**
+ * The default view — the one that renders at bare `/todo`. It's simply the first
+ * view in the user's own ordering (`position`), the same order ViewsManager's
+ * ↑/↓ controls. The `stuff` view is skipped while stuff projects are disabled so
+ * the default never lands on a hidden view. Falls back to DEFAULT_VIEW_SLUG when
+ * there are no eligible views.
+ */
+export function getDefaultViewSlug(
+  views: View[],
+  stuffProjectsEnabled: boolean
+): string {
+  const eligible = sortViewsByPosition(views).filter(
+    (v) => v.systemKey !== "stuff" || stuffProjectsEnabled
+  );
+  return eligible[0]?.slug ?? DEFAULT_VIEW_SLUG;
 }
 
 /** A no-op filter set — every task passes. Used for defaults / code presets. */

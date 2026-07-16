@@ -8,8 +8,7 @@ h3,
 h4,
 h5,
 h6 {
-  font-family: var(--font-chillax);
-  text-transform: uppercase;
+  font-family: var(--font-sweetheart);
   font-variation-settings: "wght" 700;
   margin: 1rem 0;
 }

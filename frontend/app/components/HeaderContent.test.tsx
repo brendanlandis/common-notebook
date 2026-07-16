@@ -3,17 +3,14 @@ import { render } from "@testing-library/react";
 
 // HeaderContent depends on navigation + three contexts; stub them so the test
 // stays focused on the header's own markup (the add-item tooltip copy).
-const push = vi.fn();
 vi.mock("next/navigation", () => ({
   usePathname: () => "/todo",
-  useRouter: () => ({ push }),
 }));
-vi.mock("@/app/contexts/LayoutRulesetContext", () => ({
-  useLayoutRuleset: () => ({
-    selectedRulesetId: "good-morning",
-    setSelectedRulesetId: vi.fn(),
-    isHydrated: true,
-  }),
+vi.mock("@/app/contexts/ViewsContext", () => ({
+  useViews: () => ({ views: [{ slug: "good-morning" }], loading: false }),
+}));
+vi.mock("@/app/contexts/StuffProjectsContext", () => ({
+  useStuffProjects: () => ({ stuffProjectsEnabled: false }),
 }));
 vi.mock("@/app/contexts/PracticeContext", () => ({
   usePractice: () => ({ selectedPracticeType: "guitar", setSelectedPracticeType: vi.fn() }),

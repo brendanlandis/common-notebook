@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { viewToRuleset, sortViewsByPosition, findViewBySlug, CODE_PRESETS, findCodePreset } from "./views";
+import { viewToRuleset, sortViewsByPosition, findViewBySlug, getDefaultViewSlug, CODE_PRESETS, findCodePreset } from "./views";
 import type { View, World } from "@/app/types/index";
 
 const music: World = { id: 1, documentId: "w-music", title: "make music", slug: "make-music", position: 0, systemKey: null };
@@ -90,5 +90,26 @@ describe("helpers", () => {
     expect(findCodePreset("done")?.codePreset).toBe("done");
     expect(findCodePreset("recurring")?.ignoreDisplayDate).toBe(true);
     expect(findCodePreset("good-morning")).toBeUndefined();
+  });
+
+  describe("getDefaultViewSlug", () => {
+    it("returns the first view by position", () => {
+      const a = view({ documentId: "a", slug: "later", position: 2 });
+      const b = view({ documentId: "b", slug: "good-morning", position: 0 });
+      expect(getDefaultViewSlug([a, b], true)).toBe("good-morning");
+    });
+
+    it("skips the stuff view while stuff projects are disabled", () => {
+      const stuff = view({ documentId: "s", slug: "stuff", systemKey: "stuff", position: 0 });
+      const next = view({ documentId: "n", slug: "errands", position: 1 });
+      expect(getDefaultViewSlug([stuff, next], false)).toBe("errands");
+      expect(getDefaultViewSlug([stuff, next], true)).toBe("stuff");
+    });
+
+    it("falls back to good-morning when there are no eligible views", () => {
+      expect(getDefaultViewSlug([], true)).toBe("good-morning");
+      const stuff = view({ slug: "stuff", systemKey: "stuff", position: 0 });
+      expect(getDefaultViewSlug([stuff], false)).toBe("good-morning");
+    });
   });
 });
