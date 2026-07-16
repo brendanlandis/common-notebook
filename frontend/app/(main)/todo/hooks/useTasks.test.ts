@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from "vitest";
 import { renderHook, act, waitFor } from "@testing-library/react";
 import { createElement, type ReactNode } from "react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { Task, Project } from "@/app/types/index";
 
 // Mocks must be declared before importing the hook so vi.mock hoists correctly.
@@ -17,16 +18,29 @@ import { DateTimeSettingsProvider } from "@/app/contexts/DateTimeSettingsContext
 // provider. Supplying `initial` keeps the provider from fetching, so the fetch
 // assertions below still only see the hook's own calls — and it's why the
 // visibility config no longer needs mocking at all.
+//
+// The tasks and projects queries live in the cache, so each test gets its own
+// QueryClient (a shared one would leak data between tests). `retry: false` is the
+// one deliberate divergence from the app's defaults — retrying a deliberate
+// failure just makes the test sit through a backoff. staleTime mirrors the real
+// QueryProvider; gcTime is left alone, since 0 would evict a query the moment it
+// loses its last observer.
+let queryClient: QueryClient;
+
 const wrapper = ({ children }: { children: ReactNode }) =>
   createElement(
-    DateTimeSettingsProvider,
-    {
-      initial: {
-        timeZoneSettings: { timezone: "America/New_York", dayBoundaryHour: 4 },
-        completedTaskVisibilityMinutes: 15,
+    QueryClientProvider,
+    { client: queryClient },
+    createElement(
+      DateTimeSettingsProvider,
+      {
+        initial: {
+          timeZoneSettings: { timezone: "America/New_York", dayBoundaryHour: 4 },
+          completedTaskVisibilityMinutes: 15,
+        },
       },
-    },
-    children
+      children
+    )
   );
 
 const makeTask = (overrides: Partial<Task> = {}): Task =>
@@ -87,15 +101,35 @@ async function settle() {
 describe("useTasks", () => {
   let fetchMock: ReturnType<typeof vi.fn>;
 
+  // /api/tasks and /api/projects are two independent queries now, so they may
+  // resolve in either order. Every mock answers by URL rather than by call
+  // sequence — a `mockResolvedValueOnce` here would hand the tasks payload to
+  // whichever query happened to fire first.
+  const mockApi = ({ tasks = [], projects = [] }: { tasks?: Task[]; projects?: Project[] }) =>
+    fetchMock.mockImplementation((url: string) =>
+      Promise.resolve({
+        ok: true,
+        json: async () => ({
+          success: true,
+          data: String(url).startsWith("/api/projects") ? projects : tasks,
+        }),
+      })
+    );
+
   beforeEach(() => {
-    fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({ success: true, data: [] }),
+    queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false, staleTime: 30_000 },
+        mutations: { retry: false },
+      },
     });
+    fetchMock = vi.fn();
     global.fetch = fetchMock as any;
+    mockApi({});
   });
 
   afterEach(() => {
+    queryClient.clear();
     vi.clearAllMocks();
   });
 
@@ -116,10 +150,7 @@ describe("useTasks", () => {
         completed: true,
         completedAt: "2026-01-08T16:50:00.000Z", // 10 minutes ago, window is 15
       });
-      fetchMock.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ success: true, data: [task] }),
-      });
+      mockApi({ tasks: [task] });
 
       const { result } = renderHook(() => useTasks(), { wrapper });
 
@@ -134,10 +165,7 @@ describe("useTasks", () => {
         completed: true,
         completedAt: "2026-01-08T13:46:00.000Z", // 194 minutes ago
       });
-      fetchMock.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ success: true, data: [task] }),
-      });
+      mockApi({ tasks: [task] });
 
       const { result } = renderHook(() => useTasks(), { wrapper });
 
@@ -165,13 +193,7 @@ describe("useTasks", () => {
     it("keeps a long task worked on inside the window (phase 1)", async () => {
       vi.setSystemTime(new Date("2026-01-08T17:00:00.000Z"));
       // 5 minutes ago, window is 15
-      fetchMock.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          success: true,
-          data: [longTaskWorkedAt("2026-01-08T16:55:00.000Z")],
-        }),
-      });
+      mockApi({ tasks: [longTaskWorkedAt("2026-01-08T16:55:00.000Z")] });
 
       const { result } = renderHook(() => useTasks(), { wrapper });
 
@@ -183,13 +205,7 @@ describe("useTasks", () => {
     it("drops a long task past the window on the same day (phase 2)", async () => {
       vi.setSystemTime(new Date("2026-01-08T17:00:00.000Z"));
       // 60 minutes ago: past the 15-minute window, still the same effective day
-      fetchMock.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          success: true,
-          data: [longTaskWorkedAt("2026-01-08T16:00:00.000Z")],
-        }),
-      });
+      mockApi({ tasks: [longTaskWorkedAt("2026-01-08T16:00:00.000Z")] });
 
       const { result } = renderHook(() => useTasks(), { wrapper });
 
@@ -200,13 +216,7 @@ describe("useTasks", () => {
     it("keeps a long task worked on a previous day (phase 3)", async () => {
       vi.setSystemTime(new Date("2026-01-08T17:00:00.000Z"));
       // Yesterday: past the window, but the day rolled over, so it comes back
-      fetchMock.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          success: true,
-          data: [longTaskWorkedAt("2026-01-07T16:00:00.000Z")],
-        }),
-      });
+      mockApi({ tasks: [longTaskWorkedAt("2026-01-07T16:00:00.000Z")] });
 
       const { result } = renderHook(() => useTasks(), { wrapper });
 
@@ -218,10 +228,7 @@ describe("useTasks", () => {
 
   it("loads tasks on mount and exposes them", async () => {
     const task = makeTask({ documentId: "a", title: "First" });
-    fetchMock.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ success: true, data: [task] }),
-    });
+    mockApi({ tasks: [task] });
 
     const { result } = renderHook(() => useTasks(), { wrapper });
 
@@ -236,72 +243,57 @@ describe("useTasks", () => {
 
     const fetchCallsBefore = fetchMock.mock.calls.length;
 
-    act(() => {
+    await act(async () => {
       result.current.addTask(makeTask({ documentId: "new", title: "Added" }));
     });
 
-    expect(result.current.tasks).toHaveLength(1);
+    // The mutators write to the query cache, and TanStack notifies observers on a
+    // microtask, so `result.current` is not refreshed the instant act() returns.
+    // Assertions on a mutator's effect have to retry rather than read once.
+    await waitFor(() => expect(result.current.tasks).toHaveLength(1));
     expect(result.current.tasks[0].documentId).toBe("new");
     expect(fetchMock.mock.calls.length).toBe(fetchCallsBefore);
   });
 
   it("removeTask drops the matching task", async () => {
-    fetchMock.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({
-        success: true,
-        data: [
+    mockApi({ tasks: [
           makeTask({ documentId: "a" }),
           makeTask({ documentId: "b" }),
-        ],
-      }),
-    });
+        ] });
 
     const { result } = renderHook(() => useTasks(), { wrapper });
     await waitFor(() => expect(result.current.tasks).toHaveLength(2));
 
-    act(() => {
+    await act(async () => {
       result.current.removeTask("a");
     });
 
-    expect(result.current.tasks).toHaveLength(1);
+    await waitFor(() => expect(result.current.tasks).toHaveLength(1));
     expect(result.current.tasks[0].documentId).toBe("b");
   });
 
   it("updateTask replaces the matching task by documentId", async () => {
-    fetchMock.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({
-        success: true,
-        data: [makeTask({ documentId: "a", title: "Old" })],
-      }),
-    });
+    mockApi({ tasks: [makeTask({ documentId: "a", title: "Old" })] });
 
     const { result } = renderHook(() => useTasks(), { wrapper });
     await waitFor(() => expect(result.current.tasks).toHaveLength(1));
 
-    act(() => {
+    await act(async () => {
       result.current.updateTask(
         makeTask({ documentId: "a", title: "New", completed: true })
       );
     });
 
-    expect(result.current.tasks[0].title).toBe("New");
+    await waitFor(() => expect(result.current.tasks[0].title).toBe("New"));
     expect(result.current.tasks[0].completed).toBe(true);
   });
 
   it("grouped derives projects and incidentals from tasks", async () => {
     const project = makeProject();
-    fetchMock.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({
-        success: true,
-        data: [
+    mockApi({ tasks: [
           makeTask({ documentId: "a", project: project as any }),
           makeTask({ documentId: "c" }),
-        ],
-      }),
-    });
+        ] });
 
     const { result } = renderHook(() => useTasks(), { wrapper });
     await waitFor(() => expect(result.current.tasks).toHaveLength(2));
@@ -317,29 +309,16 @@ describe("useTasks", () => {
     expect(result.current.grouped.incidentals[0].documentId).toBe("c");
   });
 
-  // `refetch` fetches /api/tasks and /api/projects together, so a test that cares
-  // about both has to answer per URL rather than rely on Promise.all ordering.
-  const mockApi = ({ tasks = [], projects = [] }: { tasks?: Task[]; projects?: Project[] }) =>
-    fetchMock.mockImplementation((url: string) =>
-      Promise.resolve({
-        ok: true,
-        json: async () => ({
-          success: true,
-          data: String(url).startsWith("/api/projects") ? projects : tasks,
-        }),
-      })
-    );
-
   describe("projects with no tasks", () => {
     it("addProject shows a new empty project immediately", async () => {
       const { result } = renderHook(() => useTasks(), { wrapper });
       await waitFor(() => expect(result.current.loading).toBe(false));
 
-      act(() => {
+      await act(async () => {
         result.current.addProject(makeProject({ documentId: "empty-1" }));
       });
 
-      expect(result.current.grouped.projects).toHaveLength(1);
+      await waitFor(() => expect(result.current.grouped.projects).toHaveLength(1));
       expect(result.current.grouped.projects[0].documentId).toBe("empty-1");
       expect(result.current.grouped.projects[0].tasks).toEqual([]);
     });
@@ -355,7 +334,7 @@ describe("useTasks", () => {
         await result.current.refetch(false);
       });
 
-      expect(result.current.grouped.projects).toHaveLength(1);
+      await waitFor(() => expect(result.current.grouped.projects).toHaveLength(1));
       expect(result.current.grouped.projects[0].documentId).toBe("empty-1");
       expect(result.current.grouped.projects[0].tasks).toEqual([]);
     });
@@ -383,26 +362,22 @@ describe("useTasks", () => {
 
   it("updateProject propagates new metadata to tasks that reference the project", async () => {
     const project = makeProject({ documentId: "p1", title: "Old name" });
-    fetchMock.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({
-        success: true,
-        data: [makeTask({ documentId: "a", project: project as any })],
-      }),
-    });
+    mockApi({ tasks: [makeTask({ documentId: "a", project: project as any })] });
 
     const { result } = renderHook(() => useTasks(), { wrapper });
     await waitFor(() => expect(result.current.tasks).toHaveLength(1));
 
     expect(result.current.grouped.projects[0].title).toBe("Old name");
 
-    act(() => {
+    await act(async () => {
       result.current.updateProject(
         makeProject({ documentId: "p1", title: "New name" })
       );
     });
 
-    expect((result.current.tasks[0].project as any).title).toBe("New name");
+    await waitFor(() =>
+      expect((result.current.tasks[0].project as any).title).toBe("New name")
+    );
     expect(result.current.grouped.projects[0].title).toBe("New name");
   });
 });

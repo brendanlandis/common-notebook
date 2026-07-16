@@ -45,6 +45,7 @@ next-env.d.ts
 .cursorignore
 
 #playwright
+test-results/
 playwright-report/
 blob-report/
 playwright/.cache/

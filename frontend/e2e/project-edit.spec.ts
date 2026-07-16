@@ -14,6 +14,17 @@ async function openProjectForm(page: import('@playwright/test').Page) {
   await expect(page.locator('form.project-form')).toBeVisible();
 }
 
+// Submitting is fire-and-forget: handleProjectFormSubmit closes the drawer before
+// awaiting the PUT. Navigating straight after the click therefore cancels the
+// in-flight request — so wait for the response before leaving the page.
+async function saveProjectForm(page: import('@playwright/test').Page) {
+  const saved = page.waitForResponse(
+    (res) => /\/api\/projects\/[^/]+$/.test(res.url()) && res.request().method() === 'PUT'
+  );
+  await page.getByRole('button', { name: 'update project' }).click();
+  return saved;
+}
+
 test.describe('project edit', () => {
   test('a projectType change persists', async ({ page, request }) => {
     const project = await createProject(request);
@@ -24,7 +35,8 @@ test.describe('project edit', () => {
       await expect(page.locator('#projectType')).toHaveValue('default');
 
       await page.locator('#projectType').selectOption('chores');
-      await page.getByRole('button', { name: 'update project' }).click();
+      const saved = await saveProjectForm(page);
+      expect(saved.status(), 'the projectType save was rejected').toBeLessThan(400);
 
       // Reload before asserting: the drawer closes optimistically, so the only
       // honest proof the save landed is re-reading it from the server.
@@ -52,7 +64,7 @@ test.describe('project edit', () => {
       // Touch only the title and save. This is the exact path that used to send
       // projectType:'normal' and get `400 projectType must be one of ...`.
       await page.locator('#title').fill(`${project.title} edited`);
-      await page.getByRole('button', { name: 'update project' }).click();
+      await saveProjectForm(page);
 
       await gotoProject(page, project.documentId);
       await openProjectForm(page);
