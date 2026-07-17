@@ -45,21 +45,23 @@ export async function fetchAutoDeclutterFromStrapi(): Promise<boolean | null> {
 }
 
 /**
- * Save the auto-declutter setting to Strapi.
+ * Save the auto-declutter setting.
+ *
+ * Goes to `/api/auto-declutter` rather than the generic settings endpoint:
+ * switching this on also arms the declutter watermark server-side, which is what
+ * makes enabling wait for the next new moon instead of decluttering on the spot.
+ *
  * @param enabled - whether the new-moon auto-declutter is enabled
  * @returns Promise with success boolean
  */
 export async function saveAutoDeclutterToStrapi(enabled: boolean): Promise<boolean> {
   try {
-    const response = await fetch('/api/system-settings', {
+    const response = await fetch('/api/auto-declutter', {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        title: 'autoDeclutter',
-        value: String(enabled),
-      }),
+      body: JSON.stringify({ enabled }),
     });
 
     return response.ok;

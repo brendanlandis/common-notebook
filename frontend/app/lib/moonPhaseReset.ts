@@ -1,5 +1,5 @@
 import { toISODate, getToday, parseDate } from './dateUtils';
-import { hasNewMoonSinceDate } from './moonPhase';
+import { hasNewMoonSince } from './moonPhase';
 import { demoteTopOfMindProjects } from './projectImportance';
 import {
   fetchAllPages,
@@ -9,6 +9,13 @@ import {
   upsertSystemSetting,
 } from './strapiServer';
 
+/**
+ * The declutter **watermark**: the day from which we watch for the next new moon.
+ *
+ * The stored title still says "last reset date" because renaming the key would
+ * strand every existing row — each account would read as never-armed and lose a
+ * cycle of catch-up. The name is historical; the meaning is the watermark.
+ */
 const MOON_PHASE_SETTING = 'moonPhaseLastResetDate';
 const AUTO_DECLUTTER_SETTING = 'autoDeclutter';
 
@@ -50,13 +57,44 @@ export async function performMoonPhaseReset(token: string): Promise<{
   return { tasksUpdated, projectsUpdated };
 }
 
-/** Record that the reset has run, so it does not run again until the next new moon. */
-export async function updateMoonPhaseResetDate(token: string): Promise<void> {
+/**
+ * Start the clock: watch for a new moon from today onwards.
+ *
+ * Three events mean exactly this, so they share one function — a reset has just
+ * run, auto-declutter has just been switched on, or we have just met an account
+ * that has no watermark at all. In every case the next declutter is the next new
+ * moon, never this instant.
+ */
+export async function armDeclutter(token: string): Promise<void> {
   const settings = await getTimeZoneSettings(token);
   const ok = await upsertSystemSetting(token, MOON_PHASE_SETTING, {
     date: toISODate(getToday(settings), settings),
   });
-  if (!ok) console.error('Moon-phase reset: failed to record the reset date');
+  if (!ok) console.error('Moon-phase reset: failed to record the watermark');
+}
+
+/**
+ * Write the auto-declutter toggle, arming the clock when it is switched on.
+ *
+ * Arming here is what makes "enable" mean "wait for the next new moon" instead
+ * of "declutter now": without it the watermark is left missing or months stale,
+ * and a stale watermark reads as a moon already owed.
+ *
+ * Only a real `false → true` transition arms. Stamping on every enable-save
+ * would let a repeated save walk the watermark forward and postpone the
+ * declutter indefinitely.
+ */
+export async function setAutoDeclutter(token: string, enabled: boolean): Promise<boolean> {
+  const previous = await getSystemSetting(token, AUTO_DECLUTTER_SETTING);
+  const wasEnabled = previous?.value !== 'false'; // opt-out: unset counts as on
+
+  const ok = await upsertSystemSetting(token, AUTO_DECLUTTER_SETTING, {
+    value: String(enabled),
+  });
+  if (!ok) return false;
+
+  if (enabled && !wasEnabled) await armDeclutter(token);
+  return true;
 }
 
 /**
@@ -100,12 +138,20 @@ export async function runMoonPhaseResetIfDue(token: string, userKey: string): Pr
 
       const settings = await getTimeZoneSettings(token);
       const setting = await getSystemSetting(token, MOON_PHASE_SETTING);
-      const lastResetDate = setting?.date ? parseDate(setting.date, settings) : null;
 
-      if (!hasNewMoonSinceDate(lastResetDate, settings)) return;
+      // Never armed — a fresh account, or one that predates the watermark.
+      // Start the clock and declutter nothing: the first declutter is the next
+      // new moon. Answering a missing watermark by looking backwards is what
+      // used to wipe a new account's "soon" flags on its very first page load.
+      if (!setting?.date) {
+        await armDeclutter(token);
+        return;
+      }
+
+      if (!hasNewMoonSince(parseDate(setting.date, settings), settings)) return;
 
       await performMoonPhaseReset(token);
-      await updateMoonPhaseResetDate(token);
+      await armDeclutter(token);
     } catch (error) {
       console.error('Moon-phase reset failed; will retry on the next request:', error);
     }

@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAccessToken } from '@/app/lib/strapiAuth';
-import {
-  performMoonPhaseReset,
-  updateMoonPhaseResetDate,
-} from '@/app/lib/moonPhaseReset';
+import { performMoonPhaseReset, armDeclutter } from '@/app/lib/moonPhaseReset';
 
 export async function POST(req: NextRequest) {
   try {
@@ -18,8 +15,8 @@ export async function POST(req: NextRequest) {
 
     const { tasksUpdated, projectsUpdated } = await performMoonPhaseReset(token);
 
-    // Update the system setting to track the last reset date
-    await updateMoonPhaseResetDate(token);
+    // Re-arm: the next automatic declutter is the next new moon after today.
+    await armDeclutter(token);
 
     return NextResponse.json({
       success: true,

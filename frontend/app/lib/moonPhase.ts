@@ -1,7 +1,6 @@
 import * as Astronomy from 'astronomy-engine';
 import { getToday, toISODate } from './dateUtils';
 import type { TimeZoneSettings } from './timeZoneSettings';
-import { isAfter } from 'date-fns';
 
 /**
  * Moon phase icon component names (mapped to our custom Weather Icons components)
@@ -134,43 +133,38 @@ export function getMoonPhaseIconName(settings: TimeZoneSettings, date?: Date): M
 }
 
 /**
- * Check if a new moon has occurred since a given date
- * @param lastResetDate - The date to check from (can be null for first run)
- * @returns true if a new moon has occurred since the last reset date (including today)
+ * Has a new moon fallen in `(since, today]`?
+ *
+ * `since` is the declutter **watermark** — the day we started watching. It is
+ * required, and that is the whole point: an earlier version accepted
+ * `Date | null` and answered a missing watermark by searching back 30 days for
+ * a new moon. The lunar month is 29.53 days, so that window always contains
+ * one, and the answer was always "yes" — every account that had never
+ * decluttered decluttered instantly, which is exactly what enabling
+ * auto-declutter is not supposed to do. There is no sensible answer to "has a
+ * new moon passed since nothing?", so callers must arm a watermark first and
+ * the type no longer lets them ask.
+ *
+ * Searching forward from the day after `since` is what preserves catch-up: a
+ * moon that passed while the app went unused still counts as owed.
  */
-export function hasNewMoonSinceDate(lastResetDate: Date | null, settings: TimeZoneSettings): boolean {
+export function hasNewMoonSince(since: Date, settings: TimeZoneSettings): boolean {
   const today = getToday(settings);
-  
-  // If no previous reset date, check if there's been a new moon today or recently
-  // Search backwards from today to find the most recent new moon
-  if (!lastResetDate) {
-    // Search backwards from today (go back 30 days to find recent new moon)
-    const searchStartDate = new Date(today);
-    searchStartDate.setDate(searchStartDate.getDate() - 30);
-    
-    const recentNewMoon = Astronomy.SearchMoonPhase(0, searchStartDate, 30);
-    if (!recentNewMoon) {
-      return false;
-    }
-    
-    // Check if the new moon occurred today or in the past
-    const newMoonDate = new Date(recentNewMoon.date);
-    return !isAfter(newMoonDate, today);
-  }
 
-  // Search for new moons starting from the day after the last reset
-  // We want to find if there's been a new moon since (but not including) the reset day
-  const searchStart = new Date(lastResetDate);
+  // From the day after the watermark — a moon on the watermark day itself was
+  // already accounted for by whatever set it.
+  const searchStart = new Date(since);
   searchStart.setDate(searchStart.getDate() + 1);
-  
-  // Search forward from the day after reset to find the next new moon
+
   const nextNewMoon = Astronomy.SearchMoonPhase(0, searchStart, 40);
-  
   if (!nextNewMoon) {
     return false;
   }
-  
-  // Check if the new moon occurred on or before today
+
+  // Compare calendar days in the user's zone, not instants. `today` is midnight,
+  // so `isAfter(newMoon, today)` excluded a new moon falling later on this very
+  // day and pushed the declutter to the day *after* the moon it was named for.
+  // Both operands are real instants, which is what toISODate expects.
   const newMoonDate = new Date(nextNewMoon.date);
-  return !isAfter(newMoonDate, today);
+  return toISODate(newMoonDate, settings) <= toISODate(today, settings);
 }
