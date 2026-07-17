@@ -2,7 +2,6 @@ import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { NextRequest } from 'next/server';
 import { POST as workSessionRoute } from './[documentId]/work-session/route';
 import type { Task } from '@/app/types/index';
-import { toZonedTime, format as formatTz } from 'date-fns-tz';
 
 // Mock environment variables
 process.env.STRAPI_API_URL = 'http://localhost:1337';
@@ -83,6 +82,40 @@ function createMockRequest(documentId: string, body: any = {}): NextRequest {
   return req;
 }
 
+type SettingsConfig = { timezone?: string | null; dayBoundaryHour?: string | null };
+
+/** What production actually defaults to — see `app/lib/defaultSettings.ts`. */
+const DEFAULT_TEST_SETTINGS: SettingsConfig = {
+  timezone: 'America/New_York',
+  dayBoundaryHour: '4',
+};
+
+/**
+ * Strapi's response to `getSystemSetting`'s title-filtered lookup.
+ *
+ * Every mock in this file used to answer `{ success: true, value: '0' }` — the shape
+ * this app's *own* `/api/*` routes return, not Strapi's. `getSystemSetting` reads
+ * `body.data?.[0]`, so it saw undefined and every test silently ran on the fallback
+ * defaults instead of the settings it was declaring. That is why the mock has to be
+ * per-title too: `getTimeZoneSettings` fetches timezone and dayBoundaryHour
+ * separately, and one blanket answer makes both settings the same value.
+ *
+ * A `null` here models a row that does not exist, which is the normal state for a
+ * new account and the case the readers' fallbacks exist for.
+ */
+function settingsResponse(urlStr: string, settings: SettingsConfig) {
+  const title = urlStr.includes('dayBoundaryHour') ? 'dayBoundaryHour' : 'timezone';
+  const value = settings[title];
+  if (value == null) return { data: [] };
+  return { data: [{ documentId: `setting-${title}`, title, value, date: null }] };
+}
+
+/** The `workSessions` array the route actually wrote to Strapi. */
+function writtenSessions(fetchMock: any) {
+  const put = fetchMock.mock.calls.find((c: any[]) => c[1]?.method === 'PUT');
+  return put ? JSON.parse(put[1].body).data.workSessions : null;
+}
+
 describe('Work Session API Route Tests', () => {
   let originalFetch: typeof global.fetch;
 
@@ -93,6 +126,7 @@ describe('Work Session API Route Tests', () => {
 
   afterEach(() => {
     global.fetch = originalFetch;
+    vi.useRealTimers();
   });
 
   describe('Authentication', () => {
@@ -138,10 +172,10 @@ describe('Work Session API Route Tests', () => {
         if (urlStr.includes('/api/system-settings')) {
           return Promise.resolve({
             ok: true,
-            json: async () => ({ success: true, value: '0' }),
+            json: async () => settingsResponse(urlStr, DEFAULT_TEST_SETTINGS),
           } as Response);
         }
-        
+
         // Mock GET task
         if (urlStr.includes('long-task?populate=project') && !options?.method) {
           return Promise.resolve({
@@ -189,10 +223,10 @@ describe('Work Session API Route Tests', () => {
         if (urlStr.includes('/api/system-settings')) {
           return Promise.resolve({
             ok: true,
-            json: async () => ({ success: true, value: '0' }),
+            json: async () => settingsResponse(urlStr, DEFAULT_TEST_SETTINGS),
           } as Response);
         }
-        
+
         if (urlStr.includes('non-long-task?populate=project')) {
           return Promise.resolve({
             ok: true,
@@ -217,49 +251,60 @@ describe('Work Session API Route Tests', () => {
       expect(data.error).toBe('This task is not marked as long');
     });
 
-    it('should prevent duplicate work sessions for same day', async () => {
-      // Use current date in EST to match what the API will calculate
-      const now = new Date();
-      const nowInTimezone = toZonedTime(now, 'America/New_York');
-      const dateStr = formatTz(nowInTimezone, 'yyyy-MM-dd', { timeZone: 'America/New_York' });
-      
+    /**
+     * These pin the clock, because the effective day depends on the day boundary
+     * hour and this test used to depend on when it ran.
+     *
+     * It mocked `/api/system-settings` with `{ success: true, value: '0' }` — the
+     * *frontend* envelope, not Strapi's. `getSystemSetting` reads `body.data?.[0]`,
+     * so it saw undefined and fell back to the defaults (America/New_York, boundary
+     * 4am) rather than the boundary 0 the author meant to configure. The old expected
+     * date was the plain calendar day in New York, with no boundary logic: under
+     * boundary 0 that matches, but under boundary 4 it only matches between 4am and
+     * midnight. So the suite failed for the four hours after midnight and passed the
+     * rest of the day.
+     *
+     * So: mock settings in Strapi's real shape, and pin the instant.
+     */
+    const runDuplicateCase = async (nowISO: string, sessionDate: string) => {
+      // shouldAdvanceTime keeps the awaited fetch mocks from stalling on a frozen clock.
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      vi.setSystemTime(new Date(nowISO));
+
       const taskWithSession = createTask({
         documentId: 'task-with-session',
         long: true,
-        workSessions: [{ date: dateStr, timestamp: now.toISOString() }],
+        workSessions: [{ date: sessionDate, timestamp: nowISO }],
       });
 
       global.fetch = vi.fn((url: string | URL | Request, options?: any) => {
         const urlStr = url.toString();
-        
+
         if (urlStr.includes('/api/system-settings')) {
           return Promise.resolve({
             ok: true,
-            json: async () => ({ success: true, value: '0' }),
+            json: async () => settingsResponse(urlStr, DEFAULT_TEST_SETTINGS),
           } as Response);
         }
-        
+
         if (urlStr.includes('task-with-session?populate=project')) {
-          // For PUT requests (updating), this shouldn't be called if duplicate is detected
           if (options?.method === 'PUT') {
-            // This shouldn't happen if duplicate detection works
+            // Reached only if duplicate detection failed. Echo the body back rather
+            // than re-spreading the task's own array: the route pushes onto that same
+            // array, so the old mock reported 3 sessions for a single stray write and
+            // obscured what had actually gone wrong.
+            const body = JSON.parse(options.body);
             return Promise.resolve({
               ok: true,
-              json: async () => ({ 
-                data: {
-                  ...taskWithSession,
-                  workSessions: [...taskWithSession.workSessions!, { date: dateStr, timestamp: now.toISOString() }]
-                }
-              }),
+              json: async () => ({ data: { ...taskWithSession, ...body.data } }),
             } as Response);
           }
-          // For GET requests
           return Promise.resolve({
             ok: true,
             json: async () => ({ data: taskWithSession }),
           } as Response);
         }
-        
+
         return Promise.resolve({
           ok: false,
           status: 404,
@@ -267,19 +312,44 @@ describe('Work Session API Route Tests', () => {
         } as Response);
       });
 
-      const req = createMockRequest('task-with-session', { timezone: 'America/New_York' });
+      const req = createMockRequest('task-with-session');
       const params = Promise.resolve({ documentId: 'task-with-session' });
-      
+
       const response = await workSessionRoute(req, { params });
-      const data = await response.json();
+      return { response, data: await response.json() };
+    };
+
+    it('should prevent duplicate work sessions for same day', async () => {
+      // 10:00 in New York — comfortably after the 4am boundary, so the effective
+      // day is the calendar day.
+      const { response, data } = await runDuplicateCase('2026-01-05T15:00:00.000Z', '2026-01-05');
 
       expect(response.status).toBe(200);
       expect(data.success).toBe(true);
-      if (data.message) {
-        expect(data.message).toBe('Work session already exists for today');
-      }
-      // Should not have added a new session
+      expect(data.message).toBe('Work session already exists for today');
       expect(data.data.workSessions.length).toBe(1);
+    });
+
+    /**
+     * The case the old test could never express: 01:00 in New York is before the 4am
+     * boundary, so the session belongs to the *previous* day. Pinning the clock here
+     * is what lets this be asserted at all — it is the window the suite used to fail in.
+     */
+    it('treats a pre-boundary session as the previous day, in any system zone', async () => {
+      const { data } = await runDuplicateCase('2026-01-05T06:00:00.000Z', '2026-01-04');
+
+      expect(data.message).toBe('Work session already exists for today');
+      expect(data.data.workSessions.length).toBe(1);
+      expect(data.data.workSessions[0].date).toBe('2026-01-04');
+    });
+
+    it('adds a session for the new effective day once the boundary has passed', async () => {
+      // Same instant as above, but the stored session is the day before that — so
+      // 2026-01-04 is genuinely today and no duplicate exists for it.
+      const { data } = await runDuplicateCase('2026-01-05T06:00:00.000Z', '2026-01-03');
+
+      expect(data.data.workSessions.length).toBe(2);
+      expect(data.data.workSessions[1].date).toBe('2026-01-04');
     });
 
     it('should handle API errors gracefully', async () => {
@@ -289,10 +359,10 @@ describe('Work Session API Route Tests', () => {
         if (urlStr.includes('/api/system-settings')) {
           return Promise.resolve({
             ok: true,
-            json: async () => ({ success: true, value: '0' }),
+            json: async () => settingsResponse(urlStr, DEFAULT_TEST_SETTINGS),
           } as Response);
         }
-        
+
         // Simulate API error
         return Promise.resolve({
           ok: false,
@@ -312,47 +382,48 @@ describe('Work Session API Route Tests', () => {
     });
   });
 
+  /**
+   * Each of these asserts the *date the route wrote*, and pins an instant where the
+   * configured setting and the fallback disagree about which day it is. That is the
+   * only way the assertion can fail if the setting is ignored: the previous versions
+   * checked `status === 200` and a "was it fetched?" flag, which the route passes
+   * whatever it decides the day is.
+   */
   describe('Day Boundary Hour Logic', () => {
-    it('should use custom day boundary hour when available', async () => {
+    const runBoundaryCase = async (nowISO: string, settings: SettingsConfig) => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      vi.setSystemTime(new Date(nowISO));
+
       const longTask = createTask({
         documentId: 'boundary-task',
         long: true,
         workSessions: [],
       });
 
-      const updatedTask = {
-        ...longTask,
-        workSessions: [{ date: '2026-01-05', timestamp: '2026-01-05T12:00:00.000-05:00' }],
-      };
-
-      let dayBoundaryFetched = false;
-
       global.fetch = vi.fn((url: string | URL | Request, options?: any) => {
         const urlStr = url.toString();
-        
-        // Mock system settings with custom day boundary hour
+
         if (urlStr.includes('/api/system-settings')) {
-          dayBoundaryFetched = true;
           return Promise.resolve({
             ok: true,
-            json: async () => ({ success: true, value: '4' }), // 4 AM boundary
+            json: async () => settingsResponse(urlStr, settings),
           } as Response);
         }
-        
-        if (urlStr.includes('boundary-task?populate=project') && !options?.method) {
+
+        if (urlStr.includes('boundary-task?populate=project')) {
+          if (options?.method === 'PUT') {
+            const body = JSON.parse(options.body);
+            return Promise.resolve({
+              ok: true,
+              json: async () => ({ data: { ...longTask, ...body.data } }),
+            } as Response);
+          }
           return Promise.resolve({
             ok: true,
             json: async () => ({ data: longTask }),
           } as Response);
         }
-        
-        if (urlStr.includes('boundary-task?populate=project') && options?.method === 'PUT') {
-          return Promise.resolve({
-            ok: true,
-            json: async () => ({ data: updatedTask }),
-          } as Response);
-        }
-        
+
         return Promise.resolve({
           ok: false,
           status: 404,
@@ -360,109 +431,88 @@ describe('Work Session API Route Tests', () => {
         } as Response);
       });
 
-      const req = createMockRequest('boundary-task', { timezone: 'America/New_York' });
+      const req = createMockRequest('boundary-task');
       const params = Promise.resolve({ documentId: 'boundary-task' });
-      
       const response = await workSessionRoute(req, { params });
-      const data = await response.json();
+
+      return { response, sessions: writtenSessions(global.fetch) };
+    };
+
+    it('uses the configured day boundary hour rather than the default', async () => {
+      // 05:00 in New York. Under the configured 6am boundary the day has not started,
+      // so this belongs to the 4th; under the default 4am it would be the 5th. The
+      // old test configured '4' — the same as the default — so it could not tell the
+      // two apart even once its mock was fixed.
+      const { response, sessions } = await runBoundaryCase('2026-01-05T10:00:00.000Z', {
+        timezone: 'America/New_York',
+        dayBoundaryHour: '6',
+      });
 
       expect(response.status).toBe(200);
-      expect(data.success).toBe(true);
-      expect(dayBoundaryFetched).toBe(true);
+      expect(sessions).toHaveLength(1);
+      expect(sessions[0].date).toBe('2026-01-04');
     });
 
-    it('should default to midnight when day boundary hour is not configured', async () => {
-      const longTask = createTask({
-        documentId: 'default-boundary-task',
-        long: true,
-        workSessions: [],
+    it('falls back to the default 4am boundary when the row is missing', async () => {
+      // 02:00 in New York, with no dayBoundaryHour row — the normal state for a new
+      // account. The default is 4am (defaultSettings.ts), so this is still the 4th.
+      // This test used to be called "should default to midnight", which the defaults
+      // table has not agreed with; at midnight the answer would be the 5th.
+      const { sessions } = await runBoundaryCase('2026-01-05T07:00:00.000Z', {
+        timezone: 'America/New_York',
+        dayBoundaryHour: null,
       });
 
-      const updatedTask = {
-        ...longTask,
-        workSessions: [{ date: '2026-01-05', timestamp: '2026-01-05T12:00:00.000-05:00' }],
-      };
-
-      global.fetch = vi.fn((url: string | URL | Request, options?: any) => {
-        const urlStr = url.toString();
-        
-        // Mock system settings returning no value
-        if (urlStr.includes('/api/system-settings')) {
-          return Promise.resolve({
-            ok: true,
-            json: async () => ({ success: false }),
-          } as Response);
-        }
-        
-        if (urlStr.includes('default-boundary-task?populate=project') && !options?.method) {
-          return Promise.resolve({
-            ok: true,
-            json: async () => ({ data: longTask }),
-          } as Response);
-        }
-        
-        if (urlStr.includes('default-boundary-task?populate=project') && options?.method === 'PUT') {
-          return Promise.resolve({
-            ok: true,
-            json: async () => ({ data: updatedTask }),
-          } as Response);
-        }
-        
-        return Promise.resolve({
-          ok: false,
-          status: 404,
-          json: async () => ({ error: 'Not found' }),
-        } as Response);
-      });
-
-      const req = createMockRequest('default-boundary-task', { timezone: 'America/New_York' });
-      const params = Promise.resolve({ documentId: 'default-boundary-task' });
-      
-      const response = await workSessionRoute(req, { params });
-      const data = await response.json();
-
-      expect(response.status).toBe(200);
-      expect(data.success).toBe(true);
+      expect(sessions).toHaveLength(1);
+      expect(sessions[0].date).toBe('2026-01-04');
     });
   });
 
+  /**
+   * These were called "should accept timezone from request body" and "should default
+   * to America/New_York when no timezone provided". The route stopped reading the
+   * body's timezone when it gained the ability to resolve one from the caller's
+   * token, so the first was asserting a contract that no longer exists — and since
+   * both only checked `status === 200`, neither noticed.
+   */
   describe('Timezone Handling', () => {
-    it('should accept timezone from request body', async () => {
+    const runTimezoneCase = async (settings: SettingsConfig, body: any = {}) => {
+      // 03:00 in Los Angeles, 06:00 in New York. With a 4am boundary the two zones
+      // disagree about the day — LA is still on the 5th, New York has reached the
+      // 6th — so the assertion can only pass if the route used the right zone.
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      vi.setSystemTime(new Date('2026-01-06T11:00:00.000Z'));
+
       const longTask = createTask({
         documentId: 'tz-task',
         long: true,
         workSessions: [],
       });
 
-      const updatedTask = {
-        ...longTask,
-        workSessions: [{ date: '2026-01-05', timestamp: '2026-01-05T12:00:00.000-08:00' }],
-      };
-
       global.fetch = vi.fn((url: string | URL | Request, options?: any) => {
         const urlStr = url.toString();
-        
+
         if (urlStr.includes('/api/system-settings')) {
           return Promise.resolve({
             ok: true,
-            json: async () => ({ success: true, value: '0' }),
+            json: async () => settingsResponse(urlStr, settings),
           } as Response);
         }
-        
-        if (urlStr.includes('tz-task?populate=project') && !options?.method) {
+
+        if (urlStr.includes('tz-task?populate=project')) {
+          if (options?.method === 'PUT') {
+            const put = JSON.parse(options.body);
+            return Promise.resolve({
+              ok: true,
+              json: async () => ({ data: { ...longTask, ...put.data } }),
+            } as Response);
+          }
           return Promise.resolve({
             ok: true,
             json: async () => ({ data: longTask }),
           } as Response);
         }
-        
-        if (urlStr.includes('tz-task?populate=project') && options?.method === 'PUT') {
-          return Promise.resolve({
-            ok: true,
-            json: async () => ({ data: updatedTask }),
-          } as Response);
-        }
-        
+
         return Promise.resolve({
           ok: false,
           status: 404,
@@ -470,67 +520,28 @@ describe('Work Session API Route Tests', () => {
         } as Response);
       });
 
-      const req = createMockRequest('tz-task', { timezone: 'America/Los_Angeles' });
+      const req = createMockRequest('tz-task', body);
       const params = Promise.resolve({ documentId: 'tz-task' });
-      
       const response = await workSessionRoute(req, { params });
-      const data = await response.json();
+
+      return { response, sessions: writtenSessions(global.fetch) };
+    };
+
+    it("uses the timezone from the caller's settings, not the request body", async () => {
+      const { response, sessions } = await runTimezoneCase(
+        { timezone: 'America/Los_Angeles', dayBoundaryHour: '4' },
+        // Ignored. A client that posts this cannot move another user's day.
+        { timezone: 'America/New_York' }
+      );
 
       expect(response.status).toBe(200);
-      expect(data.success).toBe(true);
+      expect(sessions[0].date).toBe('2026-01-05');
     });
 
-    it('should default to America/New_York when no timezone provided', async () => {
-      const longTask = createTask({
-        documentId: 'default-tz-task',
-        long: true,
-        workSessions: [],
-      });
+    it('falls back to America/New_York when the timezone row is missing', async () => {
+      const { sessions } = await runTimezoneCase({ timezone: null, dayBoundaryHour: '4' });
 
-      const updatedTask = {
-        ...longTask,
-        workSessions: [{ date: '2026-01-05', timestamp: '2026-01-05T12:00:00.000-05:00' }],
-      };
-
-      global.fetch = vi.fn((url: string | URL | Request, options?: any) => {
-        const urlStr = url.toString();
-        
-        if (urlStr.includes('/api/system-settings')) {
-          return Promise.resolve({
-            ok: true,
-            json: async () => ({ success: true, value: '0' }),
-          } as Response);
-        }
-        
-        if (urlStr.includes('default-tz-task?populate=project') && !options?.method) {
-          return Promise.resolve({
-            ok: true,
-            json: async () => ({ data: longTask }),
-          } as Response);
-        }
-        
-        if (urlStr.includes('default-tz-task?populate=project') && options?.method === 'PUT') {
-          return Promise.resolve({
-            ok: true,
-            json: async () => ({ data: updatedTask }),
-          } as Response);
-        }
-        
-        return Promise.resolve({
-          ok: false,
-          status: 404,
-          json: async () => ({ error: 'Not found' }),
-        } as Response);
-      });
-
-      const req = createMockRequest('default-tz-task', {}); // No timezone in body
-      const params = Promise.resolve({ documentId: 'default-tz-task' });
-      
-      const response = await workSessionRoute(req, { params });
-      const data = await response.json();
-
-      expect(response.status).toBe(200);
-      expect(data.success).toBe(true);
+      expect(sessions[0].date).toBe('2026-01-06');
     });
   });
 });

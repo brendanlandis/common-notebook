@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAccessToken } from '@/app/lib/strapiAuth';
 import { getTodayForRecurrence, toISODate } from '@/app/lib/dateUtils';
 import { getTimeZoneSettings } from '@/app/lib/strapiServer';
+import { parseDays } from '@/app/lib/queryParams';
 
 const STRAPI_API_URL = process.env.STRAPI_API_URL;
 
@@ -18,8 +19,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Calculate the cutoff date to filter work sessions, respecting day boundary hour
-    const daysParam = req.nextUrl.searchParams.get('days');
-    const days = daysParam ? parseInt(daysParam, 10) : 30;
+    const days = parseDays(req.nextUrl.searchParams.get('days'), 30);
     const settings = await getTimeZoneSettings(token);
     const today = getTodayForRecurrence(settings);
     const cutoffDate = new Date(today);

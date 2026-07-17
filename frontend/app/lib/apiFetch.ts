@@ -39,10 +39,12 @@ export async function apiFetch<T extends ApiBody = ApiBody>(
   const response = await fetch(path, init);
 
   let body: T | null = null;
+  let parsed = false;
   try {
     body = (await response.json()) as T;
+    parsed = true;
   } catch {
-    // A body-less or non-JSON response is only acceptable on a 2xx.
+    // Leave `parsed` false — what to do about it depends on the status.
   }
 
   if (!response.ok) {
@@ -55,7 +57,16 @@ export async function apiFetch<T extends ApiBody = ApiBody>(
     throw new ApiError(body.error ?? 'Request failed', response.status);
   }
 
-  return (body ?? ({} as T));
+  // Every route in this app answers with `NextResponse.json`, so a 2xx we could not
+  // parse is a broken handler or something that isn't our API at all. Returning `{}`
+  // here would type an empty object as `T` and hand the caller `data: undefined`
+  // where it reads `Task[]` — the same silent-empty-list failure this file exists to
+  // prevent, only sneaking in through the success path.
+  if (!parsed) {
+    throw new ApiError('Response was not valid JSON', response.status);
+  }
+
+  return body as T;
 }
 
 const JSON_HEADERS = { 'Content-Type': 'application/json' };

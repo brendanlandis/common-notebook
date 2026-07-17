@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAccessToken } from '@/app/lib/strapiAuth';
 import { getTodayForRecurrence, toISODate } from '@/app/lib/dateUtils';
 import { getTimeZoneSettings } from '@/app/lib/strapiServer';
+import { parseDays } from '@/app/lib/queryParams';
 
 const STRAPI_API_URL = process.env.STRAPI_API_URL;
 
@@ -25,7 +26,7 @@ export async function GET(req: NextRequest) {
 
     // Get days parameter from query string (default to 7)
     const { searchParams } = new URL(req.url);
-    const days = parseInt(searchParams.get('days') || '7', 10);
+    const days = parseDays(searchParams.get('days'), 7);
 
     // Calculate the date range, respecting day boundary hour
     const settings = await getTimeZoneSettings(token);

@@ -647,4 +647,53 @@ describe('Stats API Route - Work Session Counting', () => {
       expect(projectStat.count).toBe(2);
     });
   });
+
+  /**
+   * `days` used to be `parseInt(searchParams.get('days') || '7', 10)`, so a
+   * non-numeric value became NaN, `daysAgo.setDate(NaN)` became an Invalid Date, and
+   * that reached `toISODate`. It now goes through `parseDays`, which falls back to the
+   * route's own default. These assert on the cutoff in the Strapi URL, which is where
+   * a bad window would actually do damage.
+   */
+  describe('days parameter', () => {
+    const cutoffFrom = (fetchMock: any) => {
+      const call = fetchMock.mock.calls
+        .map((c: any[]) => c[0].toString())
+        .find((u: string) => u.includes('filters[completedAt][$gte]='));
+      return call ? decodeURIComponent(call.split('filters[completedAt][$gte]=')[1].split('&')[0]) : null;
+    };
+
+    it('uses the requested window', async () => {
+      setupMockFetch({});
+      const request = createMockRequest('http://localhost/api/tasks/stats?days=2', {
+        auth_token: 'test-token',
+      });
+
+      await GET(request);
+      // today is mocked to 2026-01-10
+      expect(cutoffFrom(global.fetch)).toBe('2026-01-08');
+    });
+
+    it('falls back to 7 days on a non-numeric window instead of an Invalid Date', async () => {
+      setupMockFetch({});
+      const request = createMockRequest('http://localhost/api/tasks/stats?days=abc', {
+        auth_token: 'test-token',
+      });
+
+      const response = await GET(request);
+
+      expect(response.status).toBe(200);
+      expect(cutoffFrom(global.fetch)).toBe('2026-01-03');
+    });
+
+    it('falls back rather than asking Strapi for an unbounded window', async () => {
+      setupMockFetch({});
+      const request = createMockRequest('http://localhost/api/tasks/stats?days=99999', {
+        auth_token: 'test-token',
+      });
+
+      await GET(request);
+      expect(cutoffFrom(global.fetch)).toBe('2026-01-03');
+    });
+  });
 });

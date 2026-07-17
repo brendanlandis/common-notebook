@@ -61,6 +61,28 @@ describe('apiFetch', () => {
     fetchMock.mockRejectedValueOnce(new TypeError('Failed to fetch'));
     await expect(apiFetch('/api/views')).rejects.toThrow('Failed to fetch');
   });
+
+  /**
+   * Every route answers with `NextResponse.json`, so an unparseable 2xx is a broken
+   * handler. This used to return `{}` typed as `T`, which handed the caller
+   * `data: undefined` while TypeScript read `Task[]` — the silent empty list, arriving
+   * through the success path instead of the error path.
+   */
+  it('throws on a 2xx whose body is not JSON, rather than fabricating an empty object', async () => {
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      statusText: 'OK',
+      json: async () => {
+        throw new SyntaxError('Unexpected token < in JSON at position 0');
+      },
+    } as unknown as Response);
+
+    await expect(apiFetch('/api/tasks')).rejects.toMatchObject({
+      status: 200,
+      message: 'Response was not valid JSON',
+    });
+  });
 });
 
 describe('apiSend', () => {
