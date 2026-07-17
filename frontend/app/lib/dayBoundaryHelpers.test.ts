@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getEffectiveDayForTimestamp, getWorkedOnPhase } from './dayBoundaryHelpers';
+import { getEffectiveDayForTimestamp, getWorkedOnPhase, shiftISODate } from './dayBoundaryHelpers';
 import type { TimeZoneSettings } from './timeZoneSettings';
 
 // The timezone travels with the boundary now, so each case builds its own settings
@@ -23,6 +23,38 @@ const nyc = (dayBoundaryHour: number): TimeZoneSettings => ({
 // These assertions must hold whatever timezone the machine running them is in.
 
 describe('Day Boundary Helpers', () => {
+  describe('shiftISODate', () => {
+    it('steps back a day', () => {
+      expect(shiftISODate('2026-07-17', -1)).toBe('2026-07-16');
+    });
+
+    it('steps back across a month end', () => {
+      expect(shiftISODate('2026-03-01', -1)).toBe('2026-02-28');
+    });
+
+    it('steps back across a year end', () => {
+      expect(shiftISODate('2026-01-01', -1)).toBe('2025-12-31');
+    });
+
+    it('steps back across a leap day', () => {
+      expect(shiftISODate('2028-03-01', -1)).toBe('2028-02-29');
+    });
+
+    it('steps back a month across a DST transition', () => {
+      // US DST began 2026-03-08. A local-component step here would land on the
+      // duplicated/skipped hour and could fall a day short.
+      expect(shiftISODate('2026-03-29', -29)).toBe('2026-02-28');
+    });
+
+    it('steps forward', () => {
+      expect(shiftISODate('2026-12-31', 1)).toBe('2027-01-01');
+    });
+
+    it('is a no-op for zero', () => {
+      expect(shiftISODate('2026-07-17', 0)).toBe('2026-07-17');
+    });
+  });
+
   describe('getEffectiveDayForTimestamp', () => {
     it('should return same day when after boundary hour', () => {
       // 10 AM UTC on Jan 5, 2026

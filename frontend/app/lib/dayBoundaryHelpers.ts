@@ -2,6 +2,18 @@ import { toISODate, toZonedTime } from './dateUtils';
 import type { TimeZoneSettings } from './timeZoneSettings';
 
 /**
+ * Shift an ISO date string (YYYY-MM-DD) by whole days.
+ *
+ * The arithmetic runs on a UTC calendar so that no DST transition can duplicate or
+ * skip a day, and so that it cannot pick up the machine's zone the way date-fns'
+ * local-component helpers (addDays, setDate) would.
+ */
+export function shiftISODate(isoDate: string, days: number): string {
+  const [year, month, day] = isoDate.split('-').map(Number);
+  return new Date(Date.UTC(year, month - 1, day + days)).toISOString().slice(0, 10);
+}
+
+/**
  * Get the "effective day" for a timestamp considering day boundary hour
  * Returns ISO date string (YYYY-MM-DD) of the effective day
  */
@@ -26,11 +38,8 @@ export function getEffectiveDayForTimestamp(
     return calendarDay;
   }
 
-  // Before the boundary, the timestamp still belongs to the previous day. Step back
-  // over a UTC calendar so that no DST transition can duplicate or skip the hour.
-  const [year, month, day] = calendarDay.split('-').map(Number);
-  const previous = new Date(Date.UTC(year, month - 1, day - 1));
-  return previous.toISOString().slice(0, 10);
+  // Before the boundary, the timestamp still belongs to the previous day.
+  return shiftISODate(calendarDay, -1);
 }
 
 /**

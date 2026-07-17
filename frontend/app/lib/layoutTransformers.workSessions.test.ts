@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { transformLayout } from './layoutTransformers';
 import type { Task, Project } from '@/app/types/index';
 import * as dateUtils from './dateUtils';
@@ -63,13 +63,25 @@ function createTask(overrides: Partial<Task>): Task {
 
 describe('Layout Transformer - Work Session Virtual Entries', () => {
   beforeEach(() => {
-    // Set a fixed "today" for all tests - Monday, Jan 5, 2026
+    // Set a fixed "today" for all tests - Monday, Jan 5, 2026.
+    //
+    // The system clock is pinned alongside the mocked getToday: transformDone reads "now" as
+    // a real instant (new Date()) to resolve the effective day for its 30-day window. Mocking
+    // only getToday left this suite straddling two clocks, and the fixtures below then sat
+    // outside a window anchored on the real date. 12:00Z is 07:00 in New York, after the 4am
+    // boundary, so the effective day matches the mocked getToday.
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-01-05T12:00:00.000Z'));
     vi.mocked(dateUtils.getToday).mockReturnValue(
       new Date('2026-01-05T00:00:00')
     );
     vi.mocked(dateUtils.getNow).mockReturnValue(
       new Date('2026-01-05T12:00:00')
     );
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   describe('Virtual Entry Creation', () => {

@@ -8,7 +8,8 @@ import type {
   ImportanceFilter,
   RecurrenceType,
 } from "@/app/types/index";
-import { getToday, parseDate, formatInTimezone, toISODate, toZonedTime } from "@/app/lib/dateUtils";
+import { getToday, parseDate, formatInTimezone, toISODate } from "@/app/lib/dateUtils";
+import { getEffectiveDayForTimestamp, shiftISODate } from "@/app/lib/dayBoundaryHelpers";
 import type { TimeZoneSettings } from "@/app/lib/timeZoneSettings";
 import { getProjectPriority } from "@/app/lib/projectPriority";
 import { getTaskProjectType } from "@/app/lib/taskProjectType";
@@ -466,14 +467,15 @@ function transformDone(data: RawTaskData, settings: TimeZoneSettings): Transform
     (task) => getTaskProjectType(task) !== "in the mail" && getTaskProjectType(task) !== "errands"
   );
 
+  // `completedAt` is a real instant; getEffectiveDayForTimestamp applies the day boundary
+  // against the user's wall clock. Don't re-inline that here: hand-rolling it read the hour
+  // off a zoned Date with getUTCHours(), which tests the boundary against a clock shifted by
+  // the UTC offset — with a 3am boundary in New York it filed 00:00-02:59 a day late and
+  // 20:00-22:59 a day early.
   const tasksByDate = new Map<string, Task[]>();
   completedTasks.forEach((task) => {
     if (task.completedAt) {
-      const completedDate = toZonedTime(new Date(task.completedAt), settings.timezone);
-      const hour = completedDate.getUTCHours();
-      const adjustedDate = new Date(completedDate);
-      if (hour < settings.dayBoundaryHour) adjustedDate.setDate(adjustedDate.getDate() - 1);
-      const dateKey = toISODate(adjustedDate, settings);
+      const dateKey = getEffectiveDayForTimestamp(new Date(task.completedAt), settings);
       if (!tasksByDate.has(dateKey)) tasksByDate.set(dateKey, []);
       tasksByDate.get(dateKey)!.push(task);
     }
@@ -496,27 +498,21 @@ function transformDone(data: RawTaskData, settings: TimeZoneSettings): Transform
     }
   });
 
-  // 30-day window (today + 29 prior), most-recent first.
-  const nowInEST = toZonedTime(new Date(), settings.timezone);
-  const hour = nowInEST.getUTCHours();
-  const todayDate = new Date(getToday(settings));
-  if (hour < settings.dayBoundaryHour) todayDate.setDate(todayDate.getDate() - 1);
-  const thirtyDaysAgo = new Date(todayDate);
-  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 29);
-  const cutoffDateISO = toISODate(thirtyDaysAgo, settings);
+  // 30-day window (today + 29 prior), most-recent first. Every key here is an effective-day
+  // ISO string, so the window and the labels compare as strings — no calendar arithmetic on
+  // instants, which would silently run in the machine's zone rather than the user's.
+  const todayKey = getEffectiveDayForTimestamp(new Date(), settings);
+  const yesterdayKey = shiftISODate(todayKey, -1);
+  const cutoffDateISO = shiftISODate(todayKey, -29);
 
   const doneSections: TaskGroup[] = Array.from(tasksByDate.entries())
     .filter(([dateKey]) => dateKey >= cutoffDateISO)
     .sort(([dateA], [dateB]) => dateB.localeCompare(dateA))
     .map(([dateKey, tasks]) => {
-      const date = parseDate(dateKey, settings);
-      const yesterdayDate = new Date(todayDate);
-      yesterdayDate.setDate(yesterdayDate.getDate() - 1);
-      const dateISO = toISODate(date, settings);
       let dateTitle: string;
-      if (dateISO === toISODate(todayDate, settings)) dateTitle = "today";
-      else if (dateISO === toISODate(yesterdayDate, settings)) dateTitle = "yesterday";
-      else dateTitle = formatInTimezone(date, "EEE MM/d", settings).toLowerCase();
+      if (dateKey === todayKey) dateTitle = "today";
+      else if (dateKey === yesterdayKey) dateTitle = "yesterday";
+      else dateTitle = formatInTimezone(parseDate(dateKey, settings), "EEE MM/d", settings).toLowerCase();
 
       const sortedTasks = tasks.sort((a, b) => {
         if (!a.completedAt && !b.completedAt) return 0;
