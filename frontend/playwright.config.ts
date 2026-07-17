@@ -22,6 +22,11 @@ export default defineConfig({
   use: {
     baseURL,
     trace: 'retain-on-failure',
+    // Deliberately NOT the server's zone. The browser/server split is where the
+    // client's getISOTimestamp meets the server's complete/route — pin the
+    // browser to a real offset so that seam is exercised, not hidden. The Next
+    // server stays whatever the host is (UTC in CI), which is the point.
+    timezoneId: 'America/New_York',
   },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
   webServer: [

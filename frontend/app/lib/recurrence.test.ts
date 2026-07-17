@@ -526,7 +526,13 @@ describe('Recurrence Logic', () => {
   });
 
   describe('Astronomical Event Recurrence', () => {
-    it('should calculate next full moon correctly', () => {
+    // These pin the *exact* event date, not just "changed" or the right month.
+    // "Today" is mocked to 2026-01-05 (beforeEach). Every expected date is the real
+    // astronomical event in the user's zone, cross-checked against the raw UTC
+    // instant from astronomy-engine — the ephemeris is deterministic, so a change
+    // here means the date math (the zone conversion, the boundary, an off-by-one)
+    // regressed, which is precisely the class of bug that is hard to spot by eye.
+    it('schedules the next full moon on its own calendar day', () => {
       const task = createTask({
         isRecurring: true,
         recurrenceType: 'full moon',
@@ -536,12 +542,11 @@ describe('Recurrence Logic', () => {
 
       const result = calculateNextRecurrence(task, EST, false);
 
-      // Should calculate next full moon after today
-      expect(result.displayDate).not.toBe(null);
-      expect(result.displayDate).not.toBe('2026-01-05'); // Should be different date
+      // Full moon 2026-02-01 (18:09 UTC → 13:09 EST), the first after 2026-01-05.
+      expect(result.displayDate).toBe('2026-02-01');
     });
 
-    it('should calculate next new moon correctly', () => {
+    it('schedules the next new moon on its own calendar day', () => {
       const task = createTask({
         isRecurring: true,
         recurrenceType: 'new moon',
@@ -551,26 +556,62 @@ describe('Recurrence Logic', () => {
 
       const result = calculateNextRecurrence(task, EST, false);
 
-      expect(result.displayDate).not.toBe(null);
-      expect(result.displayDate).not.toBe('2026-01-05');
+      // New moon 2026-01-18 (19:52 UTC → 14:52 EST).
+      expect(result.displayDate).toBe('2026-01-18');
     });
 
-    it('should calculate spring equinox correctly', () => {
+    // Regression: the search used to start at addDays(comparisonDate, 1) — a day
+    // added to the 4am *boundary instant*, so it began at tomorrow-4am and skipped
+    // any moon in tomorrow's 00:00–04:00 window, which toISODate still files as
+    // tomorrow. That jumped the task a whole lunar month. These pin real moons in
+    // that window; the buggy code returns the *following* month's moon in every zone.
+    it('does not skip a full moon falling just after midnight on the target day', () => {
+      // Real full moon: 2026-08-28 00:19 EDT (2026-08-28T04:19Z). "Today" is the
+      // 4am-EDT boundary instant of 2026-08-27 — what getTodayForRecurrence returns.
+      vi.mocked(dateUtils.getTodayForRecurrence).mockReturnValue(new Date('2026-08-27T08:00:00.000Z'));
       const task = createTask({
         isRecurring: true,
-        recurrenceType: 'spring equinox',
-        displayDate: '2026-03-20',
-        dueDate: '2026-03-20',
+        recurrenceType: 'full moon',
+        displayDate: '2026-08-27',
       });
 
       const result = calculateNextRecurrence(task, EST, false);
 
-      // Next spring equinox should be in 2027
-      expect(result.displayDate).not.toBe(null);
-      expect(result.displayDate?.startsWith('2027-03')).toBe(true);
+      // The moon's own calendar day — not 2026-09-26, a lunar month later.
+      expect(result.displayDate).toBe('2026-08-28');
     });
 
-    it('should calculate summer solstice correctly', () => {
+    it('does not skip a new moon falling just after midnight on the target day', () => {
+      // Real new moon: 2026-11-09 02:02 EST (2026-11-09T07:02Z). Today = 4am-EST
+      // boundary instant of 2026-11-08.
+      vi.mocked(dateUtils.getTodayForRecurrence).mockReturnValue(new Date('2026-11-08T09:00:00.000Z'));
+      const task = createTask({
+        isRecurring: true,
+        recurrenceType: 'new moon',
+        displayDate: '2026-11-08',
+      });
+
+      const result = calculateNextRecurrence(task, EST, false);
+
+      // Not 2026-12-08, a lunar month later.
+      expect(result.displayDate).toBe('2026-11-09');
+    });
+
+    it('advances the spring equinox to next year when completed on this year’s', () => {
+      const task = createTask({
+        isRecurring: true,
+        recurrenceType: 'spring equinox',
+        displayDate: '2026-03-20',
+        dueDate: '2026-03-20', // 2026 equinox; completing on it must roll to 2027
+      });
+
+      const result = calculateNextRecurrence(task, EST, false);
+
+      // Spring equinox 2027-03-20 (20:24 UTC → 16:24 EDT).
+      expect(result.displayDate).toBe('2027-03-20');
+    });
+
+    it('advances the summer solstice to next year when completed on this year’s', () => {
       const task = createTask({
         isRecurring: true,
         recurrenceType: 'summer solstice',
@@ -580,12 +621,11 @@ describe('Recurrence Logic', () => {
 
       const result = calculateNextRecurrence(task, EST, false);
 
-      // Next summer solstice should be in 2027
-      expect(result.displayDate).not.toBe(null);
-      expect(result.displayDate?.startsWith('2027-06')).toBe(true);
+      // Summer solstice 2027-06-21 (14:10 UTC → 10:10 EDT).
+      expect(result.displayDate).toBe('2027-06-21');
     });
 
-    it('should calculate autumn equinox correctly', () => {
+    it('advances the autumn equinox to next year when completed on this year’s', () => {
       const task = createTask({
         isRecurring: true,
         recurrenceType: 'autumn equinox',
@@ -595,12 +635,13 @@ describe('Recurrence Logic', () => {
 
       const result = calculateNextRecurrence(task, EST, false);
 
-      // Next autumn equinox should be in 2027
-      expect(result.displayDate).not.toBe(null);
-      expect(result.displayDate?.startsWith('2027-09')).toBe(true);
+      // Autumn equinox 2027-09-23 (06:01 UTC → 02:01 EDT). The 2am-local time is
+      // the interesting case: it is safely past midnight, so the day is 09-23, not
+      // 09-22 — an off-by-one in the zone conversion would surface right here.
+      expect(result.displayDate).toBe('2027-09-23');
     });
 
-    it('should calculate winter solstice correctly', () => {
+    it('advances the winter solstice to next year when completed on this year’s', () => {
       const task = createTask({
         isRecurring: true,
         recurrenceType: 'winter solstice',
@@ -610,12 +651,11 @@ describe('Recurrence Logic', () => {
 
       const result = calculateNextRecurrence(task, EST, false);
 
-      // Next winter solstice should be in 2026
-      expect(result.displayDate).not.toBe(null);
-      expect(result.displayDate?.startsWith('2026-12')).toBe(true);
+      // Winter solstice 2026-12-21 (20:50 UTC → 15:50 EST).
+      expect(result.displayDate).toBe('2026-12-21');
     });
 
-    it('should calculate next season change for "every season"', () => {
+    it('schedules "every season" to the next equinox/solstice after today', () => {
       const task = createTask({
         isRecurring: true,
         recurrenceType: 'every season',
@@ -625,33 +665,27 @@ describe('Recurrence Logic', () => {
 
       const result = calculateNextRecurrence(task, EST, false);
 
-      // Next season from Jan 5 should be spring equinox around March 20
-      expect(result.displayDate).not.toBe(null);
-      expect(result.displayDate?.startsWith('2026-03')).toBe(true);
+      // From 2026-01-05 the next season is the spring equinox 2026-03-20 (10:45 EST).
+      expect(result.displayDate).toBe('2026-03-20');
     });
 
-    it('should support offset for astronomical events', () => {
+    it('applies the offset: dueDate on the event, displayDate exactly N days before', () => {
       const task = createTask({
         isRecurring: true,
         recurrenceType: 'full moon',
         displayDate: '2025-12-29',
-        dueDate: '2026-01-05',
+        dueDate: '2026-01-05', // the event anchor; next full moon after it is 2026-02-01
         displayDateOffset: 7,
       });
 
       const result = calculateNextRecurrence(task, EST, false);
 
-      // Should have both dueDate and displayDate
-      expect(result.dueDate).not.toBe(null);
-      expect(result.displayDate).not.toBe(null);
-      
-      // displayDate should be before dueDate
-      if (result.displayDate && result.dueDate) {
-        expect(new Date(result.displayDate) < new Date(result.dueDate)).toBe(true);
-      }
+      // dueDate = the full moon 2026-02-01; displayDate = 7 days earlier, exactly.
+      expect(result.dueDate).toBe('2026-02-01');
+      expect(result.displayDate).toBe('2026-01-25');
     });
 
-    it('should support no offset (day of) for astronomical events', () => {
+    it('with no offset, puts the event on displayDate and leaves dueDate null', () => {
       const task = createTask({
         isRecurring: true,
         recurrenceType: 'full moon',
@@ -661,8 +695,8 @@ describe('Recurrence Logic', () => {
 
       const result = calculateNextRecurrence(task, EST, false);
 
-      // With no offset, should only have displayDate, no dueDate
-      expect(result.displayDate).not.toBe(null);
+      // The full moon itself, no separate due date.
+      expect(result.displayDate).toBe('2026-02-01');
       expect(result.dueDate).toBe(null);
     });
   });

@@ -7,7 +7,8 @@ import PracticeTimer from "./components/PracticeTimer";
 import PracticeSessionItem from "./components/PracticeSessionItem";
 import RichTextEditor from "@/app/components/RichTextEditor";
 import PracticeCharts from "./components/PracticeCharts";
-import { toISODate, getToday } from "@/app/lib/dateUtils";
+import { toISODate, getToday, shiftISODate } from "@/app/lib/dateUtils";
+import { getEffectiveDayForTimestamp } from "@/app/lib/dayBoundaryHelpers";
 import { useDateTimeSettings } from "@/app/contexts/DateTimeSettingsContext";
 import { usePracticeLogs } from "./hooks/usePracticeLogs";
 import FaviconManager from "@/app/components/FaviconManager";
@@ -54,7 +55,11 @@ export default function PracticePage() {
       type: selectedPracticeType,
       notes: [],
       duration: 0,
-      date: toISODate(now, timeZoneSettings),
+      // Effective day, not calendar day: an after-midnight session before the
+      // day boundary belongs to the previous day, matching how the stats chart
+      // reads it back (via getTodayForRecurrence). The stop route recomputes the
+      // same value from `start`, so the two always agree.
+      date: getEffectiveDayForTimestamp(now, timeZoneSettings),
     });
   };
 
@@ -103,11 +108,12 @@ export default function PracticePage() {
     );
   }
 
-  // Filter out active session and only show sessions from past 30 days
-  const today = getToday(timeZoneSettings);
-  const thirtyDaysAgo = new Date(today);
-  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 29); // 29 days ago + today = 30 days total
-  const thirtyDaysAgoString = toISODate(thirtyDaysAgo, timeZoneSettings);
+  // Filter out active session and only show sessions from past 30 days.
+  // Day arithmetic on the ISO string: setDate() on the instant ran in the
+  // machine's calendar and, being midnight-anchored, showed 31 days for ~29 days
+  // each spring on a non-matching server zone.
+  const todayString = toISODate(getToday(timeZoneSettings), timeZoneSettings);
+  const thirtyDaysAgoString = shiftISODate(todayString, -29); // 29 days ago + today = 30 days total
 
   const completedLogs = logs.filter(
     (log) => log.stop !== null && log.date >= thirtyDaysAgoString

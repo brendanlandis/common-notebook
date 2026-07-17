@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAccessToken } from '@/app/lib/strapiAuth';
 import { fetchAllPages, getTimeZoneSettings } from '@/app/lib/strapiServer';
-import { getTodayForRecurrence, toISODate } from '@/app/lib/dateUtils';
+import { getTodayForRecurrence, toISODate, shiftISODate } from '@/app/lib/dateUtils';
 import type { PracticeType } from '@/app/types/index';
 
 const PRACTICE_TYPES: PracticeType[] = ['guitar', 'voice', 'drums', 'writing', 'composing', 'ear training'];
@@ -33,12 +33,10 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Calculate date range for past 30 days, respecting day boundary hour
+    // Calculate date range for past 30 days, respecting day boundary hour. Day
+    // arithmetic on the ISO string; filters against `date`, a date-typed field.
     const settings = await getTimeZoneSettings(token);
-    const today = getTodayForRecurrence(settings);
-    const thirtyDaysAgo = new Date(today);
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 29); // 29 days ago + today = 30 days total
-    const startDate = toISODate(thirtyDaysAgo, settings);
+    const startDate = shiftISODate(toISODate(getTodayForRecurrence(settings), settings), -29); // 29 days ago + today = 30 days total
 
     // Fetch every practice log in the past 30 days.
     //
@@ -50,12 +48,12 @@ export async function GET(req: NextRequest) {
       `/api/practice-logs?filters[date][$gte]=${startDate}`
     );
 
-    // Create a map of all dates in the range
+    // Create a map of all dates in the range. shiftISODate walks the UTC calendar
+    // from startDate; the old setDate loop could duplicate one key and drop another
+    // at day boundary 0 (the instant crossing a DST edge in the machine's zone).
     const dateRange: string[] = [];
     for (let i = 0; i < 30; i++) {
-      const date = new Date(thirtyDaysAgo);
-      date.setDate(date.getDate() + i);
-      dateRange.push(toISODate(date, settings));
+      dateRange.push(shiftISODate(startDate, i));
     }
 
     // Process logs by type

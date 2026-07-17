@@ -1,10 +1,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { createTasksFromShows } from './showsTaskCreator';
+import type { TimeZoneSettings } from './timeZoneSettings';
 
-vi.mock('./dateUtils', () => ({
-  getNow: () => new Date('2026-07-09T12:00:00.000Z'),
-  toISODate: (d: Date) => d.toISOString().slice(0, 10),
-}));
+// Mock only the clock — never ./dateUtils. The old mock stubbed getNow (since
+// deleted) and a lying toISODate, and provided no shiftISODate at all, so it both
+// hid the real conversion and broke the moment the source reached the date math.
+// Real dateUtils runs here; we pin `new Date()` and pass real settings.
+const EST: TimeZoneSettings = { timezone: 'America/New_York', dayBoundaryHour: 4 };
 
 /** Every URL the function could touch, so a leak shows up as an unexpected call. */
 function fetchSpy(handlers: Record<string, unknown>) {
@@ -24,10 +26,13 @@ const calls = (spy: ReturnType<typeof fetchSpy>) =>
 
 describe('createTasksFromShows — identity gate', () => {
   beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-07-09T12:00:00.000Z')); // 08:00 EDT, same calendar day
     vi.spyOn(console, 'log').mockImplementation(() => {});
     vi.spyOn(console, 'error').mockImplementation(() => {});
   });
   afterEach(() => {
+    vi.useRealTimers();
     vi.restoreAllMocks();
   });
 
@@ -35,7 +40,7 @@ describe('createTasksFromShows — identity gate', () => {
     const spy = fetchSpy({ '/api/shows-tasks': { success: true, enabled: false } });
     vi.stubGlobal('fetch', spy);
 
-    const result = await createTasksFromShows();
+    const result = await createTasksFromShows(EST);
 
     expect(result).toEqual({ success: true, tasksCreated: 0, showsProcessed: 0, skipped: true });
     // The one call is the gate. Critically, no system-settings row is written and
@@ -49,7 +54,7 @@ describe('createTasksFromShows — identity gate', () => {
     });
     vi.stubGlobal('fetch', spy);
 
-    const result = await createTasksFromShows();
+    const result = await createTasksFromShows(EST);
 
     expect(result.skipped).toBe(true);
     expect(result.tasksCreated).toBe(0);
@@ -60,7 +65,7 @@ describe('createTasksFromShows — identity gate', () => {
     const spy = vi.fn(async () => ({ ok: false, json: async () => ({}) }) as Response);
     vi.stubGlobal('fetch', spy);
 
-    expect((await createTasksFromShows()).skipped).toBe(true);
+    expect((await createTasksFromShows(EST)).skipped).toBe(true);
     expect(spy).toHaveBeenCalledTimes(1);
   });
 
@@ -72,7 +77,7 @@ describe('createTasksFromShows — identity gate', () => {
     });
     vi.stubGlobal('fetch', spy);
 
-    const result = await createTasksFromShows();
+    const result = await createTasksFromShows(EST);
 
     expect(result).toMatchObject({ success: true, tasksCreated: 0, showsProcessed: 0 });
     expect(calls(spy)).toEqual([

@@ -11,6 +11,7 @@
     "test:ui": "vitest --ui",
     "test:coverage": "vitest --coverage",
     "test:run": "vitest run",
+    "test:zones": "for tz in UTC America/New_York Asia/Kolkata; do echo \"# TZ=$tz\"; TZ=$tz vitest run || exit 1; done",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui"
   },

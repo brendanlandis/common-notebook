@@ -12,18 +12,11 @@ const Wrapper = ({ children }: { children: React.ReactNode }) => (
 );
 const render = (ui: React.ReactElement) => rtlRender(ui, { wrapper: Wrapper });
 
-// Mock date utilities
-vi.mock('@/app/lib/dateUtils', () => ({
-  getNow: vi.fn(() => new Date('2026-01-10T12:00:00.000Z')),
-  parseDate: (dateString: string) => new Date(dateString + 'T00:00:00'),
-  formatInTimezone: (date: Date, format: string) => {
-    if (format === 'h:mm a') {
-      return '10:00 AM';
-    }
-    return 'Monday';
-  },
-  toISODate: (date: Date) => date.toISOString().split('T')[0],
-}));
+// No dateUtils mock: the old one replaced the module wholesale (so the real
+// timezone conversion never ran, and shiftISODate/isoDayDiff would be undefined),
+// and stubbed getNow, which the component no longer uses. These tests exercise the
+// cookie-icon UI on tasks with no displayDate, so the real date helpers run under
+// the provider's EST settings and nothing here depends on a formatted date string.
 
 // Helper to create minimal task
 function createTask(overrides: Partial<Task>): Task {

@@ -1,40 +1,24 @@
-import { toISODate, toZonedTime } from './dateUtils';
+import { toISODate, shiftISODate, formatInTimezone } from './dateUtils';
 import type { TimeZoneSettings } from './timeZoneSettings';
 
 /**
- * Shift an ISO date string (YYYY-MM-DD) by whole days.
- *
- * The arithmetic runs on a UTC calendar so that no DST transition can duplicate or
- * skip a day, and so that it cannot pick up the machine's zone the way date-fns'
- * local-component helpers (addDays, setDate) would.
- */
-export function shiftISODate(isoDate: string, days: number): string {
-  const [year, month, day] = isoDate.split('-').map(Number);
-  return new Date(Date.UTC(year, month - 1, day + days)).toISOString().slice(0, 10);
-}
-
-/**
- * Get the "effective day" for a timestamp considering day boundary hour
- * Returns ISO date string (YYYY-MM-DD) of the effective day
+ * Get the "effective day" for a timestamp considering day boundary hour.
+ * Returns the ISO date string (YYYY-MM-DD) of the effective day.
  */
 export function getEffectiveDayForTimestamp(
   timestamp: Date,
   settings: TimeZoneSettings
 ): string {
-  // `timestamp` is a real instant. toZonedTime returns a Date whose *local*
-  // components carry the wall clock in settings.timezone — that is date-fns-tz's
-  // contract, and it is why the hour is read with getHours() and not getUTCHours().
-  // The two agree only on a machine that itself runs UTC, so the old reading put the
-  // boundary at the wrong hour for every other machine (five hours out in New York),
-  // while looking perfect on CI. Every test here pinned timezone:'UTC', which is
-  // exactly the one zone where the mistake is invisible.
-  const zoned = toZonedTime(timestamp, settings.timezone);
-
-  // toISODate takes the real instant, not `zoned`: it converts to the timezone
-  // itself, and handing it an already-zoned value converted a second time.
+  // `timestamp` is a real instant. Read the wall-clock hour and calendar day in the
+  // user's zone straight into a number and a string — no zoned Date is materialised.
+  // The old code did `toZonedTime(...).getHours()`, whose result agrees with the
+  // real hour only on a machine that itself runs UTC, so the boundary landed at the
+  // wrong hour for every other machine (five hours out in New York) while looking
+  // perfect on CI.
   const calendarDay = toISODate(timestamp, settings);
+  const hour = Number(formatInTimezone(timestamp, 'H', settings));
 
-  if (zoned.getHours() >= settings.dayBoundaryHour) {
+  if (hour >= settings.dayBoundaryHour) {
     return calendarDay;
   }
 

@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAccessToken } from '@/app/lib/strapiAuth';
 import { getTimeZoneSettings } from '@/app/lib/strapiServer';
+import { getISOTimestamp } from '@/app/lib/dateUtils';
+import { getEffectiveDayForTimestamp } from '@/app/lib/dayBoundaryHelpers';
 import type { Task } from '@/app/types/index';
-import { toZonedTime } from 'date-fns-tz';
-import { format as formatTz } from 'date-fns-tz';
-import { addDays } from 'date-fns';
 
 const STRAPI_API_URL = process.env.STRAPI_API_URL;
 
@@ -25,7 +24,7 @@ export async function POST(
 
     // The client used to post its own timezone here, because the server had no
     // way to resolve one. It does now, from the caller's token.
-    const { timezone, dayBoundaryHour } = await getTimeZoneSettings(token);
+    const settings = await getTimeZoneSettings(token);
 
     // Get the task
     const getTaskResponse = await fetch(
@@ -55,20 +54,14 @@ export async function POST(
       );
     }
 
-    // Get today's date in the configured timezone as YYYY-MM-DD
-    // Use a single Date object for both to ensure consistency
+    // Effective day and timestamp for this session, from the one shared
+    // implementation. getEffectiveDayForTimestamp is the same function the Done page
+    // groups by, and getISOTimestamp is what task completion writes — so a work
+    // session and a completion at the same instant always agree on the day, and the
+    // boundary logic lives in exactly one place. (This route used to hand-roll both.)
     const now = new Date();
-    const nowInTimezone = toZonedTime(now, timezone);
-    
-    // Apply day boundary logic: if before the day boundary hour, use previous calendar day
-    const currentHour = nowInTimezone.getHours();
-    let effectiveDate = nowInTimezone;
-    if (currentHour < dayBoundaryHour) {
-      effectiveDate = addDays(nowInTimezone, -1);
-    }
-    
-    const todayDate = formatTz(effectiveDate, 'yyyy-MM-dd', { timeZone: timezone });
-    const timestamp = formatTz(nowInTimezone, "yyyy-MM-dd'T'HH:mm:ss.SSSxxx", { timeZone: timezone });
+    const todayDate = getEffectiveDayForTimestamp(now, settings);
+    const timestamp = getISOTimestamp(settings, now);
 
     // Get existing workSessions or initialize as empty array
     const workSessions = task.workSessions || [];

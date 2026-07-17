@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAccessToken } from '@/app/lib/strapiAuth';
-import { getTodayForRecurrence, toISODate } from '@/app/lib/dateUtils';
+import { getTodayForRecurrence, toISODate, parseDate, shiftISODate } from '@/app/lib/dateUtils';
 import { getTimeZoneSettings } from '@/app/lib/strapiServer';
 import { parseDays } from '@/app/lib/queryParams';
 
@@ -18,13 +18,15 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Calculate the cutoff date to limit the query, respecting day boundary hour
+    // Calculate the cutoff date to limit the query, respecting day boundary hour.
+    // Day arithmetic on the ISO string (setDate on the instant ran in the machine's
+    // calendar). completedAt is a datetime column, so the filter must be a real UTC
+    // timestamp: Strapi reads a bare YYYY-MM-DD as UTC midnight, which for a
+    // negative-offset zone pulls in the prior evening's tasks (the R9 over-inclusion).
     const settings = await getTimeZoneSettings(token);
     const days = parseDays(req.nextUrl.searchParams.get('days'), 30);
-    const today = getTodayForRecurrence(settings);
-    const cutoffDate = new Date(today);
-    cutoffDate.setDate(cutoffDate.getDate() - days);
-    const cutoffDateString = toISODate(cutoffDate, settings);
+    const cutoffDate = shiftISODate(toISODate(getTodayForRecurrence(settings), settings), -days);
+    const cutoffTimestamp = parseDate(cutoffDate, settings).toISOString();
 
     // Fetch completed tasks from the last 30 days with their project relationship populated
     // Fetch all pages to ensure we get all tasks
@@ -34,7 +36,7 @@ export async function GET(req: NextRequest) {
 
     while (hasMore) {
       const response = await fetch(
-        `${STRAPI_API_URL}/api/tasks?filters[completed][$eq]=true&filters[completedAt][$gte]=${cutoffDateString}&populate=project&pagination[pageSize]=100&pagination[page]=${page}&sort=completedAt:desc`,
+        `${STRAPI_API_URL}/api/tasks?filters[completed][$eq]=true&filters[completedAt][$gte]=${cutoffTimestamp}&populate=project&pagination[pageSize]=100&pagination[page]=${page}&sort=completedAt:desc`,
         {
           headers: {
             Authorization: `Bearer ${token}`,

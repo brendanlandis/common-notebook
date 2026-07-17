@@ -8,13 +8,12 @@ import type {
   ImportanceFilter,
   RecurrenceType,
 } from "@/app/types/index";
-import { getToday, parseDate, formatInTimezone, toISODate } from "@/app/lib/dateUtils";
-import { getEffectiveDayForTimestamp, shiftISODate } from "@/app/lib/dayBoundaryHelpers";
+import { getToday, parseDate, formatInTimezone, toISODate, shiftISODate } from "@/app/lib/dateUtils";
+import { getEffectiveDayForTimestamp } from "@/app/lib/dayBoundaryHelpers";
 import type { TimeZoneSettings } from "@/app/lib/timeZoneSettings";
 import { getProjectPriority } from "@/app/lib/projectPriority";
 import { getTaskProjectType } from "@/app/lib/taskProjectType";
 import { resolveVisibleWorldIds, STUFF_SYSTEM_KEY } from "@/app/lib/worlds";
-import { addDays } from "date-fns";
 
 // ── Output shapes ────────────────────────────────────────────────────────────
 
@@ -531,13 +530,15 @@ function transformDone(data: RawTaskData, settings: TimeZoneSettings): Transform
       upcomingByDate.get(task.displayDate)!.push(task);
     }
   });
-  const actualToday = getToday(settings);
+  // Day arithmetic on the ISO string, not on the instant — addDays(actualToday, i)
+  // ran in the machine's calendar, so on a UTC server serving a New York user the
+  // labels drifted a day (Nov 1 emitted twice, Nov 4 dropped) during fall-back week.
+  const todayISO = toISODate(getToday(settings), settings);
   const upcomingTasksByDay: TaskGroup[] = [];
   for (let i = 0; i < 4; i++) {
-    const currentDate = addDays(actualToday, i + 1);
-    const dateKey = toISODate(currentDate, settings);
+    const dateKey = shiftISODate(todayISO, i + 1);
     const tasks = upcomingByDate.get(dateKey) || [];
-    const dateTitle = i === 0 ? "tomorrow" : formatInTimezone(currentDate, "EEEE", settings).toLowerCase();
+    const dateTitle = i === 0 ? "tomorrow" : formatInTimezone(parseDate(dateKey, settings), "EEEE", settings).toLowerCase();
     upcomingTasksByDay.push({ title: dateTitle, tasks });
   }
 

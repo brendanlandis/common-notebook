@@ -7,21 +7,18 @@ import type { TimeZoneSettings } from './timeZoneSettings';
 // The timezone and day boundary are parameters now; these tests pin them.
 const EST: TimeZoneSettings = { timezone: 'America/New_York', dayBoundaryHour: 4 };
 
-// Mock date utilities
+// Mock only the clock (getToday). parseDate/toISODate/formatInTimezone run for
+// real. The old stubs were the worst in the repo: a machine-local parseDate, a
+// UTC-slice toISODate, and a formatInTimezone that ignored its format string and
+// hardcoded `mon ${m}/${d}` — so every date-title was fiction and the real
+// timezone conversion never ran. This suite drives codePreset:'done' through the
+// real getEffectiveDayForTimestamp, so the stubbed toISODate is exactly the seam
+// the Done-page bug slipped through.
 vi.mock('./dateUtils', async () => {
   const actual = await vi.importActual('./dateUtils');
   return {
     ...actual,
     getToday: vi.fn(),
-    getNow: vi.fn(),
-    parseDate: (dateString: string) => new Date(dateString + 'T00:00:00'),
-    toISODate: (date: Date) => date.toISOString().split('T')[0],
-    formatInTimezone: (date: Date, format: string) => {
-      // Simple mock for date formatting
-      const month = date.getMonth() + 1;
-      const day = date.getDate();
-      return `mon ${month}/${day}`;
-    },
   };
 });
 
@@ -72,12 +69,7 @@ describe('Layout Transformer - Work Session Virtual Entries', () => {
     // boundary, so the effective day matches the mocked getToday.
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-01-05T12:00:00.000Z'));
-    vi.mocked(dateUtils.getToday).mockReturnValue(
-      new Date('2026-01-05T00:00:00')
-    );
-    vi.mocked(dateUtils.getNow).mockReturnValue(
-      new Date('2026-01-05T12:00:00')
-    );
+    vi.mocked(dateUtils.getToday).mockReturnValue(dateUtils.parseDate('2026-01-05', EST));
   });
 
   afterEach(() => {

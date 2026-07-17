@@ -7,7 +7,6 @@ import { useState, useEffect, useMemo } from "react";
 import ProjectSelector from "./ProjectSelector";
 import type { Task, RecurrenceType, ProjectType, StrapiBlock } from "@/app/types/index";
 import { getTaskProjectType } from "@/app/lib/taskProjectType";
-import { getNow, toISODate } from "@/app/lib/dateUtils";
 import { calculateNextRecurrence } from "@/app/lib/recurrence";
 import { useDateTimeSettings } from "@/app/contexts/DateTimeSettingsContext";
 import { useTasks } from "../hooks/useTasks";

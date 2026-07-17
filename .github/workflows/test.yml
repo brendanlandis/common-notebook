@@ -13,22 +13,32 @@ jobs:
     defaults:
       run:
         working-directory: ./frontend
-    
+    # The date-clock bug class is invisible in the machine's own zone. Running
+    # only UTC (the old default) is exactly where it hides. NY is where
+    # getUTCHours() != getHours(); Kolkata's half-hour offset breaks the mock
+    # pair that used to lie. A green run in one zone proves nothing.
+    strategy:
+      fail-fast: false
+      matrix:
+        tz: [UTC, America/New_York, Asia/Kolkata]
+
     steps:
     - uses: actions/checkout@v4
-    
+
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
         node-version: '25'
         cache: 'npm'
         cache-dependency-path: frontend/package-lock.json
-    
+
     - name: Install dependencies
       run: npm ci
 
     - name: Run tests
       run: npm run test:run
+      env:
+        TZ: ${{ matrix.tz }}
 
   backend-test:
     name: Backend Tests

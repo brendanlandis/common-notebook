@@ -1,7 +1,8 @@
 import { addDays, addMonths, addYears, nextDay, setDate, setMonth, getDay, startOfMonth, lastDayOfMonth, subDays, addWeeks, type Day } from 'date-fns';
 import * as Astronomy from 'astronomy-engine';
 import type { Task } from '../types/index';
-import { toISODate, parseDate, getTodayForRecurrence, toZonedTime } from './dateUtils';
+import { toISODate, parseDate, getTodayForRecurrence, shiftISODate } from './dateUtils';
+import { toZonedTime } from 'date-fns-tz';
 import type { TimeZoneSettings } from './timeZoneSettings';
 import { validateRecurrenceFields } from './recurrenceSpec';
 
@@ -263,15 +264,21 @@ function calculateEventDate(task: Task, settings: TimeZoneSettings): string | nu
       return zonedYMD(annualDate);
 
     case 'full moon':
-      // Start search from the day after comparisonDate to ensure we get the NEXT full moon
-      const fullMoonSearchStart = addDays(comparisonDate, 1);
+      // Start from midnight of the day *after* comparisonDate, in the user's zone.
+      // addDays(comparisonDate, 1) added a day in the machine's calendar to a real
+      // instant that sits at the boundary hour (getTodayForRecurrence → 4am), so the
+      // search began at tomorrow-4am and skipped any full moon in tomorrow's
+      // 00:00–04:00 window — which toISODate would still file as tomorrow, jumping
+      // the task a whole lunar month. The astronomy call still gets a real instant.
+      const fullMoonSearchStart = parseDate(shiftISODate(toISODate(comparisonDate, settings), 1), settings);
       const nextFullMoon = Astronomy.SearchMoonPhase(180, fullMoonSearchStart, 40);
       if (!nextFullMoon) return null;
       return toISODate(nextFullMoon.date, settings);
 
     case 'new moon':
-      // Start search from the day after comparisonDate to ensure we get the NEXT new moon
-      const searchStartDate = addDays(comparisonDate, 1);
+      // Same as full moon: search from tomorrow's midnight in the user's zone, so a
+      // new moon early on the target calendar day is not skipped past by a month.
+      const searchStartDate = parseDate(shiftISODate(toISODate(comparisonDate, settings), 1), settings);
       const nextNewMoon = Astronomy.SearchMoonPhase(0, searchStartDate, 40);
       if (!nextNewMoon) return null;
       return toISODate(nextNewMoon.date, settings);

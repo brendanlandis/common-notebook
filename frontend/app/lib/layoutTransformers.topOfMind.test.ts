@@ -19,14 +19,13 @@ import type { TimeZoneSettings } from './timeZoneSettings';
 
 const EST: TimeZoneSettings = { timezone: 'America/New_York', dayBoundaryHour: 4 };
 
+// Mock only the clock (getToday). parseDate/toISODate run for real — the old
+// stubs lied for any positive UTC offset and hid the real conversion.
 vi.mock('./dateUtils', async () => {
   const actual = await vi.importActual('./dateUtils');
   return {
     ...actual,
     getToday: vi.fn(),
-    getNow: vi.fn(),
-    parseDate: (dateString: string) => new Date(dateString + 'T00:00:00'),
-    toISODate: (date: Date) => date.toISOString().split('T')[0],
   };
 });
 
@@ -121,8 +120,7 @@ function sectionTaskIds(result: ReturnType<typeof transformLayout>): string[] {
 
 describe('good morning — the top of mind tier', () => {
   beforeEach(() => {
-    vi.mocked(dateUtils.getToday).mockReturnValue(new Date('2026-06-01T00:00:00'));
-    vi.mocked(dateUtils.getNow).mockReturnValue(new Date('2026-06-01T12:00:00'));
+    vi.mocked(dateUtils.getToday).mockReturnValue(dateUtils.parseDate('2026-06-01', EST));
   });
 
   it('shows a single top-of-mind project', () => {

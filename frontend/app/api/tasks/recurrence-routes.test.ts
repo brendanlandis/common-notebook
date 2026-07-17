@@ -4,20 +4,24 @@ import { POST as skipRoute } from './[documentId]/skip/route';
 import { POST as completeRoute } from './[documentId]/complete/route';
 import type { Task } from '@/app/types/index';
 import * as dateUtils from '@/app/lib/dateUtils';
+import type { TimeZoneSettings } from '@/app/lib/timeZoneSettings';
 
 // Mock environment variables
 process.env.STRAPI_API_URL = 'http://localhost:1337';
 
-// Mock date utilities for consistent test dates
+const EST: TimeZoneSettings = { timezone: 'America/New_York', dayBoundaryHour: 4 };
+
+// Mock only the clock seams: getTodayForRecurrence/getToday pin "today", and
+// getISOTimestamp pins the completion stamp. parseDate/toISODate run for real — the
+// old stubs (machine-local midnight + UTC-slice) round-tripped only in zero/negative
+// offsets and hid the real conversion that calculateNextRecurrence depends on.
+// getNow is gone from the module entirely.
 vi.mock('@/app/lib/dateUtils', async () => {
   const actual = await vi.importActual('@/app/lib/dateUtils');
   return {
     ...actual,
     getTodayForRecurrence: vi.fn(),
     getToday: vi.fn(),
-    getNow: vi.fn(),
-    parseDate: (dateString: string) => new Date(dateString + 'T00:00:00'),
-    toISODate: (date: Date) => date.toISOString().split('T')[0],
     getISOTimestamp: vi.fn(() => '2026-01-05T12:00:00.000Z'),
   };
 });
@@ -83,16 +87,10 @@ describe('Recurring Task Routes - Skip vs Complete', () => {
   let originalFetch: typeof global.fetch;
 
   beforeEach(() => {
-    // Set a fixed "today" for all tests - Monday, Jan 5, 2026
-    vi.mocked(dateUtils.getTodayForRecurrence).mockReturnValue(
-      new Date('2026-01-05T00:00:00')
-    );
-    vi.mocked(dateUtils.getToday).mockReturnValue(
-      new Date('2026-01-05T00:00:00')
-    );
-    vi.mocked(dateUtils.getNow).mockReturnValue(
-      new Date('2026-01-05T12:00:00')
-    );
+    // Set a fixed "today" for all tests - Monday, Jan 5, 2026. Built with the real
+    // parseDate so it is an actual EST instant, not a machine-zone literal.
+    vi.mocked(dateUtils.getTodayForRecurrence).mockReturnValue(dateUtils.parseDate('2026-01-05', EST));
+    vi.mocked(dateUtils.getToday).mockReturnValue(dateUtils.parseDate('2026-01-05', EST));
     
     // Save original fetch
     originalFetch = global.fetch;

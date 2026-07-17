@@ -136,21 +136,40 @@ describe('hasNewMoonSince', () => {
 });
 
 describe('getMoonPhaseIconName', () => {
-  // The major-phase branch reads the clock via `getPhaseTransitionToday`, not
-  // the `date` argument, so these pin the clock as well as passing a date.
+  // The major-phase branch (new / first quarter / full / third quarter) reads the
+  // clock via `getPhaseTransitionToday` — the day-window function the audit fixed —
+  // not the `date` argument, so these pin the clock as well as passing a date. The
+  // sub-phase branch reads the passed date's exact phase angle. Every icon is the
+  // deterministic astronomy-engine result across one lunar cycle from the
+  // 2026-07-14 new moon, so a drift means the phase math or the zone conversion
+  // regressed — not something the eye would catch.
 
   it('names the new moon for the whole day it falls on', () => {
     setToday('2026-07-14', EST);
     expect(getMoonPhaseIconName(EST, parseDate('2026-07-14', EST))).toBe('WiMoonNew');
   });
 
-  it('returns a waxing name between the new moon and the full moon', () => {
+  it('names first quarter on its transition day (via getPhaseTransitionToday)', () => {
     setToday('2026-07-21', EST);
-    expect(getMoonPhaseIconName(EST, parseDate('2026-07-21', EST))).toMatch(/Waxing|FirstQuarter/);
+    expect(getMoonPhaseIconName(EST, parseDate('2026-07-21', EST))).toBe('WiMoonFirstQuarter');
   });
 
-  it('returns a waning name between the full moon and the next new moon', () => {
+  it('names the full moon on its transition day', () => {
+    setToday('2026-07-29', EST);
+    expect(getMoonPhaseIconName(EST, parseDate('2026-07-29', EST))).toBe('WiMoonFull');
+  });
+
+  it('picks the exact waxing sub-phase between the new moon and first quarter', () => {
+    setToday('2026-07-16', EST);
+    expect(getMoonPhaseIconName(EST, parseDate('2026-07-16', EST))).toBe('WiMoonWaxingCrescent2');
+    setToday('2026-07-24', EST);
+    expect(getMoonPhaseIconName(EST, parseDate('2026-07-24', EST))).toBe('WiMoonWaxingGibbous3');
+  });
+
+  it('picks the exact waning sub-phase between the full moon and the next new moon', () => {
+    setToday('2026-08-02', EST);
+    expect(getMoonPhaseIconName(EST, parseDate('2026-08-02', EST))).toBe('WiMoonWaningGibbous3');
     setToday('2026-08-06', EST);
-    expect(getMoonPhaseIconName(EST, parseDate('2026-08-06', EST))).toMatch(/Waning|ThirdQuarter/);
+    expect(getMoonPhaseIconName(EST, parseDate('2026-08-06', EST))).toBe('WiMoonWaningCrescent1');
   });
 });

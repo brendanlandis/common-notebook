@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAccessToken } from '@/app/lib/strapiAuth';
-import { getTodayForRecurrence, toISODate } from '@/app/lib/dateUtils';
+import { getTodayForRecurrence, toISODate, parseDate, shiftISODate } from '@/app/lib/dateUtils';
 import { getTimeZoneSettings } from '@/app/lib/strapiServer';
 import { parseDays } from '@/app/lib/queryParams';
 
@@ -28,12 +28,15 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const days = parseDays(searchParams.get('days'), 7);
 
-    // Calculate the date range, respecting day boundary hour
+    // Calculate the date range, respecting day boundary hour. Day arithmetic on
+    // the ISO string (setDate on the instant ran in the machine's calendar).
+    // Two forms below: a date string for the `date`-typed practice-log / work-session
+    // fields (where a YYYY-MM-DD compare is correct), and a real UTC timestamp for
+    // the completedAt datetime filter (a bare date there reads as UTC midnight and
+    // over-includes the prior evening — R9).
     const settings = await getTimeZoneSettings(token);
-    const today = getTodayForRecurrence(settings);
-    const daysAgo = new Date(today);
-    daysAgo.setDate(daysAgo.getDate() - days);
-    const daysAgoString = toISODate(daysAgo, settings);
+    const daysAgoString = shiftISODate(toISODate(getTodayForRecurrence(settings), settings), -days);
+    const daysAgoTimestamp = parseDate(daysAgoString, settings).toISOString();
 
     // Fetch completed tasks from the specified time range
     let allCompletedTasks: any[] = [];
@@ -42,7 +45,7 @@ export async function GET(req: NextRequest) {
 
     while (hasMore) {
       const response = await fetch(
-        `${STRAPI_API_URL}/api/tasks?filters[completed][$eq]=true&filters[completedAt][$gte]=${daysAgoString}&populate[project][populate][worldRef]=true&pagination[pageSize]=100&pagination[page]=${page}`,
+        `${STRAPI_API_URL}/api/tasks?filters[completed][$eq]=true&filters[completedAt][$gte]=${daysAgoTimestamp}&populate[project][populate][worldRef]=true&pagination[pageSize]=100&pagination[page]=${page}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,

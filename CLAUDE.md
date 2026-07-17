@@ -125,7 +125,7 @@ throughout the frontend. Node engine constraint: `>=18 <=22.x`.
   World views order projects by tier: top-of-mind → priority (`pN` title marker, see
   `projectPriority.ts`) → normal → later, sorted by creation date within each tier.
 - **Date logic takes `TimeZoneSettings`, never reads it ambiently.** `{ timezone, dayBoundaryHour }`
-  (`app/lib/timeZoneSettings.ts`) is threaded as a parameter into `getToday`/`getNow`/`parseDate`/
+  (`app/lib/timeZoneSettings.ts`) is threaded as a parameter into `getToday`/`parseDate`/
   `toISODate`/`formatInTimezone`/`getTodayForRecurrence` (`app/lib/dateUtils.ts`) and on into
   `recurrence.ts`, `layoutTransformers.ts`, `groupTasks.ts`, `dayBoundaryHelpers.ts`. Server code
   resolves it **per request** from the caller's token via `getTimeZoneSettings(token)`
@@ -146,22 +146,30 @@ throughout the frontend. Node engine constraint: `>=18 <=22.x`.
   settings to the next request. There are no `NEXT_PUBLIC_*` overrides for these: settings are
   per-user rows, so a build-time env var would override every user at once. Keep date logic pure and
   unit-tested.
-- **A `Date` here is one of two incompatible things, and mixing them is the bug that keeps recurring.**
-  A *real instant* (`new Date()`, `completedAt`, a work session's `timestamp`) versus a *zoned
-  wall-clock* value — what `toZonedTime`, and therefore `getNow(settings)`, returns. A zoned value's
-  `getTime()` is **shifted by the zone's offset and is not the current moment**, so it may only be
-  formatted or compared against another zoned value, never subtracted from a real timestamp. It also
-  must never be passed to something that zones it again: `getWorkedOnPhase`/`getEffectiveDayForTimestamp`
-  and `toISODate` all take a **real instant** and convert internally. Both mistakes are invisible on a
-  machine whose OS zone equals the user's setting (offset 0, so the two domains coincide) — Brendan's
-  laptop — and CI runs UTC, where a *different* subset works. Fixed 2026-07-16 in `useTasks` (which fed
-  a zoned `now` into elapsed-minute math: five hours out under UTC, keeping tasks it should have
-  dropped) and in `getEffectiveDayForTimestamp` (which read `getUTCHours()` off a zoned Date — the wall
-  clock lives in the **local** components — then re-converted through `toISODate`, putting the 4am day
-  boundary at 9am for every non-UTC user). `formatInTimezone`'s `yyyy-MM-dd` branch reads local getters
-  and is correct; its other formats pass an already-zoned date to `formatTz` and are not.
-  **Any test for this must run in more than one system zone** and must not mock `dateUtils` — see the
-  Gotchas note below.
+- **A `Date` in this codebase is always a real instant.** Wall-clock values live only as ISO strings
+  (`toISODate`/`shiftISODate`/`isoDayDiff`, all in `dateUtils.ts`) or as an hour number — never as a
+  `Date`. The footgun that caused this bug class was `toZonedTime`, which returns a `Date` whose epoch is
+  **deliberately shifted** so its *local* getters read the zone's wall clock; reading it with the wrong
+  getter, or zoning it a second time, silently returned a plausible wrong answer. It is now quarantined
+  to two files: `dateUtils.ts` (inside `formatInTimezone`, which reads it straight into a string and
+  never returns it) and `recurrence.ts` (`toWallClock`, for the calendar arithmetic in the next bullet).
+  `getNow` is **deleted** and the `toZonedTime` re-export is gone. A **CI-gated architecture test**,
+  `app/lib/dateArchitecture.test.ts`, enforces the invariant: nothing outside that two-file allowlist may
+  import `toZonedTime` or `date-fns` calendar functions, no `getNow` may reappear, and no `getUTC*` getter
+  may be read anywhere. The whole class was invisible on a machine whose OS zone equals the user's setting
+  (Brendan's laptop) while CI ran only UTC — so **the vitest suite now runs a `TZ` matrix** (`UTC`,
+  `America/New_York`, `Asia/Kolkata`; `npm run test:zones`, and the CI job's `strategy.matrix.tz`) and
+  Playwright pins `timezoneId: 'America/New_York'`, deliberately unequal to the UTC server. Historic
+  instances (2026-07-16/17): `useTasks` fed a zoned `now` into elapsed-minute math; `getEffectiveDayForTimestamp`
+  read `getUTCHours()` off a zoned Date, putting the 4am boundary at 9am for non-UTC users; and the Done
+  page, the upcoming panel, practice-session day attribution, and full/new-moon recurrences all did
+  calendar arithmetic on instants. `getEffectiveDayForTimestamp`/`getWorkedOnPhase` and `toISODate` take a
+  **real instant** and convert internally — never hand them an already-zoned value.
+  **Any test for this must run in more than one system zone** and must not stub `dateUtils`'
+  `parseDate`/`toISODate`/`formatInTimezone` — see the Gotchas note below.
+  (A future pass could move the layer onto the Temporal API, which removes the footgun at the language
+  level; the audit consolidated every date op behind ~8 `dateUtils` functions to make that a cheap
+  internal swap, but it has not landed.)
 - **Calendar arithmetic runs on the user's wall clock, never on an instant.** Every date-fns function
   (`setDate`, `startOfMonth`, `nextDay`, `addWeeks`, `addDays`, `getDay`, `lastDayOfMonth`…) reads and
   writes a Date's **local** components, so applying one to an instant does the arithmetic in the
@@ -191,22 +199,25 @@ throughout the frontend. Node engine constraint: `>=18 <=22.x`.
   callers didn't try/catch; a screen with real error UI should read `useMutation`'s `error` instead.
   `LogoutButton` must keep calling `queryClient.clear()` — the cache is keyed by URL, not by user.
 - Tests co-locate as `*.test.ts(x)` siblings next to their subject. Date-dependent suites pass a
-  `TimeZoneSettings` literal rather than mocking config modules; `layoutTransformers`/`recurrence`
-  tests still `vi.mock('./dateUtils')` to pin `getTodayForRecurrence` (see
-  `app/lib/layoutTransformers.*.test.ts`).
-  **`app/lib/recurrence.timeZoneSettings.test.ts` deliberately does not mock `./dateUtils`** — the
-  mocked suites stub out the exact seam the timezone bug lived in, so only an unmocked test can catch
-  a regression there. `app/lib/dayBoundaryHelpers.test.ts` is the cautionary tale: it mocked
-  `toZonedTime` as the identity function and `toISODate` as a reader of UTC components, which is only
-  true when the timezone *and* the machine are UTC — so it hard-coded the bug into the fixture and
-  passed for months while the day boundary sat five hours off. It is now unmocked, and **a
-  timezone-sensitive suite must be run in more than one system zone** (`TZ=UTC`, `TZ=America/New_York`,
-  and something with a half-hour offset like `TZ=Asia/Kolkata`) — a green run on one zone proves
-  nothing. `recurrence*.test.ts` was the other instance: it stubbed `parseDate` as system-local
-  midnight and `toISODate` as a UTC-component reader, a pair that does not round-trip for any positive
-  UTC offset, and pinned "today" with naive `new Date('2026-01-05T00:00:00')` literals that mean
-  whatever zone the machine is in. Both are fixed; the suites now mock only the clock
-  (`getTodayForRecurrence`/`getToday`), pin it with `parseDate('…', EST)`, and pass in five zones.
+  `TimeZoneSettings` literal rather than mocking config modules. **A date suite may mock only the clock**
+  — `vi.setSystemTime`, or `getToday`/`getTodayForRecurrence` via `vi.fn()` — and must leave
+  `parseDate`/`toISODate`/`formatInTimezone` real. The `layoutTransformers.*`/`recurrence-routes` suites
+  that `vi.mock('./dateUtils')` now spread `...vi.importActual('./dateUtils')` and override only the clock
+  functions; seed a mocked `getToday` with the *real* `parseDate('…', EST)`, never a bare
+  `new Date('…T00:00:00')` literal (which means whatever zone the machine is in).
+  **`vi.mock('./dateUtils')` is not scoped to the file under test:** `dayBoundaryHelpers.ts` imports from
+  `./dateUtils`, so mocking it silently rewires `dayBoundaryHelpers`/`layoutTransformers`/`groupTasks`/
+  `recurrence`/`moonPhase` too — which is how a stubbed `toISODate` reached `transformDone` and shipped
+  the Done bug. That is why the stubs are gone.
+  `app/lib/dayBoundaryHelpers.test.ts` is the cautionary tale: it once mocked `toZonedTime` as the
+  identity function and `toISODate` as a reader of UTC components, true only when the timezone *and* the
+  machine are UTC — so it hard-coded the bug into the fixture and passed for months while the day boundary
+  sat five hours off. It is now unmocked, and **a timezone-sensitive suite must be run in more than one
+  system zone** (`TZ=UTC`, `TZ=America/New_York`, and a half-hour offset like `TZ=Asia/Kolkata`;
+  `npm run test:zones`) — a green run on one zone proves nothing. `app/lib/dateUtils.test.ts` asserts the
+  `parseDate`↔`toISODate` round-trip across zones (it had **zero** assertions before), and
+  `app/lib/dateArchitecture.test.ts` is the CI-gated guard that keeps the stubs and `toZonedTime` from
+  creeping back.
   Components/hooks reading `useDateTimeSettings()` need a `DateTimeSettingsProvider` wrapper in tests;
   pass `initial` so the provider doesn't fetch (see `app/(main)/todo/hooks/useTasks.test.ts`).
   Query-backed hooks need a `QueryClientProvider` wrapper with a **per-test client** and

@@ -1,5 +1,4 @@
 import { toZonedTime, fromZonedTime, format as formatTz } from 'date-fns-tz';
-import { addDays as addDaysFn } from 'date-fns';
 import type { TimeZoneSettings } from './timeZoneSettings';
 
 /**
@@ -7,28 +6,21 @@ import type { TimeZoneSettings } from './timeZoneSettings';
  *
  * Every function here takes the settings rather than reading them from a module
  * cache — see `timeZoneSettings.ts` for why that distinction is load-bearing.
+ *
+ * A `Date` in this module is **always a real instant**. Wall-clock values live only
+ * as ISO strings (`toISODate`/`shiftISODate`) or as an hour number — never as a
+ * `Date`. The single place a zoned `Date` briefly exists is inside
+ * `formatInTimezone`, which reads it straight into a string and never hands it back.
+ * `toZonedTime` is imported here for exactly that, and is deliberately no longer
+ * re-exported: that re-export ("for convenience") was how the zoned-Date footgun
+ * spread across the codebase. `getNow` is gone for the same reason.
  */
 
 /**
- * Re-export toZonedTime from date-fns-tz for convenience
- */
-export { toZonedTime } from 'date-fns-tz';
-
-/**
- * Get the current date and time in the configured timezone
- */
-export function getNow({ timezone }: TimeZoneSettings): Date {
-  return toZonedTime(new Date(), timezone);
-}
-
-/**
- * Get today's date at midnight in the configured timezone
- * Properly handles timezone-aware start of day calculation
+ * Get today's date at midnight in the configured timezone, as a real instant.
  */
 export function getToday(settings: TimeZoneSettings): Date {
-  const now = getNow(settings);
-  // Use formatTz to get YYYY-MM-DD in configured timezone, then parse it back as midnight
-  const dateStr = formatTz(now, 'yyyy-MM-dd', { timeZone: settings.timezone });
+  const dateStr = formatInTimezone(new Date(), 'yyyy-MM-dd', settings);
   return parseDate(dateStr, settings);
 }
 
@@ -67,8 +59,12 @@ export function formatInTimezone(
     return `${year}-${month}-${day}`;
   }
 
-  // For other formats, use formatTz (may require IANA database)
-  return formatTz(zonedDate, formatString, { timeZone: timezone });
+  // For other formats, use formatTz (may require IANA database).
+  // originalDate must be the untouched instant: formatTz derives the zone offset
+  // (the `xxx` token) from it, and without it the ambiguous repeated hour of
+  // fall-back (01:00–01:59) renders one offset for both, writing a completedAt an
+  // hour off. The library's own formatInTimeZone passes it for exactly this reason.
+  return formatTz(zonedDate, formatString, { timeZone: timezone, originalDate: date });
 }
 
 /**
@@ -90,34 +86,49 @@ export function getISOTimestamp(settings: TimeZoneSettings, date?: Date): string
 }
 
 /**
- * Get today's date for recurrence purposes, respecting day boundary hour
- * If current time is before the day boundary hour, returns previous calendar day
+ * Shift an ISO date string (YYYY-MM-DD) by whole days.
  *
- * Example: If day boundary is 4am and it's 2am Tuesday, this returns Monday
- *
- * @returns Date object representing "today" for recurrence calculations at the boundary hour
+ * The arithmetic runs on a UTC calendar so that no DST transition can duplicate or
+ * skip a day, and so that it cannot pick up the machine's zone the way date-fns'
+ * local-component helpers (addDays, setDate) would. Lives here — pure string math,
+ * no imports — so `getTodayForRecurrence` can use it without a `dateUtils` ↔
+ * `dayBoundaryHelpers` import cycle.
  */
-export function getTodayForRecurrence({ timezone, dayBoundaryHour }: TimeZoneSettings): Date {
-  const now = toZonedTime(new Date(), timezone);
+export function shiftISODate(isoDate: string, days: number): string {
+  const [year, month, day] = isoDate.split('-').map(Number);
+  return new Date(Date.UTC(year, month - 1, day + days)).toISOString().slice(0, 10);
+}
 
-  // Get today's date string in the configured timezone
-  const todayDateStr = formatTz(now, 'yyyy-MM-dd', { timeZone: timezone });
+/**
+ * Whole-day difference (a − b) between two ISO date strings (YYYY-MM-DD).
+ *
+ * Runs on the UTC calendar for the same reason as shiftISODate. Positive when `a`
+ * is later than `b`.
+ */
+export function isoDayDiff(a: string, b: string): number {
+  return Math.round((Date.parse(`${a}T00:00:00Z`) - Date.parse(`${b}T00:00:00Z`)) / 86_400_000);
+}
 
-  // Create today's date at the boundary hour in the configured timezone
-  const todayAtBoundary = fromZonedTime(
-    `${todayDateStr}T${String(dayBoundaryHour).padStart(2, '0')}:00:00`,
+/**
+ * Get today's date for recurrence purposes, respecting day boundary hour.
+ * If the current time is before the day boundary hour, returns the previous day.
+ *
+ * Example: if the day boundary is 4am and it's 2am Tuesday, this returns Monday.
+ *
+ * Returns the boundary-hour instant of that effective day. No zoned `Date` is ever
+ * materialised: the hour and date are read out as a number and a string, and the
+ * result is built back up with `fromZonedTime`.
+ */
+export function getTodayForRecurrence(settings: TimeZoneSettings): Date {
+  const { timezone, dayBoundaryHour } = settings;
+  const now = new Date();
+
+  const currentHour = Number(formatInTimezone(now, 'H', settings));
+  const todayISO = formatInTimezone(now, 'yyyy-MM-dd', settings);
+  const effectiveISO = currentHour < dayBoundaryHour ? shiftISODate(todayISO, -1) : todayISO;
+
+  return fromZonedTime(
+    `${effectiveISO}T${String(dayBoundaryHour).padStart(2, '0')}:00:00`,
     timezone
   );
-
-  // Get the current hour in the configured timezone
-  const currentHour = parseInt(formatTz(now, 'H', { timeZone: timezone }), 10);
-
-  // If we're before the day boundary, count as previous day
-  if (currentHour < dayBoundaryHour) {
-    // Return yesterday at the boundary hour
-    return addDaysFn(todayAtBoundary, -1);
-  }
-
-  // After or at day boundary - return today at the boundary hour
-  return todayAtBoundary;
 }

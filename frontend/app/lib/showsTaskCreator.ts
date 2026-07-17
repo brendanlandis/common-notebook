@@ -1,6 +1,5 @@
-import { toISODate, getNow } from './dateUtils';
+import { toISODate, shiftISODate } from './dateUtils';
 import type { TimeZoneSettings } from './timeZoneSettings';
-import { subDays } from 'date-fns';
 
 const SYSTEM_SETTINGS_TITLE = 'lastShowTasksCheck';
 
@@ -71,11 +70,12 @@ export async function createTasksFromShows(timeZoneSettings: TimeZoneSettings): 
       return { success: true, tasksCreated: 0, showsProcessed: 0, skipped: true };
     }
 
-    // Calculate yesterday's date in EST
-    const now = getNow(timeZoneSettings);
-    const yesterday = subDays(now, 1);
-    const yesterdayStr = toISODate(yesterday, timeZoneSettings);
-    const todayStr = toISODate(now, timeZoneSettings);
+    // Today's calendar date in the owner's timezone, then day arithmetic on the
+    // ISO string. getNow returns a zoned Date whose components toISODate would then
+    // zone a *second* time — off by a day for a browser whose zone differs from the
+    // setting, re-running the job after midnight and duplicating band chores.
+    const todayStr = toISODate(new Date(), timeZoneSettings);
+    const yesterdayStr = shiftISODate(todayStr, -1);
 
     // Fetch lastShowTasksCheck from system-settings
     const settingsResponse = await fetch(
@@ -99,8 +99,7 @@ export async function createTasksFromShows(timeZoneSettings: TimeZoneSettings): 
     if (!settingsData.success || !settingsData.date) {
       // No lastShowTasksCheck found, create it with a date 30 days ago
       console.log('No lastShowTasksCheck found, creating initial setting');
-      const thirtyDaysAgo = subDays(now, 30);
-      const initialDate = toISODate(thirtyDaysAgo, timeZoneSettings);
+      const initialDate = shiftISODate(todayStr, -30);
       
       const createResponse = await fetch('/api/system-settings', {
         method: 'PUT',

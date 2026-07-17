@@ -1,13 +1,12 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { GET } from './stats/route';
 import { NextRequest } from 'next/server';
-import * as dateUtils from '@/app/lib/dateUtils';
 
-// Mock date utilities
-vi.mock('@/app/lib/dateUtils', () => ({
-  getTodayForRecurrence: vi.fn(),
-  toISODate: vi.fn(),
-}));
+// Real dateUtils runs here — do NOT mock it. The old wholesale mock replaced the
+// module with just getTodayForRecurrence + a lying UTC-slice toISODate: it both hid
+// the real timezone conversion and broke the moment the route reached parseDate /
+// shiftISODate. We pin the clock instead. Settings resolve to the EST / 4am defaults
+// because the mocked fetch returns no system-settings rows.
 
 // Helper to create mock request
 function createMockRequest(url: string, cookies: Record<string, string> = {}): NextRequest {
@@ -47,13 +46,12 @@ function setupMockFetch(responses: Record<string, any>) {
 describe('Stats API Route - Work Session Counting', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    
-    // Set up default date mocks
-    const today = new Date('2026-01-10T00:00:00.000Z');
-    vi.mocked(dateUtils.getTodayForRecurrence).mockReturnValue(today);
-    vi.mocked(dateUtils.toISODate).mockImplementation((date: Date) => {
-      return date.toISOString().split('T')[0];
-    });
+    vi.useFakeTimers();
+    // 07:00 EST — after the 4am boundary, so the effective day is 2026-01-10.
+    vi.setSystemTime(new Date('2026-01-10T12:00:00.000Z'));
+  });
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   describe('Work Session Counting', () => {
@@ -670,8 +668,9 @@ describe('Stats API Route - Work Session Counting', () => {
       });
 
       await GET(request);
-      // today is mocked to 2026-01-10
-      expect(cutoffFrom(global.fetch)).toBe('2026-01-08');
+      // today is 2026-01-10; the completedAt filter is now a real UTC timestamp
+      // (EST midnight of the cutoff day), not a bare date — days=2 → 2026-01-08.
+      expect(cutoffFrom(global.fetch)).toBe('2026-01-08T05:00:00.000Z');
     });
 
     it('falls back to 7 days on a non-numeric window instead of an Invalid Date', async () => {
@@ -683,7 +682,7 @@ describe('Stats API Route - Work Session Counting', () => {
       const response = await GET(request);
 
       expect(response.status).toBe(200);
-      expect(cutoffFrom(global.fetch)).toBe('2026-01-03');
+      expect(cutoffFrom(global.fetch)).toBe('2026-01-03T05:00:00.000Z');
     });
 
     it('falls back rather than asking Strapi for an unbounded window', async () => {
@@ -693,7 +692,7 @@ describe('Stats API Route - Work Session Counting', () => {
       });
 
       await GET(request);
-      expect(cutoffFrom(global.fetch)).toBe('2026-01-03');
+      expect(cutoffFrom(global.fetch)).toBe('2026-01-03T05:00:00.000Z');
     });
   });
 });

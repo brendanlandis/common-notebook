@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { getEffectiveDayForTimestamp, getWorkedOnPhase, shiftISODate } from './dayBoundaryHelpers';
+import { getEffectiveDayForTimestamp, getWorkedOnPhase } from './dayBoundaryHelpers';
+import { shiftISODate } from './dateUtils';
 import type { TimeZoneSettings } from './timeZoneSettings';
 
 // The timezone travels with the boundary now, so each case builds its own settings

@@ -1,6 +1,5 @@
 "use client";
 
-import { differenceInDays, isPast, isToday, isTomorrow } from "date-fns";
 import { useState, useEffect } from "react";
 import type { Task } from "@/app/types/index";
 import { getTaskProjectType } from "@/app/lib/taskProjectType";
@@ -12,7 +11,7 @@ import {
   CookieIcon,
   ArrowClockwiseIcon,
 } from "@phosphor-icons/react";
-import { getNow, parseDate, formatInTimezone } from "@/app/lib/dateUtils";
+import { parseDate, formatInTimezone, toISODate, shiftISODate, isoDayDiff } from "@/app/lib/dateUtils";
 import { useDateTimeSettings } from "@/app/contexts/DateTimeSettingsContext";
 import RichTextDisplay from "@/app/components/RichTextDisplay";
 
@@ -71,17 +70,21 @@ export default function TaskItem({
   }, [task.completed]);
 
   const formatDueDate = (dateString: string) => {
-    const date = parseDate(dateString, timeZoneSettings);
-    const now = getNow(timeZoneSettings);
-    const daysUntilDue = differenceInDays(date, now);
+    // Compare in the user's timezone, in ISO-string space. The old code diffed a
+    // real instant (parseDate) against a zoned wall-clock (getNow) and ran
+    // isToday/isPast against the *machine's* calendar — wrong whenever the OS zone
+    // differed from the setting, including during SSR on UTC prod.
+    const dueISO = dateString;
+    const todayISO = toISODate(new Date(), timeZoneSettings);
+    const daysUntilDue = isoDayDiff(dueISO, todayISO);
 
-    if (isToday(date)) {
+    if (dueISO === todayISO) {
       return "today";
     }
-    if (isTomorrow(date)) {
+    if (dueISO === shiftISODate(todayISO, 1)) {
       return "tomorrow";
     }
-    if (isPast(date)) {
+    if (dueISO < todayISO) {
       const daysAgo = Math.abs(daysUntilDue);
       if (daysAgo === 1) {
         return "yesterday";
@@ -107,7 +110,7 @@ export default function TaskItem({
       return "over a month ago";
     }
     if (daysUntilDue < 7) {
-      return formatInTimezone(date, "EEEE", timeZoneSettings).toLowerCase();
+      return formatInTimezone(parseDate(dueISO, timeZoneSettings), "EEEE", timeZoneSettings).toLowerCase();
     }
     return `in ${daysUntilDue} days`;
   };

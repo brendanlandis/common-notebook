@@ -180,4 +180,55 @@ describe('Layout Transformer - done preset day bucketing', () => {
       expect(sectionTitleOf([tooOld], 'too-old', NYC_3AM)).toBeUndefined();
     });
   });
+
+  // R2: the upcoming panel used addDays(getToday(), i) on an instant, doing the
+  // arithmetic in the machine's calendar. On a UTC server serving a New York user
+  // during fall-back week it emitted Nov 1 under two headings and dropped Nov 4.
+  // Pinned to the fall-back week so a machine-zone regression can't hide.
+  describe('upcoming panel across fall-back', () => {
+    // 2026-10-30 14:00 EDT; US DST ends 2026-11-01 02:00. "Today" is 2026-10-30, so
+    // the next four days span the transition: 10-31, 11-01, 11-02, 11-03.
+    const NOW_FALLBACK = new Date('2026-10-30T18:00:00.000Z');
+    const NYC: TimeZoneSettings = { timezone: 'America/New_York', dayBoundaryHour: 4 };
+    const upcomingDays = ['2026-10-31', '2026-11-01', '2026-11-02', '2026-11-03'];
+
+    beforeEach(() => vi.setSystemTime(NOW_FALLBACK));
+
+    function upcomingFor(upcomingTasks: Task[]) {
+      return transformLayout(
+        {
+          projects: [],
+          categoryGroups: [],
+          incidentals: [],
+          completedTasks: [],
+          longTasksWithSessions: [],
+          recurringProjects: [],
+          recurringCategoryGroups: [],
+          recurringIncidentals: [],
+          upcomingTasks,
+        },
+        DONE_RULESET,
+        NYC
+      ).upcomingTasksByDay!;
+    }
+
+    it('files each of the next four days under exactly one section, none duplicated or dropped', () => {
+      const tasks = upcomingDays.map((d) =>
+        createTask({ documentId: `up-${d}`, completed: false, displayDate: d })
+      );
+      const panel = upcomingFor(tasks);
+
+      expect(panel).toHaveLength(4);
+      // Each day's task appears in its own section, at the expected index, exactly once.
+      upcomingDays.forEach((d, i) => {
+        const holding = panel.filter((s) => s.tasks.some((t) => t.documentId === `up-${d}`));
+        expect(holding, `${d} should be in exactly one section`).toHaveLength(1);
+        expect(panel[i].tasks.map((t) => t.documentId)).toEqual([`up-${d}`]);
+      });
+    });
+
+    it('labels the first upcoming day "tomorrow"', () => {
+      expect(upcomingFor([])[0].title).toBe('tomorrow');
+    });
+  });
 });

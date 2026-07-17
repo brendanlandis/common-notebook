@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAccessToken } from '@/app/lib/strapiAuth';
+import { getTimeZoneSettings } from '@/app/lib/strapiServer';
+import { getEffectiveDayForTimestamp } from '@/app/lib/dayBoundaryHelpers';
 
 const STRAPI_API_URL = process.env.STRAPI_API_URL;
 
@@ -51,8 +53,12 @@ export async function POST(
     const stopTimeDate = new Date(stopTime);
     const durationMinutes = Math.round((stopTimeDate.getTime() - startTime.getTime()) / (1000 * 60));
 
-    // Get date from start time (YYYY-MM-DD format)
-    const date = practiceLog.start.split('T')[0];
+    // Effective day of the session's start, in the owner's timezone and honoring
+    // their day boundary. The old `practiceLog.start.split('T')[0]` took the UTC
+    // date off the datetime, jumping any session started after ~20:00 EDT to the
+    // next day in the stats chart. Matches what the client wrote at start.
+    const settings = await getTimeZoneSettings(token);
+    const date = getEffectiveDayForTimestamp(startTime, settings);
 
     // Update the practice log with stop time, duration, and date
     const updateBody = {

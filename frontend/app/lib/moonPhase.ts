@@ -1,5 +1,5 @@
 import * as Astronomy from 'astronomy-engine';
-import { getToday, toISODate } from './dateUtils';
+import { getToday, toISODate, parseDate, shiftISODate } from './dateUtils';
 import type { TimeZoneSettings } from './timeZoneSettings';
 
 /**
@@ -41,20 +41,22 @@ export type MoonPhaseIconName =
  */
 function getPhaseTransitionToday(settings: TimeZoneSettings): number | null {
   const today = getToday(settings);
-  
-  // Get tomorrow's start (end of today's range)
-  const tomorrowStart = new Date(today);
-  tomorrowStart.setDate(tomorrowStart.getDate() + 1);
-  
+
+  // Tomorrow's midnight in the user's zone, as a real instant. Computed via the
+  // ISO string, not setDate on `today` (which walked the machine's calendar). Both
+  // bounds are real instants — the astronomy search and the window compare need them.
+  const tomorrowStart = parseDate(shiftISODate(toISODate(today, settings), 1), settings);
+
   // Check each major phase (new moon, first quarter, full moon, third quarter)
   const majorPhases = [0, 90, 180, 270];
-  
+
   for (const phase of majorPhases) {
     // Search for this phase occurring within today
     const phaseEvent = Astronomy.SearchMoonPhase(phase, today, 1);
-    
+
     if (phaseEvent) {
-      // Compare the phase event date with today's date in EST
+      // Does the phase fall within today's [midnight, tomorrow-midnight) window,
+      // in the user's zone?
       const phaseDate = new Date(phaseEvent.date);
       // Check if the phase occurs today by comparing if both are on the same calendar day
       if (phaseDate >= today && phaseDate < tomorrowStart) {
@@ -152,9 +154,9 @@ export function hasNewMoonSince(since: Date, settings: TimeZoneSettings): boolea
   const today = getToday(settings);
 
   // From the day after the watermark — a moon on the watermark day itself was
-  // already accounted for by whatever set it.
-  const searchStart = new Date(since);
-  searchStart.setDate(searchStart.getDate() + 1);
+  // already accounted for by whatever set it. Next-day midnight in the user's
+  // zone via the ISO string, not setDate on the instant (machine's calendar).
+  const searchStart = parseDate(shiftISODate(toISODate(since, settings), 1), settings);
 
   const nextNewMoon = Astronomy.SearchMoonPhase(0, searchStart, 40);
   if (!nextNewMoon) {

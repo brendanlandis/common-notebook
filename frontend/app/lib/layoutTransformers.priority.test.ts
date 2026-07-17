@@ -16,14 +16,14 @@ const world: World = {
   systemKey: null,
 };
 
+// Mock only the clock (getToday). parseDate/toISODate run for real — the old
+// stubs (machine-local midnight + a UTC-component reader) lied for any positive
+// UTC offset and hid the real conversion.
 vi.mock('./dateUtils', async () => {
   const actual = await vi.importActual('./dateUtils');
   return {
     ...actual,
     getToday: vi.fn(),
-    getNow: vi.fn(),
-    parseDate: (dateString: string) => new Date(dateString + 'T00:00:00'),
-    toISODate: (date: Date) => date.toISOString().split('T')[0],
   };
 });
 
@@ -102,8 +102,7 @@ function emptyData(projects: Project[]) {
 
 describe('Layout Transformer - projects layout column tiers', () => {
   beforeEach(() => {
-    vi.mocked(dateUtils.getToday).mockReturnValue(new Date('2026-06-01T00:00:00'));
-    vi.mocked(dateUtils.getNow).mockReturnValue(new Date('2026-06-01T12:00:00'));
+    vi.mocked(dateUtils.getToday).mockReturnValue(dateUtils.parseDate('2026-06-01', EST));
   });
 
   it('orders columns by tier: top of mind → pN (by number, creation tiebreak) → normal → later', () => {

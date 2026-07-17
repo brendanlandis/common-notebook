@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAccessToken } from '@/app/lib/strapiAuth';
-import { getToday, toISODate } from '@/app/lib/dateUtils';
+import { getToday, toISODate, shiftISODate } from '@/app/lib/dateUtils';
 import { getTimeZoneSettings } from '@/app/lib/strapiServer';
-import { addDays } from 'date-fns';
 
 const STRAPI_API_URL = process.env.STRAPI_API_URL;
 
@@ -18,18 +17,16 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Calculate tomorrow and 4 days from now in the owner's timezone
-    // getToday() returns midnight on their current day
+    // Calculate tomorrow and 4 days from now in the owner's timezone.
+    // Day arithmetic runs on the ISO date string via shiftISODate, never on the
+    // instant: addDays/setDate on a Date do the math in the *machine's* calendar,
+    // so on a UTC server serving a New York user `addDays(today, 1)` could land
+    // back on today (the fall-back-week bug this replaces).
     const settings = await getTimeZoneSettings(token);
-    const today = getToday(settings);
+    const todayString = toISODate(getToday(settings), settings);
 
-    // Use addDays from date-fns to ensure proper date arithmetic
-    // that works consistently across different server timezones
-    const tomorrow = addDays(today, 1);
-    const fourDaysOut = addDays(today, 4);
-
-    const tomorrowString = toISODate(tomorrow, settings);
-    const fourDaysOutString = toISODate(fourDaysOut, settings);
+    const tomorrowString = shiftISODate(todayString, 1);
+    const fourDaysOutString = shiftISODate(todayString, 4);
 
     // Fetch incomplete tasks with displayDate in the next 4 days (excluding today)
     // Fetch all pages to ensure we get all tasks
