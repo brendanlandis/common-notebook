@@ -380,4 +380,135 @@ describe("useTasks", () => {
     );
     expect(result.current.grouped.projects[0].title).toBe("New name");
   });
+
+  /**
+   * The reported bug: promote one project while another is top of mind, and Good
+   * Morning showed both until a reload.
+   *
+   * `updateProject` above patches by documentId, which is all a rename needs —
+   * and a rename is all it was ever tested for. A promotion also changes a
+   * project the response never mentions, because the server demotes the
+   * incumbent behind a request that names only the promoted one. The routes now
+   * return those ids and this applies them.
+   *
+   * Importance is read off `task.project` by `taskTier` and off the projects
+   * list by the column ordering, so both copies have to land or the section and
+   * the columns disagree.
+   */
+  describe("demoteProjects", () => {
+    const promoted = () =>
+      makeProject({ documentId: "p-new", title: "New", importance: "top of mind" });
+    const incumbent = () =>
+      makeProject({ documentId: "p-old", title: "Old", importance: "top of mind" });
+
+    it("clears 'top of mind' in the projects list and on every task's project relation", async () => {
+      mockApi({
+        tasks: [
+          makeTask({ documentId: "t-old", project: incumbent() as any }),
+          makeTask({ documentId: "t-new", project: promoted() as any }),
+        ],
+        projects: [incumbent(), promoted()],
+      });
+
+      const { result } = renderHook(() => useTasks(), { wrapper });
+      await waitFor(() => expect(result.current.tasks).toHaveLength(2));
+
+      await act(async () => {
+        result.current.demoteProjects(["p-old"]);
+      });
+
+      // A cache write is not visible to result.current when act() returns —
+      // TanStack notifies observers on a microtask.
+      await waitFor(() =>
+        expect(
+          (result.current.tasks.find((t) => t.documentId === "t-old")!.project as any).importance
+        ).toBe("normal")
+      );
+      expect(
+        result.current.grouped.projects.find((p) => p.documentId === "p-old")?.importance
+      ).toBe("normal");
+    });
+
+    it("leaves the promoted project alone", async () => {
+      mockApi({
+        tasks: [makeTask({ documentId: "t-new", project: promoted() as any })],
+        projects: [incumbent(), promoted()],
+      });
+
+      const { result } = renderHook(() => useTasks(), { wrapper });
+      await waitFor(() => expect(result.current.tasks).toHaveLength(1));
+
+      await act(async () => {
+        result.current.demoteProjects(["p-old"]);
+      });
+
+      await waitFor(() =>
+        expect(
+          result.current.grouped.projects.find((p) => p.documentId === "p-old")?.importance
+        ).toBe("normal")
+      );
+      expect(
+        result.current.grouped.projects.find((p) => p.documentId === "p-new")?.importance
+      ).toBe("top of mind");
+      expect((result.current.tasks[0].project as any).importance).toBe("top of mind");
+    });
+
+    it("demotes several projects at once", async () => {
+      const second = makeProject({ documentId: "p-old-2", importance: "top of mind" });
+      mockApi({ projects: [incumbent(), second, promoted()] });
+
+      const { result } = renderHook(() => useTasks(), { wrapper });
+      await waitFor(() => expect(result.current.grouped.projects).toHaveLength(3));
+
+      await act(async () => {
+        result.current.demoteProjects(["p-old", "p-old-2"]);
+      });
+
+      await waitFor(() => {
+        const byId = Object.fromEntries(
+          result.current.grouped.projects.map((p) => [p.documentId, p.importance])
+        );
+        expect(byId["p-old"]).toBe("normal");
+        expect(byId["p-old-2"]).toBe("normal");
+        expect(byId["p-new"]).toBe("top of mind");
+      });
+    });
+
+    it("does not advance dataUpdatedAt", async () => {
+      // The filter's `now` is the tasks query's dataUpdatedAt — "when the server
+      // last told us this". A bare setQueryData stamps the cache with the
+      // current time, which is what made a just-completed task vanish on click
+      // under a 0-minute visibility window. Only a real fetch may move it.
+      mockApi({
+        tasks: [makeTask({ documentId: "t-old", project: incumbent() as any })],
+        projects: [incumbent()],
+      });
+
+      const { result } = renderHook(() => useTasks(), { wrapper });
+      await waitFor(() => expect(result.current.tasks).toHaveLength(1));
+
+      const before = queryClient.getQueryState(["tasks", "active"])?.dataUpdatedAt;
+      await act(async () => {
+        result.current.demoteProjects(["p-old"]);
+      });
+      await waitFor(() =>
+        expect((result.current.tasks[0].project as any).importance).toBe("normal")
+      );
+
+      expect(queryClient.getQueryState(["tasks", "active"])?.dataUpdatedAt).toBe(before);
+    });
+
+    it("is a no-op for an empty list", async () => {
+      mockApi({ projects: [incumbent()] });
+
+      const { result } = renderHook(() => useTasks(), { wrapper });
+      await waitFor(() => expect(result.current.grouped.projects).toHaveLength(1));
+
+      await act(async () => {
+        result.current.demoteProjects([]);
+      });
+
+      expect(result.current.grouped.projects[0].importance).toBe("top of mind");
+    });
+  });
 });

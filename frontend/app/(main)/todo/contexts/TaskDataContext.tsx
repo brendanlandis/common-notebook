@@ -49,6 +49,9 @@ interface TaskSaveResult {
 interface ProjectSaveResult {
   success?: boolean;
   data?: Project;
+  // documentIds the server demoted from "top of mind" to make room for this
+  // save. Absent from older responses, so callers must tolerate undefined.
+  demoted?: string[];
 }
 
 interface TaskDataContextType {
@@ -121,6 +124,7 @@ export function TaskDataProvider({ children }: { children: ReactNode }) {
     removeTask,
     updateTask,
     updateProject,
+    demoteProjects,
     addProject,
     refetch: fetchTasks,
   } = useTasks();
@@ -540,6 +544,12 @@ export function TaskDataProvider({ children }: { children: ReactNode }) {
         // unlike the overlay this replaced, it does not disappear.
         addProject(updatedProject);
       }
+
+      // Promoting this project silently demoted whoever held "top of mind". The
+      // response names them, because nothing else would: the writes happened
+      // under a request for a different project, and patching only that project
+      // left the old one lit in Good Morning until the next fetch.
+      demoteProjects(result.demoted ?? []);
     } catch (err) {
       // The drawer is already closed by this point, so a rejected save still looks
       // identical to a successful one. That is how `projectType: 'normal'` — a value
@@ -551,7 +561,7 @@ export function TaskDataProvider({ children }: { children: ReactNode }) {
       console.error("Failed to save project:", err);
     }
     },
-    [editingProject, closeDrawer, updateProject, addProject]
+    [editingProject, closeDrawer, updateProject, addProject, demoteProjects]
   );
 
   const handleCancelProjectForm = useCallback(() => {

@@ -20,17 +20,23 @@ interface StrapiProject {
  *
  * Every read and write is scoped to the caller by the backend's ownership
  * middleware; the token is all the tenancy this needs.
+ *
+ * Returns the documentIds it actually demoted, and only those — a project whose
+ * write failed is left out. The callers hand that list to the browser, which
+ * cannot otherwise know these rows changed: the demotions happen behind a
+ * request that names a different project, so a client patching only the project
+ * it PUT kept showing the old one as "top of mind" until the next real fetch.
  */
 export async function demoteTopOfMindProjects(
   token: string,
   exceptDocumentId?: string
-): Promise<number> {
+): Promise<string[]> {
   const projects = await fetchAllPages<StrapiProject>(
     token,
     `/api/projects?filters[importance][$eq]=${encodeURIComponent(TOP_OF_MIND)}`
   );
 
-  let demoted = 0;
+  const demoted: string[] = [];
   for (const project of projects) {
     if (project.documentId === exceptDocumentId) continue;
 
@@ -40,7 +46,7 @@ export async function demoteTopOfMindProjects(
       body: JSON.stringify({ data: { importance: 'normal' } }),
     });
 
-    if (response.ok) demoted += 1;
+    if (response.ok) demoted.push(project.documentId);
     else console.error(`Failed to demote project ${project.documentId}`);
   }
 

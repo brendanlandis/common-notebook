@@ -46,7 +46,8 @@ beforeEach(async () => {
   vi.clearAllMocks();
   upsertSystemSetting.mockResolvedValue(true);
   fetchAllPages.mockResolvedValue([]); // no soon tasks → performMoonPhaseReset is cheap
-  demoteTopOfMindProjects.mockResolvedValue(0);
+  // Resolves the documentIds it demoted; performMoonPhaseReset takes .length.
+  demoteTopOfMindProjects.mockResolvedValue([]);
   vi.resetModules();
   mod = await import('./moonPhaseReset');
   userKeyCounter += 1;

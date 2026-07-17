@@ -52,7 +52,7 @@ export async function performMoonPhaseReset(token: string): Promise<{
     else console.error(`Moon-phase reset: failed to update task ${task.documentId}`);
   }
 
-  const projectsUpdated = await demoteTopOfMindProjects(token);
+  const projectsUpdated = (await demoteTopOfMindProjects(token)).length;
 
   return { tasksUpdated, projectsUpdated };
 }

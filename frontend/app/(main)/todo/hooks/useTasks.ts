@@ -25,6 +25,7 @@ export interface UseTasksResult {
   removeTask: (id: string) => void;
   updateTask: (t: Task) => void;
   updateProject: (p: Project) => void;
+  demoteProjects: (documentIds: string[]) => void;
   addProject: (p: Project) => void;
   refetch: (showLoading?: boolean) => Promise<void>;
 }
@@ -218,6 +219,35 @@ export function useTasks(): UseTasksResult {
     [setProjectsData, setTasksData]
   );
 
+  // Apply the demotions the server performed behind our back.
+  //
+  // Promoting a project silently demotes whichever project held "top of mind",
+  // in a request that names only the promoted one. `updateProject` patches by
+  // documentId, so the demoted project kept its stale 'top of mind' in both
+  // caches and Good Morning showed two — until a refetch happened to correct it.
+  // The routes now return the ids they demoted; this writes them where the UI
+  // reads importance from, which is both the projects list and the `project`
+  // relation embedded on every task (see `taskTier` in layoutTransformers).
+  const demoteProjects = useCallback(
+    (documentIds: string[]) => {
+      if (documentIds.length === 0) return;
+      const demoted = new Set(documentIds);
+
+      setProjectsData((prev) =>
+        prev.map((p) => (demoted.has(p.documentId) ? { ...p, importance: 'normal' } : p))
+      );
+      setTasksData((prev) =>
+        prev.map((t) => {
+          const proj = t.project as Project | null | undefined;
+          return proj && demoted.has(proj.documentId)
+            ? { ...t, project: { ...proj, importance: 'normal' } }
+            : t;
+        })
+      );
+    },
+    [setProjectsData, setTasksData]
+  );
+
   // Callers still pass `showLoading`, so the signature keeps it, but the parameter
   // is not declared: the cache serves the previous data while refetching, so there
   // is no blank-then-repaint to suppress. The argument is accepted and ignored.
@@ -262,6 +292,7 @@ export function useTasks(): UseTasksResult {
     removeTask,
     updateTask,
     updateProject,
+    demoteProjects,
     addProject,
     refetch,
   };

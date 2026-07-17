@@ -22,10 +22,11 @@ export async function PUT(
 
     const body = await req.json();
 
-    // Only one project may be "top of mind" at a time.
-    if (body.importance === TOP_OF_MIND) {
-      await demoteTopOfMindProjects(token, documentId);
-    }
+    // Only one project may be "top of mind" at a time. The ids come back so the
+    // response can name them: these rows change without the client ever asking,
+    // and it has no other way to learn they were demoted.
+    const demoted =
+      body.importance === TOP_OF_MIND ? await demoteTopOfMindProjects(token, documentId) : [];
 
     const response = await fetch(
       `${STRAPI_API_URL}/api/projects/${documentId}?populate=worldRef`,
@@ -48,7 +49,7 @@ export async function PUT(
     }
 
     const data = await response.json();
-    return NextResponse.json({ success: true, data: normalizeProjectWorld(data.data) });
+    return NextResponse.json({ success: true, data: normalizeProjectWorld(data.data), demoted });
   } catch (error) {
     console.error('Error updating project:', error);
     return NextResponse.json(

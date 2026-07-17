@@ -41,10 +41,10 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json();
 
-    // Only one project may be "top of mind" at a time.
-    if (body.importance === TOP_OF_MIND) {
-      await demoteTopOfMindProjects(token);
-    }
+    // Only one project may be "top of mind" at a time. No id to spare — this
+    // project does not exist yet. The ids come back so the response can name the
+    // incumbent it just displaced.
+    const demoted = body.importance === TOP_OF_MIND ? await demoteTopOfMindProjects(token) : [];
 
     const response = await strapiFetch(token, '/api/projects?populate=worldRef', {
       method: 'POST',
@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
     }
 
     const data = await response.json();
-    return NextResponse.json({ success: true, data: normalizeProjectWorld(data.data) });
+    return NextResponse.json({ success: true, data: normalizeProjectWorld(data.data), demoted });
   } catch (error) {
     console.error('Error creating project:', error);
     return NextResponse.json(
