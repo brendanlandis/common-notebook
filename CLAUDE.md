@@ -16,7 +16,9 @@ License: AGPL v3.
   hand-written CSS in `app/css/`. No CSS modules.
 - Editor: TipTap 3 (`@tiptap/*` all `^3.27.1`) + `@strapi/blocks-react-renderer`.
 - Forms: react-hook-form 7 + zod 4. Charts: recharts 3. Icons: `@phosphor-icons/react`.
-- Dates: `date-fns` + `date-fns-tz`; also `astronomy-engine` (moon-phase / solstice recurrence).
+- Dates: **`temporal-polyfill`** (the TC39 Temporal API; Node/browsers don't ship it natively yet) — all
+  zone- and calendar-aware date logic goes through it. `date-fns`/`date-fns-tz` were removed. Also
+  `astronomy-engine` (moon-phase / solstice recurrence).
 - **Server state lives in TanStack Query** (`@tanstack/react-query` 5): `useQuery` for reads,
   `useMutation` + `invalidateQueries` for writes, optimistic `onMutate`/`onError` where a failure
   would otherwise leave the wrong thing on screen. Context is for **UI state only** (drawer,
@@ -146,44 +148,42 @@ throughout the frontend. Node engine constraint: `>=18 <=22.x`.
   settings to the next request. There are no `NEXT_PUBLIC_*` overrides for these: settings are
   per-user rows, so a build-time env var would override every user at once. Keep date logic pure and
   unit-tested.
-- **A `Date` in this codebase is always a real instant.** Wall-clock values live only as ISO strings
-  (`toISODate`/`shiftISODate`/`isoDayDiff`, all in `dateUtils.ts`) or as an hour number — never as a
-  `Date`. The footgun that caused this bug class was `toZonedTime`, which returns a `Date` whose epoch is
-  **deliberately shifted** so its *local* getters read the zone's wall clock; reading it with the wrong
-  getter, or zoning it a second time, silently returned a plausible wrong answer. It is now quarantined
-  to two files: `dateUtils.ts` (inside `formatInTimezone`, which reads it straight into a string and
-  never returns it) and `recurrence.ts` (`toWallClock`, for the calendar arithmetic in the next bullet).
-  `getNow` is **deleted** and the `toZonedTime` re-export is gone. A **CI-gated architecture test**,
-  `app/lib/dateArchitecture.test.ts`, enforces the invariant: nothing outside that two-file allowlist may
-  import `toZonedTime` or `date-fns` calendar functions, no `getNow` may reappear, and no `getUTC*` getter
-  may be read anywhere. The whole class was invisible on a machine whose OS zone equals the user's setting
-  (Brendan's laptop) while CI ran only UTC — so **the vitest suite now runs a `TZ` matrix** (`UTC`,
-  `America/New_York`, `Asia/Kolkata`; `npm run test:zones`, and the CI job's `strategy.matrix.tz`) and
-  Playwright pins `timezoneId: 'America/New_York'`, deliberately unequal to the UTC server. Historic
-  instances (2026-07-16/17): `useTasks` fed a zoned `now` into elapsed-minute math; `getEffectiveDayForTimestamp`
-  read `getUTCHours()` off a zoned Date, putting the 4am boundary at 9am for non-UTC users; and the Done
-  page, the upcoming panel, practice-session day attribution, and full/new-moon recurrences all did
-  calendar arithmetic on instants. `getEffectiveDayForTimestamp`/`getWorkedOnPhase` and `toISODate` take a
-  **real instant** and convert internally — never hand them an already-zoned value.
+- **A `Date` in this codebase is always a real instant; all zone/calendar work goes through Temporal.**
+  Wall-clock values live only as ISO strings (`toISODate`/`shiftISODate`/`isoDayDiff`, all in
+  `dateUtils.ts`) or as an hour number — never as a `Date`. Zone-aware reads use
+  `Temporal.ZonedDateTime` (via `temporal-polyfill`), which names its timezone explicitly and exposes the
+  wall clock as plain integer fields (`.hour`, `.day`, `.offset`), so the old footgun **cannot be
+  expressed**: `date-fns-tz`'s `toZonedTime` returned a `Date` whose epoch was deliberately shifted so its
+  *local* getters read the zone, and reading it with the wrong getter (or zoning it twice) silently
+  returned a plausible wrong answer. `date-fns` and `date-fns-tz` are **gone from the codebase**; `getNow`
+  is deleted. A **CI-gated architecture test**, `app/lib/dateArchitecture.test.ts`, enforces this: no
+  source file may import `date-fns` or `date-fns-tz`, the `toZonedTime`/`fromZonedTime`/`getNow`
+  identifiers may not reappear, and no `getUTC*` getter may be read anywhere. The whole class was
+  invisible on a machine whose OS zone equals the user's setting (Brendan's laptop) while CI ran only UTC —
+  so **the vitest suite runs a `TZ` matrix** (`UTC`, `America/New_York`, `Asia/Kolkata`;
+  `npm run test:zones`, and the CI job's `strategy.matrix.tz`) and Playwright pins
+  `timezoneId: 'America/New_York'`, deliberately unequal to the UTC server. Historic instances
+  (2026-07-16/17, all fixed): `useTasks` fed a zoned `now` into elapsed-minute math;
+  `getEffectiveDayForTimestamp` read `getUTCHours()` off a zoned Date, putting the 4am boundary at 9am for
+  non-UTC users; and the Done page, the upcoming panel, practice-session day attribution, and full/new-moon
+  recurrences all did calendar arithmetic on instants. `getEffectiveDayForTimestamp`/`getWorkedOnPhase` and
+  `toISODate` take a **real instant** and convert internally — never hand them an already-zoned value.
   **Any test for this must run in more than one system zone** and must not stub `dateUtils`'
   `parseDate`/`toISODate`/`formatInTimezone` — see the Gotchas note below.
-  (A future pass could move the layer onto the Temporal API, which removes the footgun at the language
-  level; the audit consolidated every date op behind ~8 `dateUtils` functions to make that a cheap
-  internal swap, but it has not landed.)
-- **Calendar arithmetic runs on the user's wall clock, never on an instant.** Every date-fns function
-  (`setDate`, `startOfMonth`, `nextDay`, `addWeeks`, `addDays`, `getDay`, `lastDayOfMonth`…) reads and
-  writes a Date's **local** components, so applying one to an instant does the arithmetic in the
-  *machine's* calendar. `recurrence.ts` converts once via `toWallClock` and formats with `zonedYMD`
-  (which reads those components back without converting again) — see the header comment there. Fixed
-  2026-07-16: on a UTC server with an EST user, the 2nd Tuesday of February came out as
-  `2026-02-10T00:00Z`, which *is* Feb 9 in New York, so **every monthly and annual recurrence was
-  scheduled a day early in production** while being perfect on a laptop whose zone matched the setting.
-  An earlier fix had corrected how those results were *compared* ("compare ISO strings, not
-  `startOfDay`") but not how they were *computed*, which is why the comments looked reassuring.
-  Astronomy calls (`Astronomy.Seasons`, `SearchMoonPhase`) are the exception and must keep the real
-  instant — a wall-clock value would move the event itself. Nothing pins `TZ` for the Next server, and
-  `calculateNextRecurrence` runs there (`/api/tasks/[id]/complete` and `/skip`): **prod is UTC and
-  Brendan's laptop is not**, which is exactly how this class of bug reaches production unseen.
+- **Calendar arithmetic runs on the user's wall clock, never on an instant — via `Temporal.PlainDate`.**
+  The dates flowing through `recurrence.ts` are real instants (`parseDate('2026-01-13', EST)` is 05:00Z),
+  so calendar math on them must first land on the user's *calendar day*: `toPlainDate(instant, settings)`
+  (see the header comment there) turns an instant into a `Temporal.PlainDate`, and every step is then
+  plain-date arithmetic (`.add({months: 1})`, `.with({day})`, `.dayOfWeek`) — calendar-correct and
+  DST-free by construction — read back out with `.toString()`. This replaced a `date-fns` implementation
+  whose helpers (`setDate`, `nextDay`, `addWeeks`, `getDay`, `lastDayOfMonth`…) read a Date's **machine-local**
+  components: on a UTC server with an EST user the 2nd Tuesday of February came out `2026-02-10T00:00Z`
+  (which *is* Feb 9 in New York), so **every monthly and annual recurrence was scheduled a day early in
+  production** while being perfect on a laptop whose zone matched the setting. Astronomy calls
+  (`Astronomy.Seasons`, `SearchMoonPhase`) are the exception and keep the real instant — a wall-clock value
+  would move the event itself. Nothing pins `TZ` for the Next server, and `calculateNextRecurrence` runs
+  there (`/api/tasks/[id]/complete` and `/skip`): **prod is UTC and Brendan's laptop is not**, which is
+  exactly how this class of bug reaches production unseen.
 - Naming: PascalCase components, camelCase lib/util files, `use*` hooks, `*.test.ts(x)` siblings for tests.
 
 # Gotchas

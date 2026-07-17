@@ -10,7 +10,7 @@ import type { TimeZoneSettings } from './timeZoneSettings';
 // pins dayBoundaryHour: 4 but stubs parseDate as system-local midnight and toISODate as a
 // reader of UTC components — a pair that does not round-trip for any non-UTC zone. That is
 // the exact seam transformDone's day-boundary bug lived in, so the mocked suite could never
-// see it. Only the real date-fns-tz conversion can.
+// see it. Only the real (Temporal-backed) timezone conversion can.
 //
 // Every case below is a real instant (Z-suffixed) with the zone pinned in settings, so these
 // assertions must hold whatever timezone the machine running them is in. Run under at least

@@ -4,7 +4,6 @@ import { useMemo } from "react";
 import TaskItem from "../TaskItem";
 import type { LayoutRendererProps } from "./types";
 import type { Task } from "@/app/types/index";
-import { parseISO } from "date-fns";
 import { formatInTimezone } from "@/app/lib/dateUtils";
 import { useDateTimeSettings } from "@/app/contexts/DateTimeSettingsContext";
 
@@ -31,7 +30,7 @@ export default function ChronologicalLayout({
     const byMonth = new Map<string, { date: Date; tasks: Task[] }>();
     tasks.forEach((task) => {
       try {
-        const created = parseISO(task.createdAt);
+        const created = new Date(task.createdAt); // a real instant from Strapi's ISO string
         const key = formatInTimezone(created, "yyyy-MM", timeZoneSettings);
         if (!byMonth.has(key)) byMonth.set(key, { date: created, tasks: [] });
         byMonth.get(key)!.tasks.push(task);

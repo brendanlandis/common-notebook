@@ -1,6 +1,5 @@
 import { test, expect } from '@playwright/test';
 import type { APIRequestContext } from '@playwright/test';
-import { fromZonedTime, formatInTimeZone } from 'date-fns-tz';
 import { uniqueTitle, deleteTask, createTask, gotoTodo } from './helpers';
 
 // The Done page groups completed tasks by *effective day* — the calendar day after
@@ -16,13 +15,41 @@ import { uniqueTitle, deleteTask, createTask, gotoTodo } from './helpers';
 const TZ = 'America/New_York';
 const BOUNDARY_TITLE = 'dayBoundaryHour';
 
-const nyDate = (d: Date) => formatInTimeZone(d, TZ, 'yyyy-MM-dd');
+// Native Intl helpers (no library): Playwright's CJS loader can't resolve the app's
+// ESM-only temporal-polyfill, and the spec only needs to compute test instants — it
+// verifies the app's own Temporal date logic through the running server, not here.
+const nyParts = (d: Date, withTime = false) =>
+  Object.fromEntries(
+    new Intl.DateTimeFormat('en-US', {
+      timeZone: TZ,
+      hour12: false,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      ...(withTime ? { hour: '2-digit', minute: '2-digit', second: '2-digit' } : {}),
+    })
+      .formatToParts(d)
+      .map((p) => [p.type, p.value])
+  ) as Record<string, string>;
+
+const nyDate = (d: Date) => {
+  const p = nyParts(d);
+  return `${p.year}-${p.month}-${p.day}`;
+};
 const shiftDays = (iso: string, n: number) => {
   const [y, m, d] = iso.split('-').map(Number);
   return new Date(Date.UTC(y, m - 1, d + n)).toISOString().slice(0, 10);
 };
-// A UTC instant for a given NY wall-clock date + HH:mm.
-const nyInstant = (dateISO: string, hhmm: string) => fromZonedTime(`${dateISO}T${hhmm}:00`, TZ).toISOString();
+// A UTC ISO instant for a given NY wall-clock date + HH:mm, via NY's offset at that
+// time (the standard formatToParts round-trip).
+const nyInstant = (dateISO: string, hhmm: string) => {
+  const asUTC = new Date(`${dateISO}T${hhmm}:00Z`);
+  const p = nyParts(asUTC, true);
+  const hour = p.hour === '24' ? 0 : Number(p.hour);
+  const asIfLocal = Date.UTC(Number(p.year), Number(p.month) - 1, Number(p.day), hour, Number(p.minute), Number(p.second));
+  const offsetMs = asIfLocal - asUTC.getTime();
+  return new Date(asUTC.getTime() - offsetMs).toISOString();
+};
 
 async function getBoundary(request: APIRequestContext): Promise<number> {
   const res = await request.get(`/api/system-settings?title=${BOUNDARY_TITLE}`);

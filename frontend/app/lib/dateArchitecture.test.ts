@@ -9,28 +9,16 @@ import { join, resolve, relative } from 'path';
  * CI-gated and tsc isn't either — but the vitest suite *is* gated, so the rules live
  * as assertions that name the offending file when they trip.
  *
- * The invariant: a `Date` in this codebase is always a real instant. Wall-clock
- * values exist only as ISO strings or hour numbers. The escape hatch that violated
- * this — date-fns-tz's `toZonedTime`, whose result is a Date with a deliberately
- * wrong epoch — is quarantined to two files, and date-fns' calendar arithmetic
- * (which reads a Date's *local* components) is quarantined to `recurrence.ts`, the
- * one place that genuinely needs wall-clock math and guards it with toWallClock.
- *
- * If Stage 8 lands and the date layer moves onto Temporal, this allowlist becomes
- * the migration checklist.
+ * The invariant: a `Date` in this codebase is always a real instant. All zone- and
+ * calendar-aware work goes through `Temporal` (ZonedDateTime / PlainDate), which
+ * names its timezone explicitly and exposes the wall clock as plain integer fields.
+ * The libraries that let the old footgun exist — `date-fns-tz` (`toZonedTime`, a Date
+ * with a deliberately shifted epoch) and `date-fns` (calendar helpers that read a
+ * Date's *machine-local* components) — are no longer imported anywhere in source.
+ * These tests keep them out, so the whole bug class stays un-reintroducible.
  */
 
 const APP_DIR = resolve(__dirname, '..');
-
-// Only these files may materialise a zoned Date via toZonedTime:
-//   - dateUtils.ts:   formatInTimezone reads it straight into a string, never returns it.
-//   - recurrence.ts:  toWallClock, for "2nd Tuesday of February" calendar math.
-const TOZONED_ALLOWLIST = ['lib/dateUtils.ts', 'lib/recurrence.ts'];
-
-// Only recurrence.ts may import date-fns calendar functions. `parseISO` is exempt
-// everywhere: it parses a string to an instant and reads no local components.
-const DATEFNS_ALLOWLIST = ['lib/recurrence.ts'];
-const DATEFNS_EXEMPT_NAMES = new Set(['parseISO']);
 
 function sourceFiles(dir: string): string[] {
   const out: string[] = [];
@@ -63,42 +51,35 @@ describe('date layer architecture', () => {
     expect(FILES.length).toBeGreaterThan(50);
   });
 
-  it('only the allowlist imports toZonedTime', () => {
-    const offenders = FILES.filter(
-      ({ rel, code }) =>
-        /import[^;]*\btoZonedTime\b[^;]*from\s*['"]date-fns-tz['"]/.test(code) &&
-        !TOZONED_ALLOWLIST.includes(rel)
-    ).map(({ rel }) => rel);
-    expect(offenders, `toZonedTime leaked outside ${TOZONED_ALLOWLIST.join(', ')}`).toEqual([]);
+  it('nothing imports date-fns-tz (zone work goes through Temporal)', () => {
+    const offenders = FILES.filter(({ code }) => /from\s*['"]date-fns-tz['"]/.test(code)).map(({ rel }) => rel);
+    expect(offenders, 'date-fns-tz was removed — use Temporal for zone-aware dates').toEqual([]);
   });
 
-  it('only recurrence.ts imports date-fns calendar functions (parseISO exempt)', () => {
-    const offenders: string[] = [];
-    for (const { rel, code } of FILES) {
-      if (DATEFNS_ALLOWLIST.includes(rel)) continue;
-      const m = code.match(/import\s*(?:type\s+)?\{([^}]*)\}\s*from\s*['"]date-fns['"]/);
-      if (!m) continue;
-      const names = m[1]
-        .split(',')
-        .map((n) => n.replace(/\s+as\s+\w+/, '').replace(/\btype\b/, '').trim())
-        .filter(Boolean);
-      if (names.some((n) => !DATEFNS_EXEMPT_NAMES.has(n))) offenders.push(`${rel} (${names.join(', ')})`);
-    }
-    expect(offenders, 'date-fns calendar functions imported outside recurrence.ts').toEqual([]);
+  it('nothing imports date-fns (calendar arithmetic goes through Temporal.PlainDate)', () => {
+    const offenders = FILES.filter(({ code }) => /from\s*['"]date-fns['"]/.test(code)).map(({ rel }) => rel);
+    expect(offenders, 'date-fns was removed — its helpers read machine-local components').toEqual([]);
+  });
+
+  it('no toZonedTime / fromZonedTime identifier survives anywhere', () => {
+    // Belt-and-braces alongside the import bans: catches a re-export or a copy-paste
+    // of the zoned-Date helper regardless of where it claims to come from.
+    const offenders = FILES.filter(({ code }) => /\b(toZonedTime|fromZonedTime)\b/.test(code)).map(({ rel }) => rel);
+    expect(offenders, 'the zoned-Date helper is gone — do not reintroduce it').toEqual([]);
   });
 
   it('getNow no longer exists anywhere', () => {
     const offenders = FILES.filter(({ code }) => /\bgetNow\b/.test(code)).map(({ rel }) => rel);
-    expect(offenders, 'getNow was deleted in Stage 4 — do not reintroduce it').toEqual([]);
+    expect(offenders, 'getNow was deleted — do not reintroduce it').toEqual([]);
   });
 
   it('no getUTC* getter is read anywhere in the date code', () => {
     // Reading getUTCHours()/getUTCDate() off a value is the tell of the old bug:
     // a zoned Date carries the wall clock in its *local* components, so the UTC
-    // getters return a shifted answer. We work in ISO strings instead.
+    // getters return a shifted answer. We read wall-clock fields off Temporal instead.
     const offenders = FILES.filter(({ code }) =>
       /\.getUTC(Hours|Minutes|Date|Day|Month|FullYear)\s*\(/.test(code)
     ).map(({ rel }) => rel);
-    expect(offenders, 'getUTC* getter found — read wall-clock values as ISO strings instead').toEqual([]);
+    expect(offenders, 'getUTC* getter found — read wall-clock fields off Temporal instead').toEqual([]);
   });
 });

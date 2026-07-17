@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach, beforeEach, vi } from 'vitest';
-import { fromZonedTime } from 'date-fns-tz';
+import { Temporal } from 'temporal-polyfill';
 import { hasNewMoonSince, getMoonPhaseIconName } from './moonPhase';
 import { parseDate } from './dateUtils';
 import type { TimeZoneSettings } from './timeZoneSettings';
@@ -49,12 +49,15 @@ const KOLKATA: TimeZoneSettings = { timezone: 'Asia/Kolkata', dayBoundaryHour: 4
  * Pin the wall clock. `getToday` reads `new Date()`, so this drives it honestly
  * without mocking `./dateUtils`.
  *
- * Noon in the *user's* zone, resolved through `fromZonedTime` rather than a
- * hardcoded offset: a literal like `-04:00` silently means the wrong day either
- * side of a DST change.
+ * Noon in the *user's* zone, resolved through Temporal rather than a hardcoded
+ * offset: a literal like `-04:00` silently means the wrong day either side of a DST
+ * change.
  */
 function setToday(iso: string, settings: TimeZoneSettings) {
-  vi.setSystemTime(fromZonedTime(`${iso}T12:00:00`, settings.timezone));
+  const epochMs = Temporal.PlainDateTime.from(`${iso}T12:00:00`)
+    .toZonedDateTime(settings.timezone)
+    .epochMilliseconds;
+  vi.setSystemTime(epochMs);
 }
 
 beforeEach(() => {

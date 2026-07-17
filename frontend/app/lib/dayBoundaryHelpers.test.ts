@@ -14,12 +14,12 @@ const nyc = (dayBoundaryHour: number): TimeZoneSettings => ({
 // This suite deliberately does NOT mock ./dateUtils.
 //
 // It used to, and the mock is what let a real bug live here for months: it stubbed
-// toZonedTime as the identity function and toISODate as a reader of UTC components,
-// which is only true when the timezone *and* the machine are both UTC. Under that
-// mock the implementation could read getUTCHours() off a zoned Date — the wall clock
-// actually lives in the *local* components — and every test still passed. CI runs UTC,
-// so CI agreed. The New York cases below are the ones that would have caught it, and
-// they only mean anything against the real date-fns-tz conversion.
+// the zone conversion as the identity function and toISODate as a reader of UTC
+// components, which is only true when the timezone *and* the machine are both UTC.
+// Under that mock the implementation could read the wall clock off the wrong field
+// and every test still passed. CI runs UTC, so CI agreed. The New York cases below
+// are the ones that would have caught it, and they only mean anything against the
+// real (Temporal-backed) timezone conversion.
 //
 // These assertions must hold whatever timezone the machine running them is in.
 
