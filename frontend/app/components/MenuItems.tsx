@@ -51,7 +51,7 @@ export default function MenuItems() {
         </li>
       )}
       <li>
-        <ThemeToggle />
+        <LogoutButton />
         <Link
           id="settings-link"
           href="/settings"
@@ -62,7 +62,7 @@ export default function MenuItems() {
         >
           <GearIcon size={30} weight="regular" />
         </Link>
-        <LogoutButton />
+        <ThemeToggle />
       </li>
     </>
   );

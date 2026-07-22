@@ -44,8 +44,7 @@ body {
 
 header {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  justify-content: space-between;
+  grid-template-columns: 1fr;
   align-items: start;
   padding: 1rem;
   > *:first-child {
@@ -53,16 +52,6 @@ header {
     display: flex;
     gap: 1rem;
     align-items: center;
-  }
-  > *:nth-child(2) {
-    justify-self: end;
-  }
-}
-
-
-.header-icon {
-  @media screen and (max-width: 500px) {
-    display: none;
   }
 }
 
@@ -83,6 +72,11 @@ hr {
   z-index: 5;
   ul.menu {
     min-width: 320px;
+    /* Anchor the absolutely-positioned footer row below to the menu panel.
+       .drawer-side is fixed and spans the whole viewport (it holds the
+       overlay), so without this a right-aligned footer would land against the
+       window's right edge instead of the menu's. */
+    position: relative;
   }
   .actions-drawer {
     width: 100%;
@@ -127,10 +121,18 @@ hr {
     justify-content: space-between;
   }
 
-  li:last-of-type:not([data-slate-node="element"]) {
+  /* The main menu's footer icon row. Scoped to `ul.menu > li` on purpose: this
+     used to be a bare `li:last-of-type` under .drawer-side, which also matches
+     the *task actions* drawer — .drawer-side is both drawers. Every list in
+     there lost its last row to this rule (the worlds list, the views list, and
+     each view's last section, all yanked to the drawer's bottom corner and
+     absolutely positioned). The old `:not([data-slate-node="element"])` was the
+     previous casualty being patched rather than scoped; correct scoping makes it
+     unnecessary. */
+  ul.menu > li:last-of-type {
     position: absolute;
     bottom: 1rem;
-    left: 1rem;
+    right: 1rem;
     display: flex;
     flex-wrap: nowrap;
     gap: 1rem;
@@ -145,6 +147,7 @@ hr {
 @import "./page-task.css";
 @import "./page-practice.css";
 @import "./settings.css";
+@import "./managers.css";
 @import "./charts.css";
 
 @import "./print.css";

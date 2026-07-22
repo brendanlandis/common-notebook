@@ -1,4 +1,3 @@
-import { ListIcon } from "@phosphor-icons/react/dist/ssr";
 import MenuItems from "../components/MenuItems";
 import HeaderContent from "../components/HeaderContent";
 import TaskActionsDrawer from "../components/TaskActionsDrawer";
@@ -59,7 +58,7 @@ export default async function MainLayout({
               className="drawer-toggle"
             />
             <div className="drawer-content">
-              <div className="drawer drawer-end">
+              <div className="drawer">
                 <input
                   id="mainMenu"
                   type="checkbox"
@@ -68,15 +67,14 @@ export default async function MainLayout({
                 <div className="drawer-content">
                   <header>
                     <div>
-                      <div className="header-icon">
+                      <label
+                        htmlFor="mainMenu"
+                        aria-label="open menu"
+                        className="header-icon drawer-button"
+                      >
                         <HeaderIcon />
-                      </div>
-                      <HeaderContent />
-                    </div>
-                    <div>
-                      <label htmlFor="mainMenu" className="drawer-button">
-                        <ListIcon size={40} weight="regular" />
                       </label>
+                      <HeaderContent />
                     </div>
                   </header>
                   <main className="container" id="main-container">

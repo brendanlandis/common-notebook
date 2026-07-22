@@ -24,6 +24,8 @@ vi.mock("@/app/components/MoonPhaseIcon", () => ({ default: () => null }));
 vi.mock("@phosphor-icons/react", () => ({
   PlusCircleIcon: () => null,
   FolderSimplePlusIcon: () => null,
+  PlanetIcon: () => null,
+  SquaresFourIcon: () => null,
 }));
 
 import HeaderContent from "./HeaderContent";

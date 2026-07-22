@@ -2,12 +2,14 @@
 
 import { createContext, useContext, useState, ReactNode } from 'react';
 
-type DrawerContent = 'task' | 'project' | null;
+type DrawerContent = 'task' | 'project' | 'worlds' | 'views' | null;
 
 interface TaskActionsContextType {
   drawerContent: DrawerContent;
   openTaskForm: () => void;
   openProjectForm: () => void;
+  openWorlds: () => void;
+  openViews: () => void;
   closeDrawer: () => void;
 }
 
@@ -16,24 +18,19 @@ const TaskActionsContext = createContext<TaskActionsContextType | undefined>(und
 export function TaskActionsProvider({ children }: { children: ReactNode }) {
   const [drawerContent, setDrawerContent] = useState<DrawerContent>(null);
 
-  const openTaskForm = () => {
-    setDrawerContent('task');
-    // Open drawer
+  const open = (content: Exclude<DrawerContent, null>) => {
+    setDrawerContent(content);
     const checkbox = document.getElementById('taskActionsDrawer') as HTMLInputElement;
     if (checkbox) {
       checkbox.checked = true;
     }
   };
-  
-  const openProjectForm = () => {
-    setDrawerContent('project');
-    // Open drawer
-    const checkbox = document.getElementById('taskActionsDrawer') as HTMLInputElement;
-    if (checkbox) {
-      checkbox.checked = true;
-    }
-  };
-  
+
+  const openTaskForm = () => open('task');
+  const openProjectForm = () => open('project');
+  const openWorlds = () => open('worlds');
+  const openViews = () => open('views');
+
   const closeDrawer = () => {
     // Close drawer immediately
     const checkbox = document.getElementById('taskActionsDrawer') as HTMLInputElement;
@@ -47,7 +44,7 @@ export function TaskActionsProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <TaskActionsContext.Provider value={{ drawerContent, openTaskForm, openProjectForm, closeDrawer }}>
+    <TaskActionsContext.Provider value={{ drawerContent, openTaskForm, openProjectForm, openWorlds, openViews, closeDrawer }}>
       {children}
     </TaskActionsContext.Provider>
   );

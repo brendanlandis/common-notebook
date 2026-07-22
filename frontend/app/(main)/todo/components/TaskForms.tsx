@@ -5,6 +5,8 @@ import { usePathname } from "next/navigation";
 import { createPortal } from "react-dom";
 import TaskForm from "./TaskForm";
 import ProjectForm from "./ProjectForm";
+import WorldsManager from "@/app/components/WorldsManager";
+import ViewsManager from "@/app/components/ViewsManager";
 import { useTaskActions } from "@/app/contexts/TaskActionsContext";
 import { useTaskData } from "../contexts/TaskDataContext";
 
@@ -61,6 +63,12 @@ export default function TaskForms() {
           />,
           drawerContainer
         )}
+
+      {/* The managers own their data through useWorlds/useViews, so unlike the
+          forms above they need no props from TaskDataContext. */}
+      {drawerContent === "worlds" && createPortal(<WorldsManager />, drawerContainer)}
+
+      {drawerContent === "views" && createPortal(<ViewsManager />, drawerContainer)}
     </>
   );
 }

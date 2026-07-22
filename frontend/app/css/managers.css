@@ -1,0 +1,198 @@
+/* Worlds & Views managers.
+   These moved out of the (up to 1600px wide) settings page into the 500px task
+   actions drawer. Nothing here existed before — the managers were entirely
+   unstyled, which only read acceptably because the settings page was wide
+   enough to keep each view section on one line. At drawer width the same markup
+   wraps into an undifferentiated pile, so sections are laid out as stacked
+   labelled fields inside a bordered card. */
+
+.manager {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.manager-list,
+.view-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* Every sortable row is `grid: handle | content` so the handle keeps its own
+   column and the content can be a one-liner (worlds) or a stack (views). */
+.manager-row,
+.view-row,
+.view-section-row {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: start;
+  gap: 0.5rem;
+}
+
+/* handle | name | delete — a world row has three children, so the shared
+   two-column template above would wrap the delete button onto its own line. */
+.manager-row {
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+}
+
+.manager-row input[type="text"] {
+  min-width: 0;
+}
+
+/* dnd-kit sets transform/transition inline; this is only the lifted look. */
+.is-dragging {
+  opacity: 0.85;
+  position: relative;
+  z-index: 10;
+}
+
+.drag-handle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.25rem 0;
+  background: transparent;
+  border: none;
+  cursor: grab;
+  touch-action: none; /* let dnd-kit's pointer sensor own the gesture on touch */
+  color: var(--primary-color-light, currentColor);
+  &:active {
+    cursor: grabbing;
+  }
+  &:disabled {
+    opacity: 0.3;
+    cursor: default;
+  }
+}
+
+/* --- views ------------------------------------------------------------- */
+
+.view-row {
+  padding: 0.75rem;
+  border: 1px solid var(--background-light);
+  border-radius: 0.5rem;
+}
+
+.view-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.view-row-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.view-row-header input[type="text"] {
+  flex: 1 1 8rem;
+  min-width: 0;
+}
+
+/* Sections collapse so view rows stay compact and near-uniform in height —
+   see the note in ViewsManager: tall rows break keyboard reordering. */
+.view-sections-disclosure > .sections-toggle {
+  cursor: pointer;
+  font-size: 0.85em;
+  opacity: 0.75;
+  padding: 0.15rem 0;
+  background: transparent;
+  border: none;
+  text-align: left;
+}
+
+.view-sections-disclosure > .sections-toggle::before {
+  content: "▸ ";
+}
+
+.view-sections-disclosure > .sections-toggle[aria-expanded="true"]::before {
+  content: "▾ ";
+}
+
+.view-sections-disclosure > *:not(.sections-toggle) {
+  margin-top: 0.5rem;
+}
+
+.view-section-row {
+  padding: 0.5rem;
+  border-left: 3px solid var(--background-light);
+  background: var(--background-lighter, transparent);
+  border-radius: 0.25rem;
+}
+
+/* The stack that replaces the old single row of ~13 inline controls. */
+.view-section-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.view-section-fields .field {
+  display: grid;
+  grid-template-columns: 6.5rem 1fr;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.view-section-fields .field > span {
+  font-size: 0.85em;
+  opacity: 0.75;
+}
+
+.view-section-fields .field input,
+.view-section-fields .field select {
+  min-width: 0;
+  width: 100%;
+}
+
+.view-section-worlds {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  padding-left: 6.5rem;
+}
+
+.settings-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.view-section-row .remove-section {
+  align-self: flex-end;
+}
+
+/* --- add rows ---------------------------------------------------------- */
+
+.manager-add {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.manager-add input[type="text"] {
+  flex: 1 1 8rem;
+  min-width: 0;
+}
+
+/* Narrow drawer (it goes full-width under 500px): drop the label column so
+   fields use the full width rather than squeezing selects into a sliver. */
+@media screen and (max-width: 420px) {
+  .view-section-fields .field {
+    grid-template-columns: 1fr;
+    gap: 0.15rem;
+  }
+  .view-section-worlds {
+    padding-left: 0;
+  }
+}

@@ -8,7 +8,12 @@ import { useViews } from "../hooks/useViews";
 import { useStuffProjects } from "../contexts/StuffProjectsContext";
 import { usePractice } from "../contexts/PracticeContext";
 import { useTaskActions } from "../contexts/TaskActionsContext";
-import { PlusCircleIcon, FolderSimplePlusIcon } from "@phosphor-icons/react";
+import {
+  PlusCircleIcon,
+  FolderSimplePlusIcon,
+  PlanetIcon,
+  SquaresFourIcon,
+} from "@phosphor-icons/react";
 import MoonPhaseIcon from "./MoonPhaseIcon";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiSend, swallow } from "../lib/apiFetch";
@@ -19,7 +24,7 @@ export default function HeaderContent() {
   const { views } = useViews();
   const { stuffProjectsEnabled } = useStuffProjects();
   const { selectedPracticeType, setSelectedPracticeType } = usePractice();
-  const { openTaskForm, openProjectForm } = useTaskActions();
+  const { openTaskForm, openProjectForm, openWorlds, openViews } = useTaskActions();
   const queryClient = useQueryClient();
 
   // Resetting the moon phase changes which tasks are due, so the lists have to be
@@ -70,6 +75,20 @@ export default function HeaderContent() {
           data-tip="add project"
         >
           <FolderSimplePlusIcon size={25} />
+        </button>
+        <button
+          onClick={openWorlds}
+          className="tooltip tooltip-bottom"
+          data-tip="worlds"
+        >
+          <PlanetIcon size={25} />
+        </button>
+        <button
+          onClick={openViews}
+          className="tooltip tooltip-bottom"
+          data-tip="views"
+        >
+          <SquaresFourIcon size={25} />
         </button>
         <button
           className="moon-phase-icon tooltip tooltip-bottom"
