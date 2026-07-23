@@ -32,7 +32,7 @@ export default function MenuItems() {
             id="settings-link"
             href="/settings"
             onClick={closeDrawer}
-            className="tooltip"
+            className="tooltip tooltip-bottom"
             data-tip="settings"
             aria-label="settings"
           >

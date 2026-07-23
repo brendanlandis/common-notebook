@@ -42,7 +42,7 @@ export default function ThemeToggle() {
       onClick={cycleTheme}
       id="themeToggle"
       aria-label={`${choice} theme`}
-      className="tooltip"
+      className="tooltip tooltip-bottom"
       data-tip={`${choice} theme`}
     >
       <CurrentIcon size={25} weight="regular" />

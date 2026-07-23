@@ -37,7 +37,10 @@ export default function LogoutButton() {
       onClick={handleLogout}
       aria-label="logout"
       id="logout-button"
-      className="tooltip"
+      // tooltip-bottom shows it below the icon; --tt-trans is daisyUI's tooltip
+      // X-translate (default -50% = centered) — nudge it right so the leftmost
+      // icon's tooltip doesn't run off the drawer edge.
+      className="tooltip tooltip-bottom [--tt-trans:calc(-50%_+_0.9rem)]"
       data-tip="logout"
     >
       <PlugsIcon size={25} weight="regular" />

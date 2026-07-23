@@ -158,6 +158,14 @@ hr {
       padding: 0;
     }
   }
+
+  /* The logout tooltip bubble is nudged right via --tt-trans (see LogoutButton)
+     so it clears the drawer's left edge. daisyUI shares --tt-trans between the
+     bubble and its tail, so re-center only the tail here — nudging the triangle
+     back the other way — to keep it pointing at the icon. */
+  #logout-button.tooltip-bottom::after {
+    transform: translateX(-50%) translateY(var(--tt-pos, -0.25rem)) rotate(180deg);
+  }
 }
 
 @import "./page-login.css";
