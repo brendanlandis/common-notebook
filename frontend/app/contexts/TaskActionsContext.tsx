@@ -2,12 +2,13 @@
 
 import { createContext, useContext, useState, ReactNode } from 'react';
 
-type DrawerContent = 'task' | 'project' | 'worlds' | 'views' | null;
+type DrawerContent = 'task' | 'project' | 'projects' | 'worlds' | 'views' | null;
 
 interface TaskActionsContextType {
   drawerContent: DrawerContent;
   openTaskForm: () => void;
   openProjectForm: () => void;
+  openManageProjects: () => void;
   openWorlds: () => void;
   openViews: () => void;
   closeDrawer: () => void;
@@ -28,6 +29,7 @@ export function TaskActionsProvider({ children }: { children: ReactNode }) {
 
   const openTaskForm = () => open('task');
   const openProjectForm = () => open('project');
+  const openManageProjects = () => open('projects');
   const openWorlds = () => open('worlds');
   const openViews = () => open('views');
 
@@ -44,7 +46,7 @@ export function TaskActionsProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <TaskActionsContext.Provider value={{ drawerContent, openTaskForm, openProjectForm, openWorlds, openViews, closeDrawer }}>
+    <TaskActionsContext.Provider value={{ drawerContent, openTaskForm, openProjectForm, openManageProjects, openWorlds, openViews, closeDrawer }}>
       {children}
     </TaskActionsContext.Provider>
   );

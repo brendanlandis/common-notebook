@@ -34,7 +34,9 @@ export async function GET(req: NextRequest) {
 
     while (hasMore) {
       const response = await fetch(
-        `${STRAPI_API_URL}/api/tasks?filters[completed][$eq]=false&filters[long][$eq]=true&populate=project&pagination[pageSize]=100&pagination[page]=${page}`,
+        // $or keeps incidentals (null project) while excluding tasks whose
+        // project is complete — see the note in app/api/tasks/route.ts.
+        `${STRAPI_API_URL}/api/tasks?filters[completed][$eq]=false&filters[long][$eq]=true&filters[$or][0][project][id][$null]=true&filters[$or][1][project][complete][$eq]=false&populate=project&pagination[pageSize]=100&pagination[page]=${page}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,

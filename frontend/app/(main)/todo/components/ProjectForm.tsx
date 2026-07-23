@@ -4,7 +4,7 @@ import { useForm, SubmitHandler, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useState } from "react";
-import type { Project, ProjectImportance, StrapiBlock } from "@/app/types/index";
+import type { Project, StrapiBlock } from "@/app/types/index";
 import RichTextEditor from "@/app/components/RichTextEditor";
 import { slugify } from "@/app/lib/slugify";
 import { useWorlds } from "@/app/hooks/useWorlds";
@@ -14,16 +14,11 @@ const schema = z.object({
   description: z.array(z.any()).optional(),
   world: z.string().optional(), // a world documentId ("" = no world)
   importance: z.enum(["normal", "top of mind", "later"]),
-  // `default`, not `normal` — that is importance's ordinary value. These must
-  // match the Strapi enum or the save 400s.
-  projectType: z.enum([
-    "default",
-    "chores",
-    "wishlist",
-    "errands",
-    "in the mail",
-    "buy stuff",
-  ]),
+  // The form exposes only ordinary vs chores as a checkbox. The other Strapi
+  // projectType values (wishlist / errands / in the mail / buy stuff) belong
+  // exclusively to "stuff"-world projects and are managed elsewhere, so they are
+  // hidden here. On submit, chores → "chores", otherwise → "default".
+  chores: z.boolean(),
 });
 
 type ProjectFormInputs = z.infer<typeof schema>;
@@ -56,8 +51,8 @@ export default function ProjectForm({
       description: project?.description || [],
       world: project?.world?.documentId ?? "",
       importance: project?.importance || "normal",
-      // Most existing rows store null rather than 'default'; both mean ordinary.
-      projectType: project?.projectType || "default",
+      // Both null and 'default' mean ordinary; only 'chores' checks the box.
+      chores: project?.projectType === "chores",
     },
   });
 
@@ -87,7 +82,7 @@ export default function ProjectForm({
       description: filteredDescription,
       world: data.world,
       importance: data.importance,
-      projectType: data.projectType,
+      projectType: data.chores ? "chores" : "default",
     };
 
     onSubmit(payload);
@@ -137,15 +132,10 @@ export default function ProjectForm({
       </div>
 
       <div>
-        <label htmlFor="projectType">type</label>
-        <select id="projectType" {...register("projectType")}>
-          <option value="default">default</option>
-          <option value="chores">chores</option>
-          <option value="wishlist">wishlist</option>
-          <option value="errands">errands</option>
-          <option value="in the mail">in the mail</option>
-          <option value="buy stuff">buy stuff</option>
-        </select>
+        <label className="settings-checkbox" htmlFor="chores">
+          <input id="chores" type="checkbox" {...register("chores")} />
+          chores
+        </label>
       </div>
 
       <div>

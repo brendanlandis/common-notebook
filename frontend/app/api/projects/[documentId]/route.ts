@@ -22,6 +22,13 @@ export async function PUT(
 
     const body = await req.json();
 
+    // Stamp/clear completedAt here rather than trust the client's clock, so the
+    // Revive list's sort has one authoritative time. Only touched when `complete`
+    // is present in the write — an ordinary edit (name, world, …) leaves it be.
+    const write = { ...body };
+    if (body.complete === true) write.completedAt = new Date().toISOString();
+    else if (body.complete === false) write.completedAt = null;
+
     // Only one project may be "top of mind" at a time. The ids come back so the
     // response can name them: these rows change without the client ever asking,
     // and it has no other way to learn they were demoted.
@@ -36,7 +43,7 @@ export async function PUT(
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ data: toStrapiProjectWrite(body) }),
+        body: JSON.stringify({ data: toStrapiProjectWrite(write) }),
       }
     );
 

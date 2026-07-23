@@ -229,7 +229,9 @@ function sortSectionsByCreation(sections: Section[]): Section[] {
 
 // Order project columns by importance tier: top of mind → priority (pN) →
 // normal → later, creation date within each tier (pN by number, then creation).
-function orderProjectColumns(projects: Project[]): Project[] {
+// Exported so the Manage Projects drawer can order each world's projects the
+// same way the task views do.
+export function orderProjectColumns(projects: Project[]): Project[] {
   const topOfMind: Project[] = [];
   const priority: Project[] = [];
   const normal: Project[] = [];

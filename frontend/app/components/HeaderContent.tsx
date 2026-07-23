@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { usePathname } from "next/navigation";
 import LayoutSelector from "../(main)/todo/components/LayoutSelector";
 import PracticeSelector from "../(main)/practice/components/PracticeSelector";
@@ -11,8 +12,11 @@ import { useTaskActions } from "../contexts/TaskActionsContext";
 import {
   PlusCircleIcon,
   FolderSimplePlusIcon,
+  FoldersIcon,
   PlanetIcon,
   SquaresFourIcon,
+  CaretLeftIcon,
+  CaretRightIcon,
 } from "@phosphor-icons/react";
 import MoonPhaseIcon from "./MoonPhaseIcon";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -24,8 +28,14 @@ export default function HeaderContent() {
   const { views } = useViews();
   const { stuffProjectsEnabled } = useStuffProjects();
   const { selectedPracticeType, setSelectedPracticeType } = usePractice();
-  const { openTaskForm, openProjectForm, openWorlds, openViews } = useTaskActions();
+  const { openTaskForm, openProjectForm, openManageProjects, openWorlds, openViews } =
+    useTaskActions();
   const queryClient = useQueryClient();
+
+  // The "manage" buttons (worlds, views, manage projects) are set-and-forget
+  // config, so they hide behind a small caret to keep the everyday actions (add
+  // task, add project, declutter) uncluttered — revealed on hover/focus.
+  const [showManage, setShowManage] = useState(false);
 
   // Resetting the moon phase changes which tasks are due, so the lists have to be
   // re-read. This header sits outside TaskDataProvider and so had no way to call
@@ -77,26 +87,56 @@ export default function HeaderContent() {
           <FolderSimplePlusIcon size={25} />
         </button>
         <button
-          onClick={openWorlds}
-          className="tooltip tooltip-bottom"
-          data-tip="worlds"
-        >
-          <PlanetIcon size={25} />
-        </button>
-        <button
-          onClick={openViews}
-          className="tooltip tooltip-bottom"
-          data-tip="views"
-        >
-          <SquaresFourIcon size={25} />
-        </button>
-        <button
           className="moon-phase-icon tooltip tooltip-bottom"
           data-tip="declutter"
           onClick={handleResetMoonPhase}
         >
           <MoonPhaseIcon size={25} />
         </button>
+        <div
+          className="manage-cluster"
+          onMouseEnter={() => setShowManage(true)}
+          onMouseLeave={() => setShowManage(false)}
+          onFocus={() => setShowManage(true)}
+          onBlur={() => setShowManage(false)}
+        >
+          <button
+            className="manage-caret"
+            aria-label="more buttons"
+            aria-expanded={showManage}
+          >
+            {showManage ? (
+              <CaretLeftIcon size={16} weight="bold" />
+            ) : (
+              <CaretRightIcon size={16} weight="bold" />
+            )}
+          </button>
+          {showManage && (
+            <div className="manage-buttons">
+              <button
+                onClick={openManageProjects}
+                className="tooltip tooltip-bottom"
+                data-tip="manage projects"
+              >
+                <FoldersIcon size={25} />
+              </button>
+              <button
+                onClick={openWorlds}
+                className="tooltip tooltip-bottom"
+                data-tip="manage worlds"
+              >
+                <PlanetIcon size={25} />
+              </button>
+              <button
+                onClick={openViews}
+                className="tooltip tooltip-bottom"
+                data-tip="manage views"
+              >
+                <SquaresFourIcon size={25} />
+              </button>
+            </div>
+          )}
+        </div>
       </>
     );
   }

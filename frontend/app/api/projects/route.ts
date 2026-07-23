@@ -17,7 +17,15 @@ export async function GET(req: NextRequest) {
 
     // Was a single page of 100, which silently dropped project 101 onward.
     // Populate the world relation and expose it as `project.world`.
-    const projects = await fetchAllPages(token, '/api/projects?populate=worldRef');
+    // Exclude completed projects from the app-wide projects query. This keeps
+    // them out of everything driven by useProjects / grouped.projects — the New
+    // Task dropdown included — and out of task-view columns. Section 4 of the
+    // Manage Projects drawer fetches completed projects via its own paged route.
+    // (Backfill made `complete` non-null, so [$eq]=false is safe — no NULL rows.)
+    const projects = await fetchAllPages(
+      token,
+      '/api/projects?populate=worldRef&filters[complete][$eq]=false'
+    );
     return NextResponse.json({ success: true, data: projects.map(normalizeProjectWorld) });
   } catch (error) {
     console.error('Error fetching projects:', error);

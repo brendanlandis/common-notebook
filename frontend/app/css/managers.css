@@ -171,6 +171,97 @@
   align-self: flex-end;
 }
 
+/* --- projects manager -------------------------------------------------- */
+
+.pm-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.pm-section > h3 {
+  margin: 0;
+}
+
+.pm-tier {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.pm-tier > h4 {
+  margin: 0.25rem 0 0;
+  font-size: 0.9em;
+  opacity: 0.75;
+}
+
+/* title + action on one line, action pinned right */
+.pm-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.pm-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pm-empty {
+  font-size: 0.85em;
+  opacity: 0.6;
+  margin: 0;
+}
+
+.pm-note {
+  font-size: 0.85em;
+  opacity: 0.75;
+  margin: 0;
+}
+
+.pm-search {
+  width: 100%;
+  min-width: 0;
+}
+
+/* World accordion header in section 3. */
+.pm-world-toggle {
+  font-weight: 600;
+  opacity: 0.8;
+}
+
+.pm-more {
+  align-self: flex-start;
+  font-size: 0.85em;
+}
+
+/* Click-to-expand rows (section 3) and the Revive disclosure (section 4) reuse
+   the same ▸/▾ toggle as the views manager. */
+.pm-disclosure > .sections-toggle {
+  cursor: pointer;
+  font-size: 0.95em;
+  padding: 0.15rem 0;
+  background: transparent;
+  border: none;
+  text-align: left;
+  width: 100%;
+}
+
+.pm-disclosure > .sections-toggle::before {
+  content: "▸ ";
+}
+
+.pm-disclosure > .sections-toggle[aria-expanded="true"]::before {
+  content: "▾ ";
+}
+
+.pm-disclosure > *:not(.sections-toggle) {
+  margin-top: 0.5rem;
+}
+
 /* --- add rows ---------------------------------------------------------- */
 
 .manager-add {

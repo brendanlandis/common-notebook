@@ -59,6 +59,24 @@ header {
   border-radius: 50%;
 }
 
+/* The "manage" cluster (worlds / views / manage projects) sits in the header's
+   flex row, revealed on hover of the small caret. Both are flex rows so the
+   caret and the revealed buttons stay inline rather than stacking. */
+.manage-cluster,
+.manage-buttons {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+/* Smaller and bold, no tooltip — a quiet but legible affordance. */
+.manage-caret {
+  display: flex;
+  align-items: center;
+  opacity: 1;
+  cursor: pointer;
+}
+
 hr {
   width: 80%;
   margin: 3rem auto;

@@ -7,6 +7,7 @@ import TaskForm from "./TaskForm";
 import ProjectForm from "./ProjectForm";
 import WorldsManager from "@/app/components/WorldsManager";
 import ViewsManager from "@/app/components/ViewsManager";
+import ProjectsManager from "@/app/components/ProjectsManager";
 import { useTaskActions } from "@/app/contexts/TaskActionsContext";
 import { useTaskData } from "../contexts/TaskDataContext";
 
@@ -64,11 +65,13 @@ export default function TaskForms() {
           drawerContainer
         )}
 
-      {/* The managers own their data through useWorlds/useViews, so unlike the
-          forms above they need no props from TaskDataContext. */}
+      {/* The managers own their data through useWorlds/useViews/useManageProjects,
+          so unlike the forms above they need no props from TaskDataContext. */}
       {drawerContent === "worlds" && createPortal(<WorldsManager />, drawerContainer)}
 
       {drawerContent === "views" && createPortal(<ViewsManager />, drawerContainer)}
+
+      {drawerContent === "projects" && createPortal(<ProjectsManager />, drawerContainer)}
     </>
   );
 }

@@ -219,6 +219,8 @@ export interface Project {
   world?: World | null; // normalized from Strapi `worldRef` by the projects BFF
   importance?: ProjectImportance;
   projectType?: ProjectType;
+  complete?: boolean; // a "completed" project: hidden from the New Task dropdown and views
+  completedAt?: string | null; // stamped server-side when `complete` flips true
   createdAt: string;
   updatedAt: string;
   publishedAt: string;

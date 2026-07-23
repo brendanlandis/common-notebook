@@ -43,9 +43,18 @@ export async function GET(req: NextRequest) {
     const userKey = getUserIdFromAccessToken(token) ?? token;
     await runMoonPhaseResetIfDue(token, userKey);
 
+    // Exclude tasks belonging to a completed project, while KEEPING incidentals
+    // (null project). A project can be marked complete while it still has
+    // incomplete tasks (abandonment); those tasks would otherwise linger in
+    // views. The $or covers "no project OR project not complete" — a bare
+    // filters[project][complete] would drop incidentals, since a nested filter
+    // over a null relation matches nothing.
     const incomplete = await fetchAllPages(
       token,
-      '/api/tasks?filters[completed][$eq]=false&populate=project'
+      '/api/tasks?filters[completed][$eq]=false' +
+        '&filters[$or][0][project][id][$null]=true' +
+        '&filters[$or][1][project][complete][$eq]=false' +
+        '&populate=project'
     );
 
     const visibilityMinutes = await getVisibilityMinutes(token);
