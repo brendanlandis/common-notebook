@@ -59,6 +59,13 @@
       "relation": "manyToOne",
       "target": "api::world.world",
       "inversedBy": "projects"
+    },
+    "complete": {
+      "type": "boolean",
+      "default": false
+    },
+    "completedAt": {
+      "type": "datetime"
     }
   }
 }
