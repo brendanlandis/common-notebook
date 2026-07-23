@@ -40,7 +40,7 @@ export default function LogoutButton() {
       className="tooltip"
       data-tip="logout"
     >
-      <PlugsIcon size={30} weight="regular" />
+      <PlugsIcon size={25} weight="regular" />
     </button>
   );
 }

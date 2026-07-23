@@ -132,29 +132,28 @@ hr {
     }
   }
 
+  /* Header row of the main menu: the action icons (log out, settings, theme) on
+     the left, the close button on the right, vertically centered. */
   .main-menu-header {
     display: flex;
-    flex-direction: row-reverse;
+    flex-direction: row;
     flex-wrap: nowrap;
+    align-items: center;
     justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 3rem;
   }
 
-  /* The main menu's footer icon row. Scoped to `ul.menu > li` on purpose: this
-     used to be a bare `li:last-of-type` under .drawer-side, which also matches
-     the *task actions* drawer — .drawer-side is both drawers. Every list in
-     there lost its last row to this rule (the worlds list, the views list, and
-     each view's last section, all yanked to the drawer's bottom corner and
-     absolutely positioned). The old `:not([data-slate-node="element"])` was the
-     previous casualty being patched rather than scoped; correct scoping makes it
-     unnecessary. */
-  ul.menu > li:last-of-type {
-    position: absolute;
-    bottom: 1rem;
-    right: 1rem;
+  .menu-actions {
     display: flex;
     flex-wrap: nowrap;
+    align-items: center;
     gap: 1rem;
-    flex-direction: initial;
+    padding: 0;
+    &:hover {
+      background: transparent;
+      cursor: default;
+    }
     #settings-link {
       padding: 0;
     }

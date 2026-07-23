@@ -26,6 +26,20 @@ export default function MenuItems() {
   return (
     <>
       <li className="main-menu-header">
+        <div className="menu-actions">
+          <LogoutButton />
+          <Link
+            id="settings-link"
+            href="/settings"
+            onClick={closeDrawer}
+            className="tooltip"
+            data-tip="settings"
+            aria-label="settings"
+          >
+            <GearIcon size={25} weight="regular" />
+          </Link>
+          <ThemeToggle />
+        </div>
         <MenuClose />
       </li>
       {showHome && (
@@ -50,20 +64,6 @@ export default function MenuItems() {
           </Link>
         </li>
       )}
-      <li>
-        <LogoutButton />
-        <Link
-          id="settings-link"
-          href="/settings"
-          onClick={closeDrawer}
-          className="tooltip"
-          data-tip="settings"
-          aria-label="settings"
-        >
-          <GearIcon size={30} weight="regular" />
-        </Link>
-        <ThemeToggle />
-      </li>
     </>
   );
 }

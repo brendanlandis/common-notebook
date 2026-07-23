@@ -45,7 +45,7 @@ export default function ThemeToggle() {
       className="tooltip"
       data-tip={`${choice} theme`}
     >
-      <CurrentIcon size={30} weight="regular" />
+      <CurrentIcon size={25} weight="regular" />
     </button>
   );
 }
