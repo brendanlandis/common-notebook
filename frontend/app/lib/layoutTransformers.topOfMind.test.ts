@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { transformLayout } from './layoutTransformers';
-import type { Task, Project, LayoutRuleset } from '@/app/types/index';
+import type { Task, Project, LayoutRuleset, World } from '@/app/types/index';
 import * as dateUtils from './dateUtils';
 import type { TimeZoneSettings } from './timeZoneSettings';
 
@@ -200,5 +200,96 @@ describe('good morning — the top of mind tier', () => {
     );
 
     expect(sectionTaskIds(result)).toEqual(['t-soon']);
+  });
+});
+
+describe('good morning — a world-less top-of-mind project', () => {
+  // A project marked "top of mind" but assigned no world isn't placed by world
+  // scoping, so under any worldMode except "all" it used to vanish. In a dedicated
+  // top-of-mind section it must surface anyway — but that exemption must not leak
+  // into ordinary world-scoped views, and a top-of-mind project that DOES have an
+  // excluded world stays filtered.
+  beforeEach(() => {
+    vi.mocked(dateUtils.getToday).mockReturnValue(dateUtils.parseDate('2026-06-01', EST));
+  });
+
+  const world = (documentId: string, title: string): World => ({
+    id: documentId === 'w-dayjob' ? 4 : 2,
+    documentId,
+    title,
+    slug: title.replace(/\s+/g, '-'),
+    position: 0,
+    systemKey: null,
+  });
+  const dayJob = world('w-dayjob', 'day job');
+  const computer = world('w-computer', 'computer');
+  const worlds = [dayJob, computer];
+
+  const topOfMindSection = (worldMode: 'all' | 'only' | 'except', worldIds: string[]): LayoutRuleset => ({
+    slug: 'good-morning',
+    name: 'good morning',
+    layout: 'projects',
+    sections: [
+      { worldMode, worldIds, importance: 'soonAndTopOfMind', projectType: 'any', recurrence: 'nonRecurring', longOnly: false },
+    ],
+  });
+
+  const worldlessTopOfMind = createProjectMeta({ documentId: 'p-cn', importance: 'top of mind', world: null });
+
+  it('appears under an "except [day job]" top-of-mind section', () => {
+    const result = transformLayout(
+      data([column(worldlessTopOfMind, 't-cn')]),
+      topOfMindSection('except', ['w-dayjob']),
+      EST,
+      worlds
+    );
+    expect(sectionTaskIds(result)).toEqual(['t-cn']);
+  });
+
+  it('appears under an "only [computer]" top-of-mind section', () => {
+    const result = transformLayout(
+      data([column(worldlessTopOfMind, 't-cn')]),
+      topOfMindSection('only', ['w-computer']),
+      EST,
+      worlds
+    );
+    expect(sectionTaskIds(result)).toEqual(['t-cn']);
+  });
+
+  it('does NOT leak into an ordinary world-scoped view (importance "any", only [computer])', () => {
+    const anyImportanceView: LayoutRuleset = {
+      slug: 'computer',
+      name: 'computer',
+      layout: 'projects',
+      sections: [
+        { worldMode: 'only', worldIds: ['w-computer'], importance: 'any', projectType: 'any', recurrence: 'nonRecurring', longOnly: false },
+      ],
+    };
+    const result = transformLayout(data([column(worldlessTopOfMind, 't-cn')]), anyImportanceView, EST, worlds);
+    expect(sectionTaskIds(result)).toEqual([]);
+  });
+
+  it('does NOT appear in a "regular" tier section', () => {
+    const regularSection: LayoutRuleset = {
+      slug: 'x',
+      name: 'x',
+      layout: 'projects',
+      sections: [
+        { worldMode: 'all', worldIds: [], importance: 'regular', projectType: 'any', recurrence: 'nonRecurring', longOnly: false },
+      ],
+    };
+    const result = transformLayout(data([column(worldlessTopOfMind, 't-cn')]), regularSection, EST, worlds);
+    expect(sectionTaskIds(result)).toEqual([]);
+  });
+
+  it('leaves a top-of-mind project WITH an excluded world filtered out', () => {
+    const dayJobTopOfMind = createProjectMeta({ documentId: 'p-dj', importance: 'top of mind', world: dayJob });
+    const result = transformLayout(
+      data([column(dayJobTopOfMind, 't-dj')]),
+      topOfMindSection('except', ['w-dayjob']),
+      EST,
+      worlds
+    );
+    expect(sectionTaskIds(result)).toEqual([]);
   });
 });

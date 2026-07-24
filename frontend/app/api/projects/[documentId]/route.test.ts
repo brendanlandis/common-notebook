@@ -17,10 +17,15 @@ vi.mock('@/app/lib/projectImportance', () => ({
   demoteTopOfMindProjects: (...a: unknown[]) => demoteTopOfMindProjects(...a),
 }));
 
-vi.mock('@/app/lib/worldNormalize', () => ({
-  normalizeProjectWorld: (raw: unknown) => raw,
-  toStrapiProjectWrite: (body: unknown) => body,
-}));
+// Use the REAL toStrapiProjectWrite so this route test actually exercises the
+// write normalizer (identity-mocking it is what let the worldRef-wipe regression
+// hide). Only the response-shaping normalizeProjectWorld is stubbed.
+vi.mock('@/app/lib/worldNormalize', async () => {
+  const actual = await vi.importActual<typeof import('@/app/lib/worldNormalize')>(
+    '@/app/lib/worldNormalize'
+  );
+  return { ...actual, normalizeProjectWorld: (raw: unknown) => raw };
+});
 
 import { PUT } from './route';
 
@@ -74,6 +79,31 @@ describe('PUT /api/projects/[documentId]', () => {
 
     expect(demoteTopOfMindProjects).not.toHaveBeenCalled();
     await expect(res.json()).resolves.toMatchObject({ success: true, demoted: [] });
+  });
+
+  it('does not clear the world relation on an importance-only update', async () => {
+    // The reported data-loss bug: a partial PUT missing `world` must NOT send
+    // worldRef, or Strapi wipes the project's world.
+    await PUT(request({ importance: 'top of mind' }), params('target'));
+
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body);
+    expect('worldRef' in body.data).toBe(false);
+    expect(body.data).toMatchObject({ importance: 'top of mind' });
+  });
+
+  it('does not clear the world relation when completing a project', async () => {
+    await PUT(request({ complete: true }), params('target'));
+
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body);
+    expect('worldRef' in body.data).toBe(false);
+  });
+
+  it('still sets worldRef when the caller provides a world', async () => {
+    await PUT(request({ title: 'Target', world: 'w1' }), params('target'));
+
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body);
+    expect(body.data).toMatchObject({ title: 'Target', worldRef: 'w1' });
+    expect('world' in body.data).toBe(false);
   });
 
   it('never demotes for an unauthenticated caller', async () => {

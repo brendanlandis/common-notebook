@@ -124,7 +124,16 @@ function taskMatchesSection(
     if (!projectId || !ruleset.visibleProjects.includes(projectId)) return false;
   } else {
     const world = getTaskWorld(task);
-    const worldOk = world ? ctx.visibleWorldIds.has(world.documentId) : ctx.showIncidentals;
+    let worldOk = world ? ctx.visibleWorldIds.has(world.documentId) : ctx.showIncidentals;
+    // A project with no world can't be placed by world scoping. In a dedicated
+    // top-of-mind section, surface a world-less top-of-mind project anyway rather
+    // than dropping it — otherwise it vanishes under any worldMode except "all".
+    // Scoped to section.importance === "soonAndTopOfMind" so it never leaks into
+    // ordinary world-scoped views (which use "any"); a top-of-mind project that
+    // *has* an excluded world is left filtered.
+    if (!world && section.importance === "soonAndTopOfMind" && task.project?.importance === "top of mind") {
+      worldOk = true;
+    }
     if (!worldOk) return false;
   }
 

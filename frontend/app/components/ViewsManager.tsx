@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { View, ViewSection, ViewSectionInput, ViewLayout, WorldMode } from "@/app/types/index";
+import type { View, ViewSectionInput, ViewLayout, WorldMode } from "@/app/types/index";
 import { useViews } from "@/app/hooks/useViews";
 import { useWorlds } from "@/app/hooks/useWorlds";
 import {
@@ -13,6 +13,7 @@ import {
   RECURRENCE_OPTIONS,
 } from "@/app/lib/views";
 import { SortableProvider, SortableGroup, SortableRow, reorderIds } from "./SortableList";
+import { defaultSection, sectionToInput, viewSections } from "@/app/lib/viewSectionInput";
 
 // Create / rename / reorder / delete the user's task-list views, and compose
 // each from a layout engine + one or more filtered sections. The two review
@@ -26,27 +27,6 @@ import { SortableProvider, SortableGroup, SortableRow, reorderIds } from "./Sort
 // Section drag ids are namespaced `section:<viewId>:<index>` so that the nested
 // SortableContexts can't confuse one view's sections for another's, or for a
 // view row itself.
-
-const defaultSection = (): ViewSectionInput => ({
-  worldMode: "all",
-  worlds: [],
-  importance: "any",
-  projectType: "any",
-  recurrence: "both",
-  longOnly: false,
-});
-
-const sectionToInput = (s: ViewSection): ViewSectionInput => ({
-  name: s.name ?? undefined,
-  worldMode: s.worldMode,
-  worlds: s.worlds.map((w) => w.documentId),
-  importance: s.importance,
-  projectType: s.projectType,
-  recurrence: s.recurrence,
-  longOnly: s.longOnly,
-});
-
-const viewSections = (view: View): ViewSectionInput[] => view.sections.map(sectionToInput);
 
 const sectionId = (viewId: string, index: number) => `section:${viewId}:${index}`;
 
