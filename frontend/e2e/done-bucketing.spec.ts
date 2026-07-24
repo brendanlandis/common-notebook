@@ -117,7 +117,7 @@ test.describe('Done page day-boundary bucketing', () => {
     }
   });
 
-  test('changing the day boundary in /settings moves the grouping', async ({ page, request }) => {
+  test('changing the day boundary in the settings drawer moves the grouping', async ({ page, request }) => {
     const original = await getBoundary(request);
     const titleA = uniqueTitle('bnd-1am');
     const titleB = uniqueTitle('bnd-2pm');
@@ -136,8 +136,10 @@ test.describe('Done page day-boundary bucketing', () => {
       expect(await sectionHeadingOf(page, a)).toBe(await sectionHeadingOf(page, c));
       expect(await sectionHeadingOf(page, a)).not.toBe(await sectionHeadingOf(page, b));
 
-      // Move the boundary to midnight via the real settings control.
-      await page.goto('/settings');
+      // Move the boundary to midnight via the real settings control, now in the
+      // menu drawer: open the menu, then push the settings panel with the gear.
+      await page.locator('[aria-label="open menu"]').click();
+      await page.getByRole('button', { name: 'settings' }).click();
       const boundarySelect = page
         .locator('select')
         .filter({ has: page.locator('option[value="3"]') }); // only the boundary select has 0..23

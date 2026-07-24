@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import TimezoneManager from "@/app/components/TimezoneManager";
-import FaviconManager from "@/app/components/FaviconManager";
 import { saveVisibilityMinutesToStrapi } from "@/app/lib/completedTaskVisibilityConfig";
 import {
   fetchAutoDeclutterFromStrapi,
@@ -11,10 +10,10 @@ import {
 import { saveSystemSetting } from "@/app/lib/systemSettingsClient";
 import { useDateTimeSettings } from "@/app/contexts/DateTimeSettingsContext";
 
-export default function SettingsPage() {
+export default function SettingsPanel() {
   const [autoDeclutter, setAutoDeclutter] = useState<boolean>(true); // Default on
   // The day boundary and the visibility window are owned by
-  // DateTimeSettingsProvider (loaded server-side in the layout), so this page
+  // DateTimeSettingsProvider (loaded server-side in the layout), so this panel
   // edits them in place rather than keeping a second copy.
   const {
     timeZoneSettings,
@@ -97,59 +96,56 @@ export default function SettingsPage() {
   };
 
   return (
-    <>
-      <FaviconManager type="gear" />
-      <div className="settings-page">
-        <section className="settings-section">
-          <h2>timezone</h2>
-          <TimezoneManager />
+    <div className="settings-page">
+      <section className="settings-section">
+        <h2>timezone</h2>
+        <TimezoneManager />
 
-          <h2>task completion</h2>
-          <p>
-            How long do you want tasks to stay visible after you check them off?
-          </p>
-          <select
-            value={visibilityMinutes}
-            onChange={handleVisibilityChange}
+        <h2>task completion</h2>
+        <p>
+          How long do you want tasks to stay visible after you check them off?
+        </p>
+        <select
+          value={visibilityMinutes}
+          onChange={handleVisibilityChange}
+          disabled={isLoading || isSaving}
+        >
+          <option value="0">they should disappear right away</option>
+          <option value="5">5 mins</option>
+          <option value="15">15 mins</option>
+          <option value="60">an hour</option>
+          <option value="1440">a day</option>
+        </select>
+
+        <h2>day boundary</h2>
+        <p>What time does your day start and end?</p>
+        <select
+          value={dayBoundaryHour}
+          onChange={handleDayBoundaryChange}
+          disabled={isLoading || isSaving}
+        >
+          {Array.from({ length: 24 }, (_, i) => (
+            <option key={i} value={i}>
+              {formatHour(i)}
+            </option>
+          ))}
+        </select>
+
+        <h2>Auto-Declutter</h2>
+        <p>
+          Should the workspace auto-refresh (remove &quot;top of mind&quot;
+          flags, &quot;soon&quot; flags) every new moon?
+        </p>
+        <label className="settings-checkbox">
+          <input
+            type="checkbox"
+            className="checkbox"
+            checked={autoDeclutter}
+            onChange={handleAutoDeclutterChange}
             disabled={isLoading || isSaving}
-          >
-            <option value="0">they should disappear right away</option>
-            <option value="5">5 mins</option>
-            <option value="15">15 mins</option>
-            <option value="60">an hour</option>
-            <option value="1440">a day</option>
-          </select>
-
-          <h2>day boundary</h2>
-          <p>What time does your day start and end?</p>
-          <select
-            value={dayBoundaryHour}
-            onChange={handleDayBoundaryChange}
-            disabled={isLoading || isSaving}
-          >
-            {Array.from({ length: 24 }, (_, i) => (
-              <option key={i} value={i}>
-                {formatHour(i)}
-              </option>
-            ))}
-          </select>
-
-          <h2>Auto-Declutter</h2>
-          <p>
-            Should the workspace auto-refresh (remove &quot;top of mind&quot;
-            flags, &quot;soon&quot; flags) every new moon?
-          </p>
-          <label className="settings-checkbox">
-            <input
-              type="checkbox"
-              className="checkbox"
-              checked={autoDeclutter}
-              onChange={handleAutoDeclutterChange}
-              disabled={isLoading || isSaving}
-            />
-          </label>
-        </section>
-      </div>
-    </>
+          />
+        </label>
+      </section>
+    </div>
   );
 }

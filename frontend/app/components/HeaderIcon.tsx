@@ -4,8 +4,7 @@ import { usePathname } from 'next/navigation';
 import {
   BirdIcon,
   BroomIcon,
-  MetronomeIcon,
-  GearIcon
+  MetronomeIcon
 } from '@phosphor-icons/react';
 
 export default function HeaderIcon() {
@@ -21,11 +20,6 @@ export default function HeaderIcon() {
   // Task pages (index + per-world / per-project routes)
   if (pathname.startsWith('/todo')) {
     return <BroomIcon {...iconProps} />;
-  }
-
-  // Settings page
-  if (pathname === '/settings') {
-    return <GearIcon {...iconProps} />;
   }
 
   // Home or other pages

@@ -12,7 +12,11 @@ import LogoutButton from "./LogoutButton";
 import { soleDestination, visiblePages } from "@/app/lib/pages";
 import { useBetaAccess } from "@/app/hooks/useBetaAccess";
 
-export default function MenuItems() {
+export default function MenuItems({
+  onOpenSettings,
+}: {
+  onOpenSettings: () => void;
+}) {
   const { betaAccess } = useBetaAccess();
   const pages = visiblePages(betaAccess);
   // Home redirects to the sole destination, so a link to it would be a dead entry.
@@ -28,16 +32,16 @@ export default function MenuItems() {
       <li className="main-menu-header">
         <div className="menu-actions">
           <LogoutButton />
-          <Link
+          <button
             id="settings-link"
-            href="/settings"
-            onClick={closeDrawer}
+            type="button"
+            onClick={onOpenSettings}
             className="tooltip tooltip-bottom"
             data-tip="settings"
             aria-label="settings"
           >
             <GearIcon size={25} weight="regular" />
-          </Link>
+          </button>
           <ThemeToggle />
         </div>
         <MenuClose />
