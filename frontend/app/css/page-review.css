@@ -29,12 +29,28 @@
   margin: 2rem 0;
 }
 
+/* A project, over its pills.
+ *
+ * This started as a 0.9em label at 0.6 opacity — a caption, from when the
+ * heading was a recurrence type nobody needed to read. Now it's the thing that
+ * makes a long list navigable, so it's sized and contrasted like a heading:
+ * clearly subordinate to the section's h2, clearly not a footnote. (The global
+ * h3 is 2rem in the display face, which would compete with the section above
+ * it.) */
 .review-group {
-  margin: 1rem 0;
+  margin: 1.25rem 0;
 
   h3 {
-    opacity: 0.6;
-    font-size: 0.9em;
+    /* Body face, not the display one. A project name is a label on a group of
+     * things, and the display face is doing enough work at h1 and h2 — a third
+     * size of it here turns the page into a stack of signs. */
+    font-family: inherit;
+    font-variation-settings: normal;
+    font-weight: 600;
+    font-size: 1.15rem;
+    line-height: 1.3;
+    margin: 0 0 0.35rem;
+    opacity: 0.8;
   }
 }
 

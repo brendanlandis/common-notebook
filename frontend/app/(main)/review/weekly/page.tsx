@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTasks } from "@/app/(main)/todo/hooks/useTasks";
 import { useDateTimeSettings } from "@/app/contexts/DateTimeSettingsContext";
 import { useReviewCadence } from "@/app/hooks/useReviewCadence";
@@ -10,7 +10,7 @@ import {
   type ReviewPeriodMode,
 } from "@/app/lib/reviewCycle";
 import { cadenceIsUsable, cycleNoun } from "@/app/lib/reviewCadence";
-import { buildReviewLists } from "@/app/lib/reviewLists";
+import { buildReviewLists, type ProjectGroup } from "@/app/lib/reviewLists";
 import { getToday, toISODate } from "@/app/lib/dateUtils";
 import { useReviewCovering, useSaveReview } from "../hooks/useReview";
 import { useCalendarEvents, useSetDecision } from "../hooks/useCalendarEvents";
@@ -19,18 +19,49 @@ import TaskPickList from "../components/TaskPickList";
 import WeekCalendar from "../components/WeekCalendar";
 
 /**
- * The review itself: look at what's on your plate, pick a few things, commit.
+ * One project's worth of pills, under its name.
  *
- * The output is a `review` row holding a period and a task selection. The daily
- * page reads it back. There is no scoring, no carry-over from last time, and no
- * "leftovers" list — each review opens on the same blank slate, which is what
- * keeps it a planning ritual rather than a report card.
+ * The heading carries the project, so the pills don't repeat it — that muted
+ * second label on every pill was a good part of what made the ungrouped list
+ * dense. Tasks with no project sit under "incidentals", which is what this app
+ * has always called them.
+ */
+function ProjectGroupList({
+  group,
+  selected,
+  onToggle,
+}: {
+  group: ProjectGroup;
+  selected: Set<string>;
+  onToggle: (documentId: string) => void;
+}) {
+  return (
+    <div className="review-group">
+      <h3>{group.projectTitle ?? "incidentals"}</h3>
+      <TaskPickList
+        tasks={group.tasks}
+        selected={selected}
+        onToggle={onToggle}
+        showProject={false}
+      />
+    </div>
+  );
+}
+
+/**
+ * The review itself: look at what's on your plate and pick a few things.
+ *
+ * The output is a `review` row holding a period and a task selection, written as
+ * you pick rather than on a submit — see `toggle`. The daily page reads it back.
+ * There is no scoring, no carry-over from last time, and no "leftovers" list —
+ * each review opens on the same blank slate, which is what keeps it a planning
+ * ritual rather than a report card.
  */
 export default function WeeklyReviewPage() {
   const { timeZoneSettings } = useDateTimeSettings();
   const { tasks, loading: tasksLoading } = useTasks();
   const { cadence, loading: cadenceLoading } = useReviewCadence();
-  const { createReview, updateReview, isSaving, error } = useSaveReview();
+  const { createReview, updateReview, error } = useSaveReview();
 
   /**
    * The mode, chosen or defaulted.
@@ -51,7 +82,10 @@ export default function WeeklyReviewPage() {
   const setMode = setChosenMode;
 
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [committed, setCommitted] = useState(false);
+  // Whether the last pick actually reached the server. Not "has the user picked
+  // something" — with no button to press, this line is the only acknowledgement
+  // there is, so it must not appear until the write has landed.
+  const [saved, setSaved] = useState(false);
   // Ignored events stay out of the way by default. They were kept on the grid so
   // you could change your mind about one, but a week's worth of struck-through
   // things you already dismissed is most of what you'd be looking at — the
@@ -108,33 +142,87 @@ export default function WeeklyReviewPage() {
   );
 
   // An existing review for this period means we're re-running one; its selection
-  // seeds the checkboxes rather than starting empty, and committing updates it
+  // seeds the pills rather than starting empty, and further picks update it
   // instead of leaving two reviews covering the same days.
-  const { review: existing } = useReviewCovering(period?.periodStart ?? null);
+  const { review: existing, loading: reviewLoading } = useReviewCovering(
+    period?.periodStart ?? null
+  );
 
-  const toggle = (documentId: string) =>
-    setSelected((current) => {
-      const next = new Set(current);
-      if (next.has(documentId)) next.delete(documentId);
-      else next.add(documentId);
-      return next;
-    });
+  /**
+   * The review being written into, once one exists.
+   *
+   * A ref rather than the query's answer, because the query cannot keep up with
+   * clicking: the first pick creates a review, and a second pick landing before
+   * that POST resolves would see no existing review and create a *second* one
+   * covering the same days.
+   */
+  const reviewId = useRef<string | null>(null);
 
-  const commit = async () => {
+  /**
+   * Seed the selection from the stored review, once per period.
+   *
+   * Guarded by a key rather than a dependency list, because this must happen
+   * exactly once for a given period: the query refetches after every save, and
+   * re-seeding from it would overwrite a pick made while the save was in flight.
+   * Switching modes changes the period, which is a different review, so it seeds
+   * again — deliberately.
+   */
+  const seededFor = useRef<string | null>(null);
+  useEffect(() => {
+    if (!period || reviewLoading) return;
+    const key = `${period.periodStart}..${period.periodEnd}`;
+    if (seededFor.current === key) return;
+    seededFor.current = key;
+    reviewId.current = existing?.documentId ?? null;
+    setSelected(new Set((existing?.tasks ?? []).map((task) => task.documentId)));
+  }, [period, existing, reviewLoading]);
+
+  /**
+   * Saves, serialized.
+   *
+   * Every pick is its own write, so they have to queue: two overlapping writes
+   * would be a lost update at best, and at worst a create racing a create. The
+   * chain swallows failures so one rejected save doesn't wedge every later one —
+   * the error surfaces through the mutation's own state, which is rendered.
+   */
+  const saveQueue = useRef<Promise<unknown>>(Promise.resolve());
+
+  const persist = (taskIds: string[]) => {
     if (!period || !cadence) return;
-    const taskIds = [...selected];
-    if (existing) {
-      await updateReview({ documentId: existing.documentId, tasks: taskIds });
-    } else {
-      await createReview({
-        periodStart: period.periodStart,
-        periodEnd: period.periodEnd,
-        cycleType: cadence.recurrenceType,
-        anchorDate: cadence.anchorDate,
-        tasks: taskIds,
+    saveQueue.current = saveQueue.current
+      .catch(() => {})
+      .then(async () => {
+        if (reviewId.current) {
+          await updateReview({ documentId: reviewId.current, tasks: taskIds });
+        } else {
+          const created = await createReview({
+            periodStart: period.periodStart,
+            periodEnd: period.periodEnd,
+            cycleType: cadence.recurrenceType,
+            anchorDate: cadence.anchorDate,
+            tasks: taskIds,
+          });
+          reviewId.current = created?.data?.documentId ?? null;
+        }
+        setSaved(true);
       });
-    }
-    setCommitted(true);
+  };
+
+  /**
+   * Picking a task saves it. There is no commit button.
+   *
+   * The button was a second step that added nothing: a review is a handful of
+   * picks, not a form, and having to confirm them made the page feel like
+   * something you could get wrong. Every pick is reversible by clicking it
+   * again, which is a better guarantee than a submit button ever was.
+   */
+  const toggle = (documentId: string) => {
+    const next = new Set(selected);
+    if (next.has(documentId)) next.delete(documentId);
+    else next.add(documentId);
+    setSelected(next);
+    setSaved(false);
+    persist([...next]);
   };
 
   if (cadenceLoading || tasksLoading) return <div className="review-page">loading...</div>;
@@ -200,7 +288,8 @@ export default function WeeklyReviewPage() {
           hold the tasks — nothing on this page ever becomes a calendar entry. */}
       {period && !calendarLoading && events.length > 0 && (
         <section className="review-section">
-          <h2>the {noun}</h2>
+          {/* No heading. It's a labelled seven-day grid — anything written over
+              it is a caption on a photograph of itself. */}
           {/* Three glyphs on a grid are a puzzle without a key, and nothing else
               on the page says that clicking is how a decision gets made. */}
           <div className="review-legend">
@@ -272,18 +361,34 @@ export default function WeeklyReviewPage() {
       {/* Two lists rather than one subdivided by recurrence type. The old
           headings ("every few days", "weekly", …) described how a task was set
           up, which is nothing a person choosing what to do this week can act
-          on, and they broke a dozen tasks into seven stubs. */}
+          on, and they broke a dozen tasks into seven stubs. Grouped by project
+          within each, because forty pills in one block reads as a quantity
+          rather than as things. */}
       {lists.soon.length > 0 && (
         <section className="review-section">
           <h2>soon</h2>
-          <TaskPickList tasks={lists.soon} selected={selected} onToggle={toggle} />
+          {lists.soon.map((group) => (
+            <ProjectGroupList
+              key={group.key}
+              group={group}
+              selected={selected}
+              onToggle={toggle}
+            />
+          ))}
         </section>
       )}
 
       {lists.recurring.length > 0 && (
         <section className="review-section">
           <h2>recurring</h2>
-          <TaskPickList tasks={lists.recurring} selected={selected} onToggle={toggle} />
+          {lists.recurring.map((group) => (
+            <ProjectGroupList
+              key={group.key}
+              group={group}
+              selected={selected}
+              onToggle={toggle}
+            />
+          ))}
         </section>
       )}
 
@@ -292,19 +397,19 @@ export default function WeeklyReviewPage() {
         <p className="review-empty">nothing on your plate — enjoy it</p>
       )}
 
-      <div className="review-actions">
-        <button className="btn" onClick={commit} disabled={isSaving || !period}>
-          {existing ? "update this review" : "commit"}
-        </button>
-        {/* Shown, not swallowed. Losing a committed review is the one write here
-            a person would actually notice. */}
-        {error && <p className="error">couldn&apos;t save that — {error.message}</p>}
-        {committed && !error && (
-          <p className="review-committed">
-            saved{period && period.periodStart <= today ? " — see you on the daily page" : ""}
-          </p>
-        )}
-      </div>
+      {/* No commit button: a pick saves itself. What's left is the failure
+          case, shown rather than swallowed — losing a pick is the one write here
+          a person would actually notice, and with no button to press there is
+          nothing else that would tell them. */}
+      {error && (
+        <p className="error">couldn&apos;t save that — {error.message}</p>
+      )}
+      {saved && !error && (
+        <p className="review-committed">
+          saved
+          {period && period.periodStart <= today ? " — see you on the daily page" : ""}
+        </p>
+      )}
     </div>
   );
 }

@@ -33,6 +33,11 @@ interface TaskPickListProps {
    * replaced looked, there, exactly like a list of things to tick off.
    */
   readOnly?: boolean;
+  /**
+   * Off where a project heading already sits above the list — repeating it on
+   * every pill is most of what made a long list read as a wall.
+   */
+  showProject?: boolean;
 }
 
 export default function TaskPickList({
@@ -41,6 +46,7 @@ export default function TaskPickList({
   onToggle,
   emptyMessage,
   readOnly = false,
+  showProject = true,
 }: TaskPickListProps) {
   if (tasks.length === 0) {
     return emptyMessage ? <p className="review-empty">{emptyMessage}</p> : null;
@@ -52,7 +58,7 @@ export default function TaskPickList({
         {tasks.map((task) => (
           <li key={task.documentId}>
             <span>{task.title}</span>
-            {task.project?.title && (
+            {showProject && task.project?.title && (
               <span className="review-pick-project">{task.project.title}</span>
             )}
           </li>
@@ -76,7 +82,7 @@ export default function TaskPickList({
               <span>{task.title}</span>
               {/* The project, only where it isn't already implied by the heading
                   above the list. Context, not status. */}
-              {task.project?.title && (
+              {showProject && task.project?.title && (
                 <span className="review-pick-project">{task.project.title}</span>
               )}
             </button>

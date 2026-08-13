@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildReviewLists } from './reviewLists';
+import { buildReviewLists, groupByProject, type ProjectGroup } from './reviewLists';
 import type { Task, Project, RecurrenceType } from '../types/index';
 
 /**
@@ -55,10 +55,14 @@ function task(overrides: Partial<Task> = {}): Task {
   };
 }
 
+/** Every task in a grouped list, in render order. */
+const flat = (groups: ProjectGroup[]): string[] =>
+  groups.flatMap((group) => group.tasks.map((t) => t.documentId));
+
 const allIds = (lists: ReturnType<typeof buildReviewLists>): string[] => [
   ...(lists.topOfMind?.tasks ?? []).map((t) => t.documentId),
-  ...lists.soon.map((t) => t.documentId),
-  ...lists.recurring.map((t) => t.documentId),
+  ...flat(lists.soon),
+  ...flat(lists.recurring),
 ];
 
 describe('buildReviewLists', () => {
@@ -101,7 +105,7 @@ describe('buildReviewLists', () => {
     const lists = buildReviewLists([recurring]);
 
     expect(lists.topOfMind!.tasks).toEqual([]);
-    expect(lists.recurring.map((t) => t.documentId)).toEqual(['t-recurring']);
+    expect(flat(lists.recurring)).toEqual(['t-recurring']);
   });
 
   it('keeps soon one-offs and recurring tasks in separate lists', () => {
@@ -112,8 +116,8 @@ describe('buildReviewLists', () => {
       task({ documentId: 't-weekly', isRecurring: true, recurrenceType: 'weekly' }),
     ]);
 
-    expect(lists.soon.map((t) => t.documentId)).toEqual(['t-soon']);
-    expect(lists.recurring.map((t) => t.documentId)).toEqual(['t-weekly']);
+    expect(flat(lists.soon)).toEqual(['t-soon']);
+    expect(flat(lists.recurring)).toEqual(['t-weekly']);
   });
 
   it('never places a task in both lists', () => {
@@ -165,7 +169,7 @@ describe('buildReviewLists', () => {
 
     const { recurring } = buildReviewLists([ancient, fresh]);
 
-    expect(recurring.map((t) => t.documentId)).toEqual(['t-ancient', 't-fresh']);
+    expect(flat(recurring)).toEqual(['t-ancient', 't-fresh']);
   });
 
   it('drops completed tasks from both lists', () => {
@@ -193,12 +197,7 @@ describe('buildReviewLists', () => {
       task({ documentId: 't-date', isRecurring: true, recurrenceType: 'monthly date' }),
     ]);
 
-    expect(lists.recurring.map((t) => t.documentId)).toEqual([
-      't-weekly',
-      't-date',
-      't-day',
-      't-annual',
-    ]);
+    expect(flat(lists.recurring)).toEqual(['t-weekly', 't-date', 't-day', 't-annual']);
   });
 
   it('orders the recurring list from most to least frequent', () => {
@@ -208,11 +207,7 @@ describe('buildReviewLists', () => {
       task({ documentId: 'daily', isRecurring: true, recurrenceType: 'daily' }),
     ]);
 
-    expect(lists.recurring.map((t) => t.documentId)).toEqual([
-      'daily',
-      'weekly',
-      'season',
-    ]);
+    expect(flat(lists.recurring)).toEqual(['daily', 'weekly', 'season']);
   });
 
   it('sorts an unrecognised cadence to the bottom rather than the top', () => {
@@ -227,7 +222,7 @@ describe('buildReviewLists', () => {
       task({ documentId: 'weekly', isRecurring: true, recurrenceType: 'weekly' }),
     ]);
 
-    expect(lists.recurring.map((t) => t.documentId)).toEqual(['weekly', 'unknown']);
+    expect(flat(lists.recurring)).toEqual(['weekly', 'unknown']);
   });
 
   it('survives more than one top-of-mind project without crashing', () => {
@@ -243,5 +238,57 @@ describe('buildReviewLists', () => {
     expect(lists.topOfMind).not.toBeNull();
     const ids = allIds(lists);
     expect(new Set(ids).size).toBe(ids.length);
+  });
+});
+
+describe('groupByProject', () => {
+  const alpha = project({ documentId: 'p-a', title: 'alpha' });
+  const beta = project({ documentId: 'p-b', title: 'beta' });
+
+  it('gathers a project’s tasks under one group', () => {
+    const groups = groupByProject([
+      task({ documentId: '1', project: alpha }),
+      task({ documentId: '2', project: beta }),
+      task({ documentId: '3', project: alpha }),
+    ]);
+
+    expect(groups.map((g) => g.projectTitle)).toEqual(['alpha', 'beta']);
+    expect(flat(groups)).toEqual(['1', '3', '2']);
+  });
+
+  it('keeps first-appearance order rather than sorting', () => {
+    // The caller has already established an order — creation date, or frequency
+    // for the recurring list — and an alphabetical one here would override it.
+    const groups = groupByProject([
+      task({ documentId: '1', project: beta }),
+      task({ documentId: '2', project: alpha }),
+    ]);
+
+    expect(groups.map((g) => g.projectTitle)).toEqual(['beta', 'alpha']);
+  });
+
+  it('puts the unprojected last, under a null title', () => {
+    // Incidentals are the leftovers by definition. Null rather than a label, so
+    // the naming stays a UI decision.
+    const groups = groupByProject([
+      task({ documentId: '1' }),
+      task({ documentId: '2', project: alpha }),
+    ]);
+
+    expect(groups.map((g) => g.projectTitle)).toEqual(['alpha', null]);
+  });
+
+  it('gives every group a distinct key', () => {
+    const groups = groupByProject([
+      task({ documentId: '1', project: alpha }),
+      task({ documentId: '2', project: beta }),
+      task({ documentId: '3' }),
+    ]);
+
+    expect(new Set(groups.map((g) => g.key)).size).toBe(3);
+  });
+
+  it('is empty for no tasks', () => {
+    expect(groupByProject([])).toEqual([]);
   });
 });

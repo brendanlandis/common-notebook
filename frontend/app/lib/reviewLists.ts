@@ -22,16 +22,61 @@ import type { Task, RecurrenceType } from '../types/index';
  * incomplete for a month is presented exactly like one generated yesterday.
  */
 
+export interface ProjectGroup {
+  /** React key: the project's documentId, or a sentinel for the unprojected. */
+  key: string;
+  /** Null for tasks belonging to no project — "incidentals". */
+  projectTitle: string | null;
+  tasks: Task[];
+}
+
 export interface ReviewLists {
   /** The top-of-mind project's tasks, `soon` ones first. Null when nothing is top of mind. */
   topOfMind: { projectTitle: string; tasks: Task[] } | null;
-  /** One-off tasks flagged `soon`. */
-  soon: Task[];
-  /** Every incomplete recurring task, most to least frequent. */
-  recurring: Task[];
+  /** One-off tasks flagged `soon`, by project. */
+  soon: ProjectGroup[];
+  /** Every incomplete recurring task, most to least frequent, by project. */
+  recurring: ProjectGroup[];
 }
 
 const TOP_OF_MIND = 'top of mind';
+const NO_PROJECT = '__incidentals__';
+
+/**
+ * Group tasks under the project they belong to.
+ *
+ * Forty pills in one wrapping block is a wall — you read it as a quantity
+ * rather than as things. Under project headings the same forty become half a
+ * dozen small, recognisable clusters, and the heading does the work the pills
+ * were doing individually (each carried its project's name in muted text, which
+ * is both redundant here and a large part of what made the wall dense).
+ *
+ * Order is first-appearance, so it inherits whatever order the caller
+ * established — creation order, or frequency for the recurring list — rather
+ * than imposing an alphabetical one nobody asked for. Incidentals sort last:
+ * they're the leftovers by definition.
+ */
+export function groupByProject(tasks: Task[]): ProjectGroup[] {
+  const groups = new Map<string, ProjectGroup>();
+
+  for (const task of tasks) {
+    const key = task.project?.documentId ?? NO_PROJECT;
+    const group = groups.get(key);
+    if (group) group.tasks.push(task);
+    else {
+      groups.set(key, {
+        key,
+        projectTitle: task.project?.title ?? null,
+        tasks: [task],
+      });
+    }
+  }
+
+  const ordered = [...groups.values()];
+  const incidentals = ordered.findIndex((group) => group.key === NO_PROJECT);
+  if (incidentals !== -1) ordered.push(...ordered.splice(incidentals, 1));
+  return ordered;
+}
 
 /**
  * Frequency order, used only to sort the recurring list — daily things near the
@@ -118,7 +163,9 @@ export function buildReviewLists(tasks: Task[]): ReviewLists {
     topOfMind: topOfMindProject
       ? { projectTitle: topOfMindProject.title, tasks: topOfMindTasks }
       : null,
-    soon,
-    recurring,
+    // Not grouped: that list is one project by definition, and its name is
+    // already the heading over it.
+    soon: groupByProject(soon),
+    recurring: groupByProject(recurring),
   };
 }

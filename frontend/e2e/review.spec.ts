@@ -71,12 +71,11 @@ test.describe('review', () => {
       await page.locator('input[name="review-mode"][value="remainder"]').check();
       // A pill, not a checkbox — checking one off is what a checkbox means
       // everywhere else in this app, and nothing on this page completes a task.
+      // And picking it *is* the save; there is no commit button to press.
       await page.getByRole('button', { name: chosen.title, pressed: false }).click();
       await expect(
         page.getByRole('button', { name: chosen.title, pressed: true })
       ).toBeVisible();
-
-      await page.getByRole('button', { name: /commit|update this review/ }).click();
       await expect(page.getByText(/saved/)).toBeVisible({ timeout: 15_000 });
 
       await page.goto('/review/daily');
@@ -96,7 +95,7 @@ test.describe('review', () => {
     }
   });
 
-  test('shows a real error when the commit fails', async ({ page, request }) => {
+  test('shows a real error when a pick fails to save', async ({ page, request }) => {
     const project = await createProject(request, {
       title: uniqueTitle('doomed thing'),
       importance: 'top of mind',
@@ -127,7 +126,6 @@ test.describe('review', () => {
       );
 
       await page.getByRole('button', { name: task.title, pressed: false }).click();
-      await page.getByRole('button', { name: /commit|update this review/ }).click();
 
       // The point: the failure is shown, not swallowed into a console.error while
       // the page pretends it saved.
