@@ -84,28 +84,129 @@
   font-size: 0.85rem;
 }
 
-/* An event's decided state is the one thing colour is doing here.
+/* The three states have to be unmistakable at a glance, because clicking to
+ * cycle them is the entire interaction of this page.
  *
- * `hide` stays visible on the review page rather than disappearing, because
- * this is the surface where decisions are made and you have to be able to see
- * something in order to change your mind about it. The daily page filters the
- * hidden ones out instead — that's the surface where you're reading, not
- * deciding. */
-.cal-event-show {
-  opacity: 1;
+ * The first version distinguished them by opacity alone — 0.75 for undecided,
+ * 1 for kept — which is to say barely at all, since 1 is just the default. The
+ * only other cue was a dashed border, and FullCalendar draws an event's border
+ * in the same colour as its background, so that was invisible too. You could
+ * click through every event on the page and see nothing change but a counter.
+ *
+ * So: filled versus hollow, which reads instantly, plus a glyph, so the states
+ * survive being greyscale, low-contrast, or looked at by someone who doesn't
+ * separate colours. Never colour alone.
+ *
+ * `hide` stays on the page rather than disappearing — this is where decisions
+ * are made, and you cannot change your mind about something you cannot see. The
+ * daily page filters them out instead; that's the surface where you're reading. */
+
+.fc-event {
+  cursor: pointer;
 }
 
+/* FullCalendar colours the time and the title separately, and its default for
+ * the time is a near-white tuned for a filled event. Setting `color` on the
+ * event container alone left "9:00 - 10:00" white-on-cream and unreadable on
+ * both hollow states — legible only on the one state that happens to be filled.
+ * So every state names both. */
+.cal-event-unset .fc-event-time,
+.cal-event-unset .fc-event-title,
+.cal-event-hide .fc-event-time,
+.cal-event-hide .fc-event-title {
+  color: var(--primary-color);
+}
+
+.cal-event-show .fc-event-time,
+.cal-event-show .fc-event-title {
+  color: var(--background);
+}
+
+/* Undecided: hollow and dashed. Unfinished without reading as wrong — "you
+ * haven't looked at this yet" is not a warning. */
+.cal-event-unset {
+  background-color: transparent !important;
+  border: 2px dashed var(--primary-color) !important;
+}
+
+.cal-event-unset .fc-event-title::before {
+  content: "? ";
+  font-weight: bold;
+}
+
+/* Kept: solid, the only filled state on the grid. */
+.cal-event-show {
+  background-color: var(--secondary-color) !important;
+  border: 2px solid var(--secondary-color) !important;
+}
+
+.cal-event-show .fc-event-title::before {
+  content: "✓ ";
+  font-weight: bold;
+}
+
+/* Dropped: set aside but still readable.
+ *
+ * This was `opacity: 0.45` on the whole event, which made it a pale smear —
+ * present enough to clutter the grid, too faint to read or to click with any
+ * confidence. Since the point of keeping ignored events on this page is that
+ * you can change your mind about them, they have to stay legible. Muted via a
+ * lighter border and a strikethrough instead. */
 .cal-event-hide {
-  opacity: 0.3;
+  background-color: transparent !important;
+  border: 1px solid var(--primary-color) !important;
+  opacity: 0.75;
+}
+
+.cal-event-hide .fc-event-title {
   text-decoration: line-through;
 }
 
-/* Undecided reads as unfinished without reading as wrong: dashed rather than
- * coloured, because "you haven't looked at this yet" is not a warning. */
-.cal-event-unset {
-  opacity: 0.75;
-  border-style: dashed !important;
-  border-width: 2px !important;
+.cal-event-hide .fc-event-title::before {
+  content: "✕ ";
+  text-decoration: none;
+  font-weight: bold;
+}
+
+/* The legend. Without it, three glyphs on a grid are a puzzle rather than a
+ * key — and nothing else on the page says that clicking is how you decide. */
+.review-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: center;
+  margin: 0.5rem 0 1rem;
+  font-size: 0.85em;
+  opacity: 0.8;
+}
+
+.review-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.review-legend .swatch {
+  display: inline-block;
+  width: 1.1rem;
+  height: 1.1rem;
+  border-radius: 2px;
+}
+
+.review-legend .swatch-unset {
+  background: transparent;
+  border: 2px dashed var(--primary-color);
+}
+
+.review-legend .swatch-show {
+  background: var(--secondary-color);
+  border: 2px solid var(--secondary-color);
+}
+
+.review-legend .swatch-hide {
+  background: transparent;
+  border: 1px solid var(--primary-color);
+  opacity: 0.45;
 }
 
 /* ── Calendar subscriptions ─────────────────────────────────────────────── */

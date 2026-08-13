@@ -159,6 +159,20 @@ export default function WeeklyReviewPage() {
       {period && !calendarLoading && events.length > 0 && (
         <section className="review-section">
           <h2>the week</h2>
+          {/* Three glyphs on a grid are a puzzle without a key, and nothing else
+              on the page says that clicking is how a decision gets made. */}
+          <p className="review-legend">
+            <span>
+              <i className="swatch swatch-unset" aria-hidden="true" />? undecided
+            </span>
+            <span>
+              <i className="swatch swatch-show" aria-hidden="true" />✓ keeping
+            </span>
+            <span>
+              <i className="swatch swatch-hide" aria-hidden="true" />✕ ignoring
+            </span>
+            <span>click an event to change it</span>
+          </p>
           <WeekCalendar
             events={events}
             periodStart={period.periodStart}
