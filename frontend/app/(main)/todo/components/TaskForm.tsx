@@ -528,6 +528,17 @@ export default function TaskForm({ task, onSubmit, onCancel }: TaskFormProps) {
             onChange: (offset) =>
               setValue("displayDateOffset", offset, { shouldDirty: true }),
           }}
+          // Without these the superRefine rules fail silently: the create button
+          // does nothing, the drawer stays open, and nothing says why. Only
+          // title/displayDate/dueDate ever rendered their message.
+          errors={{
+            recurrenceInterval: errors.recurrenceInterval?.message,
+            recurrenceDayOfWeek: errors.recurrenceDayOfWeek?.message,
+            recurrenceDayOfMonth: errors.recurrenceDayOfMonth?.message,
+            recurrenceWeekOfMonth: errors.recurrenceWeekOfMonth?.message,
+            recurrenceDayOfWeekMonthly: errors.recurrenceDayOfWeekMonthly?.message,
+            recurrenceMonth: errors.recurrenceMonth?.message,
+          }}
         />
       )}
 

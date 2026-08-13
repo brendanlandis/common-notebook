@@ -123,15 +123,26 @@ export interface RecurrencePickerProps {
    * it omits this and the control doesn't render.
    */
   offset?: { value: number; onChange: (offset: number) => void };
+  /**
+   * Validation messages, keyed by the field they belong to.
+   *
+   * Rendered beside the control rather than collected at the bottom of the form,
+   * because the whole failure mode being fixed here is a user not knowing which
+   * field the form is unhappy about.
+   */
+  errors?: Partial<Record<keyof RecurrenceRule, string | undefined>>;
 }
 
 export default function RecurrencePicker({
   value,
   onChange,
   offset,
+  errors,
 }: RecurrencePickerProps) {
   const type = value.recurrenceType;
   const set = (patch: Partial<RecurrenceRule>) => onChange({ ...value, ...patch });
+  const error = (field: keyof RecurrenceRule) =>
+    errors?.[field] ? <span className="error">{errors[field]}</span> : null;
 
   return (
     <>
@@ -168,6 +179,7 @@ export default function RecurrencePicker({
               })
             }
           />
+          {error("recurrenceInterval")}
         </div>
       )}
 
@@ -185,6 +197,7 @@ export default function RecurrencePicker({
               </option>
             ))}
           </select>
+          {error("recurrenceDayOfWeek")}
         </div>
       )}
 
@@ -204,6 +217,7 @@ export default function RecurrencePicker({
               })
             }
           />
+          {error("recurrenceDayOfMonth")}
         </div>
       )}
 
@@ -222,6 +236,7 @@ export default function RecurrencePicker({
                 </option>
               ))}
             </select>
+            {error("recurrenceWeekOfMonth")}
           </div>
           <div className="task-form-element">
             <label htmlFor="recurrenceDayOfWeekMonthly">day of week</label>
@@ -238,6 +253,7 @@ export default function RecurrencePicker({
                 </option>
               ))}
             </select>
+            {error("recurrenceDayOfWeekMonthly")}
           </div>
         </div>
       )}
@@ -257,6 +273,7 @@ export default function RecurrencePicker({
                 </option>
               ))}
             </select>
+            {error("recurrenceMonth")}
           </div>
           <div className="task-form-element">
             <label htmlFor="recurrenceDayOfMonth">day of month</label>

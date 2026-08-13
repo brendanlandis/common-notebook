@@ -167,16 +167,28 @@ describe("TaskForm recurrence", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /create task/i }));
 
-    // The zod superRefine rejects it, so onSubmit never fires.
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    // The zod superRefine rejects it, so onSubmit never fires...
+    await waitFor(() =>
+      expect(screen.getByText(/interval is required/i)).toBeTruthy()
+    );
     expect(onSubmit).not.toHaveBeenCalled();
+  });
 
-    // ...and the user is told nothing. Only title/displayDate/dueDate render
-    // their `errors.*` message; none of the recurrence fields do, so every
-    // superRefine rule in this form fails *silently* — the button does nothing
-    // and the drawer stays open with no explanation. Asserted here so the gap is
-    // recorded rather than rediscovered; fixing it is a separate change.
-    expect(screen.queryByText(/interval is required/i)).toBeNull();
+  it("says which recurrence field is missing rather than failing silently", async () => {
+    // Every superRefine rule in this form used to fail with no message at all:
+    // the create button did nothing, the drawer stayed open, and nothing said
+    // why. Only title/displayDate/dueDate rendered their `errors.*`.
+    const onSubmit = renderRecurringForm();
+    selectRecurrence("monthly day");
+    // Blank the week-of-month, which defaults to a valid 1.
+    fireEvent.change(screen.getByLabelText("Week of Month"), { target: { value: "0" } });
+
+    fireEvent.click(screen.getByRole("button", { name: /create task/i }));
+
+    await waitFor(() =>
+      expect(screen.getByText(/week of month is required/i)).toBeTruthy()
+    );
+    expect(onSubmit).not.toHaveBeenCalled();
   });
 
   it("carries week-of-month and weekday for a monthly-day task", async () => {
