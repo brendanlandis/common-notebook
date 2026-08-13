@@ -9,7 +9,10 @@ import { cadenceIsUsable } from "@/app/lib/reviewCadence";
 import { buildReviewLists, GROUP_LABELS } from "@/app/lib/reviewLists";
 import { getToday, toISODate, formatInTimezone, parseDate } from "@/app/lib/dateUtils";
 import { useReviewCovering, useSaveReview } from "../hooks/useReview";
+import { useCalendarEvents, useSetDecision } from "../hooks/useCalendarEvents";
+import { isFullyDecided, undecided, type ResolvedInstance } from "@/app/lib/ics/resolveDecisions";
 import TaskPickList from "../components/TaskPickList";
+import WeekCalendar from "../components/WeekCalendar";
 
 /**
  * The review itself: look at what's on your plate, pick a few things, commit.
@@ -38,6 +41,33 @@ export default function WeeklyReviewPage() {
   }, [cadence, timeZoneSettings, mode]);
 
   const lists = useMemo(() => buildReviewLists(tasks), [tasks]);
+
+  const { events, calendars, loading: calendarLoading } = useCalendarEvents(
+    period?.periodStart ?? null,
+    period?.periodEnd ?? null
+  );
+  const { setDecision } = useSetDecision();
+
+  /**
+   * Clicking an event walks unset → show → hide → unset.
+   *
+   * The decision is written at the tier the user is looking at: for a recurring
+   * event whose state came from its series (or from nowhere), the write is
+   * series-level, so deciding once about a standup covers every future one.
+   * Only an event already carrying its own override keeps overriding.
+   */
+  const cycleEvent = (instance: ResolvedInstance) => {
+    const next =
+      instance.state === "unset" ? "show" : instance.state === "show" ? "hide" : null;
+    setDecision({
+      calendar: instance.calendarDocumentId,
+      uid: instance.uid,
+      recurrenceId: instance.source === "instance" ? instance.recurrenceId : null,
+      state: next,
+    });
+  };
+
+  const stillUnset = undecided(events);
 
   // An existing review for this period means we're re-running one; its selection
   // seeds the checkboxes rather than starting empty, and committing updates it
@@ -122,6 +152,34 @@ export default function WeeklyReviewPage() {
           the rest of this one
         </label>
       </div>
+
+      {/* The calendar's job here is to show what the week already is, so the
+          intentions below get chosen against it rather than in a vacuum. Not to
+          hold the tasks — nothing on this page ever becomes a calendar entry. */}
+      {period && !calendarLoading && events.length > 0 && (
+        <section className="review-section">
+          <h2>the week</h2>
+          <WeekCalendar
+            events={events}
+            periodStart={period.periodStart}
+            periodEnd={period.periodEnd}
+            onCycle={cycleEvent}
+          />
+          {/* A definition of done, which is the thing weekly reviews usually
+              lack — so you either fiddle indefinitely or quit early. */}
+          <p className="review-hint">
+            {isFullyDecided(events)
+              ? "every event decided"
+              : `${stillUnset.length} still undecided`}
+          </p>
+          {calendars.some((c) => c.unreachable) && (
+            <p className="error">
+              couldn&apos;t reach:{" "}
+              {calendars.filter((c) => c.unreachable).map((c) => c.name).join(", ")}
+            </p>
+          )}
+        </section>
+      )}
 
       {lists.topOfMind && (
         <section className="review-section">

@@ -13,6 +13,7 @@ import { useBetaAccess } from "@/app/hooks/useBetaAccess";
 import { useReviewCadence } from "@/app/hooks/useReviewCadence";
 import RecurrencePicker from "@/app/components/RecurrencePicker";
 import { cadenceIsUsable } from "@/app/lib/reviewCadence";
+import CalendarsManager from "@/app/components/CalendarsManager";
 
 export default function SettingsPanel() {
   const [autoDeclutter, setAutoDeclutter] = useState<boolean>(true); // Default on
@@ -196,6 +197,13 @@ export default function SettingsPanel() {
                 which week
               </p>
             )}
+
+            <h2>calendars</h2>
+            <p>
+              Paste a secret ics url per calendar. Adding them one at a time is the
+              point — a calendar never worth a thought never gets added.
+            </p>
+            <CalendarsManager />
           </>
         )}
       </section>

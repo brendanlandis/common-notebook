@@ -1,0 +1,123 @@
+/* The review and daily pages.
+ *
+ * Deliberately plain. This feature exists for peace of mind rather than
+ * productivity, so there is nothing here that signals urgency — no red, no
+ * overdue styling, no counts styled as scores. The only colour that carries
+ * meaning is an event's decided state.
+ */
+
+.review-page {
+  max-width: 60rem;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+.review-period {
+  opacity: 0.7;
+}
+
+.review-mode {
+  display: flex;
+  gap: 1.5rem;
+  margin: 1rem 0;
+
+  label {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    cursor: pointer;
+  }
+}
+
+.review-section {
+  margin: 2rem 0;
+}
+
+.review-group {
+  margin: 1rem 0;
+
+  h3 {
+    opacity: 0.6;
+    font-size: 0.9em;
+  }
+}
+
+.review-pick-list {
+  list-style: none;
+  padding: 0;
+
+  li {
+    padding: 0.2rem 0;
+  }
+
+  label {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    cursor: pointer;
+  }
+}
+
+.review-pick-project {
+  opacity: 0.5;
+  font-size: 0.85em;
+}
+
+.review-empty,
+.review-hint {
+  opacity: 0.6;
+  font-style: italic;
+}
+
+.review-actions {
+  margin: 2rem 0;
+}
+
+.review-committed {
+  opacity: 0.7;
+}
+
+/* ── The week grid ──────────────────────────────────────────────────────── */
+
+.review-calendar {
+  margin: 1rem 0;
+  font-size: 0.85rem;
+}
+
+/* An event's decided state is the one thing colour is doing here.
+ *
+ * `hide` stays visible on the review page rather than disappearing, because
+ * this is the surface where decisions are made and you have to be able to see
+ * something in order to change your mind about it. The daily page filters the
+ * hidden ones out instead — that's the surface where you're reading, not
+ * deciding. */
+.cal-event-show {
+  opacity: 1;
+}
+
+.cal-event-hide {
+  opacity: 0.3;
+  text-decoration: line-through;
+}
+
+/* Undecided reads as unfinished without reading as wrong: dashed rather than
+ * coloured, because "you haven't looked at this yet" is not a warning. */
+.cal-event-unset {
+  opacity: 0.75;
+  border-style: dashed !important;
+  border-width: 2px !important;
+}
+
+/* ── Calendar subscriptions ─────────────────────────────────────────────── */
+
+.calendars-list {
+  list-style: none;
+  padding: 0;
+
+  li {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.3rem 0;
+  }
+}

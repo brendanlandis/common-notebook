@@ -5,6 +5,7 @@ import { useDateTimeSettings } from "@/app/contexts/DateTimeSettingsContext";
 import { getToday, toISODate } from "@/app/lib/dateUtils";
 import { useReviewCovering } from "../hooks/useReview";
 import { useDailyPick } from "../hooks/useDailyPick";
+import { useCalendarEvents } from "../hooks/useCalendarEvents";
 import TaskPickList from "../components/TaskPickList";
 
 /**
@@ -22,6 +23,16 @@ export default function DailyReviewPage() {
 
   const { review, loading: reviewLoading } = useReviewCovering(today);
   const { pick, loading: pickLoading, savePick } = useDailyPick(today);
+  const { events } = useCalendarEvents(today, today);
+
+  // Only what you decided to be at. This is the reading surface, not the
+  // deciding one — hidden events are rendered on the review page precisely so
+  // you can change your mind there, and filtered here so today reads as today.
+  // Anything still undecided shows: better an extra line than a missed thing.
+  const todaysEvents = useMemo(
+    () => events.filter((event) => event.state !== "hide"),
+    [events]
+  );
 
   const [narrowing, setNarrowing] = useState(false);
 
@@ -60,6 +71,23 @@ export default function DailyReviewPage() {
   return (
     <div className="review-page">
       <h1>today</h1>
+
+      {todaysEvents.length > 0 && (
+        <section className="review-section">
+          <ul className="review-pick-list">
+            {todaysEvents.map((event) => (
+              <li key={`${event.uid}:${event.recurrenceId ?? ""}`}>
+                {/* Times, because an appointment genuinely has one. This is the
+                    only place a clock appears in the feature — tasks never get
+                    one, which is the whole distinction between what's imposed
+                    on the day and what you chose for it. */}
+                <span>{event.allDay ? "all day" : event.start.slice(11, 16)}</span>{" "}
+                <span>{event.title}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {narrowing ? (
         <>
