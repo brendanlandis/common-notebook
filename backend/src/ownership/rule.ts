@@ -43,6 +43,8 @@ export const OWNED_CONTENT_TYPES = [
   'api::system-setting.system-setting',
   'api::review.review',
   'api::daily-pick.daily-pick',
+  'api::calendar-subscription.calendar-subscription',
+  'api::calendar-event-decision.calendar-event-decision',
 ] as const;
 
 export const ownerIsRequestUser: OwnershipRule = {

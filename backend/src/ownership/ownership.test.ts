@@ -258,12 +258,12 @@ describe('task is an owned content type', () => {
     expect(OWNED_CONTENT_TYPES).toContain('api::daily-pick.daily-pick');
   });
 
-  it('lists no content type that has no schema', () => {
-    // This list drives the authenticated role's CRUD grants, so a uid added
-    // ahead of its schema seeds permissions for routes that don't exist. The
-    // calendar types belong here the day their schemas land, not before.
-    expect(OWNED_CONTENT_TYPES).not.toContain('api::calendar-subscription.calendar-subscription');
-    expect(OWNED_CONTENT_TYPES).not.toContain(
+  it('OWNED_CONTENT_TYPES carries the calendar types', () => {
+    // Registered now that their schemas exist. A calendar subscription escaping
+    // owner scoping would hand out the secret ICS URL along with the events, so
+    // this is the entry that matters most in the list.
+    expect(OWNED_CONTENT_TYPES).toContain('api::calendar-subscription.calendar-subscription');
+    expect(OWNED_CONTENT_TYPES).toContain(
       'api::calendar-event-decision.calendar-event-decision'
     );
   });
