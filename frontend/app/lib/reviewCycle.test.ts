@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach, vi } from 'vitest';
-import { computeReviewPeriod, nextBoundary } from './reviewCycle';
+import { computeReviewPeriod, defaultReviewMode, nextBoundary } from './reviewCycle';
 import type { RecurrenceRule } from '../types/index';
 import type { TimeZoneSettings } from './timeZoneSettings';
 
@@ -261,5 +261,65 @@ describe('computeReviewPeriod', () => {
         }
       }
     });
+  });
+});
+
+describe('defaultReviewMode', () => {
+  afterEach(() => vi.useRealTimers());
+
+  const at = (iso: string) => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.setSystemTime(new Date(iso));
+  };
+
+  const weeklyMonday = rule({ recurrenceType: 'weekly', recurrenceDayOfWeek: 1 });
+
+  it('opens on the cycle you are in', () => {
+    at('2026-01-07T12:00:00-05:00'); // Wednesday, mid-week
+
+    expect(defaultReviewMode(weeklyMonday, EST)).toBe('remainder');
+  });
+
+  it('opens on the next one when tomorrow starts it', () => {
+    // Sunday night, planning Monday. "This week" would offer a review of the one
+    // day left in it.
+    at('2026-01-11T21:00:00-05:00');
+
+    expect(defaultReviewMode(weeklyMonday, EST)).toBe('upcoming');
+  });
+
+  it('is back to this cycle on the boundary day itself', () => {
+    // Monday morning: the week that just started is the one to look at.
+    at('2026-01-12T09:00:00-05:00');
+
+    expect(defaultReviewMode(weeklyMonday, EST)).toBe('remainder');
+  });
+
+  it('reads the eve through the day boundary hour, not midnight', () => {
+    // 1am Monday is still Sunday for someone whose day starts at 4am, so this is
+    // the eve and the default is the week about to start. Reading the wall clock
+    // instead would call it Monday and open on a week already underway.
+    at('2026-01-12T01:00:00-05:00');
+
+    expect(defaultReviewMode(weeklyMonday, EST)).toBe('upcoming');
+  });
+
+  it('falls back to this cycle for a cadence that cannot produce a period', () => {
+    at('2026-01-07T12:00:00-05:00');
+
+    // Biweekly with no anchor: the page will refuse to render a period anyway.
+    expect(defaultReviewMode(rule({ recurrenceType: 'biweekly', recurrenceDayOfWeek: 1 }), EST)).toBe(
+      'remainder'
+    );
+  });
+
+  it('honours a biweekly anchor', () => {
+    at('2026-01-11T21:00:00-05:00'); // the eve of an anchored Monday
+
+    expect(
+      defaultReviewMode(rule({ recurrenceType: 'biweekly', recurrenceDayOfWeek: 1 }), EST, {
+        anchorDate: '2026-01-12',
+      })
+    ).toBe('upcoming');
   });
 });

@@ -74,7 +74,7 @@ export default function DailyReviewPage() {
 
       {todaysEvents.length > 0 && (
         <section className="review-section">
-          <ul className="review-pick-list">
+          <ul className="review-task-list">
             {todaysEvents.map((event) => (
               <li key={`${event.uid}:${event.recurrenceId ?? ""}`}>
                 {/* Times, because an appointment genuinely has one. This is the
@@ -104,11 +104,16 @@ export default function DailyReviewPage() {
         </>
       ) : (
         <>
+          {/* Read-only: this is the page you look at, not the one you decide
+              on. Rendering pickable pills here would invite a click that does
+              nothing — and the checkboxes this replaced looked, on this page
+              most of all, like a list of things to tick off. */}
           <TaskPickList
             tasks={shown}
             selected={new Set()}
             onToggle={() => {}}
             emptyMessage="this review didn't commit to anything"
+            readOnly
           />
           {reviewTasks.length > 0 && (
             <button className="btn" onClick={() => setNarrowing(true)}>

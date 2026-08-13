@@ -1,7 +1,7 @@
 import { Temporal } from 'temporal-polyfill';
 import type { RecurrenceRule, RecurrenceAnchor } from '../types/index';
 import { calculateNextRecurrence } from './recurrence';
-import { getTodayForRecurrence, toISODate } from './dateUtils';
+import { getTodayForRecurrence, shiftISODate, toISODate } from './dateUtils';
 import type { TimeZoneSettings } from './timeZoneSettings';
 
 /**
@@ -177,4 +177,33 @@ export function computeReviewPeriod(
   if (!second) return null;
 
   return { periodStart: first, periodEnd: shift(second, -1) };
+}
+
+/**
+ * Which mode the review page should open on.
+ *
+ * The cycle you're *in*, normally — that's what "how busy am I" is a question
+ * about, and it's the answer on five or six days out of seven.
+ *
+ * The exception is the eve of the next one, which is the ritual this feature was
+ * built around: "Monday is the default start day, but you should be able to plan
+ * on Sunday night." Opening Sunday on "this week" would offer a review of the
+ * one day left in it.
+ *
+ * Only the *default*. Both modes stay one click away, because re-running a
+ * review mid-cycle is a first-class thing to do rather than a recovery path.
+ */
+export function defaultReviewMode(
+  rule: RecurrenceRule,
+  settings: TimeZoneSettings,
+  { anchorDate = null }: Pick<ReviewPeriodOptions, 'anchorDate'> = {}
+): ReviewPeriodMode {
+  const upcoming = computeReviewPeriod(rule, settings, { mode: 'upcoming', anchorDate });
+  // An unusable cadence has no eve to be on. The page refuses to render a period
+  // at all in that case, so this only decides which radio is pre-selected
+  // underneath the message telling you to go and configure one.
+  if (!upcoming) return 'remainder';
+
+  const today = toISODate(getTodayForRecurrence(settings), settings);
+  return shiftISODate(today, 1) === upcoming.periodStart ? 'upcoming' : 'remainder';
 }

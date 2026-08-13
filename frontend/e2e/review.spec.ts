@@ -69,7 +69,12 @@ test.describe('review', () => {
       // week" off whatever cadence the account is configured for, so matching
       // text would break on a schedule change that has nothing to do with this.
       await page.locator('input[name="review-mode"][value="remainder"]').check();
-      await page.locator('label', { hasText: chosen.title }).locator('input').check();
+      // A pill, not a checkbox — checking one off is what a checkbox means
+      // everywhere else in this app, and nothing on this page completes a task.
+      await page.getByRole('button', { name: chosen.title, pressed: false }).click();
+      await expect(
+        page.getByRole('button', { name: chosen.title, pressed: true })
+      ).toBeVisible();
 
       await page.getByRole('button', { name: /commit|update this review/ }).click();
       await expect(page.getByText(/saved/)).toBeVisible({ timeout: 15_000 });
@@ -121,7 +126,7 @@ test.describe('review', () => {
           : route.continue()
       );
 
-      await page.locator('label', { hasText: task.title }).locator('input').check();
+      await page.getByRole('button', { name: task.title, pressed: false }).click();
       await page.getByRole('button', { name: /commit|update this review/ }).click();
 
       // The point: the failure is shown, not swallowed into a console.error while

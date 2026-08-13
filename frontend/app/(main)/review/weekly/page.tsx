@@ -4,7 +4,11 @@ import { useMemo, useState } from "react";
 import { useTasks } from "@/app/(main)/todo/hooks/useTasks";
 import { useDateTimeSettings } from "@/app/contexts/DateTimeSettingsContext";
 import { useReviewCadence } from "@/app/hooks/useReviewCadence";
-import { computeReviewPeriod, type ReviewPeriodMode } from "@/app/lib/reviewCycle";
+import {
+  computeReviewPeriod,
+  defaultReviewMode,
+  type ReviewPeriodMode,
+} from "@/app/lib/reviewCycle";
 import { cadenceIsUsable, cycleNoun } from "@/app/lib/reviewCadence";
 import { buildReviewLists } from "@/app/lib/reviewLists";
 import { getToday, toISODate } from "@/app/lib/dateUtils";
@@ -28,7 +32,24 @@ export default function WeeklyReviewPage() {
   const { cadence, loading: cadenceLoading } = useReviewCadence();
   const { createReview, updateReview, isSaving, error } = useSaveReview();
 
-  const [mode, setMode] = useState<ReviewPeriodMode>("upcoming");
+  /**
+   * The mode, chosen or defaulted.
+   *
+   * Held as "what the user picked, if they picked" rather than seeded with a
+   * default, because the default depends on the cadence and the cadence arrives
+   * from a query. Seeding state would mean either an effect that overwrites the
+   * mode a moment after the page appears — moving the calendar under the
+   * cursor — or a `key` remount. Deriving it costs nothing and is correct on the
+   * first paint.
+   */
+  const [chosenMode, setChosenMode] = useState<ReviewPeriodMode | null>(null);
+  const mode =
+    chosenMode ??
+    (cadence
+      ? defaultReviewMode(cadence, timeZoneSettings, { anchorDate: cadence.anchorDate })
+      : "remainder");
+  const setMode = setChosenMode;
+
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [committed, setCommitted] = useState(false);
   // Ignored events stay out of the way by default. They were kept on the grid so
@@ -46,6 +67,8 @@ export default function WeeklyReviewPage() {
   }, [cadence, timeZoneSettings, mode]);
 
   const lists = useMemo(() => buildReviewLists(tasks), [tasks]);
+  const hasAnyTasks =
+    (lists.topOfMind?.tasks.length ?? 0) + lists.soon.length + lists.recurring.length > 0;
 
   const { events, calendars, loading: calendarLoading } = useCalendarEvents(
     period?.periodStart ?? null,
@@ -231,14 +254,17 @@ export default function WeeklyReviewPage() {
         </section>
       )}
 
-      {lists.topOfMind && (
+      {/* A heading over nothing is a heading you have to read to find out it was
+          nothing. Each list appears only when it has something in it — which
+          also means the shape of the page tells you what kind of cycle this is
+          before you've read a word of it. */}
+      {lists.topOfMind && lists.topOfMind.tasks.length > 0 && (
         <section className="review-section">
           <h2>{lists.topOfMind.projectTitle}</h2>
           <TaskPickList
             tasks={lists.topOfMind.tasks}
             selected={selected}
             onToggle={toggle}
-            emptyMessage="nothing on this one right now"
           />
         </section>
       )}
@@ -247,25 +273,24 @@ export default function WeeklyReviewPage() {
           headings ("every few days", "weekly", …) described how a task was set
           up, which is nothing a person choosing what to do this week can act
           on, and they broke a dozen tasks into seven stubs. */}
-      <section className="review-section">
-        <h2>soon</h2>
-        <TaskPickList
-          tasks={lists.soon}
-          selected={selected}
-          onToggle={toggle}
-          emptyMessage="nothing flagged"
-        />
-      </section>
+      {lists.soon.length > 0 && (
+        <section className="review-section">
+          <h2>soon</h2>
+          <TaskPickList tasks={lists.soon} selected={selected} onToggle={toggle} />
+        </section>
+      )}
 
-      <section className="review-section">
-        <h2>recurring</h2>
-        <TaskPickList
-          tasks={lists.recurring}
-          selected={selected}
-          onToggle={toggle}
-          emptyMessage="nothing coming round"
-        />
-      </section>
+      {lists.recurring.length > 0 && (
+        <section className="review-section">
+          <h2>recurring</h2>
+          <TaskPickList tasks={lists.recurring} selected={selected} onToggle={toggle} />
+        </section>
+      )}
+
+      {/* Said once, rather than three times over three empty headings. */}
+      {!hasAnyTasks && (
+        <p className="review-empty">nothing on your plate — enjoy it</p>
+      )}
 
       <div className="review-actions">
         <button className="btn" onClick={commit} disabled={isSaving || !period}>

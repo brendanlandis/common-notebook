@@ -38,22 +38,58 @@
   }
 }
 
+/* The pills you pick from. Wrapping inline blocks rather than one per line: a
+ * selection of a dozen short things is a handful, not a column, and seeing them
+ * all at once is the point of the page. */
 .review-pick-list {
+  list-style: none;
+  padding: 0;
+  margin: 0.5rem 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.review-pill {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  padding: 0.25rem 0.7rem;
+  border: 1px solid var(--primary-color);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--primary-color);
+  cursor: pointer;
+  text-align: left;
+}
+
+/* Filled means "yes, this one" — the same thing it means on the calendar above.
+ * Colour is not carrying it alone: a picked pill is also the only filled shape
+ * in the list, the way a kept event is the only filled block on the grid. */
+.review-pill.is-selected {
+  background: var(--secondary-color);
+  border-color: var(--secondary-color);
+  color: var(--background);
+}
+
+.review-pill.is-selected .review-pick-project {
+  /* Inherit the fill's foreground rather than dimming against it, where the
+   * muted grey the unpicked pills use would be close to unreadable. */
+  color: inherit;
+  opacity: 0.8;
+}
+
+/* The daily page's reading view: no pills, because nothing there is to be
+ * clicked. */
+.review-task-list {
   list-style: none;
   padding: 0;
 
   li {
     padding: 0.2rem 0;
-  }
-
-  label {
     display: flex;
-    /* Centre, not baseline. A checkbox has no text in it to have a baseline, so
-     * flexbox aligns its bottom edge to the text's baseline and leaves it
-     * sitting a couple of pixels low against every row. */
-    align-items: center;
+    align-items: baseline;
     gap: 0.5rem;
-    cursor: pointer;
   }
 }
 
