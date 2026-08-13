@@ -9,6 +9,10 @@ import {
 } from "@/app/lib/autoDeclutterConfig";
 import { saveSystemSetting } from "@/app/lib/systemSettingsClient";
 import { useDateTimeSettings } from "@/app/contexts/DateTimeSettingsContext";
+import { useBetaAccess } from "@/app/hooks/useBetaAccess";
+import { useReviewCadence } from "@/app/hooks/useReviewCadence";
+import RecurrencePicker from "@/app/components/RecurrencePicker";
+import { cadenceIsUsable } from "@/app/lib/reviewCadence";
 
 export default function SettingsPanel() {
   const [autoDeclutter, setAutoDeclutter] = useState<boolean>(true); // Default on
@@ -25,6 +29,13 @@ export default function SettingsPanel() {
   const visibilityMinutes = completedTaskVisibilityMinutes;
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+
+  // The review is a beta page, so its cadence is a beta setting. This is the one
+  // place `useBetaAccess` is called directly rather than going through
+  // BETA_PATHS — that gates whole routes, and this is a field inside a drawer
+  // every user opens.
+  const { betaAccess } = useBetaAccess();
+  const { cadence, save: saveCadence, isSaving: isSavingCadence } = useReviewCadence();
 
   // Fetch current settings on mount
   useEffect(() => {
@@ -145,6 +156,43 @@ export default function SettingsPanel() {
             disabled={isLoading || isSaving}
           />
         </label>
+
+        {betaAccess && cadence && (
+          <>
+            <h2>review</h2>
+            <p>How often do you want to sit down and plan?</p>
+            <RecurrencePicker
+              value={cadence}
+              onChange={(next) => saveCadence({ ...cadence, ...next })}
+            />
+
+            {cadence.recurrenceType === "biweekly" && (
+              <div className="task-form-element labelled">
+                <label htmlFor="reviewAnchorDate">starting on</label>
+                <input
+                  id="reviewAnchorDate"
+                  type="date"
+                  value={cadence.anchorDate ?? ""}
+                  disabled={isSavingCadence}
+                  onChange={(e) =>
+                    saveCadence({ ...cadence, anchorDate: e.target.value || null })
+                  }
+                />
+              </div>
+            )}
+
+            {/* "Every other Monday" doesn't say which Monday, and a review has no
+                completed occurrence to infer the phase from the way a task does.
+                Without the anchor the cadence yields no period at all, so say so
+                here rather than let it look saved and then quietly do nothing. */}
+            {!cadenceIsUsable(cadence) && (
+              <p className="error">
+                pick a start date — without one, &quot;every other&quot; doesn&apos;t say
+                which week
+              </p>
+            )}
+          </>
+        )}
       </section>
     </div>
   );
