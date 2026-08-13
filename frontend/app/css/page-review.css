@@ -250,11 +250,18 @@
   opacity: 0.75;
 }
 
+/* Pinned right, away from the entries that come and going around it.
+ *
+ * Ticking it adds the "✕ ignoring" key to the legend, which — with the toggle
+ * sitting at the end of a left-packed row — shunted the toggle sideways at the
+ * exact moment it was clicked, so the second click landed on nothing. Against
+ * the right edge it doesn't move. */
 .review-legend-toggle {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
   cursor: pointer;
+  margin-left: auto;
 }
 
 /* ── Calendar subscriptions ─────────────────────────────────────────────── */

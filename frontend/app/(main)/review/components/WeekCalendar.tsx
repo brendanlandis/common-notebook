@@ -67,6 +67,60 @@ export function toFullCalendarEvents(events: ResolvedInstance[]) {
   }));
 }
 
+/** The default working window — the hours a week is normally read in. */
+const DEFAULT_FIRST_HOUR = 9;
+const DEFAULT_LAST_HOUR = 23;
+
+const asSlot = (hour: number) => `${String(hour).padStart(2, "0")}:00:00`;
+
+/**
+ * The band of hours the grid shows.
+ *
+ * Starts at 9am, because that is where a week is normally read from and eight
+ * empty rows above the first event are eight rows of nothing. It opens earlier
+ * only when something is actually up there — so the window is decided by the
+ * week rather than fixed in advance, and an early meeting can't fall off the top
+ * of the grid where it would be invisible rather than merely undecided.
+ *
+ * **Ignored events don't count.** Deciding to ignore the 6am thing is exactly
+ * the statement that it shouldn't stretch your picture of the day; only kept and
+ * undecided events widen the window. Which means the grid tightens up as a
+ * review is worked through, and that's the intended feel.
+ *
+ * The same rule runs at the bottom, for the same reason: an event ending after
+ * 11pm would otherwise be silently clipped.
+ *
+ * Exported and pure so the rule can be asserted without a rendered grid.
+ */
+export function slotWindow(events: ResolvedInstance[]): { min: string; max: string } {
+  let first = DEFAULT_FIRST_HOUR;
+  let last = DEFAULT_LAST_HOUR;
+
+  for (const event of events) {
+    // All-day events live in their own row above the grid, so they say nothing
+    // about which hours to show.
+    if (event.allDay || event.state === "hide") continue;
+
+    const startHour = Number(event.start.slice(11, 13));
+    if (Number.isFinite(startHour)) first = Math.min(first, startHour);
+
+    // A run past midnight is reported as the end of the day rather than as hour
+    // zero, which would read as "ends before it starts" and collapse the grid.
+    const crossesMidnight = event.end.slice(0, 10) !== event.start.slice(0, 10);
+    const endHour = Number(event.end.slice(11, 13));
+    const endMinute = Number(event.end.slice(14, 16));
+    if (crossesMidnight) last = 24;
+    else if (Number.isFinite(endHour)) {
+      last = Math.max(last, endMinute > 0 ? endHour + 1 : endHour);
+    }
+  }
+
+  return {
+    min: asSlot(Math.max(0, Math.min(first, DEFAULT_FIRST_HOUR))),
+    max: asSlot(Math.min(24, last)),
+  };
+}
+
 export default function WeekCalendar({
   events,
   periodStart,
@@ -74,6 +128,7 @@ export default function WeekCalendar({
   onCycle,
 }: WeekCalendarProps) {
   const fcEvents = useMemo(() => toFullCalendarEvents(events), [events]);
+  const slots = useMemo(() => slotWindow(events), [events]);
   const calendarRef = useRef<FullCalendar | null>(null);
 
   /**
@@ -122,8 +177,8 @@ export default function WeekCalendar({
         nowIndicator={false}
         height="auto"
         expandRows
-        slotMinTime="06:00:00"
-        slotMaxTime="23:00:00"
+        slotMinTime={slots.min}
+        slotMaxTime={slots.max}
         eventClick={(info) => {
           onCycle(info.event.extendedProps.instance as ResolvedInstance);
         }}

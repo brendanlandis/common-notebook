@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
-import WeekCalendar, { toFullCalendarEvents } from "./WeekCalendar";
+import WeekCalendar, { slotWindow, toFullCalendarEvents } from "./WeekCalendar";
 import type { ResolvedInstance } from "@/app/lib/ics/resolveDecisions";
 
 /**
@@ -69,6 +69,71 @@ describe("toFullCalendarEvents", () => {
   });
 });
 
+describe("slotWindow", () => {
+  it("starts at 9am when nothing is earlier", () => {
+    expect(slotWindow([instance()]).min).toBe("09:00:00");
+  });
+
+  it("opens earlier for an early event", () => {
+    expect(
+      slotWindow([instance({ start: "2026-01-12T06:30:00", end: "2026-01-12T07:00:00" })]).min
+    ).toBe("06:00:00");
+  });
+
+  it("ignores an ignored event", () => {
+    // Deciding to ignore the 6am thing is exactly the statement that it
+    // shouldn't stretch the picture of the day.
+    expect(
+      slotWindow([
+        instance({ state: "hide", start: "2026-01-12T06:00:00", end: "2026-01-12T07:00:00" }),
+      ]).min
+    ).toBe("09:00:00");
+  });
+
+  it("opens earlier for an undecided one", () => {
+    expect(
+      slotWindow([
+        instance({ state: "unset", start: "2026-01-12T07:00:00", end: "2026-01-12T08:00:00" }),
+      ]).min
+    ).toBe("07:00:00");
+  });
+
+  it("takes the earliest of several", () => {
+    expect(
+      slotWindow([
+        instance({ start: "2026-01-12T08:00:00", end: "2026-01-12T09:00:00" }),
+        instance({ start: "2026-01-13T05:15:00", end: "2026-01-13T06:00:00" }),
+        instance({ start: "2026-01-14T11:00:00", end: "2026-01-14T12:00:00" }),
+      ]).min
+    ).toBe("05:00:00");
+  });
+
+  it("says nothing about the hours from an all-day event", () => {
+    // It renders in its own row above the grid, so its 00:00 start is not a
+    // claim that the day begins at midnight.
+    expect(
+      slotWindow([instance({ allDay: true, start: "2026-01-12", end: "2026-01-13" })]).min
+    ).toBe("09:00:00");
+  });
+
+  it("extends past 11pm rather than clipping a late event", () => {
+    expect(
+      slotWindow([instance({ start: "2026-01-12T22:00:00", end: "2026-01-12T23:30:00" })]).max
+    ).toBe("24:00:00");
+  });
+
+  it("reports a run past midnight as the end of the day", () => {
+    // Hour zero would read as ending before it started and collapse the grid.
+    expect(
+      slotWindow([instance({ start: "2026-01-12T22:00:00", end: "2026-01-13T01:00:00" })]).max
+    ).toBe("24:00:00");
+  });
+
+  it("keeps the default window for an empty week", () => {
+    expect(slotWindow([])).toEqual({ min: "09:00:00", max: "23:00:00" });
+  });
+});
+
 describe("WeekCalendar", () => {
   it("paints an event at the wall-clock time it was given", () => {
     render(<WeekCalendar events={[instance()]} {...PERIOD} onCycle={vi.fn()} />);
@@ -126,6 +191,51 @@ describe("WeekCalendar", () => {
     );
 
     expect(container.querySelectorAll(".fc-col-header-cell")).toHaveLength(4);
+  });
+
+  it("renders an early event rather than clipping it off the top", () => {
+    // The point of the whole slot window: an event above the first visible hour
+    // does not scroll — it simply is not there, which looks like data missing
+    // rather than a grid cropped.
+    const { container } = render(
+      <WeekCalendar
+        events={[
+          instance({ title: "Early flight", start: "2026-01-12T06:00:00", end: "2026-01-12T07:30:00" }),
+        ]}
+        {...PERIOD}
+        onCycle={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText("Early flight")).toBeTruthy();
+    expect(container.querySelector(".fc-timegrid-body .fc-event")).toBeTruthy();
+  });
+
+  it("tightens the window when the early event is ignored", () => {
+    // `slotMinTime` has to be reactive for this — unlike `initialDate`, which
+    // is not, and which is why that one is pushed through the API instead.
+    const early = instance({
+      title: "Early flight",
+      start: "2026-01-12T06:00:00",
+      end: "2026-01-12T07:30:00",
+    });
+    const { container, rerender } = render(
+      <WeekCalendar events={[early]} {...PERIOD} onCycle={vi.fn()} />
+    );
+
+    // Trimmed and compared whole: a bare /^6/ also matches 6pm, which is inside
+    // the default window and would make this pass either way.
+    const showsSixAm = () =>
+      [...container.querySelectorAll(".fc-timegrid-slot-label")].some(
+        (slot) => slot.textContent?.trim().toLowerCase() === "6am"
+      );
+    expect(showsSixAm()).toBe(true);
+
+    rerender(
+      <WeekCalendar events={[{ ...early, state: "hide" }]} {...PERIOD} onCycle={vi.fn()} />
+    );
+
+    expect(showsSixAm()).toBe(false);
   });
 
   it("keeps an all-day event out of the timed grid", () => {
