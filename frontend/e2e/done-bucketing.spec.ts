@@ -140,9 +140,10 @@ test.describe('Done page day-boundary bucketing', () => {
       // menu drawer: open the menu, then push the settings panel with the gear.
       await page.locator('[aria-label="open menu"]').click();
       await page.getByRole('button', { name: 'settings' }).click();
-      const boundarySelect = page
-        .locator('select')
-        .filter({ has: page.locator('option[value="3"]') }); // only the boundary select has 0..23
+      // By id. Filtering for "the select containing option value=3" assumed the
+      // boundary was the only 0..23 list in the drawer, which broke as soon as
+      // another numeric select was added to settings.
+      const boundarySelect = page.locator('#dayBoundaryHour');
       await expect(boundarySelect).toBeVisible({ timeout: 30_000 });
       await boundarySelect.selectOption('0');
 

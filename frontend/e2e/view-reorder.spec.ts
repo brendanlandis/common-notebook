@@ -17,20 +17,36 @@ import { gotoTodo } from './helpers';
 // driven entirely off-screen. It still emits pointer events, so the drag silently
 // does nothing and a rollback assertion passes vacuously. Wait for the panel to
 // stop moving before measuring anything inside it.
-const openViewsDrawer = async (page: Page) => {
-  await gotoTodo(page);
-  await page.getByRole('button', { name: 'views' }).click();
-  await expect(page.locator('li.view-row').first()).toBeVisible({ timeout: 30_000 });
-
-  const panel = page.locator('.actions-drawer');
-  let prev = NaN;
+/**
+ * Wait for an element to stop moving before measuring it.
+ *
+ * Anything measured mid-transition reports coordinates that are about to be
+ * wrong, and a drag driven off those coordinates still emits pointer events —
+ * so it silently does nothing and the assertion fails as if the feature were
+ * broken. Applies to the drawer sliding in *and* to a disclosure expanding.
+ */
+const waitUntilStill = async (page: Page, locator: ReturnType<Page['locator']>, what: string) => {
+  let prevX = NaN;
+  let prevY = NaN;
   for (let i = 0; i < 60; i++) {
-    const box = await panel.boundingBox();
-    if (box && box.x === prev && box.x >= 0) return;
-    prev = box ? box.x : NaN;
+    const box = await locator.boundingBox();
+    if (box && box.x === prevX && box.y === prevY && box.x >= 0) return;
+    prevX = box ? box.x : NaN;
+    prevY = box ? box.y : NaN;
     await page.waitForTimeout(50);
   }
-  throw new Error('views drawer never settled');
+  throw new Error(`${what} never settled`);
+};
+
+const openViewsDrawer = async (page: Page) => {
+  await gotoTodo(page);
+  // The manage buttons now live behind a caret that reveals them on hover or
+  // focus, so they have to be brought out before they can be clicked.
+  await page.getByRole('button', { name: 'more buttons' }).hover();
+  await page.getByRole('button', { name: 'manage views' }).click();
+  await expect(page.locator('li.view-row').first()).toBeVisible({ timeout: 30_000 });
+
+  await waitUntilStill(page, page.locator('.actions-drawer'), 'views drawer');
 };
 
 const viewNames = (page: Page) =>
@@ -43,8 +59,27 @@ const viewNames = (page: Page) =>
 // Move by the centre-to-centre distance plus an overshoot, not to the target's
 // centre: sorting only commits once the dragged row's centre crosses the
 // target's, and stopping exactly on it leaves the order unchanged.
-const dragRow = async (page: Page, from: number, to: number) => {
-  const rows = page.locator('li.view-row');
+/**
+ * Drag one row onto another by its grip.
+ *
+ * Takes the row locator so both levels share it — view rows and the section rows
+ * nested inside them.
+ *
+ * Only used for the view rows, which are uniform in height. Driving a *section*
+ * drag this way proved unreliable for reasons that are about the test rig rather
+ * than the app: sections differ in height (one showing more filters is taller),
+ * dnd-kit translates the untouched rows mid-drag to open a gap, and the grip
+ * sits near a row's top — so no offset computed before the drag reliably lands
+ * inside the intended row afterwards. The section test therefore drives the
+ * KeyboardSensor, which goes through the same collision detection and
+ * `handleDragEnd` without depending on pixel geometry.
+ */
+const dragRow = async (
+  page: Page,
+  rows: ReturnType<Page['locator']>,
+  from: number,
+  to: number
+) => {
   const grip = (await rows.nth(from).locator('> button.drag-handle').boundingBox())!;
   const source = (await rows.nth(from).boundingBox())!;
   const target = (await rows.nth(to).boundingBox())!;
@@ -64,14 +99,24 @@ const dragRow = async (page: Page, from: number, to: number) => {
   await page.mouse.up();
 };
 
+const dragViewRow = (page: Page, from: number, to: number) =>
+  dragRow(page, page.locator('li.view-row'), from, to);
+
 // The keyboard path that replaced the ↑/↓ buttons: focus a handle, Space to
-// lift, arrows to move, Space to drop.
-const keyboardMove = async (page: Page, from: number, key: 'ArrowUp' | 'ArrowDown') => {
-  await page.locator('li.view-row > button.drag-handle').nth(from).focus();
+// lift, arrows to move, Space to drop. Takes the row locator so it serves both
+// the view rows and the section rows nested inside them.
+const keyboardMove = async (
+  page: Page,
+  rows: ReturnType<Page['locator']>,
+  from: number,
+  key: 'ArrowUp' | 'ArrowDown'
+) => {
+  await rows.locator('> button.drag-handle').nth(from).focus();
   await page.keyboard.press('Space');
   // Wait for the lift itself rather than sleeping: dnd-kit measures the layout
   // before it will respond to an arrow key, and a fixed 150ms made this flaky.
-  await expect(page.locator('li.view-row.is-dragging')).toHaveCount(1, { timeout: 5_000 });
+  // Only one row lifts at a time, at either level, so this is unambiguous.
+  await expect(page.locator('.is-dragging')).toHaveCount(1, { timeout: 5_000 });
   // The class lands immediately, but dnd-kit measures the droppable rects a beat
   // later and ignores an arrow key that arrives before it has: without this the
   // lift succeeds and the move silently does nothing.
@@ -80,6 +125,9 @@ const keyboardMove = async (page: Page, from: number, key: 'ArrowUp' | 'ArrowDow
   await page.waitForTimeout(300);
   await page.keyboard.press('Space');
 };
+
+const keyboardMoveView = (page: Page, from: number, key: 'ArrowUp' | 'ArrowDown') =>
+  keyboardMove(page, page.locator('li.view-row'), from, key);
 
 test.describe('view reorder', () => {
   test('rolls back when the save fails', async ({ page }) => {
@@ -96,7 +144,7 @@ test.describe('view reorder', () => {
     });
 
     // Drag the second view above the first; the optimistic update should swap them.
-    await dragRow(page, 1, 0);
+    await dragViewRow(page, 1, 0);
 
     // It ends up back where it started. The swap itself is optimistic and may be
     // reverted faster than we can observe, so assert the settled state.
@@ -116,12 +164,12 @@ test.describe('view reorder', () => {
     const swapped = [before[1], before[0], ...before.slice(2)];
 
     try {
-      await keyboardMove(page, 1, 'ArrowUp');
+      await keyboardMoveView(page, 1, 'ArrowUp');
       await expect.poll(() => viewNames(page), { timeout: 15_000 }).toEqual(swapped);
     } finally {
       await openViewsDrawer(page);
       if ((await viewNames(page))[0] !== before[0]) {
-        await keyboardMove(page, 1, 'ArrowUp');
+        await keyboardMoveView(page, 1, 'ArrowUp');
         await expect.poll(() => viewNames(page), { timeout: 15_000 }).toEqual(before);
       }
     }
@@ -141,45 +189,32 @@ test.describe('view reorder', () => {
     const rows = viewRow.locator('li.view-section-row');
     if ((await rows.count()) < 2) test.skip(true, 'first view has only one section');
 
+    await waitUntilStill(page, rows.nth(1), 'section rows');
+
     const labels = () => rows.locator('input[aria-label="section label"]')
       .evaluateAll((els) => els.map((el) => (el as HTMLInputElement).value));
     const before = await labels();
 
     try {
-      const grip = (await rows.nth(1).locator('> button.drag-handle').boundingBox())!;
-      const src = (await rows.nth(1).boundingBox())!;
-      const tgt = (await rows.nth(0).boundingBox())!;
-      const x = grip.x + grip.width / 2;
-      const y = grip.y + grip.height / 2;
-      const centreDelta = tgt.y + tgt.height / 2 - (src.y + src.height / 2);
-      const delta = centreDelta + Math.sign(centreDelta) * 24;
-
-      await page.mouse.move(x, y);
-      await page.mouse.down();
-      await page.mouse.move(x, y + Math.sign(delta) * 10);
-      await page.mouse.move(x, y + delta, { steps: 15 });
-      await page.mouse.up();
+      // Keyboard rather than mouse — see the note on dragRow. It exercises the
+      // same collision detection and the same handleDragEnd; only the sensor
+      // differs, and it doesn't depend on pixel geometry that varies with how
+      // tall each section happens to be.
+      await keyboardMove(page, rows, 1, 'ArrowUp');
 
       await expect.poll(labels, { timeout: 15_000 }).toEqual([before[1], before[0]]);
     } finally {
-      // Restore by dragging back, then confirm it persisted.
+      // Restore, then confirm it persisted.
       await openViewsDrawer(page);
       const row = page.locator('li.view-row').nth(0);
       await row.locator('.view-sections-disclosure > .sections-toggle').click();
       const back = row.locator('li.view-section-row');
-      const now = await back.locator('input[aria-label="section label"]')
+      await waitUntilStill(page, back.nth(1), 'section rows');
+      const readBack = () => back.locator('input[aria-label="section label"]')
         .evaluateAll((els) => els.map((el) => (el as HTMLInputElement).value));
-      if (now[0] !== before[0]) {
-        await back.nth(1).locator('> button.drag-handle').focus();
-        await page.keyboard.press('Space');
-        await page.waitForTimeout(200);
-        await page.keyboard.press('ArrowUp');
-        await page.waitForTimeout(200);
-        await page.keyboard.press('Space');
-        await expect
-          .poll(() => back.locator('input[aria-label="section label"]')
-            .evaluateAll((els) => els.map((el) => (el as HTMLInputElement).value)), { timeout: 15_000 })
-          .toEqual(before);
+      if ((await readBack())[0] !== before[0]) {
+        await keyboardMove(page, back, 1, 'ArrowUp');
+        await expect.poll(readBack, { timeout: 15_000 }).toEqual(before);
       }
     }
   });
@@ -192,7 +227,7 @@ test.describe('view reorder', () => {
     const swapped = [before[1], before[0], ...before.slice(2)];
 
     try {
-      await dragRow(page, 1, 0);
+      await dragViewRow(page, 1, 0);
       await expect.poll(() => viewNames(page), { timeout: 15_000 }).toEqual(swapped);
 
       // Survives a reload — i.e. the N PUTs actually persisted.
@@ -203,7 +238,7 @@ test.describe('view reorder', () => {
       await openViewsDrawer(page);
       const now = await viewNames(page);
       if (now[0] !== before[0]) {
-        await dragRow(page, 1, 0);
+        await dragViewRow(page, 1, 0);
         await expect.poll(() => viewNames(page), { timeout: 15_000 }).toEqual(before);
       }
     }

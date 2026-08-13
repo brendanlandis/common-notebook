@@ -32,9 +32,13 @@ test.describe('project edit', () => {
     try {
       await gotoProject(page, project.documentId);
       await openProjectForm(page);
-      await expect(page.locator('#projectType')).toHaveValue('default');
+      // projectType is no longer a select — the form offers a `chores` checkbox
+      // and derives the value (`chores ? 'chores' : 'default'`). The thing under
+      // test is unchanged: that what the form sends is a valid enum member and
+      // that it survives a round trip.
+      await expect(page.locator('#chores')).not.toBeChecked();
 
-      await page.locator('#projectType').selectOption('chores');
+      await page.locator('#chores').check();
       const saved = await saveProjectForm(page);
       expect(saved.status(), 'the projectType save was rejected').toBeLessThan(400);
 
@@ -42,7 +46,7 @@ test.describe('project edit', () => {
       // honest proof the save landed is re-reading it from the server.
       await gotoProject(page, project.documentId);
       await openProjectForm(page);
-      await expect(page.locator('#projectType')).toHaveValue('chores');
+      await expect(page.locator('#chores')).toBeChecked();
     } finally {
       await deleteProject(request, project.documentId);
     }
@@ -68,7 +72,11 @@ test.describe('project edit', () => {
 
       await gotoProject(page, project.documentId);
       await openProjectForm(page);
-      await expect(page.locator('#projectType')).toHaveValue('default');
+      await expect(page.locator('#chores')).not.toBeChecked();
+      // The real assertion of this test: nothing 400'd. An unchecked box has to
+      // mean projectType 'default' — 'normal' is importance's ordinary value and
+      // is not in the enum, which is the bug that hid for months behind a drawer
+      // that closed before awaiting.
       expect(rejected, 'the save was rejected by the API').toEqual([]);
     } finally {
       await deleteProject(request, project.documentId);
