@@ -250,6 +250,19 @@ describe('task is an owned content type', () => {
     expect(OWNED_CONTENT_TYPES).toContain('api::view.view');
   });
 
+  it('OWNED_CONTENT_TYPES carries every weekly-review type', () => {
+    // The omission that matters is silent: an unregistered type is not scoped at
+    // all, and a calendar subscription leaking across accounts would expose the
+    // secret ICS URL along with it. Pinned by name so adding the schema without
+    // the registration fails here rather than in production.
+    expect(OWNED_CONTENT_TYPES).toContain('api::review.review');
+    expect(OWNED_CONTENT_TYPES).toContain('api::daily-pick.daily-pick');
+    expect(OWNED_CONTENT_TYPES).toContain('api::calendar-subscription.calendar-subscription');
+    expect(OWNED_CONTENT_TYPES).toContain(
+      'api::calendar-event-decision.calendar-event-decision'
+    );
+  });
+
   it('scopes task reads to the caller', async () => {
     const mw = ownedMiddleware(fakeStrapi({ url: '/api/tasks', user: ALICE }));
     const params: any = {};

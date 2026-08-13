@@ -19,7 +19,19 @@ export interface OwnershipRule {
   owns(row: any, user: any): boolean;
 }
 
-/** The content types that carry an `owner`. Nothing else is touched. */
+/**
+ * The content types that carry an `owner`. Nothing else is touched.
+ *
+ * A type missing from this list is not owner-scoped **at all** — the middleware
+ * short-circuits on anything it doesn't recognise (see `owned.has(uid)`), so the
+ * omission fails open and silently. Add the entry when you add the type, not
+ * when you notice.
+ *
+ * Registering a type before its schema is deployed is safe and deliberate: the
+ * middleware simply never matches it, and `warnOnUnownedRows` catches the
+ * missing-table error per type and logs a warning rather than failing the boot.
+ * That is what lets the entry land with the code that needs it.
+ */
 export const OWNED_CONTENT_TYPES = [
   'api::task.task',
   'api::project.project',
@@ -27,6 +39,11 @@ export const OWNED_CONTENT_TYPES = [
   'api::view.view',
   'api::practice-log.practice-log',
   'api::system-setting.system-setting',
+  // Weekly review. Registered ahead of the schema — see the note above.
+  'api::review.review',
+  'api::daily-pick.daily-pick',
+  'api::calendar-subscription.calendar-subscription',
+  'api::calendar-event-decision.calendar-event-decision',
 ] as const;
 
 export const ownerIsRequestUser: OwnershipRule = {
