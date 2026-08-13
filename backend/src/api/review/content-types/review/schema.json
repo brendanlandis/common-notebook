@@ -4,7 +4,7 @@
   "info": {
     "singularName": "review",
     "pluralName": "reviews",
-    "displayName": "review"
+    "displayName": "Review"
   },
   "options": {
     "draftAndPublish": false

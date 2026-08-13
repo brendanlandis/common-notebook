@@ -1,0 +1,40 @@
+{
+  "kind": "collectionType",
+  "collectionName": "calendar_event_decisions",
+  "info": {
+    "singularName": "calendar-event-decision",
+    "pluralName": "calendar-event-decisions",
+    "displayName": "Calendar Event Decision"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "uid": {
+      "type": "string",
+      "required": true
+    },
+    "recurrenceId": {
+      "type": "string"
+    },
+    "state": {
+      "type": "enumeration",
+      "enum": [
+        "show",
+        "hide"
+      ]
+    },
+    "calendar": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::calendar-subscription.calendar-subscription",
+      "inversedBy": "decisions"
+    },
+    "owner": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "plugin::users-permissions.user"
+    }
+  }
+}

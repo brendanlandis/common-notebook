@@ -1,0 +1,49 @@
+{
+  "kind": "collectionType",
+  "collectionName": "calendar_subscriptions",
+  "info": {
+    "singularName": "calendar-subscription",
+    "pluralName": "calendar-subscriptions",
+    "displayName": "Calendar Subscription"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "name": {
+      "type": "string",
+      "required": true
+    },
+    "icsUrl": {
+      "type": "text",
+      "required": true
+    },
+    "color": {
+      "type": "string"
+    },
+    "position": {
+      "type": "integer"
+    },
+    "defaultState": {
+      "type": "enumeration",
+      "default": "unset",
+      "enum": [
+        "show",
+        "hide",
+        "unset"
+      ]
+    },
+    "owner": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "plugin::users-permissions.user"
+    },
+    "decisions": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::calendar-event-decision.calendar-event-decision",
+      "mappedBy": "calendar"
+    }
+  }
+}

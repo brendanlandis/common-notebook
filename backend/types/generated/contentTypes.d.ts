@@ -441,10 +441,91 @@ export interface AdminUser extends Struct.CollectionTypeSchema {
   };
 }
 
+export interface ApiCalendarEventDecisionCalendarEventDecision
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'calendar_event_decisions';
+  info: {
+    displayName: 'Calendar Event Decision';
+    pluralName: 'calendar-event-decisions';
+    singularName: 'calendar-event-decision';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    calendar: Schema.Attribute.Relation<
+      'manyToOne',
+      'api::calendar-subscription.calendar-subscription'
+    >;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::calendar-event-decision.calendar-event-decision'
+    > &
+      Schema.Attribute.Private;
+    owner: Schema.Attribute.Relation<
+      'oneToOne',
+      'plugin::users-permissions.user'
+    >;
+    publishedAt: Schema.Attribute.DateTime;
+    recurrenceId: Schema.Attribute.String;
+    state: Schema.Attribute.Enumeration<['show', 'hide']>;
+    uid: Schema.Attribute.String & Schema.Attribute.Required;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface ApiCalendarSubscriptionCalendarSubscription
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'calendar_subscriptions';
+  info: {
+    displayName: 'Calendar Subscription';
+    pluralName: 'calendar-subscriptions';
+    singularName: 'calendar-subscription';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    color: Schema.Attribute.String;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    decisions: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::calendar-event-decision.calendar-event-decision'
+    >;
+    defaultState: Schema.Attribute.Enumeration<['show', 'hide', 'unset']> &
+      Schema.Attribute.DefaultTo<'unset'>;
+    icsUrl: Schema.Attribute.Text & Schema.Attribute.Required;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::calendar-subscription.calendar-subscription'
+    > &
+      Schema.Attribute.Private;
+    name: Schema.Attribute.String & Schema.Attribute.Required;
+    owner: Schema.Attribute.Relation<
+      'oneToOne',
+      'plugin::users-permissions.user'
+    >;
+    position: Schema.Attribute.Integer;
+    publishedAt: Schema.Attribute.DateTime;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
 export interface ApiDailyPickDailyPick extends Struct.CollectionTypeSchema {
   collectionName: 'daily_picks';
   info: {
-    displayName: 'daily-pick';
+    displayName: 'Daily Pick';
     pluralName: 'daily-picks';
     singularName: 'daily-pick';
   };
@@ -599,7 +680,7 @@ export interface ApiProjectProject extends Struct.CollectionTypeSchema {
 export interface ApiReviewReview extends Struct.CollectionTypeSchema {
   collectionName: 'reviews';
   info: {
-    displayName: 'review';
+    displayName: 'Review';
     pluralName: 'reviews';
     singularName: 'review';
   };
@@ -1326,6 +1407,8 @@ declare module '@strapi/strapi' {
       'admin::transfer-token': AdminTransferToken;
       'admin::transfer-token-permission': AdminTransferTokenPermission;
       'admin::user': AdminUser;
+      'api::calendar-event-decision.calendar-event-decision': ApiCalendarEventDecisionCalendarEventDecision;
+      'api::calendar-subscription.calendar-subscription': ApiCalendarSubscriptionCalendarSubscription;
       'api::daily-pick.daily-pick': ApiDailyPickDailyPick;
       'api::invite.invite': ApiInviteInvite;
       'api::practice-log.practice-log': ApiPracticeLogPracticeLog;

@@ -4,7 +4,7 @@
   "info": {
     "singularName": "daily-pick",
     "pluralName": "daily-picks",
-    "displayName": "daily-pick"
+    "displayName": "Daily Pick"
   },
   "options": {
     "draftAndPublish": false
