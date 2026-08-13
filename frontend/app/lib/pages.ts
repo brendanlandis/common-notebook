@@ -7,7 +7,7 @@ import { isBetaPath } from './betaConfig';
  * and `/` renders nothing. Listing only real destinations is what lets `soleDestination`
  * mean "this user has nowhere else to go".
  */
-export const MAIN_PAGES = ['/todo', '/practice'] as const;
+export const MAIN_PAGES = ['/todo', '/practice', '/review/daily'] as const;
 
 /** The pages `betaAccess` actually lets this user reach. */
 export function visiblePages(betaAccess: boolean): string[] {

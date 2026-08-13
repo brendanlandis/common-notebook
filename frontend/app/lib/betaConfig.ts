@@ -12,7 +12,7 @@
  * the caller, so a bypass reveals only the caller's own (empty) data — never
  * another user's.
  */
-export const BETA_PATHS = ['/practice'] as const;
+export const BETA_PATHS = ['/practice', '/review'] as const;
 
 /**
  * True when `pathname` is a beta path or a descendant of one. The `+ '/'` guard

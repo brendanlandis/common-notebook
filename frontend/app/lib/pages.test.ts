@@ -3,7 +3,15 @@ import { MAIN_PAGES, visiblePages, soleDestination } from './pages';
 
 describe('visiblePages', () => {
   it('shows every page to a beta user', () => {
-    expect(visiblePages(true)).toEqual(['/todo', '/practice']);
+    expect(visiblePages(true)).toEqual(['/todo', '/practice', '/review/daily']);
+  });
+
+  it('lists the daily review, not the review ritual', () => {
+    // `/review/weekly` is reached deliberately, roughly once a cycle; the daily
+    // page is the one you land on. Listing both would make the menu offer two
+    // entries for what is really one feature.
+    expect(MAIN_PAGES).toContain('/review/daily');
+    expect(MAIN_PAGES).not.toContain('/review/weekly');
   });
 
   it('hides beta pages from a non-beta user', () => {

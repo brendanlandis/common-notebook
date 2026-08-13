@@ -5,6 +5,8 @@ import {
   BroomIcon,
   MetronomeIcon,
   GearIcon,
+  SunIcon,
+  CompassIcon,
 } from "@phosphor-icons/react/dist/ssr";
 import MenuClose from "./MenuClose";
 import ThemeToggle from "./ThemeToggle";
@@ -67,6 +69,22 @@ export default function MenuItems({
             <span>practice</span>
           </Link>
         </li>
+      )}
+      {pages.includes("/review/daily") && (
+        <>
+          <li>
+            <Link href="/review/daily" onClick={closeDrawer}>
+              <SunIcon size={30} weight="thin" />
+              <span>today</span>
+            </Link>
+          </li>
+          <li>
+            <Link href="/review/weekly" onClick={closeDrawer}>
+              <CompassIcon size={30} weight="thin" />
+              <span>review</span>
+            </Link>
+          </li>
+        </>
       )}
     </>
   );
