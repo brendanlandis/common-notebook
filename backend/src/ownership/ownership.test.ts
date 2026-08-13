@@ -250,15 +250,20 @@ describe('task is an owned content type', () => {
     expect(OWNED_CONTENT_TYPES).toContain('api::view.view');
   });
 
-  it('OWNED_CONTENT_TYPES carries every weekly-review type', () => {
+  it('OWNED_CONTENT_TYPES carries the weekly-review types', () => {
     // The omission that matters is silent: an unregistered type is not scoped at
-    // all, and a calendar subscription leaking across accounts would expose the
-    // secret ICS URL along with it. Pinned by name so adding the schema without
-    // the registration fails here rather than in production.
+    // all. Pinned by name so a schema arriving without its registration fails
+    // here rather than in production.
     expect(OWNED_CONTENT_TYPES).toContain('api::review.review');
     expect(OWNED_CONTENT_TYPES).toContain('api::daily-pick.daily-pick');
-    expect(OWNED_CONTENT_TYPES).toContain('api::calendar-subscription.calendar-subscription');
-    expect(OWNED_CONTENT_TYPES).toContain(
+  });
+
+  it('lists no content type that has no schema', () => {
+    // This list drives the authenticated role's CRUD grants, so a uid added
+    // ahead of its schema seeds permissions for routes that don't exist. The
+    // calendar types belong here the day their schemas land, not before.
+    expect(OWNED_CONTENT_TYPES).not.toContain('api::calendar-subscription.calendar-subscription');
+    expect(OWNED_CONTENT_TYPES).not.toContain(
       'api::calendar-event-decision.calendar-event-decision'
     );
   });

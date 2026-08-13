@@ -27,10 +27,12 @@ export interface OwnershipRule {
  * omission fails open and silently. Add the entry when you add the type, not
  * when you notice.
  *
- * Registering a type before its schema is deployed is safe and deliberate: the
- * middleware simply never matches it, and `warnOnUnownedRows` catches the
- * missing-table error per type and logs a warning rather than failing the boot.
- * That is what lets the entry land with the code that needs it.
+ * Add the entry in the same change as the schema — not before it. This list is
+ * also what `permissions/index.ts` derives the authenticated role's CRUD grants
+ * from, so a uid listed here before its content type exists seeds permission
+ * rows for endpoints that have no route, and makes `warnOnUnownedRows` log on
+ * every boot. Both are harmless and neither fails the boot, but "the
+ * authorization surface, in git" is worth keeping honest.
  */
 export const OWNED_CONTENT_TYPES = [
   'api::task.task',
@@ -39,11 +41,8 @@ export const OWNED_CONTENT_TYPES = [
   'api::view.view',
   'api::practice-log.practice-log',
   'api::system-setting.system-setting',
-  // Weekly review. Registered ahead of the schema — see the note above.
   'api::review.review',
   'api::daily-pick.daily-pick',
-  'api::calendar-subscription.calendar-subscription',
-  'api::calendar-event-decision.calendar-event-decision',
 ] as const;
 
 export const ownerIsRequestUser: OwnershipRule = {
