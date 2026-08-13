@@ -34,7 +34,8 @@
     "owner": {
       "type": "relation",
       "relation": "oneToOne",
-      "target": "plugin::users-permissions.user"
+      "target": "plugin::users-permissions.user",
+      "private": true
     }
   }
 }

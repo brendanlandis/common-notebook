@@ -469,7 +469,8 @@ export interface ApiCalendarEventDecisionCalendarEventDecision
     owner: Schema.Attribute.Relation<
       'oneToOne',
       'plugin::users-permissions.user'
-    >;
+    > &
+      Schema.Attribute.Private;
     publishedAt: Schema.Attribute.DateTime;
     recurrenceId: Schema.Attribute.String;
     state: Schema.Attribute.Enumeration<['show', 'hide']>;
@@ -513,7 +514,8 @@ export interface ApiCalendarSubscriptionCalendarSubscription
     owner: Schema.Attribute.Relation<
       'oneToOne',
       'plugin::users-permissions.user'
-    >;
+    > &
+      Schema.Attribute.Private;
     position: Schema.Attribute.Integer;
     publishedAt: Schema.Attribute.DateTime;
     updatedAt: Schema.Attribute.DateTime;
