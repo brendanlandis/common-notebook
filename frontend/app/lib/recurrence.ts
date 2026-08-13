@@ -1,6 +1,6 @@
 import { Temporal } from 'temporal-polyfill';
 import * as Astronomy from 'astronomy-engine';
-import type { Task } from '../types/index';
+import type { RecurrenceRule, RecurrenceAnchor } from '../types/index';
 import { toISODate, parseDate, getTodayForRecurrence, shiftISODate } from './dateUtils';
 import type { TimeZoneSettings } from './timeZoneSettings';
 import { validateRecurrenceFields } from './recurrenceSpec';
@@ -72,41 +72,47 @@ function hasEventDate(recurrenceType: string): boolean {
 }
 
 /**
- * Calculate the next recurrence dates for a recurring task
+ * Calculate the next recurrence dates for a recurrence rule.
+ *
  * All calculations respect the day boundary hour setting for determining "today"
  * and use appropriate calculation modes based on recurrence type.
  *
- * @param task - The task item with recurrence settings
+ * Takes a `RecurrenceRule & RecurrenceAnchor` rather than a `Task`. `Task`
+ * extends both, so every existing caller passes one unchanged — but the engine
+ * is no longer *about* tasks, which is what lets the review cadence reuse it
+ * without inventing a task to hang the rule on.
+ *
+ * @param rule - The recurrence pattern plus its currently-materialised occurrence
  * @param settings - The owner's timezone and day boundary hour
  * @param isInitialCreation - True when creating a new recurring task, false when calculating next occurrence after completion
  * @returns Object with dueDate and displayDate, or null values if not recurring
  */
 export function calculateNextRecurrence(
-  task: Task,
+  rule: RecurrenceRule & RecurrenceAnchor,
   settings: TimeZoneSettings,
   isInitialCreation: boolean = false
 ): { dueDate: string | null; displayDate: string | null } {
-  if (!task.isRecurring) {
+  if (!rule.isRecurring) {
     return { dueDate: null, displayDate: null };
   }
 
-  // Validate that task has required fields for its recurrence type
-  const validation = validateRecurrenceFields(task);
+  // Validate that the rule has required fields for its recurrence type
+  const validation = validateRecurrenceFields(rule);
   if (!validation.valid) {
     // Silently return null - validation should be enforced at the form level
     return { dueDate: null, displayDate: null };
   }
 
-  const isEventBased = hasEventDate(task.recurrenceType);
+  const isEventBased = hasEventDate(rule.recurrenceType);
 
   if (isEventBased) {
     // Calculate the actual event date
-    const eventDate = calculateEventDate(task, settings);
+    const eventDate = calculateEventDate(rule, settings);
     if (!eventDate) {
       return { dueDate: null, displayDate: null };
     }
 
-    const offset = task.displayDateOffset ?? 0;
+    const offset = rule.displayDateOffset ?? 0;
 
     if (offset > 0) {
       // When offset > 0: show task before the event.
@@ -123,7 +129,7 @@ export function calculateNextRecurrence(
     }
   } else {
     // Simple recurring tasks (daily, weekly, etc.) - only displayDate needed
-    const displayDate = calculateNextDisplayDate(task, settings, isInitialCreation);
+    const displayDate = calculateNextDisplayDate(rule, settings, isInitialCreation);
     return { dueDate: null, displayDate };
   }
 }
@@ -132,19 +138,22 @@ export function calculateNextRecurrence(
  * Calculate the next event date (for recurrence types with specific event dates)
  * Uses max(completionDate, eventDate) to prevent duplicate occurrences
  *
- * @param task - The task item with recurrence settings
+ * @param rule - The recurrence pattern plus its currently-materialised occurrence
  * @param settings - The owner's timezone and day boundary hour
  * @returns The next event date as ISO string, or null
  */
-function calculateEventDate(task: Task, settings: TimeZoneSettings): string | null {
+function calculateEventDate(
+  rule: RecurrenceRule & RecurrenceAnchor,
+  settings: TimeZoneSettings
+): string | null {
   const today = getTodayForRecurrence(settings);
 
   // Reference date is the later of: completion date or existing event date
   // This prevents creating duplicate events when completing before the event date
-  const existingEventDate = task.dueDate
-    ? parseDate(task.dueDate, settings)
-    : task.displayDate
-    ? parseDate(task.displayDate, settings)
+  const existingEventDate = rule.dueDate
+    ? parseDate(rule.dueDate, settings)
+    : rule.displayDate
+    ? parseDate(rule.displayDate, settings)
     : null;
 
   // Both are real instants, so this picks the later moment correctly. The astronomy
@@ -159,9 +168,9 @@ function calculateEventDate(task: Task, settings: TimeZoneSettings): string | nu
   const comparisonISO = comparison.toString();
   const comparisonYear = comparison.year;
 
-  switch (task.recurrenceType) {
+  switch (rule.recurrenceType) {
     case 'monthly date': {
-      if (!task.recurrenceDayOfMonth) return null;
+      if (!rule.recurrenceDayOfMonth) return null;
 
       // Set the day of month, capping to the last day when the month is short
       // (e.g. day 31 in February becomes Feb 28/29).
@@ -169,11 +178,11 @@ function calculateEventDate(task: Task, settings: TimeZoneSettings): string | nu
         base.with({ day: Math.min(targetDay, base.daysInMonth) });
 
       // Start from the comparison day and find the next occurrence
-      let targetDate = setDayOfMonth(comparison, task.recurrenceDayOfMonth);
+      let targetDate = setDayOfMonth(comparison, rule.recurrenceDayOfMonth);
 
       // Always move to the next month after the comparison day
       if (targetDate.toString() <= comparisonISO) {
-        targetDate = setDayOfMonth(comparison.add({ months: 1 }), task.recurrenceDayOfMonth);
+        targetDate = setDayOfMonth(comparison.add({ months: 1 }), rule.recurrenceDayOfMonth);
       }
 
       return targetDate.toString();
@@ -181,16 +190,16 @@ function calculateEventDate(task: Task, settings: TimeZoneSettings): string | nu
 
     case 'monthly day': {
       if (
-        task.recurrenceWeekOfMonth === null || task.recurrenceWeekOfMonth === undefined ||
-        task.recurrenceDayOfWeekMonthly === null || task.recurrenceDayOfWeekMonthly === undefined
+        rule.recurrenceWeekOfMonth === null || rule.recurrenceWeekOfMonth === undefined ||
+        rule.recurrenceDayOfWeekMonthly === null || rule.recurrenceDayOfWeekMonthly === undefined
       ) {
         return null;
       }
 
-      const monthlyDayOfWeek = toJSDay(task.recurrenceDayOfWeekMonthly);
+      const monthlyDayOfWeek = toJSDay(rule.recurrenceDayOfWeekMonthly);
 
       const findNthWeekdayOfMonth = (base: Temporal.PlainDate): Temporal.PlainDate => {
-        if (task.recurrenceWeekOfMonth === -1) {
+        if (rule.recurrenceWeekOfMonth === -1) {
           // Last matching weekday of the month: walk back from the last day.
           let d = base.with({ day: base.daysInMonth });
           while (jsDay(d) !== monthlyDayOfWeek) d = d.subtract({ days: 1 });
@@ -200,7 +209,7 @@ function calculateEventDate(task: Task, settings: TimeZoneSettings): string | nu
         const first = base.with({ day: 1 });
         let d = jsDay(first) === monthlyDayOfWeek ? first : nextWeekday(first, monthlyDayOfWeek);
 
-        const weeksToAdd = task.recurrenceWeekOfMonth! - 1;
+        const weeksToAdd = rule.recurrenceWeekOfMonth! - 1;
         if (weeksToAdd > 0) d = d.add({ weeks: weeksToAdd });
 
         return d;
@@ -219,8 +228,8 @@ function calculateEventDate(task: Task, settings: TimeZoneSettings): string | nu
 
     case 'annually': {
       if (
-        task.recurrenceMonth === null || task.recurrenceMonth === undefined ||
-        task.recurrenceDayOfMonth === null || task.recurrenceDayOfMonth === undefined
+        rule.recurrenceMonth === null || rule.recurrenceMonth === undefined ||
+        rule.recurrenceDayOfMonth === null || rule.recurrenceDayOfMonth === undefined
       ) {
         return null;
       }
@@ -233,11 +242,11 @@ function calculateEventDate(task: Task, settings: TimeZoneSettings): string | nu
       };
 
       // Start from the comparison day and find the next occurrence
-      let annualDate = setAnnualDate(comparison, task.recurrenceMonth, task.recurrenceDayOfMonth);
+      let annualDate = setAnnualDate(comparison, rule.recurrenceMonth, rule.recurrenceDayOfMonth);
 
       // Always move to the next year after the comparison day
       if (annualDate.toString() <= comparisonISO) {
-        annualDate = setAnnualDate(comparison.add({ years: 1 }), task.recurrenceMonth, task.recurrenceDayOfMonth);
+        annualDate = setAnnualDate(comparison.add({ years: 1 }), rule.recurrenceMonth, rule.recurrenceDayOfMonth);
       }
 
       return annualDate.toString();
@@ -315,16 +324,16 @@ function calculateEventDate(task: Task, settings: TimeZoneSettings): string | nu
 }
 
 /**
- * Calculate the next display date for a recurring task (for types with only displayDate)
+ * Calculate the next display date for a recurring rule (for types with only displayDate)
  * Respects day boundary hour for determining "today"
  *
- * @param task - The task item with recurrence settings
+ * @param rule - The recurrence pattern plus its currently-materialised occurrence
  * @param settings - The owner's timezone and day boundary hour
  * @param isInitialCreation - True when creating a new recurring task
  * @returns The next display date as ISO string, or null
  */
 function calculateNextDisplayDate(
-  task: Task,
+  rule: RecurrenceRule & RecurrenceAnchor,
   settings: TimeZoneSettings,
   isInitialCreation: boolean = false
 ): string | null {
@@ -332,21 +341,21 @@ function calculateNextDisplayDate(
   // user's calendar day so the weekday and day arithmetic below is in their zone.
   const today = toPlainDate(getTodayForRecurrence(settings), settings);
 
-  switch (task.recurrenceType) {
+  switch (rule.recurrenceType) {
     case 'daily':
       // Initial creation shows today; after completion, tomorrow.
       return isInitialCreation ? today.toString() : today.add({ days: 1 }).toString();
 
     case 'every x days':
-      if (!task.recurrenceInterval) return null;
+      if (!rule.recurrenceInterval) return null;
       // Initial creation shows today; after completion, X days out.
       return isInitialCreation
         ? today.toString()
-        : today.add({ days: task.recurrenceInterval }).toString();
+        : today.add({ days: rule.recurrenceInterval }).toString();
 
     case 'weekly': {
-      if (task.recurrenceDayOfWeek === null || task.recurrenceDayOfWeek === undefined) return null;
-      const dayOfWeek = toJSDay(task.recurrenceDayOfWeek);
+      if (rule.recurrenceDayOfWeek === null || rule.recurrenceDayOfWeek === undefined) return null;
+      const dayOfWeek = toJSDay(rule.recurrenceDayOfWeek);
 
       // Initial creation, or completed on a different weekday: the next occurrence of
       // the target weekday. Completed on the target weekday: exactly 7 days later.
@@ -359,8 +368,8 @@ function calculateNextDisplayDate(
     }
 
     case 'biweekly': {
-      if (task.recurrenceDayOfWeek === null || task.recurrenceDayOfWeek === undefined) return null;
-      const biweeklyDayOfWeek = toJSDay(task.recurrenceDayOfWeek);
+      if (rule.recurrenceDayOfWeek === null || rule.recurrenceDayOfWeek === undefined) return null;
+      const biweeklyDayOfWeek = toJSDay(rule.recurrenceDayOfWeek);
 
       if (isInitialCreation) {
         return nextWeekday(today, biweeklyDayOfWeek).toString();
@@ -368,9 +377,9 @@ function calculateNextDisplayDate(
 
       // After completion, keep the 14-day cadence anchored on the existing displayDate:
       // step forward 14 days at a time until past today.
-      if (!task.displayDate) return null;
+      if (!rule.displayDate) return null;
 
-      let nextDate = Temporal.PlainDate.from(task.displayDate);
+      let nextDate = Temporal.PlainDate.from(rule.displayDate);
       do {
         nextDate = nextDate.add({ days: 14 });
       } while (Temporal.PlainDate.compare(nextDate, today) <= 0);

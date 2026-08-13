@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { calculateNextRecurrence } from './recurrence';
-import type { Task } from '@/app/types/index';
+import type { Task, RecurrenceRule, RecurrenceAnchor } from '@/app/types/index';
 import * as dateUtils from './dateUtils';
 import type { TimeZoneSettings } from './timeZoneSettings';
 
@@ -712,6 +712,79 @@ describe('Recurrence Logic', () => {
       const result = calculateNextRecurrence(task, EST, false);
 
       expect(result.displayDate).toBe(null);
+    });
+  });
+
+  describe('Last weekday of month', () => {
+    // "the last <weekday>" (recurrenceWeekOfMonth === -1) walks back from the
+    // last day of the month rather than counting forward, so its edges are at
+    // the end of the month, not the start. One case ("last Friday") was covered;
+    // these are the two that actually exercise the walk-back.
+
+    it('lands on the last day when the month ends on the target weekday', () => {
+      // Feb 2026 ends on Saturday the 28th, so the answer *is* the last day —
+      // the loop must terminate immediately rather than step back a week.
+      const task = createTask({
+        isRecurring: true,
+        recurrenceType: 'monthly day',
+        recurrenceWeekOfMonth: -1,
+        recurrenceDayOfWeekMonthly: 6, // Saturday
+        displayDate: '2026-01-31', // the last Saturday of January
+      });
+
+      const result = calculateNextRecurrence(task, EST, false);
+
+      expect(result.displayDate).toBe('2026-02-28');
+    });
+
+    it('steps back past the end of the month to find the weekday', () => {
+      // Feb 2026 ends on a Saturday, so the last Sunday is the 22nd — six days
+      // back from the 28th, i.e. the walk-back runs its full length.
+      const task = createTask({
+        isRecurring: true,
+        recurrenceType: 'monthly day',
+        recurrenceWeekOfMonth: -1,
+        recurrenceDayOfWeekMonthly: 7, // Sunday, which is 0 in JS day terms
+        displayDate: '2026-01-25', // the last Sunday of January
+      });
+
+      const result = calculateNextRecurrence(task, EST, false);
+
+      expect(result.displayDate).toBe('2026-02-22');
+    });
+  });
+
+  describe('Rules without a task', () => {
+    // The engine takes a RecurrenceRule & RecurrenceAnchor, not a Task. This is
+    // what lets the review cadence ask "when does this pattern next come up"
+    // without fabricating a task to hang the rule on. Asserting it at runtime
+    // as well as in the types, because the whole point of the extraction is that
+    // a non-task caller works — a future refactor that quietly reintroduces a
+    // Task-shaped requirement should fail here.
+    const rule: RecurrenceRule & RecurrenceAnchor = {
+      isRecurring: true,
+      recurrenceType: 'monthly day',
+      recurrenceInterval: null,
+      recurrenceDayOfWeek: null,
+      recurrenceDayOfMonth: null,
+      recurrenceWeekOfMonth: 2,
+      recurrenceDayOfWeekMonthly: 2, // Tuesday
+      recurrenceMonth: null,
+      dueDate: null,
+      displayDate: '2026-01-13', // the 2nd Tuesday of January
+      displayDateOffset: null,
+    };
+
+    it('computes the next occurrence from a bare rule', () => {
+      const result = calculateNextRecurrence(rule, EST, false);
+
+      expect(result.displayDate).toBe('2026-02-10'); // 2nd Tuesday of February
+    });
+
+    it('agrees with the same rule carried on a task', () => {
+      const asTask = calculateNextRecurrence(createTask(rule), EST, false);
+
+      expect(calculateNextRecurrence(rule, EST, false)).toEqual(asTask);
     });
   });
 });

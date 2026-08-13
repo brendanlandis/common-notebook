@@ -5,7 +5,7 @@
  * All recurrence calculation code should reference this specification.
  */
 
-import type { RecurrenceType, Task } from '../types/index';
+import type { RecurrenceType, RecurrenceRule } from '../types/index';
 
 /**
  * Calculation modes for different recurrence types
@@ -23,7 +23,9 @@ export interface RecurrenceTypeSpec {
   type: RecurrenceType;
   calculationMode: CalculationMode;
   shouldDrift: boolean;
-  requiredFields: Array<keyof Task>;
+  // Keyed on the rule, not on Task: every required field is a recurrence field,
+  // and narrowing it here is what lets a non-task caller be validated too.
+  requiredFields: Array<keyof RecurrenceRule>;
   supportsOffset: boolean;
   description: string;
   onInitialCreation: string;
@@ -264,24 +266,28 @@ export const RECURRENCE_SPECS: Record<RecurrenceType, RecurrenceTypeSpec> = {
 };
 
 /**
- * Validate that a task has all required fields for its recurrence type
+ * Validate that a rule has all required fields for its recurrence type.
+ *
+ * Takes a `RecurrenceRule`, not a `Task` — `Task` extends it, so every existing
+ * caller still passes one unchanged, but a review cadence (which is a rule with
+ * no task attached) can be validated by the same function.
  */
-export function validateRecurrenceFields(task: Task): { valid: boolean; errors: string[] } {
-  if (!task.isRecurring || task.recurrenceType === 'none') {
+export function validateRecurrenceFields(rule: RecurrenceRule): { valid: boolean; errors: string[] } {
+  if (!rule.isRecurring || rule.recurrenceType === 'none') {
     return { valid: true, errors: [] };
   }
 
-  const spec = RECURRENCE_SPECS[task.recurrenceType];
+  const spec = RECURRENCE_SPECS[rule.recurrenceType];
   if (!spec) {
-    return { valid: false, errors: [`Unknown recurrence type: ${task.recurrenceType}`] };
+    return { valid: false, errors: [`Unknown recurrence type: ${rule.recurrenceType}`] };
   }
 
   const errors: string[] = [];
 
   for (const field of spec.requiredFields) {
-    const value = task[field];
+    const value = rule[field];
     if (value === null || value === undefined) {
-      errors.push(`Missing required field for ${task.recurrenceType}: ${field}`);
+      errors.push(`Missing required field for ${rule.recurrenceType}: ${field}`);
     }
   }
 

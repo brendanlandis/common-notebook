@@ -176,17 +176,17 @@ export interface WorkSession {
   timestamp: string; // ISO datetime
 }
 
-// Task interface
-export interface Task {
-  id: number;
-  documentId: string;
-  title: string;
-  description: StrapiBlock[];
-  completed: boolean;
-  completedAt: string | null;
-  dueDate: string | null;
-  displayDate: string | null;
-  displayDateOffset: number | null;
+// ── Recurrence, as a rule rather than a set of task columns ────────────────
+// These two interfaces used to be loose fields on `Task`, which meant the
+// recurrence math in `lib/recurrence.ts` could only ever be asked "when does
+// this *task* next come up". Anything else wanting the same calendar logic —
+// the review cadence, for one — had no way to ask without fabricating a whole
+// Task. Splitting them out costs nothing (`Task` extends both, so its shape is
+// unchanged) and makes the recurrence engine callable with a bare rule.
+
+// *What* the pattern is. Everything here is user-chosen at edit time and
+// unchanged by completing an occurrence.
+export interface RecurrenceRule {
   isRecurring: boolean;
   recurrenceType: RecurrenceType;
   recurrenceInterval: number | null;
@@ -195,6 +195,26 @@ export interface Task {
   recurrenceWeekOfMonth: number | null;
   recurrenceDayOfWeekMonthly: number | null;
   recurrenceMonth: number | null;
+}
+
+// *Where the pattern currently sits* — the occurrence already materialised.
+// Separate from the rule because it changes on every completion while the rule
+// does not, and because the astronomical/calendar types anchor their next
+// occurrence on it (see `calculateEventDate`).
+export interface RecurrenceAnchor {
+  dueDate: string | null;
+  displayDate: string | null;
+  displayDateOffset: number | null;
+}
+
+// Task interface
+export interface Task extends RecurrenceRule, RecurrenceAnchor {
+  id: number;
+  documentId: string;
+  title: string;
+  description: StrapiBlock[];
+  completed: boolean;
+  completedAt: string | null;
   trackingUrl: string | null;
   purchaseUrl: string | null;
   price: number | null;
