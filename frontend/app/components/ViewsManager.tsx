@@ -143,7 +143,7 @@ export default function ViewsManager() {
   return (
     <div className="views-manager manager">
       <SortableProvider onDragEnd={handleDragEnd}>
-        <SortableGroup ids={ordered.map((v) => v.documentId)}>
+        <SortableGroup groupKey="views" ids={ordered.map((v) => v.documentId)}>
         <ul className="views-list manager-list">
           {ordered.map((view) => {
             const multiSection = view.layout === "projects";
@@ -194,6 +194,10 @@ export default function ViewsManager() {
                     </button>
                     {expanded.has(view.documentId) && (
                     <SortableGroup
+                      // Its own group, so a section drag can only ever resolve
+                      // onto a sibling section — never onto a view row, which
+                      // handleDragEnd would refuse.
+                      groupKey={`sections:${view.documentId}`}
                       ids={view.sections.map((_, si) => sectionId(view.documentId, si))}
                     >
                       <ul className="view-sections">

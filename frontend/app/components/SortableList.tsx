@@ -1,7 +1,8 @@
 "use client";
 
-import { ReactNode } from "react";
+import { ReactNode, createContext, useCallback, useContext, useRef } from "react";
 import {
+  CollisionDetection,
   DndContext,
   DragEndEvent,
   KeyboardSensor,
@@ -38,6 +39,24 @@ import { DotsSixVerticalIcon } from "@phosphor-icons/react";
 // inputs, selects and checkboxes, and without it a plain click on a control gets
 // swallowed as the start of a drag.
 
+/**
+ * Which list each sortable id belongs to.
+ *
+ * One DndContext serves every list on a surface (nested contexts do not work —
+ * see above), so without this every droppable competes with every other. That is
+ * a real problem for nested lists rather than a theoretical one: dragging a
+ * section between two 450px-tall sections is a ~460px journey, and `closestCorners`
+ * compares the dragged rect against the *view* rows too. A view row frequently
+ * wins, `over` comes back as a view id, and ViewsManager's cross-view guard
+ * correctly refuses the drop — so the rows visibly swap during the drag and then
+ * snap back. From the outside it looks like reordering sections is simply broken,
+ * and intermittently it was.
+ */
+const GroupRegistry = createContext<{
+  register: (ids: string[], groupKey: string) => void;
+  groupOf: (id: string) => string | undefined;
+} | null>(null);
+
 export function SortableProvider({
   onDragEnd,
   children,
@@ -52,6 +71,34 @@ export function SortableProvider({
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
+  // A ref, not state: this is written during render by each Group and read only
+  // inside collision detection, so re-rendering the provider on every
+  // registration would be churn for nothing.
+  const groups = useRef(new Map<string, string>());
+  const register = useCallback((ids: string[], groupKey: string) => {
+    for (const id of ids) groups.current.set(id, groupKey);
+  }, []);
+  const groupOf = useCallback((id: string) => groups.current.get(id), []);
+
+  /**
+   * `closestCorners`, but only against droppables in the dragged item's own
+   * list. Anything in another list is not a legal drop target, so letting it
+   * win a collision can only produce a refused drop.
+   */
+  const collisionDetection: CollisionDetection = useCallback((args) => {
+    const activeGroup = groups.current.get(String(args.active.id));
+    if (activeGroup === undefined) return closestCorners(args);
+
+    const sameGroup = args.droppableContainers.filter(
+      (container) => groups.current.get(String(container.id)) === activeGroup
+    );
+    // Fall back rather than return nothing if a list somehow has no peers —
+    // an empty candidate set would make the drag silently undroppable.
+    if (sameGroup.length === 0) return closestCorners(args);
+
+    return closestCorners({ ...args, droppableContainers: sameGroup });
+  }, []);
+
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
@@ -59,19 +106,38 @@ export function SortableProvider({
   };
 
   return (
-    <DndContext
-      sensors={sensors}
-      collisionDetection={closestCorners}
-      modifiers={[restrictToVerticalAxis]}
-      onDragEnd={handleDragEnd}
-    >
-      {children}
-    </DndContext>
+    <GroupRegistry.Provider value={{ register, groupOf }}>
+      <DndContext
+        sensors={sensors}
+        collisionDetection={collisionDetection}
+        modifiers={[restrictToVerticalAxis]}
+        onDragEnd={handleDragEnd}
+      >
+        {children}
+      </DndContext>
+    </GroupRegistry.Provider>
   );
 }
 
-/** One sortable list. Several of these can live inside a single provider. */
-export function SortableGroup({ ids, children }: { ids: string[]; children: ReactNode }) {
+/**
+ * One sortable list. Several of these can live inside a single provider.
+ *
+ * `groupKey` identifies the list for collision purposes; it defaults to the
+ * ids themselves, which is right whenever the lists are disjoint (they are —
+ * a row belongs to exactly one list).
+ */
+export function SortableGroup({
+  ids,
+  groupKey,
+  children,
+}: {
+  ids: string[];
+  groupKey?: string;
+  children: ReactNode;
+}) {
+  const registry = useContext(GroupRegistry);
+  registry?.register(ids, groupKey ?? ids.join("|"));
+
   return (
     <SortableContext items={ids} strategy={verticalListSortingStrategy}>
       {children}
