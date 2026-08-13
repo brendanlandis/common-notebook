@@ -5,9 +5,16 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useState, useEffect, useMemo } from "react";
 import ProjectSelector from "./ProjectSelector";
-import type { Task, RecurrenceType, ProjectType, StrapiBlock } from "@/app/types/index";
+import type {
+  Task,
+  RecurrenceType,
+  RecurrenceRule,
+  ProjectType,
+  StrapiBlock,
+} from "@/app/types/index";
 import { getTaskProjectType } from "@/app/lib/taskProjectType";
-import { calculateNextRecurrence } from "@/app/lib/recurrence";
+import { calculateNextRecurrence, hasEventDate } from "@/app/lib/recurrence";
+import RecurrencePicker from "@/app/components/RecurrencePicker";
 import { useDateTimeSettings } from "@/app/contexts/DateTimeSettingsContext";
 import { useTasks } from "../hooks/useTasks";
 import RichTextEditor from "@/app/components/RichTextEditor";
@@ -116,19 +123,10 @@ export default function TaskForm({ task, onSubmit, onCancel }: TaskFormProps) {
   // needs the task list, and pulling the whole context re-rendered it on every
   // unrelated change. The cache is shared, so this costs no extra request.
   const { tasks } = useTasks();
-  const [recurrenceType, setRecurrenceType] = useState<RecurrenceType>(
-    task?.recurrenceType || "none"
-  );
   const [description, setDescription] = useState<StrapiBlock[]>(
     task?.description || []
   );
 
-  const [selectedMonth, setSelectedMonth] = useState<number>(
-    task?.recurrenceMonth || 1
-  );
-  const [displayDateOffset, setDisplayDateOffset] = useState<number>(
-    task?.displayDateOffset ?? 0
-  );
   const [wishListCategoryInput, setWishListCategoryInput] = useState<string>(
     task?.wishListCategory || ""
   );
@@ -140,25 +138,6 @@ export default function TaskForm({ task, onSubmit, onCancel }: TaskFormProps) {
   // stored on the task.
   const [selectedProjectType, setSelectedProjectType] =
     useState<ProjectType | null>(task ? getTaskProjectType(task) : null);
-
-  // Helper function to get the number of days in a month (including 29 for Feb)
-  const getDaysInMonth = (month: number): number => {
-    const daysInMonth: { [key: number]: number } = {
-      1: 31, // January
-      2: 29, // February (including leap year)
-      3: 31, // March
-      4: 30, // April
-      5: 31, // May
-      6: 30, // June
-      7: 31, // July
-      8: 31, // August
-      9: 30, // September
-      10: 31, // October
-      11: 30, // November
-      12: 31, // December
-    };
-    return daysInMonth[month] || 31;
-  };
 
   const {
     register,
@@ -197,6 +176,21 @@ export default function TaskForm({ task, onSubmit, onCancel }: TaskFormProps) {
   const isRecurring = watch("isRecurring");
   const unifiedValue = selectedProject || null;
 
+  // The recurrence pattern, assembled from form state for the controlled picker.
+  // Watched rather than held in local state so there is exactly one copy: the
+  // form's. The picker writes back through `setValue`, which re-renders this.
+  const recurrenceRule: RecurrenceRule = {
+    isRecurring: isRecurring ?? false,
+    recurrenceType: (watch("recurrenceType") as RecurrenceType) ?? "none",
+    recurrenceInterval: watch("recurrenceInterval") ?? null,
+    recurrenceDayOfWeek: watch("recurrenceDayOfWeek") ?? null,
+    recurrenceDayOfMonth: watch("recurrenceDayOfMonth") ?? null,
+    recurrenceWeekOfMonth: watch("recurrenceWeekOfMonth") ?? null,
+    recurrenceDayOfWeekMonthly: watch("recurrenceDayOfWeekMonthly") ?? null,
+    recurrenceMonth: watch("recurrenceMonth") ?? null,
+  };
+  const watchedOffset = watch("displayDateOffset");
+
   // Wishlist category suggestions, derived from the tasks already in context.
   // This form remounts on every drawer open, so fetching /api/tasks here meant a
   // full task list over the wire each time to build a handful of strings.
@@ -233,19 +227,9 @@ export default function TaskForm({ task, onSubmit, onCancel }: TaskFormProps) {
     // Filter out all empty blocks from description
     const filteredDescription = description.filter(block => !isEmptyBlock(block));
     
-    // Determine which recurrence types have event dates
-    const hasEventDate = [
-      "monthly date",
-      "monthly day",
-      "annually",
-      "full moon",
-      "new moon",
-      "every season",
-      "winter solstice",
-      "spring equinox",
-      "summer solstice",
-      "autumn equinox",
-    ].includes(data.recurrenceType || "");
+    // Which recurrence types have event dates — from lib/recurrence, which is
+    // the same list the engine itself branches on. It used to be re-typed here.
+    const isEventBased = hasEventDate(data.recurrenceType || "");
 
     let dueDate = data.dueDate || null;
     let displayDate = null;
@@ -262,7 +246,7 @@ export default function TaskForm({ task, onSubmit, onCancel }: TaskFormProps) {
         completedAt: null,
         dueDate: null,
         displayDate: null,
-        displayDateOffset: hasEventDate ? data.displayDateOffset ?? 0 : null,
+        displayDateOffset: isEventBased ? data.displayDateOffset ?? 0 : null,
         isRecurring: true,
         recurrenceType: data.recurrenceType as RecurrenceType,
         recurrenceInterval: data.recurrenceInterval || null,
@@ -288,7 +272,7 @@ export default function TaskForm({ task, onSubmit, onCancel }: TaskFormProps) {
       const calculatedDates = calculateNextRecurrence(tempTask, timeZoneSettings, true);
       dueDate = calculatedDates.dueDate;
       displayDate = calculatedDates.displayDate;
-      displayDateOffset = hasEventDate ? data.displayDateOffset ?? 0 : null;
+      displayDateOffset = isEventBased ? data.displayDateOffset ?? 0 : null;
     } else {
       // Non-recurring tasks use dueDate and optionally displayDate
       dueDate = data.dueDate || null;
@@ -526,218 +510,25 @@ export default function TaskForm({ task, onSubmit, onCancel }: TaskFormProps) {
 
       {/* recurrence options */}
       {isRecurring && (
-        <>
-          <div className="task-form-element">
-            <label htmlFor="recurrenceType">recurrence type</label>
-            <select
-              id="recurrenceType"
-              {...register("recurrenceType")}
-              onChange={(e) => {
-                setRecurrenceType(e.target.value as RecurrenceType);
-                setValue("recurrenceType", e.target.value);
-              }}
-            >
-              <optgroup label="the earth">
-                <option value="daily">every day</option>
-                <option value="every x days">every X days</option>
-              </optgroup>
-              <optgroup label="man's witless folly">
-                <option value="weekly">weekly</option>
-                <option value="biweekly">biweekly</option>
-                <option value="monthly date">monthly (same date)</option>
-                <option value="monthly day">monthly (same weekday)</option>
-                <option value="annually">annually</option>
-              </optgroup>
-              <optgroup label="the heavens">
-                <option value="full moon">full moon</option>
-                <option value="new moon">new moon</option>
-                <option value="every season">every season</option>
-                <option value="winter solstice">winter solstice</option>
-                <option value="spring equinox">spring equinox</option>
-                <option value="summer solstice">summer solstice</option>
-                <option value="autumn equinox">autumn equinox</option>
-              </optgroup>{" "}
-            </select>
-          </div>
-
-          {recurrenceType === "every x days" && (
-            <div className="task-form-element">
-              <label htmlFor="recurrenceInterval">how many days</label>
-              <input
-                id="recurrenceInterval"
-                type="number"
-                placeholder="how many days"
-                {...register("recurrenceInterval", { valueAsNumber: true })}
-              />
-            </div>
-          )}
-
-          {recurrenceType === "weekly" && (
-            <div className="task-form-element">
-              <label htmlFor="recurrenceDayOfWeek">day of week</label>
-              <select
-                id="recurrenceDayOfWeek"
-                {...register("recurrenceDayOfWeek", { valueAsNumber: true })}
-              >
-                <option value="1">mondays</option>
-                <option value="2">tuesdays</option>
-                <option value="3">wednesdays</option>
-                <option value="4">thursdays</option>
-                <option value="5">fridays</option>
-                <option value="6">saturdays</option>
-                <option value="7">sundays</option>
-              </select>
-            </div>
-          )}
-
-          {recurrenceType === "biweekly" && (
-            <div className="task-form-element">
-              <label htmlFor="recurrenceDayOfWeek">day of week</label>
-              <select
-                id="recurrenceDayOfWeek"
-                {...register("recurrenceDayOfWeek", { valueAsNumber: true })}
-              >
-                <option value="1">every other monday</option>
-                <option value="2">every other tuesday</option>
-                <option value="3">every other wednesday</option>
-                <option value="4">every other thursday</option>
-                <option value="5">every other friday</option>
-                <option value="6">every other saturday</option>
-                <option value="7">every other sunday</option>
-              </select>
-            </div>
-          )}
-
-          {recurrenceType === "monthly date" && (
-            <div className="task-form-element">
-              <label htmlFor="recurrenceDayOfMonth">day of month (1-31)</label>
-              <input
-                id="recurrenceDayOfMonth"
-                type="number"
-                min="1"
-                max="31"
-                placeholder="day of month (1-31)"
-                {...register("recurrenceDayOfMonth", { valueAsNumber: true })}
-              />
-            </div>
-          )}
-
-          {recurrenceType === "monthly day" && (
-            <div className="row-one-two">
-              <div className="task-form-element">
-                <label htmlFor="recurrenceWeekOfMonth">Week of Month</label>
-                <select
-                  id="recurrenceWeekOfMonth"
-                  {...register("recurrenceWeekOfMonth", {
-                    valueAsNumber: true,
-                  })}
-                >
-                  <option value="1">the first</option>
-                  <option value="2">the second</option>
-                  <option value="3">the third</option>
-                  <option value="-1">the last</option>
-                </select>
-              </div>
-              <div className="task-form-element">
-                <label htmlFor="recurrenceDayOfWeekMonthly">day of week</label>
-                <select
-                  id="recurrenceDayOfWeekMonthly"
-                  {...register("recurrenceDayOfWeekMonthly", {
-                    valueAsNumber: true,
-                  })}
-                >
-                  <option value="1">monday of the month</option>
-                  <option value="2">tuesday of the month</option>
-                  <option value="3">wednesday of the month</option>
-                  <option value="4">thursday of the month</option>
-                  <option value="5">friday of the month</option>
-                  <option value="6">saturday of the month</option>
-                  <option value="7">sunday of the month</option>
-                </select>
-              </div>
-            </div>
-          )}
-
-          {recurrenceType === "annually" && (
-            <div className="row-one-one">
-              <div className="task-form-element">
-                <label htmlFor="recurrenceMonth">month</label>
-                <select
-                  id="recurrenceMonth"
-                  {...register("recurrenceMonth", {
-                    valueAsNumber: true,
-                  })}
-                  onChange={(e) => {
-                    const month = parseInt(e.target.value);
-                    setSelectedMonth(month);
-                    setValue("recurrenceMonth", month);
-                  }}
-                >
-                  <option value="1">january</option>
-                  <option value="2">february</option>
-                  <option value="3">march</option>
-                  <option value="4">april</option>
-                  <option value="5">may</option>
-                  <option value="6">june</option>
-                  <option value="7">july</option>
-                  <option value="8">august</option>
-                  <option value="9">september</option>
-                  <option value="10">october</option>
-                  <option value="11">november</option>
-                  <option value="12">december</option>
-                </select>
-              </div>
-              <div className="task-form-element">
-                <label htmlFor="recurrenceDayOfMonth">day of month</label>
-                <select
-                  id="recurrenceDayOfMonth"
-                  {...register("recurrenceDayOfMonth", { valueAsNumber: true })}
-                >
-                  {Array.from(
-                    { length: getDaysInMonth(selectedMonth) },
-                    (_, i) => i + 1
-                  ).map((day) => (
-                    <option key={day} value={day}>
-                      {day}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-          )}
-
-          {[
-            "monthly date",
-            "monthly day",
-            "annually",
-            "full moon",
-            "new moon",
-            "every season",
-            "winter solstice",
-            "spring equinox",
-            "summer solstice",
-            "autumn equinox",
-          ].includes(recurrenceType) && (
-            <div className="task-form-element labelled">
-              <label htmlFor="displayDateOffset">when to display</label>
-              <select
-                id="displayDateOffset"
-                {...register("displayDateOffset", { valueAsNumber: true })}
-                onChange={(e) => {
-                  const offset = parseInt(e.target.value);
-                  setDisplayDateOffset(offset);
-                  setValue("displayDateOffset", offset);
-                }}
-              >
-                <option value="0">day of</option>
-                <option value="3">a few days before</option>
-                <option value="7">a week before</option>
-                <option value="14">two weeks before</option>
-                <option value="30">a month before</option>
-              </select>
-            </div>
-          )}
-        </>
+        <RecurrencePicker
+          value={recurrenceRule}
+          onChange={(next) => {
+            // react-hook-form stays the single source of truth; the picker is
+            // controlled off `watch`, so writing back here re-renders it with
+            // the new value. `shouldDirty` keeps the form's dirty tracking
+            // honest now that these fields are no longer `register`ed.
+            (Object.keys(next) as Array<keyof RecurrenceRule>).forEach((key) => {
+              if (next[key] !== recurrenceRule[key]) {
+                setValue(key, next[key] as never, { shouldDirty: true });
+              }
+            });
+          }}
+          offset={{
+            value: watchedOffset ?? 0,
+            onChange: (offset) =>
+              setValue("displayDateOffset", offset, { shouldDirty: true }),
+          }}
+        />
       )}
 
       {/* send button */}

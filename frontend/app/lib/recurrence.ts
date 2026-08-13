@@ -55,8 +55,13 @@ function nextWeekday(from: Temporal.PlainDate, targetJSDay: number): Temporal.Pl
 /**
  * Determine if a recurrence type has a specific event date
  * These types calculate dates based on calendar or celestial events
+ *
+ * Exported because this list had grown three copies — here, in `TaskForm`'s
+ * submit handler, and again in the JSX condition that decides whether to offer
+ * the "when to display" offset. A type added to one and not the others would
+ * silently get the wrong dates or lose its offset control.
  */
-function hasEventDate(recurrenceType: string): boolean {
+export function hasEventDate(recurrenceType: string): boolean {
   return [
     "monthly date",
     "monthly day",
