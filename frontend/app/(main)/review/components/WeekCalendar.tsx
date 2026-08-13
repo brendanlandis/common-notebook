@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import FullCalendar from "@fullcalendar/react";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import { Temporal } from "temporal-polyfill";
@@ -74,6 +74,26 @@ export default function WeekCalendar({
   onCycle,
 }: WeekCalendarProps) {
   const fcEvents = useMemo(() => toFullCalendarEvents(events), [events]);
+  const calendarRef = useRef<FullCalendar | null>(null);
+
+  /**
+   * Move the grid when the period moves.
+   *
+   * `initialDate` is exactly what it says — read once, at mount, and ignored on
+   * every later render. `duration` *is* reactive, and that mismatch is a live
+   * bug rather than a theoretical one: switching from "the rest of this one"
+   * (Thu–Sun, 4 days) to "the cycle ahead" (Mon–Sun, 7 days) grew the grid to
+   * seven days while leaving it anchored on today, so it showed *the next seven
+   * days* instead of the next week. The remount that would have hidden this only
+   * happens the first time each period is loaded; come back to one already in
+   * the query cache and the component never unmounts.
+   *
+   * So the anchor is pushed imperatively. `gotoDate` on mount is a no-op, since
+   * `initialDate` has already put it there.
+   */
+  useEffect(() => {
+    calendarRef.current?.getApi().gotoDate(periodStart);
+  }, [periodStart]);
 
   // Anchor the view on the period explicitly. `visibleRange` alone does not
   // move a generic timeGrid view off today — the grid renders, the events fall
@@ -88,6 +108,7 @@ export default function WeekCalendar({
   return (
     <div className="review-calendar">
       <FullCalendar
+        ref={calendarRef}
         plugins={[timeGridPlugin]}
         initialView="timeGrid"
         timeZone="UTC"

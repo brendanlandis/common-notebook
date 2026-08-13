@@ -3,7 +3,7 @@ import { buildReviewLists } from './reviewLists';
 import type { Task, Project, RecurrenceType } from '../types/index';
 
 /**
- * The partitioning rules for the review's two lists, and above all the promise
+ * The partitioning rules for the review's three lists, and above all the promise
  * that **every task lands in at most one of them**. A task appearing twice in a
  * planning surface is worse than one missing: you'd commit to it twice and
  * count it twice.
@@ -57,7 +57,8 @@ function task(overrides: Partial<Task> = {}): Task {
 
 const allIds = (lists: ReturnType<typeof buildReviewLists>): string[] => [
   ...(lists.topOfMind?.tasks ?? []).map((t) => t.documentId),
-  ...lists.surfacing.flatMap((g) => g.tasks.map((t) => t.documentId)),
+  ...lists.soon.map((t) => t.documentId),
+  ...lists.recurring.map((t) => t.documentId),
 ];
 
 describe('buildReviewLists', () => {
@@ -87,7 +88,7 @@ describe('buildReviewLists', () => {
     ]);
   });
 
-  it('sends a recurring task to list B even inside the top-of-mind project', () => {
+  it('sends a recurring task to the recurring list even inside the top-of-mind project', () => {
     // "Recurring" says more about how you relate to a task than which project
     // it happens to sit in.
     const recurring = task({
@@ -100,9 +101,19 @@ describe('buildReviewLists', () => {
     const lists = buildReviewLists([recurring]);
 
     expect(lists.topOfMind!.tasks).toEqual([]);
-    expect(lists.surfacing.flatMap((g) => g.tasks.map((t) => t.documentId))).toEqual([
-      't-recurring',
+    expect(lists.recurring.map((t) => t.documentId)).toEqual(['t-recurring']);
+  });
+
+  it('keeps soon one-offs and recurring tasks in separate lists', () => {
+    // They were one list with a heading per recurrence type. The headings said
+    // nothing actionable, so the split is now the only structure.
+    const lists = buildReviewLists([
+      task({ documentId: 't-soon', soon: true }),
+      task({ documentId: 't-weekly', isRecurring: true, recurrenceType: 'weekly' }),
     ]);
+
+    expect(lists.soon.map((t) => t.documentId)).toEqual(['t-soon']);
+    expect(lists.recurring.map((t) => t.documentId)).toEqual(['t-weekly']);
   });
 
   it('never places a task in both lists', () => {
@@ -152,11 +163,9 @@ describe('buildReviewLists', () => {
       displayDate: '2026-08-13',
     });
 
-    const daily = buildReviewLists([ancient, fresh]).surfacing.find(
-      (g) => g.recurrenceType === 'daily'
-    )!;
+    const { recurring } = buildReviewLists([ancient, fresh]);
 
-    expect(daily.tasks.map((t) => t.documentId)).toEqual(['t-ancient', 't-fresh']);
+    expect(recurring.map((t) => t.documentId)).toEqual(['t-ancient', 't-fresh']);
   });
 
   it('drops completed tasks from both lists', () => {
@@ -174,39 +183,51 @@ describe('buildReviewLists', () => {
     expect(allIds(lists)).toEqual([]);
   });
 
-  it('merges the two monthly shapes into one group', () => {
-    const byDate = task({
-      documentId: 't-date',
-      isRecurring: true,
-      recurrenceType: 'monthly date',
-    });
-    const byDay = task({
-      documentId: 't-day',
-      isRecurring: true,
-      recurrenceType: 'monthly day',
-    });
+  it('keeps the two monthly shapes adjacent', () => {
+    // One idea to a reader, so they sort together rather than straddling
+    // whatever falls between them alphabetically.
+    const lists = buildReviewLists([
+      task({ documentId: 't-annual', isRecurring: true, recurrenceType: 'annually' }),
+      task({ documentId: 't-day', isRecurring: true, recurrenceType: 'monthly day' }),
+      task({ documentId: 't-weekly', isRecurring: true, recurrenceType: 'weekly' }),
+      task({ documentId: 't-date', isRecurring: true, recurrenceType: 'monthly date' }),
+    ]);
 
-    const lists = buildReviewLists([byDate, byDay]);
-    const monthly = lists.surfacing.filter((g) => g.recurrenceType === 'monthly date');
-
-    expect(monthly).toHaveLength(1);
-    expect(monthly[0].tasks).toHaveLength(2);
+    expect(lists.recurring.map((t) => t.documentId)).toEqual([
+      't-weekly',
+      't-date',
+      't-day',
+      't-annual',
+    ]);
   });
 
-  it('orders groups from most to least frequent, soon first', () => {
+  it('orders the recurring list from most to least frequent', () => {
     const lists = buildReviewLists([
       task({ documentId: 'season', isRecurring: true, recurrenceType: 'every season' }),
       task({ documentId: 'weekly', isRecurring: true, recurrenceType: 'weekly' }),
-      task({ documentId: 'soon', soon: true }),
       task({ documentId: 'daily', isRecurring: true, recurrenceType: 'daily' }),
     ]);
 
-    expect(lists.surfacing.map((g) => g.recurrenceType)).toEqual([
-      'one-off',
+    expect(lists.recurring.map((t) => t.documentId)).toEqual([
       'daily',
       'weekly',
-      'every season',
+      'season',
     ]);
+  });
+
+  it('sorts an unrecognised cadence to the bottom rather than the top', () => {
+    // A recurrence type added to the schema and not to the frequency list must
+    // degrade quietly, not jump the queue.
+    const lists = buildReviewLists([
+      task({
+        documentId: 'unknown',
+        isRecurring: true,
+        recurrenceType: 'fortnightly-ish' as RecurrenceType,
+      }),
+      task({ documentId: 'weekly', isRecurring: true, recurrenceType: 'weekly' }),
+    ]);
+
+    expect(lists.recurring.map((t) => t.documentId)).toEqual(['weekly', 'unknown']);
   });
 
   it('survives more than one top-of-mind project without crashing', () => {

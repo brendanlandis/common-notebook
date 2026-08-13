@@ -17,6 +17,16 @@ input {
   border-radius: 0;
 }
 
+/* …except a radio, which is round everywhere and has to stay round here. The
+ * square-cornered rule above is what the whole app's inputs look like, and it
+ * silently overrode daisyUI's `.radio`; a squared-off radio reads as a checkbox,
+ * i.e. as a set you can tick more than one of, which is the one thing a radio
+ * group cannot do. Nothing caught it until the review page became the first
+ * screen in the app with radio buttons on it. */
+input[type="radio"] {
+  border-radius: 50%;
+}
+
 .error {
   font-style: italic;
 }

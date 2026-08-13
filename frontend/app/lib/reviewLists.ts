@@ -1,13 +1,19 @@
 import type { Task, RecurrenceType } from '../types/index';
 
 /**
- * The two lists a review is conducted from.
+ * The three lists a review is conducted from.
  *
- * Two rather than one because they answer different questions. List A is
+ * They answer different questions, which is why they're separate. `topOfMind` is
  * *chosen* work — the tasks of the single top-of-mind project, the thing you
- * already decided matters this cycle. List B is everything that will ask for
- * attention regardless: tasks flagged `soon`, plus every incomplete recurring
- * task.
+ * already decided matters this cycle. `soon` is the one-offs you flagged.
+ * `recurring` is everything that comes back around regardless of what you think
+ * about it.
+ *
+ * `soon` and `recurring` were one list at first, subdivided by recurrence type
+ * with a heading over each ("every few days", "weekly", …). Those headings said
+ * nothing a reader deciding what to do this week could act on — the cadence is a
+ * property of how the task was set up, not of what it's asking for now — and
+ * they made a dozen tasks read as seven lists. Two plain lists instead.
  *
  * Recurring tasks appear in full, with no dates and no ordering by age. That is
  * deliberate and is the rule this whole feature is shaped around: if a task has
@@ -19,33 +25,30 @@ import type { Task, RecurrenceType } from '../types/index';
 export interface ReviewLists {
   /** The top-of-mind project's tasks, `soon` ones first. Null when nothing is top of mind. */
   topOfMind: { projectTitle: string; tasks: Task[] } | null;
-  /** `soon` tasks and all incomplete recurring tasks, grouped by recurrence type. */
-  surfacing: { recurrenceType: RecurrenceType | 'one-off'; tasks: Task[] }[];
+  /** One-off tasks flagged `soon`. */
+  soon: Task[];
+  /** Every incomplete recurring task, most to least frequent. */
+  recurring: Task[];
 }
 
 const TOP_OF_MIND = 'top of mind';
 
 /**
- * "monthly date" and "monthly day" are one idea to a reader choosing what to do
- * this week; the distinction is a scheduling detail.
+ * Frequency order, used only to sort the recurring list — daily things near the
+ * top, seasonal ones near the bottom, so it reads roughly as "how often this
+ * asks for you". No longer rendered as headings, and deliberately not a
+ * priority: nothing here is more urgent than anything else.
+ *
+ * "monthly date" and "monthly day" are one idea to a reader, so they sort
+ * together.
  */
-function groupKey(task: Task): RecurrenceType | 'one-off' {
-  if (!task.isRecurring) return 'one-off';
-  if (task.recurrenceType === 'monthly date' || task.recurrenceType === 'monthly day') {
-    return 'monthly date';
-  }
-  return task.recurrenceType;
-}
-
-// Ordering of the surfacing groups: the one-offs you flagged, then recurring
-// work from most to least frequent, so the list reads as "today-ish" downward.
-const GROUP_ORDER: Array<RecurrenceType | 'one-off'> = [
-  'one-off',
+const FREQUENCY_ORDER: Array<RecurrenceType> = [
   'daily',
   'every x days',
   'weekly',
   'biweekly',
   'monthly date',
+  'monthly day',
   'annually',
   'full moon',
   'new moon',
@@ -56,17 +59,25 @@ const GROUP_ORDER: Array<RecurrenceType | 'one-off'> = [
   'autumn equinox',
 ];
 
+function frequencyRank(task: Task): number {
+  const index = FREQUENCY_ORDER.indexOf(task.recurrenceType as RecurrenceType);
+  // An unknown cadence sorts last rather than first, so a new recurrence type
+  // added to the schema and not to this list degrades to the bottom of the list
+  // instead of jumping the top of it.
+  return index === -1 ? FREQUENCY_ORDER.length : index;
+}
+
 /**
- * Partition the task list into the review's two lists.
+ * Partition the task list into the review's lists.
  *
  * Every task lands in **at most one** of them. The precedence rules, in order:
  *
- *  1. A recurring task always goes to `surfacing`, even when it belongs to the
+ *  1. A recurring task always goes to `recurring`, even when it belongs to the
  *     top-of-mind project — "recurring" says more about how you relate to a task
  *     than which project it sits in.
  *  2. Otherwise a task of the top-of-mind project goes to `topOfMind`, `soon`
  *     ones sorted first.
- *  3. Otherwise a `soon` task goes to `surfacing`.
+ *  3. Otherwise a `soon` task goes to `soon`.
  *
  * Completed tasks are dropped throughout. The visibility window that keeps a
  * just-ticked task on the To Do page has no meaning here: this is a planning
@@ -83,59 +94,31 @@ export function buildReviewLists(tasks: Task[]): ReviewLists {
     live.find((task) => task.project?.importance === TOP_OF_MIND)?.project ?? null;
 
   const topOfMindTasks: Task[] = [];
-  const surfacingTasks: Task[] = [];
+  const soon: Task[] = [];
+  const recurring: Task[] = [];
 
   for (const task of live) {
     if (task.isRecurring) {
-      surfacingTasks.push(task);
+      recurring.push(task);
       continue;
     }
     if (topOfMindProject && task.project?.documentId === topOfMindProject.documentId) {
       topOfMindTasks.push(task);
       continue;
     }
-    if (task.soon) surfacingTasks.push(task);
+    if (task.soon) soon.push(task);
   }
 
   // `soon` first within the top-of-mind list; otherwise leave the incoming order
   // alone, which is the server's creation order.
   topOfMindTasks.sort((a, b) => Number(b.soon) - Number(a.soon));
-
-  const byGroup = new Map<RecurrenceType | 'one-off', Task[]>();
-  for (const task of surfacingTasks) {
-    const key = groupKey(task);
-    const group = byGroup.get(key);
-    if (group) group.push(task);
-    else byGroup.set(key, [task]);
-  }
-
-  const surfacing = GROUP_ORDER.filter((key) => byGroup.has(key)).map((key) => ({
-    recurrenceType: key,
-    tasks: byGroup.get(key)!,
-  }));
+  recurring.sort((a, b) => frequencyRank(a) - frequencyRank(b));
 
   return {
     topOfMind: topOfMindProject
       ? { projectTitle: topOfMindProject.title, tasks: topOfMindTasks }
       : null,
-    surfacing,
+    soon,
+    recurring,
   };
 }
-
-/** Human labels for the surfacing groups. */
-export const GROUP_LABELS: Record<string, string> = {
-  'one-off': 'soon',
-  daily: 'daily',
-  'every x days': 'every few days',
-  weekly: 'weekly',
-  biweekly: 'biweekly',
-  'monthly date': 'monthly',
-  annually: 'annually',
-  'full moon': 'full moon',
-  'new moon': 'new moon',
-  'every season': 'seasonal',
-  'winter solstice': 'winter solstice',
-  'spring equinox': 'spring equinox',
-  'summer solstice': 'summer solstice',
-  'autumn equinox': 'autumn equinox',
-};

@@ -2,15 +2,23 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAccessToken } from '@/app/lib/strapiAuth';
 import { fetchAllPages, getTimeZoneSettings } from '@/app/lib/strapiServer';
 import { expandIcs } from '@/app/lib/ics/expandIcs';
-import { resolveDecisions, type StoredDecision } from '@/app/lib/ics/resolveDecisions';
-import type { CalendarRow } from '@/app/lib/ics/clientCalendar';
+import { toClientCalendar, type CalendarRow } from '@/app/lib/ics/clientCalendar';
 
 /**
- * The week's events, resolved.
+ * The week's events.
  *
  * Polls each subscribed ICS feed **server-side** — for CORS, and because the
- * feed URLs are bearer secrets that must not reach the browser — expands them to
- * the caller's wall clock, and applies their stored show/hide decisions.
+ * feed URLs are bearer secrets that must not reach the browser — and expands
+ * them to the caller's wall clock.
+ *
+ * Deliberately does **not** apply show/hide decisions. This request is the
+ * expensive one in the feature: it fans out to every subscribed feed, over the
+ * network, with a 10-second timeout each. Resolving here meant that every click
+ * on an event had to re-run all of it to see the new state, which is where the
+ * several-second lag between clicking and anything happening came from. The
+ * decisions are a short list served from our own database (`/decisions`), and
+ * `resolveDecisions` is pure, so the client holds both and resolves — one
+ * implementation of the rule, still, just running on the other side of the wire.
  *
  * Always live. Nothing is frozen and there is no snapshot: an earlier design
  * cached a "bounce" of the week, but the two things that justified it (a
@@ -18,14 +26,6 @@ import type { CalendarRow } from '@/app/lib/ics/clientCalendar';
  * afterwards) are both gone from this feature. An event added mid-week simply
  * turns up as unset, which is already visible and already actionable.
  */
-
-interface DecisionRow {
-  documentId: string;
-  uid: string;
-  recurrenceId: string | null;
-  state: 'show' | 'hide';
-  calendar?: { documentId: string } | null;
-}
 
 /**
  * Fetch one feed, with a timeout.
@@ -74,10 +74,10 @@ export async function GET(req: NextRequest) {
 
     const settings = await getTimeZoneSettings(token);
 
-    const [calendars, decisionRows] = await Promise.all([
-      fetchAllPages<CalendarRow>(token, '/api/calendar-subscriptions?sort=position:asc'),
-      fetchAllPages<DecisionRow>(token, '/api/calendar-event-decisions?populate=calendar'),
-    ]);
+    const calendars = await fetchAllPages<CalendarRow>(
+      token,
+      '/api/calendar-subscriptions?sort=position:asc'
+    );
 
     // Fan out rather than awaiting each in turn: four calendars at 300ms each is
     // a second and a bit of the page's load spent waiting in series.
@@ -88,36 +88,26 @@ export async function GET(req: NextRequest) {
       }))
     );
 
-    const events = feeds.flatMap(({ calendar, ics }) => {
-      if (!ics) return [];
-      const decisions: StoredDecision[] = decisionRows
-        .filter((row) => row.calendar?.documentId === calendar.documentId)
-        .map((row) => ({
-          documentId: row.documentId,
-          uid: row.uid,
-          recurrenceId: row.recurrenceId,
-          state: row.state,
-          calendarDocumentId: calendar.documentId,
-        }));
+    // Tagged with the calendar they came from, which is half of the key a
+    // decision is stored against — the client needs it to resolve them.
+    const events = feeds.flatMap(({ calendar, ics }) =>
+      ics
+        ? expandIcs(ics, start, end, settings).map((instance) => ({
+            ...instance,
+            calendarDocumentId: calendar.documentId,
+          }))
+        : []
+    );
 
-      return resolveDecisions(
-        expandIcs(ics, start, end, settings),
-        decisions,
-        calendar.documentId,
-        calendar.defaultState ?? 'unset'
-      ).map((instance) => ({ ...instance, color: calendar.color ?? null }));
-    });
-
-    // Calendars are reported alongside, so the UI can colour and name events
-    // without a second request — and without the icsUrl, which never leaves here.
+    // Calendars are reported alongside, so the UI can colour and name events —
+    // and resolve each one's default state — without a second request. Shaped by
+    // `toClientCalendar`, which is what keeps the icsUrl from ever leaving here.
     return NextResponse.json({
       success: true,
       data: events,
-      calendars: calendars.map((calendar) => ({
-        documentId: calendar.documentId,
-        name: calendar.name,
-        color: calendar.color ?? null,
-        unreachable: !feeds.find((f) => f.calendar.documentId === calendar.documentId)?.ics,
+      calendars: feeds.map(({ calendar, ics }) => ({
+        ...toClientCalendar(calendar),
+        unreachable: !ics,
       })),
     });
   } catch (error) {

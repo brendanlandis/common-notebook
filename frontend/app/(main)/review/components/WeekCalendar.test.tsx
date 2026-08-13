@@ -92,6 +92,28 @@ describe("WeekCalendar", () => {
     expect(headers[6]).toContain("1/18");
   });
 
+  it("moves the grid when the period changes", () => {
+    // The mode switch on the review page. `duration` is a reactive option and
+    // `initialDate` is not, so this once grew a 4-day grid to 7 days without
+    // moving it off today — showing "the next seven days" where the next week
+    // belonged. The remount that hid it only happens the first time a period is
+    // fetched; a period already in the query cache re-renders in place.
+    const { container, rerender } = render(
+      <WeekCalendar events={[]} periodStart="2026-01-15" periodEnd="2026-01-18" onCycle={vi.fn()} />
+    );
+
+    rerender(
+      <WeekCalendar events={[]} periodStart="2026-01-19" periodEnd="2026-01-25" onCycle={vi.fn()} />
+    );
+
+    const headers = [...container.querySelectorAll(".fc-col-header-cell")].map(
+      (cell) => cell.textContent
+    );
+    expect(headers).toHaveLength(7);
+    expect(headers[0]).toContain("1/19");
+    expect(headers[6]).toContain("1/25");
+  });
+
   it("sizes the grid to a partial period", () => {
     // A mid-cycle re-review covers only the rest of the week.
     const { container } = render(

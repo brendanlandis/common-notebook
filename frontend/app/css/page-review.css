@@ -12,10 +12,6 @@
   padding: 1rem;
 }
 
-.review-period {
-  opacity: 0.7;
-}
-
 .review-mode {
   display: flex;
   gap: 1.5rem;
@@ -52,7 +48,10 @@
 
   label {
     display: flex;
-    align-items: baseline;
+    /* Centre, not baseline. A checkbox has no text in it to have a baseline, so
+     * flexbox aligns its bottom edge to the text's baseline and leaves it
+     * sitting a couple of pixels low against every row. */
+    align-items: center;
     gap: 0.5rem;
     cursor: pointer;
   }
@@ -97,9 +96,12 @@
  * survive being greyscale, low-contrast, or looked at by someone who doesn't
  * separate colours. Never colour alone.
  *
- * `hide` stays on the page rather than disappearing — this is where decisions
- * are made, and you cannot change your mind about something you cannot see. The
- * daily page filters them out instead; that's the surface where you're reading. */
+ * `hide` is styled at all — rather than simply not rendered — because this is
+ * where decisions get made, and you cannot change your mind about something you
+ * cannot see. It's off by default all the same: a week's worth of struck-through
+ * things you already dismissed is most of what you'd be looking at, which is the
+ * opposite of seeing what the week actually is. The legend's checkbox brings
+ * them back. The daily page never shows them; that's the reading surface. */
 
 .fc-event {
   cursor: pointer;
@@ -162,9 +164,12 @@
   text-decoration: line-through;
 }
 
+/* The glyph gets struck through along with the title — text-decoration
+ * propagates to descendants and cannot be turned off from inside. It still reads
+ * clearly, so it stays as one struck-through phrase rather than growing an extra
+ * wrapper element to escape the line. */
 .cal-event-hide .fc-event-title::before {
   content: "✕ ";
-  text-decoration: none;
   font-weight: bold;
 }
 
@@ -206,7 +211,14 @@
 .review-legend .swatch-hide {
   background: transparent;
   border: 1px solid var(--primary-color);
-  opacity: 0.45;
+  opacity: 0.75;
+}
+
+.review-legend-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  cursor: pointer;
 }
 
 /* ── Calendar subscriptions ─────────────────────────────────────────────── */

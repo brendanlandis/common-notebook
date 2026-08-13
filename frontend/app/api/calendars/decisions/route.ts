@@ -5,11 +5,16 @@ import { fetchAllPages, strapiFetch } from '@/app/lib/strapiServer';
 /**
  * Show/hide decisions for calendar events.
  *
- * An upsert keyed on `(calendar, uid, recurrenceId)`, because that triple — not
- * a documentId — is what the client knows. Sending `state: null` deletes the
- * row, which is how an instance override is cleared back to inheriting from its
- * series: unset is the *absence* of a row at every tier, so "clear" is a delete
- * rather than a third state.
+ * `GET` returns the lot — the whole decision list, not a window of it. It is a
+ * handful of rows against our own database, and it is fetched separately from
+ * the events precisely so that changing one costs a cheap local round trip
+ * instead of re-polling every ICS feed. The client resolves the two together.
+ *
+ * `PUT` is an upsert keyed on `(calendar, uid, recurrenceId)`, because that
+ * triple — not a documentId — is what the client knows. Sending `state: null`
+ * deletes the row, which is how an instance override is cleared back to
+ * inheriting from its series: unset is the *absence* of a row at every tier, so
+ * "clear" is a delete rather than a third state.
  *
  * Read-then-write, which Strapi cannot do atomically — it has no compare-and-set.
  * Two writes racing for the same triple could each miss the other and create a
@@ -21,6 +26,46 @@ import { fetchAllPages, strapiFetch } from '@/app/lib/strapiServer';
 
 interface DecisionRow {
   documentId: string;
+  uid?: string;
+  recurrenceId?: string | null;
+  state?: 'show' | 'hide';
+  calendar?: { documentId: string } | null;
+}
+
+export async function GET(req: NextRequest) {
+  try {
+    const token = await getAccessToken(req);
+    if (!token) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const rows = await fetchAllPages<DecisionRow>(
+      token,
+      '/api/calendar-event-decisions?populate=calendar'
+    );
+
+    return NextResponse.json({
+      success: true,
+      data: rows
+        // A decision whose calendar has been deleted can no longer resolve
+        // against anything; drop it rather than handing the client a row with a
+        // null key to trip over.
+        .filter((row) => row.calendar?.documentId && row.uid && row.state)
+        .map((row) => ({
+          documentId: row.documentId,
+          uid: row.uid,
+          recurrenceId: row.recurrenceId ?? null,
+          state: row.state,
+          calendarDocumentId: row.calendar!.documentId,
+        })),
+    });
+  } catch (error) {
+    console.error('Error fetching calendar decisions:', error);
+    return NextResponse.json(
+      { success: false, error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
 }
 
 /** Strapi has no null-equality shorthand, so a series-level lookup needs $null. */

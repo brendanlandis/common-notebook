@@ -64,7 +64,11 @@ test.describe('review', () => {
       // the daily page can find it. Set the mode before picking: the selection
       // is what's being committed, and this keeps the order of operations the
       // same as a person's.
-      await page.getByText('the rest of this one').click();
+      //
+      // Located by value, not by label text: the labels read "this week" / "next
+      // week" off whatever cadence the account is configured for, so matching
+      // text would break on a schedule change that has nothing to do with this.
+      await page.locator('input[name="review-mode"][value="remainder"]').check();
       await page.locator('label', { hasText: chosen.title }).locator('input').check();
 
       await page.getByRole('button', { name: /commit|update this review/ }).click();

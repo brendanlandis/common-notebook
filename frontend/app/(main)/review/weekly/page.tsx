@@ -5,9 +5,9 @@ import { useTasks } from "@/app/(main)/todo/hooks/useTasks";
 import { useDateTimeSettings } from "@/app/contexts/DateTimeSettingsContext";
 import { useReviewCadence } from "@/app/hooks/useReviewCadence";
 import { computeReviewPeriod, type ReviewPeriodMode } from "@/app/lib/reviewCycle";
-import { cadenceIsUsable } from "@/app/lib/reviewCadence";
-import { buildReviewLists, GROUP_LABELS } from "@/app/lib/reviewLists";
-import { getToday, toISODate, formatInTimezone, parseDate } from "@/app/lib/dateUtils";
+import { cadenceIsUsable, cycleNoun } from "@/app/lib/reviewCadence";
+import { buildReviewLists } from "@/app/lib/reviewLists";
+import { getToday, toISODate } from "@/app/lib/dateUtils";
 import { useReviewCovering, useSaveReview } from "../hooks/useReview";
 import { useCalendarEvents, useSetDecision } from "../hooks/useCalendarEvents";
 import { isFullyDecided, undecided, type ResolvedInstance } from "@/app/lib/ics/resolveDecisions";
@@ -31,6 +31,11 @@ export default function WeeklyReviewPage() {
   const [mode, setMode] = useState<ReviewPeriodMode>("upcoming");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [committed, setCommitted] = useState(false);
+  // Ignored events stay out of the way by default. They were kept on the grid so
+  // you could change your mind about one, but a week's worth of struck-through
+  // things you already dismissed is most of what you'd be looking at — the
+  // opposite of seeing what the week actually is.
+  const [showIgnored, setShowIgnored] = useState(false);
 
   const period = useMemo(() => {
     if (!cadence) return null;
@@ -67,7 +72,17 @@ export default function WeeklyReviewPage() {
     });
   };
 
+  // The counts below deliberately read the *whole* set, not the filtered one:
+  // hiding the ignored ones is a display choice and must not change what the
+  // review says is left to decide.
   const stillUnset = undecided(events);
+  const ignoredCount = events.filter((event) => event.state === "hide").length;
+  // Memoized because a fresh array each render would rebuild the calendar's
+  // event list every time anything else on the page changes.
+  const shownEvents = useMemo(
+    () => (showIgnored ? events : events.filter((event) => event.state !== "hide")),
+    [events, showIgnored]
+  );
 
   // An existing review for this period means we're re-running one; its selection
   // seeds the checkboxes rather than starting empty, and committing updates it
@@ -113,43 +128,47 @@ export default function WeeklyReviewPage() {
     );
   }
 
-  // `formatInTimezone` throws on an unsupported format rather than guessing, so
-  // this uses one of the formats it actually knows.
-  const describe = (iso: string) =>
-    formatInTimezone(parseDate(iso, timeZoneSettings), "EEEE M/d", timeZoneSettings);
   const today = toISODate(getToday(timeZoneSettings), timeZoneSettings);
+  // "week", "month", "moon phase" — whatever one period of this cadence is.
+  const noun = cycleNoun(cadence);
 
   return (
     <div className="review-page">
       <h1>review</h1>
 
-      {period && (
-        <p className="review-period">
-          {describe(period.periodStart)} – {describe(period.periodEnd)}
-        </p>
-      )}
+      {/* The period used to be spelled out here as a date range. The calendar
+          below is a week of labelled day columns, so it was saying the same
+          thing twice — and less clearly. */}
 
       {/* Re-running a review mid-cycle is a first-class thing to do, not a
           recovery path: "I should be able to conduct a review for the rest of my
-          week, even though it's Thursday." */}
+          week, even though it's Thursday."
+
+          `value` and `name` are what the e2e spec locates these by. The labels
+          are cadence-dependent, so a test matching on their text would break the
+          moment the account under test changed its review schedule. */}
       <div className="review-mode">
         <label>
           <input
             type="radio"
             className="radio"
-            checked={mode === "upcoming"}
-            onChange={() => setMode("upcoming")}
+            name="review-mode"
+            value="remainder"
+            checked={mode === "remainder"}
+            onChange={() => setMode("remainder")}
           />
-          the cycle ahead
+          this {noun}
         </label>
         <label>
           <input
             type="radio"
             className="radio"
-            checked={mode === "remainder"}
-            onChange={() => setMode("remainder")}
+            name="review-mode"
+            value="upcoming"
+            checked={mode === "upcoming"}
+            onChange={() => setMode("upcoming")}
           />
-          the rest of this one
+          next {noun}
         </label>
       </div>
 
@@ -158,23 +177,40 @@ export default function WeeklyReviewPage() {
           hold the tasks — nothing on this page ever becomes a calendar entry. */}
       {period && !calendarLoading && events.length > 0 && (
         <section className="review-section">
-          <h2>the week</h2>
+          <h2>the {noun}</h2>
           {/* Three glyphs on a grid are a puzzle without a key, and nothing else
               on the page says that clicking is how a decision gets made. */}
-          <p className="review-legend">
+          <div className="review-legend">
             <span>
               <i className="swatch swatch-unset" aria-hidden="true" />? undecided
             </span>
             <span>
               <i className="swatch swatch-show" aria-hidden="true" />✓ keeping
             </span>
-            <span>
-              <i className="swatch swatch-hide" aria-hidden="true" />✕ ignoring
-            </span>
+            {/* Only while they're on screen — a key to a symbol you can't see is
+                just more to read. */}
+            {showIgnored && (
+              <span>
+                <i className="swatch swatch-hide" aria-hidden="true" />✕ ignoring
+              </span>
+            )}
             <span>click an event to change it</span>
-          </p>
+            {/* Only offered when there's something to reveal — an empty checkbox
+                promising nothing is just another control to read past. */}
+            {ignoredCount > 0 && (
+              <label className="review-legend-toggle">
+                <input
+                  type="checkbox"
+                  className="checkbox"
+                  checked={showIgnored}
+                  onChange={(event) => setShowIgnored(event.target.checked)}
+                />
+                show {ignoredCount} ignored
+              </label>
+            )}
+          </div>
           <WeekCalendar
-            events={events}
+            events={shownEvents}
             periodStart={period.periodStart}
             periodEnd={period.periodEnd}
             onCycle={cycleEvent}
@@ -207,17 +243,28 @@ export default function WeeklyReviewPage() {
         </section>
       )}
 
+      {/* Two lists rather than one subdivided by recurrence type. The old
+          headings ("every few days", "weekly", …) described how a task was set
+          up, which is nothing a person choosing what to do this week can act
+          on, and they broke a dozen tasks into seven stubs. */}
       <section className="review-section">
-        <h2>coming up</h2>
-        {lists.surfacing.length === 0 && (
-          <p className="review-empty">nothing surfacing</p>
-        )}
-        {lists.surfacing.map((group) => (
-          <div key={group.recurrenceType} className="review-group">
-            <h3>{GROUP_LABELS[group.recurrenceType] ?? group.recurrenceType}</h3>
-            <TaskPickList tasks={group.tasks} selected={selected} onToggle={toggle} />
-          </div>
-        ))}
+        <h2>soon</h2>
+        <TaskPickList
+          tasks={lists.soon}
+          selected={selected}
+          onToggle={toggle}
+          emptyMessage="nothing flagged"
+        />
+      </section>
+
+      <section className="review-section">
+        <h2>recurring</h2>
+        <TaskPickList
+          tasks={lists.recurring}
+          selected={selected}
+          onToggle={toggle}
+          emptyMessage="nothing coming round"
+        />
       </section>
 
       <div className="review-actions">

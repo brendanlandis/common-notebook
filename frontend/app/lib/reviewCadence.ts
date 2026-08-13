@@ -40,6 +40,35 @@ const BLANK: ReviewCadence = {
   anchorDate: null,
 };
 
+/**
+ * What one period of this cadence is *called*, so the review can say "this week"
+ * and "next week" rather than "the cycle ahead" and "the rest of this one".
+ *
+ * The generic wording was there because the cadence is configurable, but a
+ * person reviewing on a weekly cadence is looking at a week and knows it. The
+ * fallback keeps the generic word for the cadences with no everyday noun.
+ */
+const CYCLE_NOUNS: Partial<Record<RecurrenceType, string>> = {
+  daily: 'day',
+  weekly: 'week',
+  'monthly date': 'month',
+  'monthly day': 'month',
+  annually: 'year',
+  'full moon': 'moon phase',
+  'new moon': 'moon phase',
+  'every season': 'season',
+  'winter solstice': 'year',
+  'spring equinox': 'year',
+  'summer solstice': 'year',
+  'autumn equinox': 'year',
+};
+
+export function cycleNoun(cadence: ReviewCadence): string {
+  // "every other week" and "every nine days" have no noun a reader would
+  // recognise — "this two weeks" is worse than "this cycle".
+  return CYCLE_NOUNS[cadence.recurrenceType] ?? 'cycle';
+}
+
 /** The cadence a user has before they've chosen one: weekly, starting Monday. */
 export function defaultReviewCadence(): ReviewCadence {
   return parseReviewCadence(getDefault(REVIEW_CADENCE_SETTING));

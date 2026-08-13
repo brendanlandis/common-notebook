@@ -1,35 +1,62 @@
 'use client';
 
+import { useMemo } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiFetch, apiSend } from '@/app/lib/apiFetch';
-import type { ResolvedInstance } from '@/app/lib/ics/resolveDecisions';
+import type { ClientCalendar } from '@/app/lib/ics/clientCalendar';
+import type { CalendarEventInstance } from '@/app/lib/ics/expandIcs';
+import {
+  resolveDecisions,
+  type ResolvedInstance,
+  type StoredDecision,
+} from '@/app/lib/ics/resolveDecisions';
 
 /**
- * The week's calendar events, already resolved server-side.
+ * The week's calendar, as two queries the client resolves together.
  *
- * Keys nest under a shared `['calendars']` root so cycling one event's state
- * refreshes the week without a second invalidate.
+ * The split is the whole point. Fetching the events means polling every
+ * subscribed ICS feed over the network, server-side, with a ten-second timeout
+ * each; fetching the decisions is one query against our own database. They used
+ * to be resolved server-side and served as one thing, which meant every click on
+ * an event invalidated the expensive query and sat there for several seconds
+ * before the state visibly changed — long enough that the only feedback was the
+ * undecided counter ticking down.
+ *
+ * Now a decision writes optimistically into the *decision list*, which is the
+ * literal thing being edited, and `resolveDecisions` — pure, unit-tested, and
+ * the only implementation of the chain — re-runs in a memo. There is no second
+ * copy of the resolution rule to disagree with the first; the feeds are not
+ * re-polled; and the new state paints in the same frame as the click.
+ *
+ * Keys nest under a shared `['calendars']` root so adding or removing a
+ * subscription can still invalidate the family in one call.
  */
 export const CALENDARS_KEY = ['calendars'] as const;
 export const calendarEventsKey = (start: string, end: string) =>
   ['calendars', 'events', start, end] as const;
+export const CALENDAR_DECISIONS_KEY = ['calendars', 'decisions'] as const;
 
-export interface CalendarSummary {
-  documentId: string;
-  name: string;
-  color: string | null;
+export interface CalendarSummary extends ClientCalendar {
   /** The feed could not be fetched — shown as a caveat rather than an error. */
   unreachable: boolean;
 }
 
+/** An expanded occurrence, before any decision is applied to it. */
+type RawInstance = CalendarEventInstance & { calendarDocumentId: string };
+
 interface EventsResponse {
   success?: boolean;
-  data?: ResolvedInstance[];
+  data?: RawInstance[];
   calendars?: CalendarSummary[];
 }
 
+interface DecisionsResponse {
+  success?: boolean;
+  data?: StoredDecision[];
+}
+
 export function useCalendarEvents(start: string | null, end: string | null) {
-  const query = useQuery({
+  const eventsQuery = useQuery({
     queryKey: calendarEventsKey(start ?? '', end ?? ''),
     enabled: start !== null && end !== null,
     queryFn: () => apiFetch<EventsResponse>(`/api/calendars/events?start=${start}&end=${end}`),
@@ -38,13 +65,81 @@ export function useCalendarEvents(start: string | null, end: string | null) {
     staleTime: 5 * 60_000,
   });
 
+  const decisionsQuery = useQuery({
+    queryKey: CALENDAR_DECISIONS_KEY,
+    queryFn: () => apiFetch<DecisionsResponse>('/api/calendars/decisions'),
+    staleTime: 5 * 60_000,
+  });
+
+  const calendars = useMemo(
+    () => eventsQuery.data?.calendars ?? [],
+    [eventsQuery.data]
+  );
+
+  const events = useMemo(() => {
+    const raw = eventsQuery.data?.data ?? [];
+    const decisions = decisionsQuery.data?.data ?? [];
+    if (raw.length === 0) return [];
+
+    // Resolve per calendar, because both the decision set and the fallback
+    // default belong to one. Calendars that returned events but are somehow
+    // missing from the summary list still resolve, against `unset` — an event
+    // with nowhere to inherit from is undecided, which is the honest answer.
+    const byCalendar = new Map<string, RawInstance[]>();
+    for (const instance of raw) {
+      const group = byCalendar.get(instance.calendarDocumentId);
+      if (group) group.push(instance);
+      else byCalendar.set(instance.calendarDocumentId, [instance]);
+    }
+
+    const resolved: ResolvedInstance[] = [];
+    for (const [calendarDocumentId, instances] of byCalendar) {
+      const calendar = calendars.find((c) => c.documentId === calendarDocumentId);
+      resolved.push(
+        ...resolveDecisions(
+          instances,
+          decisions.filter((d) => d.calendarDocumentId === calendarDocumentId),
+          calendarDocumentId,
+          calendar?.defaultState ?? 'unset'
+        )
+      );
+    }
+    return resolved;
+  }, [eventsQuery.data, decisionsQuery.data, calendars]);
+
   return {
-    events: query.data?.data ?? [],
-    calendars: query.data?.calendars ?? [],
-    loading: query.isPending,
-    error: query.error,
+    events,
+    calendars,
+    loading: eventsQuery.isPending || decisionsQuery.isPending,
+    error: eventsQuery.error ?? decisionsQuery.error,
   };
 }
+
+interface DecisionInput {
+  calendar: string;
+  uid: string;
+  recurrenceId: string | null;
+  state: 'show' | 'hide' | null;
+}
+
+/** The row a decision would be stored as, minus the id the server assigns it. */
+function asStored(input: DecisionInput): StoredDecision {
+  return {
+    // Optimistic rows have no documentId yet. Nothing resolves on it — the
+    // lookup key is (calendar, uid, recurrenceId) — so a placeholder is honest
+    // about that rather than inventing an id the server never issued.
+    documentId: '',
+    uid: input.uid,
+    recurrenceId: input.recurrenceId,
+    state: input.state as 'show' | 'hide',
+    calendarDocumentId: input.calendar,
+  };
+}
+
+const sameDecision = (row: StoredDecision, input: DecisionInput) =>
+  row.calendarDocumentId === input.calendar &&
+  row.uid === input.uid &&
+  row.recurrenceId === input.recurrenceId;
 
 /**
  * Set (or clear) one event's state.
@@ -57,18 +152,46 @@ export function useSetDecision() {
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
-    mutationFn: (decision: {
-      calendar: string;
-      uid: string;
-      recurrenceId: string | null;
-      state: 'show' | 'hide' | null;
-    }) => apiSend('/api/calendars/decisions', 'PUT', decision),
-    // No optimistic write. A series-level decision changes the state of every
-    // future instance of that event, and reproducing the resolution chain in the
-    // client to guess which ones would be a second implementation of the rule
-    // that could disagree with the server's. Refetching is one round trip and
-    // is always right.
-    onSettled: () => queryClient.invalidateQueries({ queryKey: CALENDARS_KEY }),
+    mutationFn: (decision: DecisionInput) =>
+      apiSend('/api/calendars/decisions', 'PUT', decision),
+
+    /**
+     * Written locally first, because the alternative is a click with no visible
+     * effect for as long as the round trip takes.
+     *
+     * This edits the *stored decision list* — add, replace, or remove one row by
+     * its (calendar, uid, recurrenceId) key — which is exactly what the server
+     * is about to do. It does not guess at resolved states: those fall out of
+     * `resolveDecisions` running over the new list, so a series-level decision
+     * correctly repaints every instance that was inheriting from it, and
+     * correctly leaves alone the ones carrying their own override.
+     */
+    onMutate: async (decision) => {
+      await queryClient.cancelQueries({ queryKey: CALENDAR_DECISIONS_KEY });
+      const previous = queryClient.getQueryData<DecisionsResponse>(CALENDAR_DECISIONS_KEY);
+
+      queryClient.setQueryData<DecisionsResponse>(CALENDAR_DECISIONS_KEY, (current) => {
+        const rows = current?.data ?? [];
+        const without = rows.filter((row) => !sameDecision(row, decision));
+        return {
+          ...current,
+          success: true,
+          data: decision.state === null ? without : [...without, asStored(decision)],
+        };
+      });
+
+      return { previous };
+    },
+
+    onError: (_error, _decision, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(CALENDAR_DECISIONS_KEY, context.previous);
+      }
+    },
+
+    // Only the decisions. Invalidating the whole `['calendars']` family would
+    // re-poll every ICS feed to learn something none of them can tell us.
+    onSettled: () => queryClient.invalidateQueries({ queryKey: CALENDAR_DECISIONS_KEY }),
   });
 
   return { setDecision: mutation.mutate, isSaving: mutation.isPending, error: mutation.error };
