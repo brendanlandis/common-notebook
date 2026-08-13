@@ -130,7 +130,12 @@ export default function SettingsPanel() {
 
         <h2>day boundary</h2>
         <p>What time does your day start and end?</p>
+        {/* Addressable by id. The e2e spec used to find this by filtering for a
+            select containing option value="3", on the reasoning that only the
+            hour list runs 0..23 — which quietly stopped being true the moment
+            another select with numeric options joined the drawer. */}
         <select
+          id="dayBoundaryHour"
           value={dayBoundaryHour}
           onChange={handleDayBoundaryChange}
           disabled={isLoading || isSaving}

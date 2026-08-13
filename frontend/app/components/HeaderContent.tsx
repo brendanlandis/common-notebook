@@ -113,10 +113,15 @@ export default function HeaderContent() {
           </button>
           {showManage && (
             <div className="manage-buttons">
+              {/* aria-label as well as data-tip: these are icon-only buttons, so
+                  the tooltip is the only thing naming them and it is presentation
+                  — a screen reader announced three unlabelled buttons, and no
+                  locator could address them by name either. */}
               <button
                 onClick={openManageProjects}
                 className="tooltip tooltip-bottom"
                 data-tip="manage projects"
+                aria-label="manage projects"
               >
                 <FoldersIcon size={25} />
               </button>
@@ -124,6 +129,7 @@ export default function HeaderContent() {
                 onClick={openWorlds}
                 className="tooltip tooltip-bottom"
                 data-tip="manage worlds"
+                aria-label="manage worlds"
               >
                 <PlanetIcon size={25} />
               </button>
@@ -131,6 +137,7 @@ export default function HeaderContent() {
                 onClick={openViews}
                 className="tooltip tooltip-bottom"
                 data-tip="manage views"
+                aria-label="manage views"
               >
                 <SquaresFourIcon size={25} />
               </button>
