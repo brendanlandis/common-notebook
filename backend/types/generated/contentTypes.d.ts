@@ -465,7 +465,8 @@ export interface ApiDailyPickDailyPick extends Struct.CollectionTypeSchema {
     owner: Schema.Attribute.Relation<
       'oneToOne',
       'plugin::users-permissions.user'
-    >;
+    > &
+      Schema.Attribute.Private;
     publishedAt: Schema.Attribute.DateTime;
     tasks: Schema.Attribute.Relation<'oneToMany', 'api::task.task'>;
     updatedAt: Schema.Attribute.DateTime;
