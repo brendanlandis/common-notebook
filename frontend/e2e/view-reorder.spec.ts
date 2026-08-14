@@ -38,11 +38,29 @@ const waitUntilStill = async (page: Page, locator: ReturnType<Page['locator']>, 
   throw new Error(`${what} never settled`);
 };
 
+/**
+ * Bring out the manage buttons, the way this device would.
+ *
+ * They live behind a caret. On a mouse it opens on hover; on a phone there is no
+ * hover and it opens on tap. Driving it with `hover()` everywhere hid a real bug
+ * for as long as this suite ran on desktop Chromium only — Playwright's `hover()`
+ * dispatches mouse events even in a touch context, so it opened a cluster that a
+ * person holding a phone could not open at all. `(hover: none)` is the browser's
+ * own answer to "can this device hover", which is exactly the question.
+ */
+const openManageCluster = async (page: Page) => {
+  const caret = page.getByRole('button', { name: 'more buttons' });
+  const cannotHover = await page.evaluate(() => matchMedia('(hover: none)').matches);
+
+  if (cannotHover) await caret.tap();
+  else await caret.hover();
+
+  await expect(caret).toHaveAttribute('aria-expanded', 'true');
+};
+
 const openViewsDrawer = async (page: Page) => {
   await gotoTodo(page);
-  // The manage buttons now live behind a caret that reveals them on hover or
-  // focus, so they have to be brought out before they can be clicked.
-  await page.getByRole('button', { name: 'more buttons' }).hover();
+  await openManageCluster(page);
   await page.getByRole('button', { name: 'manage views' }).click();
   await expect(page.locator('li.view-row').first()).toBeVisible({ timeout: 30_000 });
 

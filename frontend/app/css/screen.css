@@ -59,6 +59,13 @@ header {
     display: flex;
     gap: 1rem;
     align-items: center;
+    /* Wraps, because on a phone this row is wider than the screen.
+     *
+     * Revealing the manage cluster adds three buttons to a row that already
+     * fills a 393px viewport, and without wrapping they simply extended past
+     * the right edge — present in the DOM, impossible to touch. The caret sat
+     * at x=379 of 393 with the buttons it reveals off-screen behind it. */
+    flex-wrap: wrap;
   }
 }
 

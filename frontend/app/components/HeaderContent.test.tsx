@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { render, fireEvent } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
@@ -67,17 +67,41 @@ describe("HeaderContent copy (todo→task rename)", () => {
 });
 
 describe("HeaderContent manage-buttons disclosure", () => {
+  /**
+   * Two ways in, because there are two kinds of device.
+   *
+   * This cluster was hover-and-focus only, which is no way in on a touch screen.
+   * It looked fine on iOS purely because WebKit focuses a button when you tap
+   * it; Chrome on Android doesn't, so manage projects, manage worlds and manage
+   * views were unreachable on that phone entirely. Nothing in a desktop-only
+   * test suite could say so — hence the `(hover: none)` cases below, and the
+   * Android project in the Playwright config.
+   */
+  const withHover = (hover: boolean) =>
+    vi.stubGlobal(
+      "matchMedia",
+      vi.fn((query: string) => ({
+        matches: query.includes("hover: hover") ? hover : !hover,
+      })) as unknown as typeof window.matchMedia
+    );
+
   beforeEach(() => {
     openManageProjects.mockClear();
+    withHover(true);
   });
 
-  it("hides the manage cluster (worlds/views/manage projects) until hovered", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("hides the manage cluster (worlds/views/manage projects) until asked for", () => {
     const { container } = renderHeader();
     // Everyday actions are always present…
     expect(container.querySelector('[data-tip="add task"]')).toBeTruthy();
     expect(container.querySelector('[data-tip="declutter"]')).toBeTruthy();
-    // …but the config cluster is hidden until the caret is hovered. The caret has
-    // no tooltip (data-tip); it's the .manage-cluster's only child when collapsed.
+    // …but the config cluster is hidden until the caret is hovered or pressed.
+    // The caret has no tooltip (data-tip); it's the .manage-cluster's only child
+    // when collapsed.
     expect(container.querySelector('[data-tip="manage projects"]')).toBeNull();
     expect(container.querySelector('[data-tip="manage worlds"]')).toBeNull();
     expect(container.querySelector(".manage-caret")).toBeTruthy();
@@ -85,14 +109,58 @@ describe("HeaderContent manage-buttons disclosure", () => {
 
   it("reveals and wires the manage-projects button on hover", () => {
     const { container } = renderHeader();
-    fireEvent.mouseEnter(container.querySelector(".manage-cluster")!);
+    fireEvent.pointerEnter(container.querySelector(".manage-cluster")!);
     const manageBtn = container.querySelector('[data-tip="manage projects"]');
     expect(manageBtn).toBeTruthy();
     expect(container.querySelector('[data-tip="manage worlds"]')).toBeTruthy();
     fireEvent.click(manageBtn!);
     expect(openManageProjects).toHaveBeenCalledTimes(1);
     // Leaving collapses it again.
-    fireEvent.mouseLeave(container.querySelector(".manage-cluster")!);
+    fireEvent.pointerLeave(container.querySelector(".manage-cluster")!);
     expect(container.querySelector('[data-tip="manage projects"]')).toBeNull();
+  });
+
+  it("opens on a press, which is how a phone and a keyboard both get in", () => {
+    withHover(false);
+    const { container } = renderHeader();
+    const caret = container.querySelector(".manage-caret")!;
+
+    expect(caret.getAttribute("aria-expanded")).toBe("false");
+    fireEvent.click(caret);
+
+    expect(caret.getAttribute("aria-expanded")).toBe("true");
+    expect(container.querySelector('[data-tip="manage views"]')).toBeTruthy();
+  });
+
+  it("closes again on a second press", () => {
+    withHover(false);
+    const { container } = renderHeader();
+    const caret = container.querySelector(".manage-caret")!;
+
+    fireEvent.click(caret);
+    fireEvent.click(caret);
+
+    expect(caret.getAttribute("aria-expanded")).toBe("false");
+    expect(container.querySelector('[data-tip="manage views"]')).toBeNull();
+  });
+
+  it("ignores hover entirely on a device that cannot hover", () => {
+    // The bug this replaced was subtler than "no handler": a `pointerType`
+    // guard still let a phone's synthetic mouse events open the cluster and
+    // then close it mid-press, so the button unmounted before the click landed
+    // and nothing happened at all.
+    withHover(false);
+    const { container } = renderHeader();
+    const cluster = container.querySelector(".manage-cluster")!;
+
+    fireEvent.pointerEnter(cluster);
+    expect(container.querySelector('[data-tip="manage views"]')).toBeNull();
+
+    fireEvent.click(container.querySelector(".manage-caret")!);
+    expect(container.querySelector('[data-tip="manage views"]')).toBeTruthy();
+
+    // And a stray pointerleave must not snatch it away again.
+    fireEvent.pointerLeave(cluster);
+    expect(container.querySelector('[data-tip="manage views"]')).toBeTruthy();
   });
 });

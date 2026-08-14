@@ -23,6 +23,21 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiSend, swallow } from "../lib/apiFetch";
 import { TASKS_ROOT } from "../(main)/todo/hooks/useTasks";
 
+/**
+ * Can the pointing device on this machine hover?
+ *
+ * Asked of the device rather than inferred from an event, because synthetic
+ * mouse events are unavoidable on touch screens — browsers emit them for
+ * compatibility and automation dispatches them too. See the manage cluster
+ * below, which is the reason this exists.
+ *
+ * Read at the moment of the event rather than held in state: it can change under
+ * you (a tablet with a keyboard attached), and there is nothing to re-render
+ * when it does.
+ */
+const canHover = () =>
+  typeof window !== "undefined" && (window.matchMedia?.("(hover: hover)").matches ?? true);
+
 export default function HeaderContent() {
   const pathname = usePathname();
   const { views } = useViews();
@@ -34,7 +49,8 @@ export default function HeaderContent() {
 
   // The "manage" buttons (worlds, views, manage projects) are set-and-forget
   // config, so they hide behind a small caret to keep the everyday actions (add
-  // task, add project, declutter) uncluttered — revealed on hover/focus.
+  // task, add project, declutter) uncluttered — revealed on hover where there is
+  // a hover, and by pressing the caret everywhere.
   const [showManage, setShowManage] = useState(false);
 
   // Resetting the moon phase changes which tasks are due, so the lists have to be
@@ -93,17 +109,43 @@ export default function HeaderContent() {
         >
           <MoonPhaseIcon size={25} />
         </button>
+        {/* Hover to reveal on a mouse; press the caret anywhere else.
+
+            The caret had no `onClick` at all — opening was `onMouseEnter` plus
+            `onFocus`, which is no way in on a touch screen. It appeared to work
+            on iOS only by accident, because WebKit focuses a button when you tap
+            it and Chrome on Android does not: on an Android phone, manage
+            projects, manage worlds and manage views could not be reached at all.
+
+            The hover is gated on the *device*, not on the event's `pointerType`.
+            That distinction is the whole fix. Synthetic mouse events are
+            everywhere on touch devices — browsers emit them for compatibility,
+            and automation dispatches them too — so a `pointerType === 'mouse'`
+            guard still lets a phone open the cluster on "hover" and then close
+            it again the moment the pointer appears to move, which unmounted the
+            buttons in the middle of the press and meant no `click` was ever
+            delivered. `(hover: hover)` asks the only question that matters: can
+            this input device hover at all.
+
+            `onFocus`/`onBlur` are deliberately gone. A keyboard user reaches the
+            caret by tabbing and opens it with Enter or Space, which is a click —
+            the same path as everyone else. Revealing on focus additionally meant
+            the focus opened it and the resulting click closed it again. */}
         <div
           className="manage-cluster"
-          onMouseEnter={() => setShowManage(true)}
-          onMouseLeave={() => setShowManage(false)}
-          onFocus={() => setShowManage(true)}
-          onBlur={() => setShowManage(false)}
+          onPointerEnter={() => {
+            if (canHover()) setShowManage(true);
+          }}
+          onPointerLeave={() => {
+            if (canHover()) setShowManage(false);
+          }}
         >
           <button
+            type="button"
             className="manage-caret"
             aria-label="more buttons"
             aria-expanded={showManage}
+            onClick={() => setShowManage((open) => !open)}
           >
             {showManage ? (
               <CaretLeftIcon size={16} weight="bold" />
