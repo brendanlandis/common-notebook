@@ -59,7 +59,7 @@ export function useActiveSession() {
   );
 
   /**
-   * Start practising a piece of material.
+   * Start practicing a piece of material.
    *
    * A 409 means something was already running — two tabs, or a session you
    * forgot. The server hands back the open one; invalidating puts it on screen,

@@ -39,7 +39,7 @@ describe('practice-logs stats route — 30-day range', () => {
   it('builds exactly 30 distinct consecutive day buckets ending today', async () => {
     // One session, so there is a subject to draw a line for. The series used to
     // be a hardcoded list of six enum values and existed whether or not anything
-    // had been practised; they are discovered from the data now, so an empty
+    // had been practiced; they are discovered from the data now, so an empty
     // window is an empty chart rather than six flat zeroes.
     mockFetch(() => ({
       data: [

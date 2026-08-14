@@ -87,7 +87,7 @@ export function apiSend<T extends ApiBody = ApiBody>(
  * Await a mutation, logging and swallowing any failure.
  *
  * `mutateAsync` rejects, and these callers don't catch — an unhandled rejection
- * is worse than the pre-existing behaviour, which was to log and carry on. When a
+ * is worse than the pre-existing behavior, which was to log and carry on. When a
  * screen grows real error UI it should read `useMutation`'s `error` instead of
  * going through here.
  */

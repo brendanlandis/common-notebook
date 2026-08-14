@@ -134,7 +134,7 @@ describe('expandIcs', () => {
     expect(instances[0].recurrenceId).not.toBeNull();
   });
 
-  it('honours EXDATE', () => {
+  it('honors EXDATE', () => {
     const feed = ics(
       event([
         'UID:skipped@test',

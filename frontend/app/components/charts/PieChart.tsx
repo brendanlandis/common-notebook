@@ -22,7 +22,7 @@ interface PieChartProps {
   outerRadius?: number | string;
 }
 
-// Each slice, enriched with its solid fill colour. `fill` is read by recharts to
+// Each slice, enriched with its solid fill color. `fill` is read by recharts to
 // paint the sector; `color` drives the tooltip/legend chips.
 interface PreparedSlice extends PieDatum {
   color: string;
@@ -53,7 +53,7 @@ function PieTooltip({
 }
 
 // Custom legend driven directly by the prepared slices (not the recharts payload),
-// so each chip renders the slice's colour.
+// so each chip renders the slice's color.
 function PieLegend({ data }: { data: PreparedSlice[] }) {
   return (
     <ul className="chart-legend">

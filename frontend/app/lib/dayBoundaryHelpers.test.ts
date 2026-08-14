@@ -133,7 +133,7 @@ describe('Day Boundary Helpers', () => {
       expect(getEffectiveDayForTimestamp(timestamp, nyc(4))).toBe('2026-01-08');
     });
 
-    it('honours the summer offset (EDT, -4) as well as the winter one', () => {
+    it('honors the summer offset (EDT, -4) as well as the winter one', () => {
       // 05:00 UTC Jul 16 = 01:00 Jul 16 in New York (EDT) — before the 4am boundary.
       const timestamp = new Date('2026-07-16T05:00:00.000Z');
 

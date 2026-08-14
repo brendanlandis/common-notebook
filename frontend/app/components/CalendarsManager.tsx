@@ -82,7 +82,7 @@ export default function CalendarsManager() {
         </ul>
       )}
 
-      <div className="task-form-element labelled">
+      <div className="task-form-element labeled">
         <label htmlFor="calendarName">name</label>
         <input
           id="calendarName"
@@ -91,7 +91,7 @@ export default function CalendarsManager() {
           onChange={(e) => setName(e.target.value)}
         />
       </div>
-      <div className="task-form-element labelled">
+      <div className="task-form-element labeled">
         <label htmlFor="calendarUrl">secret ics url</label>
         <input
           id="calendarUrl"

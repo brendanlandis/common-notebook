@@ -281,7 +281,7 @@ export default function WeekCalendar({
         /**
          * "Today" in the owner's zone, not the browser's and not UTC.
          *
-         * Everything else here is wall clock labelled UTC, and `now` has to
+         * Everything else here is wall clock labeled UTC, and `now` has to
          * follow the same convention or it isn't comparable to the columns.
          * Left to default it, FullCalendar reads the machine clock and reduces
          * it to UTC — so at 8pm in New York, 01:00Z the next day, it highlighted

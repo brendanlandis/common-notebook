@@ -4,11 +4,11 @@ import { fetchAllPages, getTimeZoneSettings } from '@/app/lib/strapiServer';
 import { getTodayForRecurrence, toISODate, shiftISODate } from '@/app/lib/dateUtils';
 
 /**
- * Minutes practised per day, per subject, over the last 30 days.
+ * Minutes practiced per day, per subject, over the last 30 days.
  *
  * The series used to be a hardcoded list of six enum values, which is what made
  * adding a seventh a four-file edit. They are now whatever subjects the sessions
- * actually mention — so a new instrument appears on the chart by being practised,
+ * actually mention — so a new instrument appears on the chart by being practiced,
  * and one you have not touched in a month does not take up a line saying zero.
  *
  * Grouped by **subject** rather than by material: forty pieces of material would
@@ -76,7 +76,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Subjects are discovered from the data, in first-seen order — which, since
-    // the list arrives sorted by start, is roughly "most recently practised
+    // the list arrives sorted by start, is roughly "most recently practiced
     // first" and keeps the legend stable between reloads.
     const labels = new Map<string, string>();
     const minutesByDate = new Map<string, Map<string, number>>();

@@ -124,7 +124,7 @@ describe('Date Utilities', () => {
     });
   });
 
-  // The round-trip at the centre of three incidents, asserted nowhere until now.
+  // The round-trip at the center of three incidents, asserted nowhere until now.
   // Runs across timezones at the settings level; the suite also runs under three
   // machine zones via `npm run test:zones`, so a positive-offset regression like
   // Kolkata's cannot hide behind a matching OS zone.

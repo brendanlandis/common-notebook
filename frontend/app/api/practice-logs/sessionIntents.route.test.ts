@@ -102,7 +102,7 @@ describe('pause', () => {
     expect(writes).toHaveLength(1);
     expect((row.segments as any)[0].stop).toBe('2026-08-14T15:00:00.000Z');
     // Duration is written on pause, not only on stop, so an abandoned session
-    // still reports what was actually practised.
+    // still reports what was actually practiced.
     expect(row.duration).toBe(60);
   });
 
@@ -166,7 +166,7 @@ describe('resume', () => {
 
 describe('stop', () => {
   it('sums the segments rather than measuring stop minus start', async () => {
-    // Ninety minutes of wall time, twenty-five practised. This is the whole
+    // Ninety minutes of wall time, twenty-five practiced. This is the whole
     // reason duration is no longer `stop - start`.
     const { row } = mockStrapi({
       start: '2026-08-14T13:30:00.000Z',

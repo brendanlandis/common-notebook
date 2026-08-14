@@ -9,9 +9,9 @@ import { isStale } from '@/app/lib/practiceSession';
 import PracticeClock from './PracticeClock';
 
 /**
- * Practising, over whatever you were looking at.
+ * Practicing, over whatever you were looking at.
  *
- * The practice screen is a modal rather than a page on purpose. Practising is
+ * The practice screen is a modal rather than a page on purpose. Practicing is
  * the one thing in this app that isn't reading or deciding, and it should have
  * nothing on it but the clock and the name of what you're playing — a page you
  * navigate *to* would leave the rest of the app one click away, which is exactly
@@ -55,13 +55,13 @@ export default function PracticeSessionModal() {
   // project — the subject — without a second fetch.
   if (!session && readyMaterial) {
     return (
-      <div className="practice-modal is-ready" role="dialog" aria-label="start practising">
+      <div className="practice-modal is-ready" role="dialog" aria-label="start practicing">
         <div className="practice-modal-body">
           <PracticeSubject title={readyMaterial.title} subject={readyMaterial.project?.title} />
           <button
             type="button"
             className="practice-play"
-            aria-label={`start practising ${readyMaterial.title}`}
+            aria-label={`start practicing ${readyMaterial.title}`}
             disabled={isStarting}
             onClick={() => {
               start(readyMaterial.documentId);
@@ -89,7 +89,7 @@ export default function PracticeSessionModal() {
       <button
         type="button"
         className="practice-collapsed"
-        aria-label={`resume practising ${material?.title ?? 'your session'}`}
+        aria-label={`resume practicing ${material?.title ?? 'your session'}`}
         disabled={isToggling}
         onClick={resume}
       >
@@ -100,7 +100,7 @@ export default function PracticeSessionModal() {
   }
 
   return (
-    <div className="practice-modal is-running" role="dialog" aria-label="practising">
+    <div className="practice-modal is-running" role="dialog" aria-label="practicing">
       <div className="practice-modal-body">
         <PracticeSubject title={material?.title} subject={material?.project?.title} />
         <PracticeClock segments={segments} />
@@ -153,7 +153,7 @@ export default function PracticeSessionModal() {
   );
 }
 
-/** What you're practising, and what it's part of. */
+/** What you're practicing, and what it's part of. */
 function PracticeSubject({ title, subject }: { title?: string; subject?: string }) {
   return (
     <div className="practice-subject">

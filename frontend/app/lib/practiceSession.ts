@@ -2,7 +2,7 @@ import { getEffectiveDayForTimestamp } from './dayBoundaryHelpers';
 import type { TimeZoneSettings } from './timeZoneSettings';
 
 /**
- * A practice session, as a list of the stretches you were actually practising.
+ * A practice session, as a list of the stretches you were actually practicing.
  *
  * ## Why segments at all
  *
@@ -12,7 +12,7 @@ import type { TimeZoneSettings } from './timeZoneSettings';
  * it lives in `practice-log.segments`, and every play/pause/stop is a write.
  *
  * That makes `duration` no longer derivable from `stop - start`. A 40-minute
- * sitting with 15 minutes of pause is 25 minutes practised, and the sum of the
+ * sitting with 15 minutes of pause is 25 minutes practiced, and the sum of the
  * segments is the only place that number exists.
  *
  * ## Why segments rather than an event log
@@ -60,9 +60,9 @@ export function isRunning(segments: PracticeSegment[]): boolean {
  * Defensive to the point of paranoia because this is a JSON column: it can hold
  * anything a hand-edit or a half-finished write left behind, and a practice
  * timer that throws on load is worse than one that reports zero. Anything
- * unrecognisable is dropped rather than guessed at.
+ * unrecognizable is dropped rather than guessed at.
  *
- * Two shapes are normalised rather than rejected, because both are recoverable
+ * Two shapes are normalized rather than rejected, because both are recoverable
  * and both would otherwise corrupt the total:
  *
  * - A segment whose `stop` precedes its `start` contributes nothing, rather than
@@ -103,7 +103,7 @@ function isInstant(value: string): boolean {
 }
 
 /**
- * Milliseconds actually practised, counting an open segment up to `now`.
+ * Milliseconds actually practiced, counting an open segment up to `now`.
  *
  * `now` is a real instant and is only ever subtracted from another instant, so
  * no zone question arises here — see `staleSince` for the one place in this file
@@ -171,7 +171,7 @@ export const STALE_AFTER_MS = 4 * 60 * 60 * 1000;
  * Has this session been running long enough that it's worth asking about?
  *
  * Two triggers, and both are about the **open segment** rather than the session
- * as a whole. A session that spans six hours because you practised, paused, ate
+ * as a whole. A session that spans six hours because you practiced, paused, ate
  * dinner and came back is entirely normal; what isn't normal is one stretch of
  * uninterrupted play running that long.
  *

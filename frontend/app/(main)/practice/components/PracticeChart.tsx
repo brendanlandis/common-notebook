@@ -4,10 +4,10 @@ import type { SubjectStats } from '../hooks/usePracticeLogs';
 /**
  * Minutes per day, one line per subject.
  *
- * Colours are assigned by position rather than by name. They used to be a map
- * keyed on the six enum values, which meant a seventh subject had no colour and
+ * Colors are assigned by position rather than by name. They used to be a map
+ * keyed on the six enum values, which meant a seventh subject had no color and
  * the map was a seventh place the enum had to be repeated. Subjects are user
- * data now, so the palette cycles: with more subjects than colours two lines
+ * data now, so the palette cycles: with more subjects than colors two lines
  * will share one, which is a legible chart with a small ambiguity rather than an
  * invisible line.
  */

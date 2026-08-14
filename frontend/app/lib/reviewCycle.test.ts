@@ -313,7 +313,7 @@ describe('defaultReviewMode', () => {
     );
   });
 
-  it('honours a biweekly anchor', () => {
+  it('honors a biweekly anchor', () => {
     at('2026-01-11T21:00:00-05:00'); // the eve of an anchored Monday
 
     expect(

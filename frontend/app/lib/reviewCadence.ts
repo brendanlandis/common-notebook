@@ -65,7 +65,7 @@ const CYCLE_NOUNS: Partial<Record<RecurrenceType, string>> = {
 
 export function cycleNoun(cadence: ReviewCadence): string {
   // "every other week" and "every nine days" have no noun a reader would
-  // recognise — "this two weeks" is worse than "this cycle".
+  // recognize — "this two weeks" is worse than "this cycle".
   return CYCLE_NOUNS[cadence.recurrenceType] ?? 'cycle';
 }
 

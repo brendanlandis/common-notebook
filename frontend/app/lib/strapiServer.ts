@@ -190,7 +190,7 @@ export async function seedDefaultSettings(accessToken: string): Promise<void> {
  *
  * Only the system ones — see `defaultWorlds.ts` for why the list is short. The
  * point is `systemKey`, which the worlds UI does not expose: a user cannot make
- * a world the practice feature recognises, so if this does not run the feature
+ * a world the practice feature recognizes, so if this does not run the feature
  * is unreachable and silently so.
  *
  * **Idempotent**, keyed on `systemKey`. Seeding runs at the end of signup, after

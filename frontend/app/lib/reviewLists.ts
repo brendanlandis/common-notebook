@@ -19,7 +19,7 @@ import { isPracticeWorld } from './worlds';
  * Recurring tasks are the ones that **have come round by the end of the cycle** —
  * the review is a picture of what this week is going to ask for, and an annual
  * task due in November has nothing to say about a week in August. They were
- * included wholesale at first, which made the list a catalogue of everything
+ * included wholesale at first, which made the list a cataloge of everything
  * that recurs rather than of anything to do with the period on screen. Note the
  * one-sidedness: something whose date passed last week is still on your plate,
  * so it stays.
@@ -43,9 +43,9 @@ export interface ReviewLists {
   /** Everything on your plate this cycle, grouped by project. */
   groups: ProjectGroup[];
   /**
-   * What there is to practise this cycle, grouped by subject.
+   * What there is to practice this cycle, grouped by subject.
    *
-   * A lane of its own rather than more entries in `groups`, because practising
+   * A lane of its own rather than more entries in `groups`, because practicing
    * is not checking things off a list. In one pool it loses every time: next to
    * six things you can finish today, "play through the Bach" reads as the
    * optional one, and the review's whole purpose is deciding what the cycle is
@@ -101,7 +101,7 @@ const NO_PROJECT = '__incidentals__';
  *
  * Forty pills in one wrapping block is a wall — you read it as a quantity
  * rather than as things. Under project headings the same forty become half a
- * dozen small, recognisable clusters, and the heading does the work the pills
+ * dozen small, recognizable clusters, and the heading does the work the pills
  * were doing individually (each carried its project's name in muted text, which
  * is both redundant here and a large part of what made the wall dense).
  *
@@ -196,7 +196,7 @@ export function isPracticeMaterial(task: Task): boolean {
 }
 
 /**
- * What there is to practise this cycle.
+ * What there is to practice this cycle.
  *
  * A much simpler rule than the tasks pool, and simpler for reasons rather than
  * by omission:

@@ -14,7 +14,7 @@ import type { TimeZoneSettings } from './timeZoneSettings';
  * every account that had never decluttered decluttered on its next page load.
  * That branch is gone and the parameter is no longer nullable, so the bug is now
  * a type error rather than something a test can reach; the "arms instead of
- * decluttering" behaviour it turned into is pinned in `moonPhaseReset.test.ts`.
+ * decluttering" behavior it turned into is pinned in `moonPhaseReset.test.ts`.
  * What *is* directly guarded here is the second bug found alongside it: a new
  * moon falling later on the current day was compared against midnight and missed,
  * so the declutter landed the day after the moon it was named for.
@@ -107,7 +107,7 @@ describe('hasNewMoonSince', () => {
 
   it('still catches up a new moon that passed while the app went unused', () => {
     // Armed in May, opened again in July: the 06-15 and 07-14 moons both passed.
-    // The declutter is owed, just late. This is the behaviour the fix preserves.
+    // The declutter is owed, just late. This is the behavior the fix preserves.
     setToday('2026-07-16', EST);
     expect(hasNewMoonSince(parseDate('2026-05-17', EST), EST)).toBe(true);
   });

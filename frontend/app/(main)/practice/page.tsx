@@ -16,10 +16,10 @@ import { usePracticeLogs } from "./hooks/usePracticeLogs";
 import FaviconManager from "@/app/components/FaviconManager";
 
 /**
- * What you have practised — a record, not a place you practise.
+ * What you have practiced — a record, not a place you practice.
  *
  * The play button and the subject dropdown used to live here, which made this
- * page both the timer and the history of it. Practising now happens in a modal
+ * page both the timer and the history of it. Practicing now happens in a modal
  * over whatever you were looking at (see `PracticeSessionModal`), so what is
  * left is the chart and the sessions, grouped by the day they belong to.
  *
@@ -91,7 +91,7 @@ export default function PracticePage() {
         )}
 
         {completedLogs.length === 0 && (
-          <p className="no-sessions">nothing practised in the last 30 days</p>
+          <p className="no-sessions">nothing practiced in the last 30 days</p>
         )}
       </main>
     </>

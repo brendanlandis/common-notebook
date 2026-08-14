@@ -99,7 +99,7 @@ export async function GET(req: NextRequest) {
         : []
     );
 
-    // Calendars are reported alongside, so the UI can colour and name events —
+    // Calendars are reported alongside, so the UI can color and name events —
     // and resolve each one's default state — without a second request. Shaped by
     // `toClientCalendar`, which is what keeps the icsUrl from ever leaving here.
     return NextResponse.json({

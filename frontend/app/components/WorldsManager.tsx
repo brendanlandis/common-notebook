@@ -20,12 +20,12 @@ export default function WorldsManager() {
 
   // Count projects per world for the delete guard. Refetched when worlds change.
   useEffect(() => {
-    let cancelled = false;
+    let canceled = false;
     (async () => {
       try {
         const res = await fetch("/api/projects");
         const body = await res.json();
-        if (!cancelled && body.success) {
+        if (!canceled && body.success) {
           const counts: Record<string, number> = {};
           for (const p of body.data as Project[]) {
             const id = p.world?.documentId;
@@ -38,7 +38,7 @@ export default function WorldsManager() {
       }
     })();
     return () => {
-      cancelled = true;
+      canceled = true;
     };
   }, [worlds]);
 

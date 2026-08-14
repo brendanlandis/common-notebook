@@ -156,8 +156,8 @@ export default function TaskItem({
             type="button"
             className="practice-icon"
             onClick={() => openFor(task)}
-            title="practise this"
-            aria-label={`practise ${task.title}`}
+            title="practice this"
+            aria-label={`practice ${task.title}`}
           >
             <MetronomeIcon size={25} />
           </button>

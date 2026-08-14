@@ -108,7 +108,7 @@ describe('ready state', () => {
     expect(screen.getByText('guitar')).toBeDefined();
 
     fireEvent.click(
-      screen.getByRole('button', { name: /start practising bach invention 4/i })
+      screen.getByRole('button', { name: /start practicing bach invention 4/i })
     );
     expect(session.current.start).toHaveBeenCalledWith('material-1');
   });
@@ -127,7 +127,7 @@ describe('running', () => {
   it('covers the page with the clock and two controls', () => {
     renderModal();
 
-    expect(screen.getByRole('dialog', { name: 'practising' })).toBeDefined();
+    expect(screen.getByRole('dialog', { name: 'practicing' })).toBeDefined();
     expect(screen.getByRole('timer').textContent).toBe('20:00');
     expect(screen.getByRole('button', { name: 'pause' })).toBeDefined();
     expect(screen.getByRole('button', { name: 'stop' })).toBeDefined();
@@ -189,7 +189,7 @@ describe('paused', () => {
     renderModal();
 
     expect(screen.queryByRole('dialog')).toBeNull();
-    const button = screen.getByRole('button', { name: /resume practising bach invention 4/i });
+    const button = screen.getByRole('button', { name: /resume practicing bach invention 4/i });
     expect(button.textContent).toContain('20:00');
 
     fireEvent.click(button);

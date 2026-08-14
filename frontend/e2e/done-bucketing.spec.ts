@@ -162,7 +162,7 @@ test.describe('Done page day-boundary bucketing', () => {
 test.describe('Done page upcoming panel (R1/R2)', () => {
   // The upcoming panel used addDays on an instant, so on a UTC host serving a NY
   // user it collapsed "tomorrow" onto today and duplicated a day across fall-back.
-  // Here we assert the first upcoming day is labelled "tomorrow" and every day
+  // Here we assert the first upcoming day is labeled "tomorrow" and every day
   // appears in exactly one bucket.
   test('labels tomorrow correctly and files each upcoming day exactly once', async ({ page, request }) => {
     const today = nyDate(new Date());
@@ -183,7 +183,7 @@ test.describe('Done page upcoming panel (R1/R2)', () => {
       await expect(page.locator(`.upcoming-day:has(#task-${t1})`)).toHaveCount(1);
       await expect(page.locator(`.upcoming-day:has(#task-${t2})`)).toHaveCount(1);
 
-      // The nearest day is labelled "tomorrow"; the +3 day is a different, later label (R1).
+      // The nearest day is labeled "tomorrow"; the +3 day is a different, later label (R1).
       const h1 = await page.locator(`.upcoming-day:has(#task-${t1}) h4`).innerText();
       const h2 = await page.locator(`.upcoming-day:has(#task-${t2}) h4`).innerText();
       expect(h1.toLowerCase()).toBe('tomorrow');

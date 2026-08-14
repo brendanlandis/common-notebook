@@ -117,7 +117,7 @@ export default function DailyReviewPage() {
   }, [today, pick, pickLoading]);
 
   // The two lanes, split the same way the review page splits them — and here it
-  // matters for a second reason: material has no checkbox. Practising is not
+  // matters for a second reason: material has no checkbox. Practicing is not
   // something you tick off, so the two lists cannot share a control.
   const { material, ordinary } = useMemo(() => {
     const material: typeof reviewTasks = [];
@@ -265,51 +265,6 @@ export default function DailyReviewPage() {
     <div className="review-page">
       <h1>today</h1>
 
-      {/* Practice, above the calendar rather than beside it.
-          Deliberately outside `daily-layout`: that grid pushes the task column
-          down to meet the now-indicator, and material has nothing to line up
-          with — practising isn't a thing that happens *at* a time, it's a thing
-          you go and do. Above rather than below, because it is what gets skipped
-          when it comes after the list of things you can tick off. */}
-      {practice.picked.length > 0 && (
-        <section className="daily-practice">
-          <ul>
-            {practice.picked.map((task) => (
-              <li key={task.documentId}>
-                {/* An icon, not a checkbox. A checkbox beside a task means done
-                    everywhere else in this app, and practice is measured in
-                    minutes spent, not in being finished — so it borrows no
-                    control that would say otherwise. Pressing it opens the
-                    practice modal ready to go; pressing the name does the same,
-                    because the whole row is one intention.
-                    The button carries the view-transition name so the pill
-                    tweens up out of the pool below, exactly as a task does. */}
-                <button
-                  type="button"
-                  className="daily-practice-item"
-                  style={{ viewTransitionName: `pill-${task.documentId}` }}
-                  onClick={() => openFor(task)}
-                >
-                  <MetronomeIcon size={22} weight="regular" aria-hidden="true" />
-                  <span>{task.title}</span>
-                  {task.project?.title && (
-                    <span className="review-pick-project">{task.project.title}</span>
-                  )}
-                </button>
-                <button
-                  type="button"
-                  className="daily-unpick"
-                  aria-label={`put ${task.title} back`}
-                  onClick={() => toggle(task.documentId)}
-                >
-                  <ArrowDownIcon aria-hidden="true" />
-                </button>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-
       <div className="daily-layout">
         {/* Pushed down to meet the now-indicator, so "what I'm doing" starts
             level with "where the day has got to". Falls back to the top of the
@@ -321,6 +276,52 @@ export default function DailyReviewPage() {
           className="daily-chosen"
           style={{ "--now-offset": `${nowOffset ?? 0}px` } as CSSProperties}
         >
+          {/* Today's practice, in the same column as the tasks — it is part of
+              what you are doing today, not a separate shelf above the day. It
+              leads the column: practice is what gets skipped when it comes
+              after a list of things that can be ticked off, which is the same
+              reason it leads on the periodic review.
+              Inside `daily-chosen`, so it sits under the same now-offset as the
+              tasks and the whole column starts level with the current hour. */}
+          {practice.picked.length > 0 && (
+            <section className="daily-practice">
+              <ul>
+                {practice.picked.map((task) => (
+                  <li key={task.documentId}>
+                    {/* An icon, not a checkbox. A checkbox beside a task means done
+                        everywhere else in this app, and practice is measured in
+                        minutes spent, not in being finished — so it borrows no
+                        control that would say otherwise. Pressing it opens the
+                        practice modal ready to go; pressing the name does the same,
+                        because the whole row is one intention.
+                        The button carries the view-transition name so the pill
+                        tweens up out of the pool below, exactly as a task does. */}
+                    <button
+                      type="button"
+                      className="daily-practice-item"
+                      style={{ viewTransitionName: `pill-${task.documentId}` }}
+                      onClick={() => openFor(task)}
+                    >
+                      <MetronomeIcon size={22} weight="regular" aria-hidden="true" />
+                      <span>{task.title}</span>
+                      {task.project?.title && (
+                        <span className="review-pick-project">{task.project.title}</span>
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      className="daily-unpick"
+                      aria-label={`put ${task.title} back`}
+                      onClick={() => toggle(task.documentId)}
+                    >
+                      <ArrowDownIcon aria-hidden="true" />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
           {picked.length === 0 ? (
             <p className="review-empty">nothing chosen yet</p>
           ) : (
@@ -337,7 +338,7 @@ export default function DailyReviewPage() {
                       On the label rather than the `li`: a block-level `li` is as
                       wide as the column, and the browser scales the old shape to
                       the new one, so the pill grew across the page instead of
-                      travelling. The label is shrink-wrapped to about a pill's
+                      traveling. The label is shrink-wrapped to about a pill's
                       width. */}
                   <label
                     className={task.completed ? "is-done" : undefined}
@@ -412,7 +413,7 @@ export default function DailyReviewPage() {
           already scrolled past by the time you reach it. */}
       {practice.remaining.length > 0 && (
         <section className="review-section review-practice">
-          <h2>could practise</h2>
+          <h2>could practice</h2>
           {practice.remaining.map((group) => (
             <div key={group.key} className="review-group">
               <h3>{group.projectTitle ?? "incidentals"}</h3>

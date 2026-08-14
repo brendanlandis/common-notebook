@@ -74,8 +74,8 @@ const viewNames = (page: Page) =>
 
 // Drag the row at `from` onto the row at `to`, by its handle.
 //
-// Move by the centre-to-centre distance plus an overshoot, not to the target's
-// centre: sorting only commits once the dragged row's centre crosses the
+// Move by the center-to-center distance plus an overshoot, not to the target's
+// center: sorting only commits once the dragged row's center crosses the
 // target's, and stopping exactly on it leaves the order unchanged.
 /**
  * Drag one row onto another by its grip.
@@ -104,9 +104,9 @@ const dragRow = async (
 
   const x = grip.x + grip.width / 2;
   const y = grip.y + grip.height / 2;
-  const centreDelta =
+  const centerDelta =
     target.y + target.height / 2 - (source.y + source.height / 2);
-  const delta = centreDelta + Math.sign(centreDelta) * 24;
+  const delta = centerDelta + Math.sign(centerDelta) * 24;
 
   await page.mouse.move(x, y);
   await page.mouse.down();
@@ -173,7 +173,7 @@ test.describe('view reorder', () => {
   // reorder, so dnd-kit's KeyboardSensor is load-bearing, not a nicety. It also
   // regressed once already: while view rows rendered their sections expanded
   // (~600px tall), a lift succeeded but the arrow key could not move a row past
-  // a much shorter neighbour.
+  // a much shorter neighbor.
   test('reorders from the keyboard', async ({ page }) => {
     await openViewsDrawer(page);
 

@@ -13,7 +13,7 @@ import type { Task } from "@/app/types/index";
  * A pressed/unpressed pill has no such prior meaning, and `aria-pressed` says
  * the same thing to a screen reader that the fill says to an eye.
  *
- * The selected fill is deliberately the same colour as a kept calendar event:
+ * The selected fill is deliberately the same color as a kept calendar event:
  * across this feature, filled means "yes, this one".
  *
  * Renders no dates, no age, and no urgency of any kind. That isn't an oversight

@@ -29,7 +29,7 @@ describe('chart smoke test', () => {
       />,
     );
     expect(container.querySelector('svg')).toBeTruthy();
-    // No gradient/glow defs — slices are painted with solid colours.
+    // No gradient/glow defs — slices are painted with solid colors.
     expect(container.querySelectorAll('linearGradient').length).toBe(0);
     expect(container.querySelectorAll('filter').length).toBe(0);
     // Sectors rendered.
@@ -54,12 +54,12 @@ describe('chart smoke test', () => {
       />,
     );
     expect(container.querySelector('svg')).toBeTruthy();
-    // No gradient/blur defs — lines are painted with solid colours.
+    // No gradient/blur defs — lines are painted with solid colors.
     expect(container.querySelectorAll('linearGradient').length).toBe(0);
     expect(container.querySelectorAll('filter').length).toBe(0);
     // One curve per series (no glow underlay).
     expect(container.querySelectorAll('.recharts-line-curve').length).toBe(2);
-    // Each curve uses its series colour directly.
+    // Each curve uses its series color directly.
     const strokes = Array.from(container.querySelectorAll('.recharts-line-curve')).map((el) =>
       el.getAttribute('stroke'),
     );
@@ -70,7 +70,7 @@ describe('chart smoke test', () => {
     expect(d).toContain('L');
     expect(d).not.toContain('C');
     // A dot at every data point (2 series × 2 points), filled with the series
-    // colour (a background-coloured ring gives the gap between line and dot).
+    // color (a background-colored ring gives the gap between line and dot).
     expect(container.querySelectorAll('.recharts-line-dot').length).toBe(4);
     const firstDot = container.querySelector('.recharts-line-dot');
     expect(firstDot?.getAttribute('fill')).toBe('var(--primary-color)');

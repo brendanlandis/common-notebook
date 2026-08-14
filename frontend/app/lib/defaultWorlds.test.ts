@@ -10,7 +10,7 @@ import type { World } from '../types/index';
 describe('DEFAULT_WORLDS', () => {
   it('seeds the practice world with the handle the code matches on', () => {
     // This is the entire point. `systemKey` is not exposed by the worlds UI, so
-    // a user cannot create a world the practice feature recognises — without
+    // a user cannot create a world the practice feature recognizes — without
     // this the feature is unreachable, and silently so.
     const practice = DEFAULT_WORLDS.find((w) => w.systemKey === PRACTICE_SYSTEM_KEY);
     expect(practice).toBeDefined();

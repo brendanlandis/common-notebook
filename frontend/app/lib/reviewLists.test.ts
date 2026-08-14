@@ -217,7 +217,7 @@ describe('buildReviewLists', () => {
     expect(allIds(lists)).toEqual(['daily', 'weekly', 'season']);
   });
 
-  it('sorts an unrecognised cadence to the bottom rather than the top', () => {
+  it('sorts an unrecognized cadence to the bottom rather than the top', () => {
     // A recurrence type added to the schema and not to the frequency list must
     // degrade quietly, not jump the queue.
     const lists = buildReviewLists([
@@ -355,7 +355,7 @@ describe('partitionSelected', () => {
  * Which recurring tasks belong to the cycle on screen.
  *
  * They were included wholesale at first, so a review of a week in August listed
- * an annual task due in November — a catalogue of everything that recurs rather
+ * an annual task due in November — a cataloge of everything that recurs rather
  * than a picture of what this week is going to ask for.
  *
  * These dates are compared as strings on purpose, and that is the thing to

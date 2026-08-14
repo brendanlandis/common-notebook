@@ -13,7 +13,7 @@ import {
  *
  * `duration` is written on every pause, not only on stop, so the number on the
  * row is always current — a session abandoned while paused still reports what
- * was actually practised, and nothing has to reconstruct it later.
+ * was actually practiced, and nothing has to reconstruct it later.
  */
 export async function POST(
   req: NextRequest,

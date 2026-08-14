@@ -47,7 +47,7 @@ describe('parseDays', () => {
     expect(parseDays('Infinity', 7)).toBe(7);
   });
 
-  it('honours each route\'s own default', () => {
+  it('honors each route\'s own default', () => {
     expect(parseDays(null, 7)).toBe(7);
     expect(parseDays(null, 30)).toBe(30);
   });

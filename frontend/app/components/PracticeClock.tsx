@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { elapsedMs, isRunning, type PracticeSegment } from '@/app/lib/practiceSession';
 
 /**
- * How long you have practised in this session, ticking.
+ * How long you have practiced in this session, ticking.
  *
  * Reads the *segments* rather than counting from a start time, which is the
  * whole difference between this and the timer it replaces: the old one showed

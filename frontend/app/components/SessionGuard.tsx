@@ -13,11 +13,11 @@ import { useEffect } from 'react';
  */
 export default function SessionGuard() {
   useEffect(() => {
-    let cancelled = false;
+    let canceled = false;
     fetch('/api/auth/session')
       .then((res) => {
         if (
-          !cancelled &&
+          !canceled &&
           res.status === 401 &&
           window.location.pathname !== '/login'
         ) {
@@ -28,7 +28,7 @@ export default function SessionGuard() {
         /* network hiccup — leave the page alone rather than bounce spuriously */
       });
     return () => {
-      cancelled = true;
+      canceled = true;
     };
   }, []);
 

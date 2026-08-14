@@ -95,7 +95,7 @@ export function resolveDecisions(
 /**
  * Whether the week's bounce is finished — nothing left undecided.
  *
- * This is the review's completion condition, and the reason `unset` is modelled
+ * This is the review's completion condition, and the reason `unset` is modeled
  * rather than defaulted away.
  */
 export function isFullyDecided(instances: ResolvedInstance[]): boolean {

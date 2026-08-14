@@ -6,7 +6,7 @@ import { fetchAllPages, strapiFetch } from '@/app/lib/strapiServer';
  * The day's narrowed selection: one row per date.
  *
  * Rows are kept rather than overwritten in place, even though the UI only ever
- * reads today's. Behaviour is a scratch pad that starts empty each morning, but
+ * reads today's. Behavior is a scratch pad that starts empty each morning, but
  * keeping the history means "how many did I pick versus actually finish" stays
  * answerable later — the other half of that already exists in `completedAt`, the
  * completed-row chain recurring tasks leave behind, and `workSessions`.

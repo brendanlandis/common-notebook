@@ -4,7 +4,7 @@ import { createContext, useCallback, useContext, useMemo, useState, ReactNode } 
 import type { Task } from '@/app/types/index';
 
 /**
- * Which piece of material the practice modal is *offering* to practise.
+ * Which piece of material the practice modal is *offering* to practice.
  *
  * UI state only — the session itself lives on the server and is read through
  * `useActiveSession`. This holds the one thing the server cannot know: that you
@@ -14,12 +14,12 @@ import type { Task } from '@/app/types/index';
  * cover any page) while the thing that opens it is not. A route would have been
  * the other option and was rejected: once the practice screen covers every page,
  * a `/practice/<material>` URL is a second way to express the same state, and
- * two ways to be practising is one too many.
+ * two ways to be practicing is one too many.
  */
 interface PracticeSessionContextValue {
   /** The material the modal is opened *for*, before a session exists. */
   readyMaterial: Task | null;
-  /** Offer to practise this. Does not start anything. */
+  /** Offer to practice this. Does not start anything. */
   openFor: (material: Task) => void;
   /** Put the offer away. Has no effect on a running session. */
   dismiss: () => void;

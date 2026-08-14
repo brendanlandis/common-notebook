@@ -175,7 +175,7 @@ export default function SettingsPanel() {
             />
 
             {cadence.recurrenceType === "biweekly" && (
-              <div className="task-form-element labelled">
+              <div className="task-form-element labeled">
                 <label htmlFor="reviewAnchorDate">starting on</label>
                 <input
                   id="reviewAnchorDate"
@@ -213,7 +213,7 @@ export default function SettingsPanel() {
                   page draws across the day.
                 </p>
                 <div className="row-one-one">
-                  <div className="task-form-element labelled">
+                  <div className="task-form-element labeled">
                     <label htmlFor="latitude">latitude</label>
                     <input
                       id="latitude"
@@ -230,7 +230,7 @@ export default function SettingsPanel() {
                       }}
                     />
                   </div>
-                  <div className="task-form-element labelled">
+                  <div className="task-form-element labeled">
                     <label htmlFor="longitude">longitude</label>
                     <input
                       id="longitude"

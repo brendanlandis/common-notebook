@@ -182,7 +182,7 @@ export default function ViewsManager() {
                       thousands of pixels of scroll in a 500px drawer — and makes
                       keyboard reordering fail outright, because
                       sortableKeyboardCoordinates can't move a row that dwarfs its
-                      neighbour. Compact rows keep both usable. */}
+                      neighbor. Compact rows keep both usable. */}
                   <div className="view-sections-disclosure">
                     <button
                       type="button"

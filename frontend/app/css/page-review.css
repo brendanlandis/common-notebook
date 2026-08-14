@@ -2,7 +2,7 @@
  *
  * Deliberately plain. This feature exists for peace of mind rather than
  * productivity, so there is nothing here that signals urgency — no red, no
- * overdue styling, no counts styled as scores. The only colour that carries
+ * overdue styling, no counts styled as scores. The only color that carries
  * meaning is an event's decided state.
  */
 
@@ -26,7 +26,7 @@
   margin: 1rem 0 0.5rem;
 }
 
-/* The cycle switch, labelled on both sides. A switch rather than two radios
+/* The cycle switch, labeled on both sides. A switch rather than two radios
  * because it's a binary with a natural order — this cycle, then the next — and
  * the label on each side says which end you're at without either being a
  * separate control to aim at. */
@@ -39,7 +39,7 @@
   /* Only the *labels* change with the state. daisyUI drives the switch itself
    * from `--input-color`, which is half-transparent when off and opaque when on
    * — so the control faded in and out as you flipped it, competing with the
-   * labels for the job of saying which side you're on. Pinned to one colour, the
+   * labels for the job of saying which side you're on. Pinned to one color, the
    * knob's position is the only thing that moves, and the words carry the rest. */
   .toggle {
     --input-color: var(--primary-color);
@@ -122,7 +122,7 @@
 }
 
 /* Filled means "yes, this one" — the same thing it means on the calendar above.
- * Colour is not carrying it alone: a picked pill is also the only filled shape
+ * Color is not carrying it alone: a picked pill is also the only filled shape
  * in the list, the way a kept event is the only filled block on the grid. */
 .review-pill.is-selected {
   background: var(--secondary-color);
@@ -278,7 +278,7 @@
   font-size: 0.85rem;
 }
 
-/* FullCalendar, in this app's colours.
+/* FullCalendar, in this app's colors.
  *
  * Its defaults are hard-coded light-mode values — `#ddd` grid lines, a `#fff`
  * page background, a yellow today tint — and they are *values*, not tokens
@@ -421,7 +421,7 @@
   z-index: 5;
 }
 
-/* Sized and coloured explicitly. daisyUI's default spinner is 1.5rem in
+/* Sized and colored explicitly. daisyUI's default spinner is 1.5rem in
  * `currentColor`, which over a cream grid at this scale is a faint smudge
  * — indistinguishable from a rendering artefact. It draws itself from
  * `background-color: currentColor` behind a mask, so `color` is the control. */
@@ -456,7 +456,7 @@
  * ## It moves as well as fading
  *
  * A pure opacity fade reads as finished around halfway through — next to a pill
- * travelling for the same 450ms it looked like a much quicker animation, which
+ * traveling for the same 450ms it looked like a much quicker animation, which
  * is precisely the mismatch this file exists to avoid. A few pixels of settle
  * gives the eye something to follow for the whole duration. Small enough not to
  * read as the event changing size, which is a complaint this feature has already
@@ -515,7 +515,7 @@
  *
  * Dashed, to say "this is information about the day rather than an appointment
  * in it" — but not faint. The first version was a 1px hairline at 0.55 opacity
- * with the label inheriting FullCalendar's muted background-event colour, and it
+ * with the label inheriting FullCalendar's muted background-event color, and it
  * read as a rendering artefact. The distinction it needs to carry is against
  * *events*, and the dashes already carry that; dimness on top only made it hard
  * to find. */
@@ -544,12 +544,12 @@
  * The first version distinguished them by opacity alone — 0.75 for undecided,
  * 1 for kept — which is to say barely at all, since 1 is just the default. The
  * only other cue was a dashed border, and FullCalendar draws an event's border
- * in the same colour as its background, so that was invisible too. You could
+ * in the same color as its background, so that was invisible too. You could
  * click through every event on the page and see nothing change but a counter.
  *
  * So: filled versus hollow, which reads instantly, plus a glyph, so the states
  * survive being greyscale, low-contrast, or looked at by someone who doesn't
- * separate colours. Never colour alone.
+ * separate colors. Never color alone.
  *
  * The three states are `unset`, `show` and `hide` in the data and in these
  * class names, because that's what the server stores. The UI calls them
@@ -584,7 +584,7 @@
   }
 }
 
-/* FullCalendar colours the time and the title separately, and its default for
+/* FullCalendar colors the time and the title separately, and its default for
  * the time is a near-white tuned for a filled event. Setting `color` on the
  * event container alone left "9:00 - 10:00" white-on-cream and unreadable on
  * both hollow states — legible only on the one state that happens to be filled.
@@ -726,7 +726,7 @@
  * ends and the tasks begin. (It was a border-top, from when this section sat
  * last; above the first block it would just be a stray line under the header.)
  *
- * A rule and nothing else: no colour, no box. Practice is a different question,
+ * A rule and nothing else: no color, no box. Practice is a different question,
  * not a more important one, and anything louder would make it look like the
  * urgent thing — the exact opposite of the problem being solved. */
 .review-practice {
@@ -740,12 +740,16 @@
   margin-top: 0.5rem;
 }
 
-/* Today's practice, above the calendar.
+/* Today's practice, at the top of the chosen column beside the calendar.
  *
- * A row of items rather than a checklist: there is nothing to tick, and each one
- * is a button that takes you into the practice screen. */
+ * Items rather than a checklist: there is nothing to tick, and each one is a
+ * button that takes you into the practice screen.
+ *
+ * Stacked, not wrapped in a row. It sits in a narrow column with the day's
+ * tasks now rather than spanning the page above the calendar, and a row of
+ * pills there would wrap into a ragged block instead of reading as a list. */
 .daily-practice {
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem;
 }
 
 .daily-practice ul {
@@ -753,14 +757,22 @@
   margin: 0;
   padding: 0;
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.35rem;
 }
 
+/* The row is the item plus its put-back arrow, and it spans the column so the
+ * arrows line up the way the tasks' checkboxes do below. */
 .daily-practice li {
   display: flex;
   align-items: center;
   gap: 0.25rem;
+  width: 100%;
+}
+
+.daily-practice li .daily-unpick {
+  margin-left: auto;
 }
 
 .daily-practice-item {

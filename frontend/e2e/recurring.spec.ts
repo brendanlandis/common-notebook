@@ -3,7 +3,7 @@ import { createProject, deleteProject, deleteTasksByTitle, gotoProject } from '.
 
 // Completing a recurring task makes the server create the next occurrence and
 // hand it back as `newTask`, which the client splices into the list. Stage 5
-// moves that splice into a mutation's onSuccess, so this pins the behaviour.
+// moves that splice into a mutation's onSuccess, so this pins the behavior.
 //
 // What this deliberately does NOT assert: that two rows appear. A daily task's
 // next occurrence has displayDate = tomorrow, so it correctly does not render

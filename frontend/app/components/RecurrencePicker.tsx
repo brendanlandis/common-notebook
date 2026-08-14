@@ -296,7 +296,7 @@ export default function RecurrencePicker({
       )}
 
       {offset && hasEventDate(type) && (
-        <div className="task-form-element labelled">
+        <div className="task-form-element labeled">
           <label htmlFor="displayDateOffset">when to display</label>
           <select
             id="displayDateOffset"

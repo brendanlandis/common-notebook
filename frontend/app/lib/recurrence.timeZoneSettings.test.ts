@@ -76,7 +76,7 @@ describe('calculateNextRecurrence — time settings propagate', () => {
     expect(atMidnightBoundary.displayDate).not.toBe(atFourAmBoundary.displayDate);
   });
 
-  it('honours the boundary the caller passes, whichever caller it is', () => {
+  it('honors the boundary the caller passes, whichever caller it is', () => {
     vi.setSystemTime(new Date('2026-01-06T02:00:00-05:00'));
     const task = createTask({ recurrenceType: 'daily' });
     const stored = settings('America/New_York', 4);

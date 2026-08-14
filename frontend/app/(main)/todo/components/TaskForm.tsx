@@ -552,7 +552,7 @@ export default function TaskForm({ task, onSubmit, onCancel }: TaskFormProps) {
       {/* display date and due date */}
       {showDateFields(selectedProjectType, isRecurring) && (
         <div className="row-one-one">
-          <div className="task-form-element labelled">
+          <div className="task-form-element labeled">
             <label htmlFor="displayDate">display date</label>
             <input
               id="displayDate"
@@ -563,7 +563,7 @@ export default function TaskForm({ task, onSubmit, onCancel }: TaskFormProps) {
               <span className="error">{errors.displayDate.message}</span>
             )}
           </div>
-          <div className="task-form-element labelled">
+          <div className="task-form-element labeled">
             <label htmlFor="dueDate">due date</label>
             <input id="dueDate" type="date" {...register("dueDate")} />
             {errors.dueDate && (

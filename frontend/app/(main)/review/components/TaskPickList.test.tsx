@@ -9,7 +9,7 @@ import type { Task } from "@/app/types/index";
  *
  * A checkbox beside a task in this app means "done", and that is the one thing
  * this control never does. `aria-pressed` is what says so to anything that
- * isn't looking at the fill colour, so it's asserted rather than left to the
+ * isn't looking at the fill color, so it's asserted rather than left to the
  * stylesheet.
  */
 

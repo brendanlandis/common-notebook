@@ -39,7 +39,7 @@ function isSystemWorld(w: World): boolean {
  *
  * System worlds (a `systemKey`, i.e. stuff) surface ONLY when named explicitly
  * under `only`; `all` and `except` never include them. This preserves the old
- * behaviour where stuff appeared only in its own view.
+ * behavior where stuff appeared only in its own view.
  */
 export function resolveVisibleWorldIds(
   worldMode: WorldMode,

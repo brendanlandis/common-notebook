@@ -9,7 +9,7 @@ export const LEAVING_CLASS = 'is-leaving';
  * Everything else on this page animates in CSS, and an element leaving the DOM
  * is the one case CSS cannot express on its own: by the time React has removed
  * the node there is nothing left to animate, so an event you decided was fake
- * simply blinked out while its neighbours had all faded in politely.
+ * simply blinked out while its neighbors had all faded in politely.
  *
  * A view transition would be the obvious tool and isn't available here. It
  * requires the DOM to change inside its callback, and these updates go through

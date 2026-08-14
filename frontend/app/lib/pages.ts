@@ -18,7 +18,7 @@ export function visiblePages(betaAccess: boolean): string[] {
  * This user's only destination, or null when they have a choice (or none at all).
  *
  * Drives the `/` → `/todo` redirect, and hides the home link that would point at it.
- * Self-cancelling: add a second non-beta page to MAIN_PAGES and this returns null,
+ * Self-canceling: add a second non-beta page to MAIN_PAGES and this returns null,
  * so the redirect stops firing on its own.
  *
  * Never returns '/', so a caller redirecting to the result cannot loop.

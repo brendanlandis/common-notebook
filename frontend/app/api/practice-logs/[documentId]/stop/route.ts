@@ -16,7 +16,7 @@ import {
  *
  * `duration` is the **sum of the segments**, not `stop - start`. Those were the
  * same number until sessions could be paused; now a 40-minute sitting with 15
- * minutes of pause is 25 minutes practised, and only the segments know that.
+ * minutes of pause is 25 minutes practiced, and only the segments know that.
  *
  * Idempotent: stopping a stopped session returns it untouched rather than
  * rewriting `stop` to a later instant. That matters because two devices share a

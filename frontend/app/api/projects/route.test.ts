@@ -10,7 +10,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
  *
  * These are among the first API route tests here, so they stay deliberately
  * narrow: the response shape and when the demotion fires, not Strapi's
- * behaviour.
+ * behavior.
  */
 
 const getAccessToken = vi.fn();

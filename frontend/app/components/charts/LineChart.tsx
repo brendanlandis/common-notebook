@@ -32,7 +32,7 @@ interface TooltipEntry {
 }
 
 // Tooltip that lists each series for the hovered x value, sorted by value
-// descending — preserving the behaviour of the old practice-chart tooltip.
+// descending — preserving the behavior of the old practice-chart tooltip.
 function makeLineTooltip(series: LineSeries[]) {
   const swatches = new Map(series.map((s) => [s.key, s.color]));
   const labels = new Map(series.map((s) => [s.key, s.label]));
@@ -134,7 +134,7 @@ export default function LineChart({
             name={s.label}
             stroke={s.color}
             strokeWidth={2}
-            // Filled dot with a background-coloured ring, which also masks the
+            // Filled dot with a background-colored ring, which also masks the
             // line where it meets the dot — the gap/padding seen in the example.
             dot={{ r: 4, fill: s.color, stroke: 'var(--background)', strokeWidth: 3 }}
             activeDot={{ r: 6, fill: s.color, stroke: 'var(--background)', strokeWidth: 3 }}

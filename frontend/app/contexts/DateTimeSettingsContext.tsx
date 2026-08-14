@@ -77,14 +77,14 @@ export function DateTimeSettingsProvider({
   useEffect(() => {
     if (initial !== null) return;
 
-    let cancelled = false;
+    let canceled = false;
     (async () => {
       const [timezone, dayBoundaryHour, visibilityMinutes] = await Promise.all([
         fetchSetting('timezone'),
         fetchSetting('dayBoundaryHour'),
         fetchSetting('completedTaskVisibilityMinutes'),
       ]);
-      if (cancelled) return;
+      if (canceled) return;
       setSettings({
         timeZoneSettings: {
           timezone: timezone || DEFAULT_TIME_ZONE_SETTINGS.timezone,
@@ -95,7 +95,7 @@ export function DateTimeSettingsProvider({
     })();
 
     return () => {
-      cancelled = true;
+      canceled = true;
     };
   }, [initial]);
 

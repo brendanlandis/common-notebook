@@ -14,7 +14,7 @@
  *    presentation only, so the un-animated path is not a degraded experience,
  *    just a less pretty one.
  * 2. **`prefers-reduced-motion`.** Things flying across the screen is exactly
- *    what that setting is about, and honouring it in JS rather than by
+ *    what that setting is about, and honoring it in JS rather than by
  *    neutralising the animation in CSS means the browser never does the snapshot
  *    work at all.
  *

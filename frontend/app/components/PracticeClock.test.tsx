@@ -25,9 +25,9 @@ describe('formatElapsed', () => {
 });
 
 describe('PracticeClock', () => {
-  it('shows practised time, not wall time', () => {
+  it('shows practiced time, not wall time', () => {
     // The whole reason this replaced a start-time timer: an hour of wall clock,
-    // twenty minutes of it practised.
+    // twenty minutes of it practiced.
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-08-14T15:00:00.000Z'));
 

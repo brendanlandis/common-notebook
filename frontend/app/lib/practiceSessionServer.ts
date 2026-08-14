@@ -73,7 +73,7 @@ export async function fetchSession(
 }
 
 /**
- * The session's segments, already normalised.
+ * The session's segments, already normalized.
  *
  * Falls back to a single segment spanning `start`→`stop` when the column is
  * empty but the row plainly describes a session. Nothing writes that shape today

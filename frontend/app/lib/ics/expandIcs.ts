@@ -94,7 +94,7 @@ export function expandIcs(
     // date range — so this is typically 93% of the input, and parsing it was
     // costing more than fetching it. `trimIcs` keeps everything whose absence
     // could change the answer and returns the input untouched if it doesn't
-    // recognise the shape.
+    // recognize the shape.
     components = new ICAL.Component(
       ICAL.parse(trimIcs(icsText, rangeStart, rangeEnd))
     ).getAllSubcomponents('vevent');

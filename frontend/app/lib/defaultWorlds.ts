@@ -10,7 +10,7 @@ import { PRACTICE_SYSTEM_KEY } from './worlds';
  *
  * `practice and study` is that case. `isPracticeMaterial` matches on the
  * `systemKey`, so without this world there is no way for a user to *make* one
- * that the practice feature recognises: `systemKey` is not something the worlds
+ * that the practice feature recognizes: `systemKey` is not something the worlds
  * UI exposes, and a world they create by hand called "practice and study" is an
  * ordinary world with an ordinary title. The feature would be unreachable, and
  * silently so — material would look like ordinary tasks with checkboxes.

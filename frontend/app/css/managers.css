@@ -4,7 +4,7 @@
    unstyled, which only read acceptably because the settings page was wide
    enough to keep each view section on one line. At drawer width the same markup
    wraps into an undifferentiated pile, so sections are laid out as stacked
-   labelled fields inside a bordered card. */
+   labeled fields inside a bordered card. */
 
 .manager {
   display: flex;

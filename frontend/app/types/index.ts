@@ -134,7 +134,7 @@ export interface FilterSet {
 // writing/composing/ear training, duplicated in the Strapi schema, a header
 // dropdown and the stats route, so adding a seventh was a four-file edit. It is
 // gone. A session points at the piece of material it was spent on, and a subject
-// is an ordinary project — so the list of things you can practise is data.
+// is an ordinary project — so the list of things you can practice is data.
 
 // Project importance types
 export type ProjectImportance =
@@ -282,10 +282,10 @@ export interface PracticeLog {
   documentId: string;
   start: string; // ISO datetime — the first segment's start
   stop: string | null; // ISO datetime, nullable for in-progress sessions
-  /** The task being practised. Populated with its project by the BFF. */
+  /** The task being practiced. Populated with its project by the BFF. */
   material?: Task | null;
   /**
-   * The stretches actually practised, so a session can be paused and can survive
+   * The stretches actually practiced, so a session can be paused and can survive
    * a closed tab. `duration` is their sum, which is why it is no longer
    * `stop - start`. See `app/lib/practiceSession.ts`.
    */
@@ -331,6 +331,6 @@ export interface LayoutRuleset {
   // Set only on CODE_PRESETS. Selects a bespoke branch (done/recurring).
   codePreset?: "done" | "recurring";
   // The recurring review preset shows all incomplete recurring tasks regardless
-  // of a future displayDate; every other view honours the global gate.
+  // of a future displayDate; every other view honors the global gate.
   ignoreDisplayDate?: boolean;
 }

@@ -154,7 +154,7 @@ export default function HeaderContent() {
             <div className="manage-buttons">
               {/* aria-label as well as data-tip: these are icon-only buttons, so
                   the tooltip is the only thing naming them and it is presentation
-                  — a screen reader announced three unlabelled buttons, and no
+                  — a screen reader announced three unlabeled buttons, and no
                   locator could address them by name either. */}
               <button
                 onClick={openManageProjects}
@@ -189,7 +189,7 @@ export default function HeaderContent() {
 
   // /practice carries no header controls. It held a dropdown of the six
   // practice types, which is the enum that no longer exists — you pick what to
-  // practise by pressing play on a piece of material, not by choosing a category
+  // practice by pressing play on a piece of material, not by choosing a category
   // up here first.
 
   // For home or other routes, return null (nothing displayed)

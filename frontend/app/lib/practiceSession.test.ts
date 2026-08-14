@@ -102,7 +102,7 @@ describe('elapsedMs / durationMinutes', () => {
   ];
 
   it('sums the closed segments and ignores the gaps between them', () => {
-    // An hour and five minutes of wall time; twenty-five minutes practised. This
+    // An hour and five minutes of wall time; twenty-five minutes practiced. This
     // is the whole reason `duration` cannot be `stop - start`.
     expect(durationMinutes(segments, at('2026-08-14T16:00:00.000Z'))).toBe(25);
   });
@@ -217,7 +217,7 @@ describe('isStale', () => {
   });
 
   it('measures the open stretch, not the whole session', () => {
-    // Practised at 9am, paused, came back at 8pm. Eleven hours of session, ten
+    // Practiced at 9am, paused, came back at 8pm. Eleven hours of session, ten
     // minutes of running — nothing to ask about.
     const segments: PracticeSegment[] = [
       { start: '2026-08-14T13:00:00.000Z', stop: '2026-08-14T13:30:00.000Z' },

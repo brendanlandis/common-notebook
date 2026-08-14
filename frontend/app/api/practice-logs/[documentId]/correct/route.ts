@@ -16,7 +16,7 @@ import {
  * The one place a duration comes from the client rather than from the segments,
  * and deliberately so: when a session has been open for four hours the segments
  * are measuring how long the tab was open, and the only thing that knows how
- * long you actually practised is you.
+ * long you actually practiced is you.
  *
  * This is why there is no heartbeat. A timer writing "still here" every minute
  * would produce a confident number for a session you walked away from, because

@@ -79,7 +79,7 @@ describe('trimIcs', () => {
 
   it('keeps a RECURRENCE-ID override whatever its date', () => {
     // Drop one of these and the expander regenerates the occurrence at its
-    // original time — an event that was moved or cancelled comes back.
+    // original time — an event that was moved or canceled comes back.
     const text = ics(
       event([
         'UID:standup@test',
@@ -162,7 +162,7 @@ describe('trimIcs', () => {
     expect(uids(trimIcs(text, '2026-08-10', '2026-08-16'))).toEqual(['late@test']);
   });
 
-  it('returns the feed untouched when it does not recognise the shape', () => {
+  it('returns the feed untouched when it does not recognize the shape', () => {
     const unbalanced = ics(['BEGIN:VEVENT', 'UID:broken@test'].join('\r\n'));
 
     expect(trimIcs(unbalanced, '2026-08-10', '2026-08-16')).toBe(unbalanced);

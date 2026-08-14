@@ -341,7 +341,7 @@ export default function PeriodicReviewPage() {
       <h1>periodic review</h1>
 
       {/* The period used to be spelled out here as a date range. The calendar
-          below is a week of labelled day columns, so it was saying the same
+          below is a week of labeled day columns, so it was saying the same
           thing twice — and less clearly. */}
 
       {/* One row of controls, immediately above the grid: which cycle on the
@@ -431,7 +431,7 @@ export default function PeriodicReviewPage() {
           hence the `calendarLoading ||`. */}
       {period && (calendarLoading || calendars.length > 0) && (
         <section className="review-section review-calendar-section">
-          {/* No heading. It's a labelled seven-day grid — anything written over
+          {/* No heading. It's a labeled seven-day grid — anything written over
               it is a caption on a photograph of itself. The key and the controls
               sit in the row above, outside this section. */}
           <div className={`review-calendar-frame${cycle.phase ? ` ${cycle.phase}` : ""}`}>
@@ -473,13 +473,13 @@ export default function PeriodicReviewPage() {
 
           No project name here either, though there's no heading carrying it.
           With one, a pill changed width as it moved and the animation read as
-          the thing growing rather than travelling — and a pill that is the same
+          the thing growing rather than traveling — and a pill that is the same
           object in both places is what makes the move legible at all. */}
-      {/* Practising, first and entirely on its own.
+      {/* Practicing, first and entirely on its own.
           Above the tasks rather than after them, and not sharing their lists at
           any point. Below, it is the thing that gets left: by the time you have
           read a page of things that can be finished and ticked, "play through
-          the Bach" reads as the optional extra. Asking "what am I practising?"
+          the Bach" reads as the optional extra. Asking "what am I practicing?"
           *before* "what am I doing?" is what makes it get an answer — and it is
           the whole reason practice lives in this app rather than beside it.
 
@@ -488,7 +488,7 @@ export default function PeriodicReviewPage() {
           attention budget needed. */}
       {(practice.picked.length > 0 || practice.remaining.length > 0) && (
         <section className="review-section review-practice">
-          {/* Named for the world, not for the activity. "practising this week"
+          {/* Named for the world, not for the activity. "practicing this week"
               read as a verb phrase about one of the things in it, and half of
               what is in it is study rather than practice. */}
           <h2>practice and study</h2>

@@ -51,7 +51,7 @@ export async function GET(req: NextRequest) {
 }
 
 /**
- * Start practising a piece of material.
+ * Start practicing a piece of material.
  *
  * The body is just `{ material }`. Everything else about a session's beginning —
  * the instant, the effective day, the first segment — is stamped here, because
