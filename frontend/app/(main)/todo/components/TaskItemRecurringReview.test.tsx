@@ -1,6 +1,15 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import TaskItemRecurringReview from "./TaskItemRecurringReview";
+
+// TaskItem reads this to decide whether a task is practice material — material
+// gets a metronome instead of a checkbox and opens the practice screen. Mocked
+// because the real hook throws outside its provider, and nothing here is about
+// practice.
+vi.mock("@/app/contexts/PracticeSessionContext", () => ({
+  usePracticeSessionUI: () => ({ readyMaterial: null, openFor: vi.fn(), dismiss: vi.fn() }),
+}));
+
 import type { Task } from "@/app/types/index";
 
 // Mock RichTextDisplay

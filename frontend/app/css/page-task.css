@@ -290,3 +290,19 @@
     display: none;
   }
 }
+
+/* Practice material in a task list: a metronome where a task has a checkbox,
+ * and a title that opens the practice screen rather than completing anything. */
+.practice-icon {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: inherit;
+  display: inline-flex;
+  align-items: center;
+}
+
+.task-item-main label.is-material {
+  cursor: pointer;
+}

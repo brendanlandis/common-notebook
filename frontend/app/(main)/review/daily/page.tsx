@@ -9,6 +9,7 @@ import { getToday, shiftISODate, toISODate, wallClockNow } from "@/app/lib/dateU
 import { sunsetOn } from "@/app/lib/sunset";
 import { groupByProject, partitionSelected, isPracticeMaterial } from "@/app/lib/reviewLists";
 import { usePracticeSessionUI } from "@/app/contexts/PracticeSessionContext";
+import { useProjects, withProjectWorld } from "@/app/hooks/useProjects";
 import { canViewTransition } from "@/app/lib/viewTransition";
 import { useReviewCovering } from "../hooks/useReview";
 import { useDailyPick } from "../hooks/useDailyPick";
@@ -70,7 +71,26 @@ export default function DailyReviewPage() {
       .filter((sunset): sunset is string => sunset !== null);
   }, [location, today, tomorrow, timeZoneSettings]);
 
-  const reviewTasks = useMemo(() => review?.tasks ?? [], [review]);
+  /**
+   * The review's tasks, with each one's World stitched back on.
+   *
+   * `/api/reviews` populates `tasks.project` but not the project's `worldRef`,
+   * so every task arrives with `project.world` undefined — and this page decides
+   * which lane a task belongs in by exactly that. Without the join every piece
+   * of practice material read as an ordinary task: it got a checkbox, and
+   * clicking it completed the piece instead of opening the practice screen.
+   *
+   * Joined client-side rather than populated server-side, because that is what
+   * every other task list here does (`useTasks` and the three done-view lists
+   * all go through `withProjectWorld`) — and because the world would otherwise
+   * reach this page by a different route from every other page, which is two
+   * sources of truth for one fact.
+   */
+  const { projectsById } = useProjects();
+  const reviewTasks = useMemo(
+    () => (review?.tasks ?? []).map((task) => withProjectWorld(task, projectsById)),
+    [review, projectsById]
+  );
 
   /**
    * The day's selection, held locally and saved behind itself.

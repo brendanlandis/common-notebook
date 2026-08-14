@@ -10,7 +10,10 @@ import {
   LinkIcon,
   CookieIcon,
   ArrowClockwiseIcon,
+  MetronomeIcon,
 } from "@phosphor-icons/react";
+import { isPracticeMaterial } from "@/app/lib/reviewLists";
+import { usePracticeSessionUI } from "@/app/contexts/PracticeSessionContext";
 import { parseDate, formatInTimezone, toISODate, shiftISODate, isoDayDiff } from "@/app/lib/dateUtils";
 import { useDateTimeSettings } from "@/app/contexts/DateTimeSettingsContext";
 import RichTextDisplay from "@/app/components/RichTextDisplay";
@@ -37,6 +40,7 @@ export default function TaskItem({
   showProjectName = false,
 }: TaskItemProps) {
   const { timeZoneSettings } = useDateTimeSettings();
+  const { openFor } = usePracticeSessionUI();
   const [isChecked, setIsChecked] = useState(task.completed);
   const hasDescription = task.description && task.description.length > 0;
 
@@ -63,6 +67,13 @@ export default function TaskItem({
   const isWorkedOnEntry = workedOnMatch !== null;
   const originalDocumentId = workedOnMatch ? workedOnMatch[1] : null;
   const workSessionDate = workedOnMatch ? workedOnMatch[2] : null;
+
+  // Practice material behaves differently here: a metronome instead of a
+  // checkbox, and a title that opens the practice screen instead of completing.
+  // Decided by the world its subject lives in, which `useTasks` stitches on.
+  // A "worked on" virtual entry is a record of a past day rather than something
+  // you can pick up, so it keeps the ordinary rendering.
+  const isMaterial = isPracticeMaterial(task) && !isWorkedOnEntry;
 
   // Sync local state with prop changes
   useEffect(() => {
@@ -133,18 +144,37 @@ export default function TaskItem({
       }
     >
       <div className="task-item-main">
-        <input
-          type="checkbox"
-          className="checkbox"
-          id={`task-${task.documentId}`}
-          checked={isChecked}
-          onChange={(e) => {
-            const newCheckedState = e.target.checked;
-            setIsChecked(newCheckedState);
-            onComplete(task.documentId);
-          }}
-          aria-label="mark complete"
-        />
+        {/* Practice material gets a metronome where a task gets a checkbox.
+            A checkbox means done, and practice is measured in minutes spent
+            rather than in being finished — a piece you played today is not
+            *complete*, and ticking it off would take it off the list. Pressing
+            this opens the practice screen instead; the title below does the
+            same, which is why material's title is a button rather than a
+            `<label htmlFor>` pointing at a checkbox that isn't there. */}
+        {isMaterial ? (
+          <button
+            type="button"
+            className="practice-icon"
+            onClick={() => openFor(task)}
+            title="practise this"
+            aria-label={`practise ${task.title}`}
+          >
+            <MetronomeIcon size={25} />
+          </button>
+        ) : (
+          <input
+            type="checkbox"
+            className="checkbox"
+            id={`task-${task.documentId}`}
+            checked={isChecked}
+            onChange={(e) => {
+              const newCheckedState = e.target.checked;
+              setIsChecked(newCheckedState);
+              onComplete(task.documentId);
+            }}
+            aria-label="mark complete"
+          />
+        )}
         {task.long && !isWorkedOnEntry && (
           <button
             className="cookie-icon"
@@ -180,7 +210,15 @@ export default function TaskItem({
             <ArrowClockwiseIcon size={20} />
           </button>
         )}
-        <label htmlFor={`task-${task.documentId}`}>
+        {/* For material this is a plain label with no `htmlFor` and an onClick:
+            it must not toggle a checkbox (there isn't one) and it must not
+            complete anything. Same target as the metronome — the whole row is
+            one intention. */}
+        <label
+          htmlFor={isMaterial ? undefined : `task-${task.documentId}`}
+          onClick={isMaterial ? () => openFor(task) : undefined}
+          className={isMaterial ? "is-material" : undefined}
+        >
           {isWorkedOnEntry && (
             <span>worked on </span>
           )}
