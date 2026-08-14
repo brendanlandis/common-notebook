@@ -10,8 +10,8 @@ import {
   type ReviewPeriodMode,
 } from "@/app/lib/reviewCycle";
 import { cadenceIsUsable, cycleNoun } from "@/app/lib/reviewCadence";
-import { buildReviewLists, type ProjectGroup } from "@/app/lib/reviewLists";
-import { getToday, toISODate } from "@/app/lib/dateUtils";
+import { buildReviewLists, partitionSelected, type ProjectGroup } from "@/app/lib/reviewLists";
+import { getToday, toISODate, wallClockNow } from "@/app/lib/dateUtils";
 import { useReviewCovering, useSaveReview } from "../hooks/useReview";
 import { useCalendarEvents, useSetDecision } from "../hooks/useCalendarEvents";
 import { isFullyDecided, undecided, type ResolvedInstance } from "@/app/lib/ics/resolveDecisions";
@@ -209,6 +209,14 @@ export default function WeeklyReviewPage() {
       });
   };
 
+  // Picked tasks move out of their project group and into a list of their own at
+  // the top. Derived rather than held: `selected` is the state, and a second
+  // copy of "which ones" would be a second thing to keep in step with it.
+  const { picked, remaining } = useMemo(
+    () => partitionSelected(lists.groups, selected),
+    [lists.groups, selected]
+  );
+
   /**
    * Picking a task saves it. There is no commit button.
    *
@@ -252,36 +260,75 @@ export default function WeeklyReviewPage() {
           below is a week of labelled day columns, so it was saying the same
           thing twice — and less clearly. */}
 
-      {/* Re-running a review mid-cycle is a first-class thing to do, not a
-          recovery path: "I should be able to conduct a review for the rest of my
-          week, even though it's Thursday."
+      {/* One row of controls, immediately above the grid: which cycle on the
+          left, the key and the reveal on the right.
 
-          `value` and `name` are what the e2e spec locates these by. The labels
-          are cadence-dependent, so a test matching on their text would break the
-          moment the account under test changed its review schedule. */}
-      <div className="review-mode">
-        <label>
+          It lives outside the calendar's section deliberately. The section is
+          conditional on there being calendars to show, and the cycle switch must
+          not disappear with them — someone with no calendars is still reviewing
+          a week and still choosing which one.
+
+          Two radios became one switch because it is a binary with a natural
+          order: this cycle, then the next. `name` is what the e2e spec locates
+          it by, since the labels are cadence-dependent and a test matching their
+          text would break the moment the account changed its review schedule. */}
+      <div className="review-controls">
+        <label className="review-mode">
+          <span className={mode === "remainder" ? "is-current" : undefined}>
+            this {noun}
+          </span>
           <input
-            type="radio"
-            className="radio"
+            type="checkbox"
+            role="switch"
+            className="toggle"
             name="review-mode"
-            value="remainder"
-            checked={mode === "remainder"}
-            onChange={() => setMode("remainder")}
-          />
-          this {noun}
-        </label>
-        <label>
-          <input
-            type="radio"
-            className="radio"
-            name="review-mode"
-            value="upcoming"
             checked={mode === "upcoming"}
-            onChange={() => setMode("upcoming")}
+            onChange={(event) => setMode(event.target.checked ? "upcoming" : "remainder")}
           />
-          next {noun}
+          <span className={mode === "upcoming" ? "is-current" : undefined}>
+            next {noun}
+          </span>
         </label>
+
+        {/* A key to glyphs that are on the grid, and nothing more. Once the week
+            is fully decided and the fake ones are folded away, every block is a
+            real event and there is nothing left to explain — so the key goes and
+            only the reveal remains. */}
+        {events.length > 0 && (needsLegend || ignoredCount > 0) && (
+          <div className="review-legend">
+            {needsLegend && stillUnset.length > 0 && (
+              <span>
+                <i className="swatch swatch-unset" aria-hidden="true" />? undecided
+              </span>
+            )}
+            {needsLegend && (
+              <span>
+                <i className="swatch swatch-show" aria-hidden="true" />✓ real
+              </span>
+            )}
+            {/* Only while they're on screen — a key to a symbol you can't see is
+                just more to read. */}
+            {needsLegend && showIgnored && (
+              <span>
+                <i className="swatch swatch-hide" aria-hidden="true" />✕ fake
+              </span>
+            )}
+            {/* Only offered when there's something to reveal — an empty checkbox
+                promising nothing is just another control to read past. Last in
+                the row so it doesn't move as the keys beside it come and go. */}
+            {ignoredCount > 0 && (
+              <label className="review-legend-toggle">
+                <input
+                  type="checkbox"
+                  className="checkbox"
+                  checked={showIgnored}
+                  onChange={(event) => setShowIgnored(event.target.checked)}
+                />
+                show all
+              </label>
+            )}
+          </div>
+        )}
       </div>
 
       {/* The calendar's job here is to show what the week already is, so the
@@ -301,52 +348,14 @@ export default function WeeklyReviewPage() {
       {period && (calendarLoading || calendars.length > 0) && (
         <section className="review-section">
           {/* No heading. It's a labelled seven-day grid — anything written over
-              it is a caption on a photograph of itself. */}
-          {/* A key to glyphs that are on the grid, and nothing more.
-              Once the week is fully decided and the fake ones are folded away,
-              every block on the grid is a real event and there is nothing left
-              to explain — so the key goes and only the toggle remains. */}
-          {events.length > 0 && (needsLegend || ignoredCount > 0) && (
-            <div className="review-legend">
-              {needsLegend && stillUnset.length > 0 && (
-                <span>
-                  <i className="swatch swatch-unset" aria-hidden="true" />? undecided
-                </span>
-              )}
-              {needsLegend && (
-                <span>
-                  <i className="swatch swatch-show" aria-hidden="true" />✓ real
-                </span>
-              )}
-              {/* Only while they're on screen — a key to a symbol you can't see
-                  is just more to read. */}
-              {needsLegend && showIgnored && (
-                <span>
-                  <i className="swatch swatch-hide" aria-hidden="true" />✕ fake
-                </span>
-              )}
-              {/* Only offered when there's something to reveal — an empty
-                  checkbox promising nothing is just another control to read
-                  past. Pinned right (see the stylesheet) so it doesn't move as
-                  the keys beside it come and go. */}
-              {ignoredCount > 0 && (
-                <label className="review-legend-toggle">
-                  <input
-                    type="checkbox"
-                    className="checkbox"
-                    checked={showIgnored}
-                    onChange={(event) => setShowIgnored(event.target.checked)}
-                  />
-                  show all
-                </label>
-              )}
-            </div>
-          )}
+              it is a caption on a photograph of itself. The key and the controls
+              sit in the row above, outside this section. */}
           <div className="review-calendar-frame">
             <WeekCalendar
               events={shownEvents}
               periodStart={period.periodStart}
               periodEnd={period.periodEnd}
+              now={wallClockNow(timeZoneSettings)}
               onCycle={cycleEvent}
             />
             {calendarLoading && (
@@ -372,16 +381,28 @@ export default function WeeklyReviewPage() {
         </section>
       )}
 
+      {/* What you've picked, lifted clear of everything else.
+          A picked pill that stays where it was makes you re-read the whole page
+          to see what you chose; gathered at the top, the answer is the first
+          thing you see. They keep their project name here, since there's no
+          heading above them carrying it. */}
+      {picked.length > 0 && (
+        <section className="review-section">
+          <h2>picked</h2>
+          <TaskPickList tasks={picked} selected={selected} onToggle={toggle} />
+        </section>
+      )}
+
       {/* One list, grouped by project.
           It was three — the top-of-mind project, `soon`, and recurring — which
           is a distinction that matters to the code deciding what belongs here
           and not to the person reading it. Whatever put a task on this page,
           it's on this page; the only grouping that helps while choosing is which
           project it's part of. */}
-      {lists.groups.length > 0 && (
+      {remaining.length > 0 && (
         <section className="review-section">
           <h2>presently</h2>
-          {lists.groups.map((group) => (
+          {remaining.map((group) => (
             <ProjectGroupList
               key={group.key}
               group={group}

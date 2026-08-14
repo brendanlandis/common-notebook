@@ -34,6 +34,11 @@ interface WeekCalendarProps {
   /** Inclusive ISO dates. */
   periodStart: string;
   periodEnd: string;
+  /**
+   * The owner's current wall clock, `YYYY-MM-DDTHH:mm:ss` — same convention as
+   * the events. Decides which column is highlighted as today.
+   */
+  now: string;
   onCycle: (instance: ResolvedInstance) => void;
 }
 
@@ -125,6 +130,7 @@ export default function WeekCalendar({
   events,
   periodStart,
   periodEnd,
+  now,
   onCycle,
 }: WeekCalendarProps) {
   const fcEvents = useMemo(() => toFullCalendarEvents(events), [events]);
@@ -167,6 +173,16 @@ export default function WeekCalendar({
         plugins={[timeGridPlugin]}
         initialView="timeGrid"
         timeZone="UTC"
+        /**
+         * "Today" in the owner's zone, not the browser's and not UTC.
+         *
+         * Everything else here is wall clock labelled UTC, and `now` has to
+         * follow the same convention or it isn't comparable to the columns.
+         * Left to default it, FullCalendar reads the machine clock and reduces
+         * it to UTC — so at 8pm in New York, 01:00Z the next day, it highlighted
+         * tomorrow's column.
+         */
+        now={now}
         initialDate={periodStart}
         duration={{ days: dayCount }}
         events={fcEvents}

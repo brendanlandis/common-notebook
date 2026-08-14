@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { buildReviewLists, groupByProject, type ProjectGroup } from './reviewLists';
+import {
+  buildReviewLists,
+  groupByProject,
+  partitionSelected,
+  type ProjectGroup,
+} from './reviewLists';
 import type { Task, Project, RecurrenceType } from '../types/index';
 
 /**
@@ -288,5 +293,57 @@ describe('groupByProject', () => {
 
   it('is empty for no tasks', () => {
     expect(groupByProject([])).toEqual([]);
+  });
+});
+
+describe('partitionSelected', () => {
+  const alpha = project({ documentId: 'p-a', title: 'alpha' });
+  const beta = project({ documentId: 'p-b', title: 'beta' });
+
+  const groups = () =>
+    groupByProject([
+      task({ documentId: '1', project: alpha }),
+      task({ documentId: '2', project: alpha }),
+      task({ documentId: '3', project: beta }),
+    ]);
+
+  it('lifts the picked out of their groups', () => {
+    const { picked, remaining } = partitionSelected(groups(), new Set(['2']));
+
+    expect(picked.map((t) => t.documentId)).toEqual(['2']);
+    expect(flat(remaining)).toEqual(['1', '3']);
+  });
+
+  it('keeps the picked in list order, not click order', () => {
+    // A list that reshuffles as you add to it makes you re-find everything you
+    // already chose.
+    const { picked } = partitionSelected(groups(), new Set(['3', '1']));
+
+    expect(picked.map((t) => t.documentId)).toEqual(['1', '3']);
+  });
+
+  it('drops a group it has emptied', () => {
+    // Otherwise a project whose every task is picked leaves a heading over
+    // nothing.
+    const { remaining } = partitionSelected(groups(), new Set(['3']));
+
+    expect(remaining.map((g) => g.projectTitle)).toEqual(['alpha']);
+  });
+
+  it('leaves the groups alone when nothing is picked', () => {
+    const { picked, remaining } = partitionSelected(groups(), new Set());
+
+    expect(picked).toEqual([]);
+    expect(flat(remaining)).toEqual(['1', '2', '3']);
+  });
+
+  it('does not mutate the groups it was given', () => {
+    // They come from a memo over the task list; emptying one in place would
+    // survive into the next render as tasks that had silently vanished.
+    const original = groups();
+
+    partitionSelected(original, new Set(['1', '2', '3']));
+
+    expect(flat(original)).toEqual(['1', '2', '3']);
   });
 });

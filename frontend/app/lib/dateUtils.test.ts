@@ -8,6 +8,7 @@ import {
   getISOTimestamp,
   shiftISODate,
   isoDayDiff,
+  wallClockNow,
 } from './dateUtils';
 import type { TimeZoneSettings } from './timeZoneSettings';
 
@@ -20,6 +21,41 @@ const est = (dayBoundaryHour: number): TimeZoneSettings => ({
 });
 
 const settingsFor = (timezone: string): TimeZoneSettings => ({ timezone, dayBoundaryHour: 4 });
+
+describe('wallClockNow', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  /**
+   * The week grid asks for "now" as numbers on a clock face, because it is told
+   * every value it gets is UTC so that it performs no zone arithmetic of its own.
+   * Left to read the clock itself it reduced the instant to UTC and highlighted
+   * the wrong column: at 8pm in New York — 01:00Z the next day — it said today
+   * was tomorrow.
+   *
+   * Run across the TZ matrix, which is the only way this means anything: on a
+   * machine already in New York, the right answer and the wrong one coincide.
+   */
+  it('reads the configured zone, whatever the machine is set to', () => {
+    vi.setSystemTime(new Date('2026-08-14T01:00:00Z'));
+
+    expect(wallClockNow(settingsFor('America/New_York'))).toBe('2026-08-13T21:00:00');
+    expect(wallClockNow(settingsFor('UTC'))).toBe('2026-08-14T01:00:00');
+    // A half-hour offset, where an hours-only shortcut would land 30 minutes out.
+    expect(wallClockNow(settingsFor('Asia/Kolkata'))).toBe('2026-08-14T06:30:00');
+  });
+
+  it('carries no offset or zone name, only the fields', () => {
+    // Anything appended here would be a second timezone opinion for the grid to
+    // apply on top of the one already baked in.
+    vi.setSystemTime(new Date('2026-08-14T01:00:00Z'));
+
+    expect(wallClockNow(settingsFor('America/New_York'))).toMatch(
+      /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/
+    );
+  });
+});
 
 describe('Date Utilities', () => {
   describe('getTodayForRecurrence with day boundary', () => {

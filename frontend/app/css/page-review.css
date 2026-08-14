@@ -12,16 +12,37 @@
   padding: 1rem;
 }
 
-.review-mode {
+/* The one row of controls above the grid: cycle on the left, key and reveal
+ * pushed to the right. Wraps to two lines on a narrow screen rather than
+ * squeezing, since neither half shortens usefully. */
+.review-controls {
   display: flex;
-  gap: 1.5rem;
-  margin: 1rem 0;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: 1rem 0 0.5rem;
+}
 
-  label {
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-    cursor: pointer;
+/* The cycle switch, labelled on both sides. A switch rather than two radios
+ * because it's a binary with a natural order — this cycle, then the next — and
+ * the label on each side says which end you're at without either being a
+ * separate control to aim at. */
+.review-mode {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+
+  /* Whichever side is live. Both labels stay legible: dimming the inactive one
+   * to the point of illegibility would make the switch a puzzle about which
+   * word applies. */
+  span {
+    opacity: 0.55;
+  }
+
+  span.is-current {
+    opacity: 1;
   }
 }
 
@@ -150,6 +171,11 @@
   align-items: center;
   justify-content: center;
   background: color-mix(in oklab, var(--background) 65%, transparent);
+  /* Above FullCalendar's own furniture. Its scrollgrid, header and slot lines
+   * carry z-indexes of their own, so an overlay that only came later in the
+   * document ended up *under* the grid lines — a spinner with a table drawn
+   * through it. */
+  z-index: 5;
 }
 
 /* Sized and coloured explicitly. daisyUI's default spinner is 1.5rem in
@@ -258,13 +284,14 @@
 }
 
 /* The legend. Without it, three glyphs on a grid are a puzzle rather than a
- * key — and nothing else on the page says that clicking is how you decide. */
+ * key. Right-hand end of the controls row; `margin-left: auto` holds it there
+ * even when it's the only thing in the row. */
 .review-legend {
   display: flex;
   flex-wrap: wrap;
   gap: 1rem;
   align-items: center;
-  margin: 0.5rem 0 1rem;
+  margin-left: auto;
   font-size: 0.85em;
   opacity: 0.8;
 }
@@ -298,7 +325,7 @@
   opacity: 0.75;
 }
 
-/* Pinned right, away from the entries that come and going around it.
+/* Pinned right, away from the entries that come and go around it.
  *
  * Ticking it adds the "✕ ignoring" key to the legend, which — with the toggle
  * sitting at the end of a left-packed row — shunted the toggle sideways at the

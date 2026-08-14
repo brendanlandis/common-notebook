@@ -35,6 +35,9 @@ function instance(overrides: Partial<ResolvedInstance> = {}): ResolvedInstance {
 
 const PERIOD = { periodStart: "2026-01-12", periodEnd: "2026-01-18" };
 
+// A wall clock inside the period, so "today" lands on a column the grid shows.
+const NOW = "2026-01-14T20:00:00";
+
 describe("toFullCalendarEvents", () => {
   it("passes the wall-clock strings through untouched", () => {
     // Any conversion here would be the second one, and therefore wrong.
@@ -136,7 +139,7 @@ describe("slotWindow", () => {
 
 describe("WeekCalendar", () => {
   it("paints an event at the wall-clock time it was given", () => {
-    render(<WeekCalendar events={[instance()]} {...PERIOD} onCycle={vi.fn()} />);
+    render(<WeekCalendar events={[instance()]} {...PERIOD} now={NOW} onCycle={vi.fn()} />);
 
     // 2pm, whatever zone the machine running this is in. A grid doing its own
     // conversion would show 9am here under TZ=UTC.
@@ -146,7 +149,7 @@ describe("WeekCalendar", () => {
 
   it("renders the period's days, not the current week", () => {
     const { container } = render(
-      <WeekCalendar events={[instance()]} {...PERIOD} onCycle={vi.fn()} />
+      <WeekCalendar events={[instance()]} {...PERIOD} now={NOW} onCycle={vi.fn()} />
     );
 
     const headers = [...container.querySelectorAll(".fc-col-header-cell")].map(
@@ -164,11 +167,11 @@ describe("WeekCalendar", () => {
     // belonged. The remount that hid it only happens the first time a period is
     // fetched; a period already in the query cache re-renders in place.
     const { container, rerender } = render(
-      <WeekCalendar events={[]} periodStart="2026-01-15" periodEnd="2026-01-18" onCycle={vi.fn()} />
+      <WeekCalendar events={[]} periodStart="2026-01-15" periodEnd="2026-01-18" now={NOW} onCycle={vi.fn()} />
     );
 
     rerender(
-      <WeekCalendar events={[]} periodStart="2026-01-19" periodEnd="2026-01-25" onCycle={vi.fn()} />
+      <WeekCalendar events={[]} periodStart="2026-01-19" periodEnd="2026-01-25" now={NOW} onCycle={vi.fn()} />
     );
 
     const headers = [...container.querySelectorAll(".fc-col-header-cell")].map(
@@ -186,6 +189,7 @@ describe("WeekCalendar", () => {
         events={[]}
         periodStart="2026-01-15"
         periodEnd="2026-01-18"
+        now={NOW}
         onCycle={vi.fn()}
       />
     );
@@ -203,6 +207,7 @@ describe("WeekCalendar", () => {
           instance({ title: "Early flight", start: "2026-01-12T06:00:00", end: "2026-01-12T07:30:00" }),
         ]}
         {...PERIOD}
+        now={NOW}
         onCycle={vi.fn()}
       />
     );
@@ -220,7 +225,7 @@ describe("WeekCalendar", () => {
       end: "2026-01-12T07:30:00",
     });
     const { container, rerender } = render(
-      <WeekCalendar events={[early]} {...PERIOD} onCycle={vi.fn()} />
+      <WeekCalendar events={[early]} {...PERIOD} now={NOW} onCycle={vi.fn()} />
     );
 
     // Trimmed and compared whole: a bare /^6/ also matches 6pm, which is inside
@@ -232,10 +237,25 @@ describe("WeekCalendar", () => {
     expect(showsSixAm()).toBe(true);
 
     rerender(
-      <WeekCalendar events={[{ ...early, state: "hide" }]} {...PERIOD} onCycle={vi.fn()} />
+      <WeekCalendar events={[{ ...early, state: "hide" }]} {...PERIOD} now={NOW} onCycle={vi.fn()} />
     );
 
     expect(showsSixAm()).toBe(false);
+  });
+
+  it("marks today from the wall clock it was handed, not the machine's", () => {
+    // The bug: FullCalendar left to find "now" itself reduces the machine clock
+    // to UTC, because the grid is in UTC mode. At 8pm in New York — 01:00Z the
+    // next day — it highlighted tomorrow's column.
+    //
+    // This assertion only means something across the TZ matrix: on a machine
+    // already in New York, the wrong answer and the right one coincide.
+    const { container } = render(
+      <WeekCalendar events={[]} {...PERIOD} now="2026-01-14T20:00:00" onCycle={vi.fn()} />
+    );
+
+    const today = container.querySelector(".fc-col-header-cell.fc-day-today");
+    expect(today?.textContent).toContain("1/14");
   });
 
   it("keeps an all-day event out of the timed grid", () => {
@@ -245,6 +265,7 @@ describe("WeekCalendar", () => {
           instance({ title: "Whole day", allDay: true, start: "2026-01-14", end: "2026-01-15" }),
         ]}
         {...PERIOD}
+        now={NOW}
         onCycle={vi.fn()}
       />
     );
@@ -256,7 +277,7 @@ describe("WeekCalendar", () => {
   it("hands the clicked instance back to the caller", () => {
     const onCycle = vi.fn();
     const { container } = render(
-      <WeekCalendar events={[instance()]} {...PERIOD} onCycle={onCycle} />
+      <WeekCalendar events={[instance()]} {...PERIOD} now={NOW} onCycle={onCycle} />
     );
 
     (container.querySelector(".fc-event") as HTMLElement | null)?.click();

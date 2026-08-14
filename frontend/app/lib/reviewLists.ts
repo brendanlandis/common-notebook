@@ -168,3 +168,33 @@ export function buildReviewLists(tasks: Task[]): ReviewLists {
 
   return { groups };
 }
+
+/**
+ * Split the grouped list into what's been picked and what hasn't.
+ *
+ * The picked come out flat, in the order they appear in the groups rather than
+ * the order they were clicked: a list that reshuffles as you add to it makes you
+ * re-find everything you already chose, and clicking one thing is not a
+ * statement about the things picked before it.
+ *
+ * Groups emptied by the split are dropped, so a project whose every task is
+ * picked doesn't leave a heading over nothing.
+ */
+export function partitionSelected(
+  groups: ProjectGroup[],
+  selected: Set<string>
+): { picked: Task[]; remaining: ProjectGroup[] } {
+  const picked: Task[] = [];
+  const remaining: ProjectGroup[] = [];
+
+  for (const group of groups) {
+    const left: Task[] = [];
+    for (const task of group.tasks) {
+      if (selected.has(task.documentId)) picked.push(task);
+      else left.push(task);
+    }
+    if (left.length > 0) remaining.push({ ...group, tasks: left });
+  }
+
+  return { picked, remaining };
+}

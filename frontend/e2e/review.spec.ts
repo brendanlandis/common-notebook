@@ -65,16 +65,22 @@ test.describe('review', () => {
       // is what's being committed, and this keeps the order of operations the
       // same as a person's.
       //
-      // Located by value, not by label text: the labels read "this week" / "next
+      // Located by name, not by label text: the labels read "this week" / "next
       // week" off whatever cadence the account is configured for, so matching
       // text would break on a schedule change that has nothing to do with this.
-      await page.locator('input[name="review-mode"][value="remainder"]').check();
+      // Unchecked is "this cycle" — the switch reads left-to-right.
+      await page.locator('input[name="review-mode"]').uncheck();
       // A pill, not a checkbox — checking one off is what a checkbox means
       // everywhere else in this app, and nothing on this page completes a task.
       // And picking it *is* the save; there is no commit button to press.
       await page.getByRole('button', { name: chosen.title, pressed: false }).click();
       await expect(
         page.getByRole('button', { name: chosen.title, pressed: true })
+      ).toBeVisible();
+      // And it moves out of its project group into the picked list above.
+      await expect(
+        page.locator('section', { has: page.getByRole('heading', { name: 'picked' }) })
+          .getByRole('button', { name: chosen.title })
       ).toBeVisible();
       await expect(page.getByText(/saved/)).toBeVisible({ timeout: 15_000 });
 

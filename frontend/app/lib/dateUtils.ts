@@ -54,6 +54,27 @@ export function getToday(settings: TimeZoneSettings): Date {
 }
 
 /**
+ * The current wall-clock date and time in the configured timezone, as
+ * `YYYY-MM-DDTHH:mm:ss` with no offset.
+ *
+ * For the one consumer that needs "now" as *numbers on a clock face* rather than
+ * as an instant: the week grid, which is told every value is UTC precisely so it
+ * performs no zone arithmetic of its own (see `WeekCalendar`). Handed a real
+ * instant instead, it decides which column is "today" in UTC — so at 8pm in New
+ * York it highlights tomorrow.
+ *
+ * Deliberately **not** adjusted by `dayBoundaryHour`. That setting answers "which
+ * day does this task belong to", and 1am belonging to yesterday is right for a
+ * task list. A calendar column headed "Fri 8/14" is Friday, and at 1am on Friday
+ * the highlight belongs on it.
+ */
+export function wallClockNow({ timezone }: TimeZoneSettings): string {
+  // `toPlainDateTime` drops the zone and the offset, keeping the fields — which
+  // is exactly the "numbers on a clock face" this returns.
+  return Temporal.Now.zonedDateTimeISO(timezone).toPlainDateTime().toString();
+}
+
+/**
  * Parse a date string (YYYY-MM-DD) as a date at midnight in the configured timezone
  * @param dateString - ISO date string in format YYYY-MM-DD
  * @returns Date object representing midnight in the configured timezone on that date
