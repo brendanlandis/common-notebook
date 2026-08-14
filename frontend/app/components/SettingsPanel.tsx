@@ -11,6 +11,7 @@ import { saveSystemSetting } from "@/app/lib/systemSettingsClient";
 import { useDateTimeSettings } from "@/app/contexts/DateTimeSettingsContext";
 import { useBetaAccess } from "@/app/hooks/useBetaAccess";
 import { useReviewCadence } from "@/app/hooks/useReviewCadence";
+import { useLocation } from "@/app/hooks/useLocation";
 import RecurrencePicker from "@/app/components/RecurrencePicker";
 import { cadenceIsUsable } from "@/app/lib/reviewCadence";
 import CalendarsManager from "@/app/components/CalendarsManager";
@@ -37,6 +38,7 @@ export default function SettingsPanel() {
   // every user opens.
   const { betaAccess } = useBetaAccess();
   const { cadence, save: saveCadence, isSaving: isSavingCadence } = useReviewCadence();
+  const { location, save: saveLocation } = useLocation();
 
   // Fetch current settings on mount
   useEffect(() => {
@@ -196,6 +198,57 @@ export default function SettingsPanel() {
                 pick a start date — without one, &quot;every other&quot; doesn&apos;t say
                 which week
               </p>
+            )}
+
+            {/* The only thing in this app that asks where you are, and it asks
+                for the least that answers the question: two numbers, typed. No
+                permission prompt, no IP lookup, nothing that keeps watching. Two
+                decimal places is a few kilometres, which moves sunset by
+                seconds. */}
+            {location && (
+              <>
+                <h2>where you are</h2>
+                <p>
+                  Only used to work out when the sun goes down, which the daily
+                  page draws across the day.
+                </p>
+                <div className="row-one-one">
+                  <div className="task-form-element labelled">
+                    <label htmlFor="latitude">latitude</label>
+                    <input
+                      id="latitude"
+                      type="number"
+                      step="0.01"
+                      min={-90}
+                      max={90}
+                      defaultValue={location.latitude}
+                      onBlur={(e) => {
+                        const latitude = Number(e.target.value);
+                        if (Number.isFinite(latitude) && Math.abs(latitude) <= 90) {
+                          saveLocation({ ...location, latitude });
+                        }
+                      }}
+                    />
+                  </div>
+                  <div className="task-form-element labelled">
+                    <label htmlFor="longitude">longitude</label>
+                    <input
+                      id="longitude"
+                      type="number"
+                      step="0.01"
+                      min={-180}
+                      max={180}
+                      defaultValue={location.longitude}
+                      onBlur={(e) => {
+                        const longitude = Number(e.target.value);
+                        if (Number.isFinite(longitude) && Math.abs(longitude) <= 180) {
+                          saveLocation({ ...location, longitude });
+                        }
+                      }}
+                    />
+                  </div>
+                </div>
+              </>
             )}
 
             <h2>calendars</h2>

@@ -1,6 +1,10 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
-import WeekCalendar, { slotWindow, toFullCalendarEvents } from "./WeekCalendar";
+import WeekCalendar, {
+  slotWindow,
+  toFullCalendarEvents,
+  toSunsetEvents,
+} from "./WeekCalendar";
 import type { ResolvedInstance } from "@/app/lib/ics/resolveDecisions";
 
 /**
@@ -283,5 +287,47 @@ describe("WeekCalendar", () => {
     (container.querySelector(".fc-event") as HTMLElement | null)?.click();
 
     expect(onCycle).toHaveBeenCalledWith(expect.objectContaining({ uid: "evt@test" }));
+  });
+});
+
+describe("toSunsetEvents", () => {
+  it("makes a one-minute background event at the given time", () => {
+    // A line is the shape wanted; a background event is the nearest thing
+    // FullCalendar has, and a zero-length one is dropped rather than drawn.
+    const [sunset] = toSunsetEvents(["2026-08-13T20:15:30"]);
+
+    expect(sunset.start).toBe("2026-08-13T20:15:30");
+    expect(sunset.end).toBe("2026-08-13T20:16:30");
+    expect(sunset.display).toBe("background");
+    expect(sunset.classNames).toEqual(["cal-sunset"]);
+  });
+
+  it("rolls the hour rather than inventing a 60th minute", () => {
+    // The string-arithmetic version of this produced "20:60".
+    expect(toSunsetEvents(["2026-08-13T20:59:00"])[0].end).toBe("2026-08-13T21:00:00");
+  });
+
+  it("skips days with no sunset", () => {
+    // Above the Arctic circle in summer there is nothing to draw.
+    expect(toSunsetEvents([])).toEqual([]);
+  });
+});
+
+describe("slotWindow with a now-indicator", () => {
+  it("keeps an early now in view", () => {
+    // A line above the top of the grid isn't drawn at all, and 7am on a day with
+    // nothing before 9 is a perfectly normal morning.
+    expect(slotWindow([], "2026-01-12T07:20:00").min).toBe("07:00:00");
+  });
+
+  it("keeps a late now in view", () => {
+    expect(slotWindow([], "2026-01-12T23:40:00").max).toBe("24:00:00");
+  });
+
+  it("changes nothing when now is inside the default window", () => {
+    expect(slotWindow([], "2026-01-12T14:00:00")).toEqual({
+      min: "09:00:00",
+      max: "23:00:00",
+    });
   });
 });

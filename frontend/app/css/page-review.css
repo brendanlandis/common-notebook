@@ -166,6 +166,54 @@
   margin: 2rem 0;
 }
 
+/* ── The daily page ─────────────────────────────────────────────────────── */
+
+/* The day's list beside the day's shape. One column on a narrow screen, list
+ * first: on a phone the thing you're doing matters more than the grid, and the
+ * alignment trick below is meaningless at that width anyway. */
+.daily-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+  margin: 1rem 0;
+
+  @media (min-width: 60rem) {
+    grid-template-columns: minmax(12rem, 1fr) 2fr;
+    align-items: start;
+  }
+}
+
+/* The padding-top is set inline, from a measurement of where the now-indicator
+ * landed — see the daily page. Nothing to declare here but the transition, so
+ * that the list slides as the day passes rather than jumping each minute. */
+.daily-chosen {
+  transition: padding-top 0.4s ease;
+}
+
+.daily-todo {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+
+  li {
+    padding: 0.15rem 0;
+  }
+
+  label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+  }
+
+  /* Struck through rather than removed: a day's list you can see you finished is
+   * the point of having written it down. */
+  label.is-done span {
+    text-decoration: line-through;
+    opacity: 0.55;
+  }
+}
+
 /* ── The week grid ──────────────────────────────────────────────────────── */
 
 /* Sits directly under the controls row, so no margin of its own at the top —
@@ -209,6 +257,18 @@
   width: 3rem;
   height: 3rem;
   color: var(--primary-color);
+}
+
+/* Sunset: a line across the day, not a block.
+ *
+ * It's a one-minute background event (see `toSunsetEvents`) squashed to a
+ * hairline, because FullCalendar has no notion of "draw a line here" and its own
+ * now-indicator is the only built-in of that shape. Dashed and dim: this is
+ * information about the day, not an appointment in it. */
+.cal-sunset {
+  background: none !important;
+  border-top: 1px dashed var(--primary-color) !important;
+  opacity: 0.55;
 }
 
 /* The three states have to be unmistakable at a glance, because clicking to

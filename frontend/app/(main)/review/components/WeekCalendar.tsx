@@ -39,7 +39,16 @@ interface WeekCalendarProps {
    * the events. Decides which column is highlighted as today.
    */
   now: string;
-  onCycle: (instance: ResolvedInstance) => void;
+  /**
+   * Wall-clock sunset per day, `YYYY-MM-DDTHH:mm:ss` each. Drawn as a line
+   * across the grid — the daily page's answer to "how much of today is left",
+   * which the light tells you better than the clock does.
+   */
+  sunsets?: string[];
+  /** Draw the line marking the current time. Off on the review, on for today. */
+  showNow?: boolean;
+  /** Omitted where the grid is for reading rather than deciding. */
+  onCycle?: (instance: ResolvedInstance) => void;
 }
 
 const STATE_CLASS: Record<string, string> = {
@@ -97,9 +106,22 @@ const asSlot = (hour: number) => `${String(hour).padStart(2, "0")}:00:00`;
  *
  * Exported and pure so the rule can be asserted without a rendered grid.
  */
-export function slotWindow(events: ResolvedInstance[]): { min: string; max: string } {
+export function slotWindow(
+  events: ResolvedInstance[],
+  /** Kept in view where the grid draws a now-indicator — a line above the top
+   *  of the grid isn't drawn at all, and an empty morning is a normal morning. */
+  now?: string
+): { min: string; max: string } {
   let first = DEFAULT_FIRST_HOUR;
   let last = DEFAULT_LAST_HOUR;
+
+  if (now) {
+    const nowHour = Number(now.slice(11, 13));
+    if (Number.isFinite(nowHour)) {
+      first = Math.min(first, nowHour);
+      last = Math.max(last, Math.min(24, nowHour + 1));
+    }
+  }
 
   for (const event of events) {
     // All-day events live in their own row above the grid, so they say nothing
@@ -126,15 +148,48 @@ export function slotWindow(events: ResolvedInstance[]): { min: string; max: stri
   };
 }
 
+/**
+ * Sunsets → hairline background events.
+ *
+ * FullCalendar has no concept of "draw a line at this time", and its own
+ * `nowIndicator` is the only built-in of that shape. A background event one
+ * minute long is the nearest thing that exists: it lands in the right column at
+ * the right height, scrolls and rescales with the grid for free, and is styled
+ * down to a line in CSS. Zero-length events are dropped rather than drawn, hence
+ * the minute.
+ */
+export function toSunsetEvents(sunsets: string[]) {
+  return sunsets.filter(Boolean).map((sunset) => ({
+    id: `sunset:${sunset}`,
+    title: "sunset",
+    start: sunset,
+    // Temporal rather than string arithmetic: a sunset at 20:59 would otherwise
+    // end at 20:60.
+    end: Temporal.PlainDateTime.from(sunset).add({ minutes: 1 }).toString(),
+    allDay: false,
+    display: "background" as const,
+    classNames: ["cal-sunset"],
+    extendedProps: {},
+  }));
+}
+
 export default function WeekCalendar({
   events,
   periodStart,
   periodEnd,
   now,
+  sunsets = [],
+  showNow = false,
   onCycle,
 }: WeekCalendarProps) {
-  const fcEvents = useMemo(() => toFullCalendarEvents(events), [events]);
-  const slots = useMemo(() => slotWindow(events), [events]);
+  const fcEvents = useMemo(
+    () => [...toFullCalendarEvents(events), ...toSunsetEvents(sunsets)],
+    [events, sunsets]
+  );
+  const slots = useMemo(
+    () => slotWindow(events, showNow ? now : undefined),
+    [events, showNow, now]
+  );
   const calendarRef = useRef<FullCalendar | null>(null);
 
   /**
@@ -190,13 +245,16 @@ export default function WeekCalendar({
         // would show a week the decisions aren't being made for.
         headerToolbar={false}
         allDaySlot
-        nowIndicator={false}
+        nowIndicator={showNow}
         height="auto"
         expandRows
         slotMinTime={slots.min}
         slotMaxTime={slots.max}
         eventClick={(info) => {
-          onCycle(info.event.extendedProps.instance as ResolvedInstance);
+          const instance = info.event.extendedProps.instance as ResolvedInstance | undefined;
+          // Background events (the sunset line) carry no instance, and a grid
+          // with no `onCycle` is for reading.
+          if (instance) onCycle?.(instance);
         }}
       />
     </div>

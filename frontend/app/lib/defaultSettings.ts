@@ -23,7 +23,8 @@ export type SettingTitle =
   | 'completedTaskVisibilityMinutes'
   | 'autoDeclutter'
   | 'enableStuffProjects'
-  | 'reviewCadence';
+  | 'reviewCadence'
+  | 'location';
 
 export const DEFAULT_SETTINGS: ReadonlyArray<{ title: SettingTitle; value: string }> = [
   { title: 'timezone', value: 'America/New_York' },
@@ -34,6 +35,10 @@ export const DEFAULT_SETTINGS: ReadonlyArray<{ title: SettingTitle; value: strin
   // How often the weekly review comes round. JSON because a cadence is one
   // indivisible value (see reviewCadence.ts); weekly starting Monday by default.
   { title: 'reviewCadence', value: '{"recurrenceType":"weekly","recurrenceDayOfWeek":1}' },
+  // Only used to work out sunset (see location.ts). Matches the default
+  // timezone — a location disagreeing with the zone would put sunset at a
+  // plausible-looking wrong time rather than an obviously wrong one.
+  { title: 'location', value: '{"latitude":40.71,"longitude":-74.01}' },
 ];
 
 export function getDefault(title: SettingTitle): string {
