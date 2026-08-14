@@ -736,3 +736,43 @@
 .review-practice > .review-group:first-of-type {
   margin-top: 0.5rem;
 }
+
+/* Today's practice, above the calendar.
+ *
+ * A row of items rather than a checklist: there is nothing to tick, and each one
+ * is a button that takes you into the practice screen. */
+.daily-practice {
+  margin-bottom: 1.5rem;
+}
+
+.daily-practice ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.daily-practice li {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.daily-practice-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.9rem;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+  transition: background-color var(--transition-time);
+}
+
+.daily-practice-item:hover {
+  background: color-mix(in srgb, currentColor 8%, transparent);
+}

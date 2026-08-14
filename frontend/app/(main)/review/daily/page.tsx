@@ -2,12 +2,13 @@
 
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { flushSync } from "react-dom";
-import { ArrowDownIcon } from "@phosphor-icons/react";
+import { ArrowDownIcon, MetronomeIcon } from "@phosphor-icons/react";
 import { useDateTimeSettings } from "@/app/contexts/DateTimeSettingsContext";
 import { useLocation } from "@/app/hooks/useLocation";
 import { getToday, shiftISODate, toISODate, wallClockNow } from "@/app/lib/dateUtils";
 import { sunsetOn } from "@/app/lib/sunset";
-import { groupByProject, partitionSelected } from "@/app/lib/reviewLists";
+import { groupByProject, partitionSelected, isPracticeMaterial } from "@/app/lib/reviewLists";
+import { usePracticeSessionUI } from "@/app/contexts/PracticeSessionContext";
 import { canViewTransition } from "@/app/lib/viewTransition";
 import { useReviewCovering } from "../hooks/useReview";
 import { useDailyPick } from "../hooks/useDailyPick";
@@ -38,6 +39,7 @@ export default function DailyReviewPage() {
   const today = toISODate(getToday(timeZoneSettings), timeZoneSettings);
   const tomorrow = shiftISODate(today, 1);
 
+  const { openFor } = usePracticeSessionUI();
   const { review, loading: reviewLoading } = useReviewCovering(today);
   const { pick, loading: pickLoading, savePick, saveError } = useDailyPick(today);
   const { location } = useLocation();
@@ -94,12 +96,29 @@ export default function DailyReviewPage() {
     setSelected(new Set((pick?.tasks ?? []).map((task) => task.documentId)));
   }, [today, pick, pickLoading]);
 
+  // The two lanes, split the same way the review page splits them — and here it
+  // matters for a second reason: material has no checkbox. Practising is not
+  // something you tick off, so the two lists cannot share a control.
+  const { material, ordinary } = useMemo(() => {
+    const material: typeof reviewTasks = [];
+    const ordinary: typeof reviewTasks = [];
+    for (const task of reviewTasks) {
+      (isPracticeMaterial(task) ? material : ordinary).push(task);
+    }
+    return { material, ordinary };
+  }, [reviewTasks]);
+
   // Same shape as the review page: what's chosen lifts out of the pool, and the
   // pool is grouped by project. Here the chosen ones land in the checkbox list
   // rather than in a row of pills.
   const { picked, remaining } = useMemo(
-    () => partitionSelected(groupByProject(reviewTasks), selected),
-    [reviewTasks, selected]
+    () => partitionSelected(groupByProject(ordinary), selected),
+    [ordinary, selected]
+  );
+
+  const practice = useMemo(
+    () => partitionSelected(groupByProject(material), selected),
+    [material, selected]
   );
 
   const toggle = (documentId: string) => {
@@ -226,6 +245,51 @@ export default function DailyReviewPage() {
     <div className="review-page">
       <h1>today</h1>
 
+      {/* Practice, above the calendar rather than beside it.
+          Deliberately outside `daily-layout`: that grid pushes the task column
+          down to meet the now-indicator, and material has nothing to line up
+          with — practising isn't a thing that happens *at* a time, it's a thing
+          you go and do. Above rather than below, because it is what gets skipped
+          when it comes after the list of things you can tick off. */}
+      {practice.picked.length > 0 && (
+        <section className="daily-practice">
+          <ul>
+            {practice.picked.map((task) => (
+              <li key={task.documentId}>
+                {/* An icon, not a checkbox. A checkbox beside a task means done
+                    everywhere else in this app, and practice is measured in
+                    minutes spent, not in being finished — so it borrows no
+                    control that would say otherwise. Pressing it opens the
+                    practice modal ready to go; pressing the name does the same,
+                    because the whole row is one intention.
+                    The button carries the view-transition name so the pill
+                    tweens up out of the pool below, exactly as a task does. */}
+                <button
+                  type="button"
+                  className="daily-practice-item"
+                  style={{ viewTransitionName: `pill-${task.documentId}` }}
+                  onClick={() => openFor(task)}
+                >
+                  <MetronomeIcon size={22} weight="regular" aria-hidden="true" />
+                  <span>{task.title}</span>
+                  {task.project?.title && (
+                    <span className="review-pick-project">{task.project.title}</span>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  className="daily-unpick"
+                  aria-label={`put ${task.title} back`}
+                  onClick={() => toggle(task.documentId)}
+                >
+                  <ArrowDownIcon aria-hidden="true" />
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       <div className="daily-layout">
         {/* Pushed down to meet the now-indicator, so "what I'm doing" starts
             level with "where the day has got to". Falls back to the top of the
@@ -331,6 +395,26 @@ export default function DailyReviewPage() {
               already lifted out of it. */}
           <h2>not yet but soon</h2>
           {remaining.map((group) => (
+            <div key={group.key} className="review-group">
+              <h3>{group.projectTitle ?? "incidentals"}</h3>
+              <TaskPickList
+                tasks={group.tasks}
+                selected={selected}
+                onToggle={toggle}
+                showProject={false}
+              />
+            </div>
+          ))}
+        </section>
+      )}
+
+      {/* Material you committed to this cycle but haven't picked up today.
+          Its own section rather than more groups in the pool above, for the same
+          reason it has its own lane at the top: it is a different question. */}
+      {practice.remaining.length > 0 && (
+        <section className="review-section">
+          <h2>could practise</h2>
+          {practice.remaining.map((group) => (
             <div key={group.key} className="review-group">
               <h3>{group.projectTitle ?? "incidentals"}</h3>
               <TaskPickList
