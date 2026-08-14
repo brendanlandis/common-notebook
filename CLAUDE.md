@@ -105,7 +105,8 @@ DB via `DATABASE_CLIENT` (mysql | postgres | sqlite), **defaults to SQLite** loc
 (`backend/config/database.ts`). Media uploads go to AWS S3.
 
 Content types under `backend/src/api/*/content-types/*/schema.json`: `task`, `project`, `world`, `view`,
-`review`, `daily-pick`, `calendar-subscription`, `calendar-event-decision`, `practice-log`,
+`review`, `daily-pick`, `calendar-subscription`, `calendar-event-decision`, `practice-log` (with a
+`material` relation to `task` and a `segments` JSON column),
 `system-setting`, `invite`. Strapi 5 style — `documentId` is the stable identifier used throughout the
 frontend. Every one of them carries a `private` `owner` relation and is registered for the ownership
 middleware. Node engine constraint: `>=18 <=22.x`.
@@ -128,7 +129,8 @@ runs on save and leaves the DB and the schema disagreeing.
   top-of-mind → priority (`pN` title marker) → normal → later, creation-date within each. **One project
   at a time is top-of-mind**, enforced server-side on write by `demoteTopOfMindProjects` — a convention,
   not a DB constraint, so readers take the first rather than assuming exactly one.
-- **Project type** — a project's `projectType` (`app/types/index.ts`): `default`, `chores`, plus the four
+- **Project type** — a project's `projectType` (`app/types/index.ts`): `default`, `chores`, `instrument`
+  and `study` (the practice subjects), plus the four
   `STUFF_PROJECT_TYPES` (`wishlist`, `errands`, `in the mail`, `buy stuff`) that live in the `stuff` world
   and are gated by the `enableStuffProjects` setting (`app/lib/stuffProjectsConfig.ts`). This **replaced the
   old per-task `category` enum** — see `backend/scripts/migrate-categories-to-projects.js`. That config
@@ -143,7 +145,9 @@ runs on save and leaves the DB and the schema disagreeing.
   branch via `codePreset`.
 - **Incidentals** — tasks with no project. Only `worldMode: 'all'` surfaces them.
 - **Task flags worth knowing** — `soon` (a one-off you've flagged for this cycle), `long` (a task worked
-  at over days rather than finished in one go), and `workSessions`, a JSON array of `{date, timestamp}`
+  at over days rather than finished in one go), `onHold` (practice material set aside — neither finished
+  nor due), `materialCategory` (free text on material: scales, arpeggios…), and `workSessions`, a JSON
+  array of `{date, timestamp}`
   recording "worked on today without completing". `transformDone` synthesises a virtual "worked on" entry
   per session date, which is how the Done view shows progress on something not yet finished.
   `workSessions` is a **JSON column**, so it can't be filtered server-side and rides along on every read
@@ -174,6 +178,8 @@ no due date, and ranking by how overdue something is turns a planning tool into 
   tasks, one-offs flagged `soon`, and recurring tasks **that have come round by the end of the cycle**
   (one-sided — something whose date already passed is still on your plate). `partitionSelected` splits the
   grouped pool into picked/remaining; both pages render the same shape.
+  **Practice material is split off first**, into `practiceGroups`, so it can never be claimed by both
+  lanes — it would otherwise qualify as a `soon` one-off and appear in both steps.
 - **Calendars** — `calendar-subscription` (an ICS URL + colour + `defaultState`) and
   `calendar-event-decision` (per-`uid`, optionally per-`recurrenceId`). The chain is
   `trimIcs` (line-scan away the ~93% of a feed that can't be in the window, *before* parsing) →
@@ -182,23 +188,82 @@ no due date, and ranking by how overdue something is turns a planning tool into 
   per-instance-only means re-deciding the same standup every week. `unset` is a real state, so
   "nothing unset" is a definition of done that falls out of the data model.
 
-# Domain model (practice)
+# Domain model (practice and study)
 
-Currently the thinnest feature and **structurally out of step with the rest of the app**: a stopwatch and
-nothing else. `practice-log` is `{start, stop, duration, date, notes, type}` where `type` is a **hardcoded
-six-value enum** (`guitar`, `voice`, `drums`, `writing`, `composing`, `ear training`) **duplicated in four
-places** — the Strapi schema, `PracticeType` in `app/types/index.ts`, `PracticeSelector.tsx`, and
-`api/practice-logs/stats/route.ts`. One flat dimension, no hierarchy, and no connection to tasks,
-projects, worlds, or the review. Changing the list means editing all four.
+Practice runs on the **same substrate as tasks**, not beside it:
 
-`date` is the **effective day** (`getEffectiveDayForTimestamp`), not the calendar day, so an after-midnight
-session before the day boundary belongs to the previous day; `page.tsx` stamps it on start and the stop
-route recomputes the same value from `start`, so the two always agree.
+```
+world  "practice and study"   (systemKey: practice)
+ └─ subject   = project       (projectType: instrument | study)
+     └─ material = task       (+ materialCategory, onHold)
+         └─ session = practice-log row
+```
 
-An overhaul is planned that maps practice onto the existing substrate — world:project:task as
-practice-and-study:instrument:material, with `practice-log` gaining a task relation in place of the enum,
-and the review/daily pages growing a separate practice lane so it can't be muscled out by chores. Nothing
-of it is built yet.
+The `PRACTICE_SYSTEM_KEY` (`app/lib/worlds.ts`) is load-bearing twice over: it keeps material out of
+everyday /todo views (`resolveVisibleWorldIds` excludes any system world from `all`/`except`, so
+material is reachable only through a view that names the world), and it is how `isPracticeMaterial`
+(`app/lib/reviewLists.ts`) tells the two review lanes apart. **Match on the world, never on
+`projectType` or a flag** — moving a project into practice-and-study brings its material with it.
+
+There was a `PracticeType` enum: six strings in the Strapi schema, `app/types`, a header dropdown and
+the stats route, which made adding a seventh instrument a four-file edit. It is gone, along with
+`PracticeSelector` and `PracticeContext`. Subjects are data; the chart discovers its series from the
+sessions themselves.
+
+**Narrowing is the same three stages tasks use** — shelf → rotation (`soon`) → this cycle (the periodic
+review's practice step) → today (the daily page's practice lane). The practice pool is simply "`soon`,
+not completed, not `onHold`": no recurrence test and no come-round-by-the-end filter, because material
+has no cadence. `onHold` is the state between "working on it" and "done with it" — scales are never
+complete, but a scale exercise can be put down for a month.
+
+**One selection, two lanes.** The practice step writes to the same `review.tasks` / `daily-pick.tasks`
+relation as everything else; only the presentation splits. There is no schema change for the lane, and
+nothing extra for the daily page to read.
+
+## Sessions
+
+`practice-log` is `{start, stop, duration, date, notes, material, segments}`.
+
+- **`segments`** (`app/lib/practiceSession.ts`) is `[{start, stop|null}]` — the stretches actually
+  practised. `duration` is their **sum**, not `stop - start`: a 40-minute sitting with 15 minutes of
+  pause is 25 minutes practised. Only the last segment may be open; `parseSegments` normalises anything
+  else, because it is a JSON column that can hold whatever a half-written request left behind.
+  This is the one place a JSON blob is right: scratch state on the session's own row, never queried
+  across rows, collapsed to an integer on stop.
+- **`date`** is the **effective day of the session's start** (`getEffectiveDayForTimestamp`), so a
+  session begun at 1am under a 4am boundary belongs to the previous day and one that runs past the
+  boundary is filed under the day it began.
+- **Writes are intent endpoints**, never a client-supplied array: `POST /api/practice-logs` (start),
+  and `/pause`, `/resume`, `/stop`, `/correct` on `[documentId]`. Each does its read-modify-write
+  server-side under `withSessionLock` (`app/lib/practiceSessionServer.ts`) — chained, not shared, unlike
+  the moon-phase mutex, because the callers want different things done rather than the same thing once.
+- **Every intent is idempotent, and that is load-bearing.** A session is shared between devices (start
+  on the phone, stop on the laptop), so a stale client must only ever be able to re-assert something
+  already true. Pause-when-paused does not move the recorded stop; stop-when-stopped does not rewrite
+  it; resume-when-running writes nothing. A finished session **refuses to reopen** — `stop` is the one
+  irreversible step.
+- **One open session at a time, globally.** `GET /api/practice-logs/active` answers "is anything
+  running?" without a material in scope, which the old per-type query could not — and which is why two
+  sessions on different types used to be able to run at once. A second start returns 409 with the open
+  one.
+- **There is no heartbeat, deliberately.** It would measure *tab open*, not practising — leave the page
+  up while you make coffee and it reports practice with total confidence. Instead the modal offers a
+  correction ("call it 30/60/90/120 minutes") once a session has run over four hours or crossed the day
+  boundary (`isStale`). `/correct` is the only place a duration comes from the client. It keeps the
+  segments as evidence rather than rewriting them to match.
+
+## The practice screen is a modal, not a page
+
+`PracticeSessionModal` is mounted in `(main)/layout.tsx`, so a running session covers the header, the
+menu and whatever page is open. Two reasons, both worth keeping: practising is the one thing here that
+isn't reading or deciding, and — with no heartbeat — being unable to use the app is what stops a session
+dangling. **Pause is the only way out of full screen**; there is deliberately no "hide but keep running",
+and `PracticeSessionModal.test.tsx` asserts the absence.
+
+`/practice` is now the read-only *record* — the 30-day chart plus sessions grouped by day. Nothing starts
+a session from there: you press play on a piece of material, which lives on /todo and the review pages.
+`PracticeSessionContext` holds only which material the modal is *offering* (UI state); the session itself
+is server state via `useActiveSession`, which polls every 30s **only while something is running**.
 
 # Conventions
 
