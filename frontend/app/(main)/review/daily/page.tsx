@@ -432,10 +432,11 @@ export default function DailyReviewPage() {
           the list above. */}
       {remaining.length > 0 && (
         <section className="review-section">
-          {/* The same words the review page uses for the same pool, because it
-              is the same pool — what's on your plate, minus whatever you've
-              already lifted out of it. */}
-          <h2>not yet but soon</h2>
+          {/* What's left of what you committed to this cycle, minus whatever
+              you've already lifted out of it into today. Phrased as an
+              invitation rather than a promise: "not yet but soon" said when,
+              which is exactly what this feature refuses to say. */}
+          <h2>could work on</h2>
           {remaining.map((group) => (
             <div key={group.key} className="review-group">
               <h3>{group.projectTitle ?? "incidentals"}</h3>

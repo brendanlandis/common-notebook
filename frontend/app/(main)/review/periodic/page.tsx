@@ -511,38 +511,32 @@ export default function PeriodicReviewPage() {
         </section>
       )}
 
-      {picked.length > 0 && (
-        <section className="review-section">
-          {/* Named for the period it's a plan for, in the same words as the
-              switch above — "this week" while you're reviewing this one, "next
-              week" while you're reviewing the next. A fixed "this week" would be
-              a lie half the time, and on a lunar or seasonal cadence it would be
-              the wrong noun as well. */}
-          <h2>
-            {mode === "upcoming" ? "next" : "this"} {noun}
-          </h2>
-          <TaskPickList
-            tasks={picked}
-            selected={selected}
-            onToggle={toggle}
-            showProject={false}
-          />
-        </section>
-      )}
+      {/* The other lane, in the same shape as the practice one above: one
+          heading, the picks directly under it, then everything still on offer
+          grouped by project.
 
-      {/* One list, grouped by project.
-          It was three — the top-of-mind project, `soon`, and recurring — which
-          is a distinction that matters to the code deciding what belongs here
-          and not to the person reading it. Whatever put a task on this page,
-          it's on this page; the only grouping that helps while choosing is which
-          project it's part of. */}
-      {remaining.length > 0 && (
+          It was two sections — "this week" over the picks and "not yet but
+          soon" over the pool — which named the same lane twice and made the
+          page read as three subjects rather than two. The pool grouping is one
+          list, not three: it was the top-of-mind project, `soon` and recurring,
+          a distinction that matters to the code deciding what belongs here and
+          not at all to the person choosing from it. Whatever put a task on this
+          page, it's on this page.
+
+          Named for what's in it rather than for the period, which is what the
+          practice heading does and what the cycle switch above already says
+          twice. */}
+      {(picked.length > 0 || remaining.length > 0) && (
         <section className="review-section">
-          {/* Everything you haven't picked, which is not the same as everything
-              you're ignoring — hence the wording. It says "these are real and
-              they're coming" without saying when, which is the whole line this
-              feature walks. */}
-          <h2>not yet but soon</h2>
+          <h2>projects and chores</h2>
+          {picked.length > 0 && (
+            <TaskPickList
+              tasks={picked}
+              selected={selected}
+              onToggle={toggle}
+              showProject={false}
+            />
+          )}
           {remaining.map((group) => (
             <ProjectGroupList
               key={group.key}
