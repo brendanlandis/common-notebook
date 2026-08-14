@@ -337,7 +337,7 @@
   view-transition-name: review-grid;
 }
 
-/* Switching cycles slides, rather than cross-fading.
+/* Switching cycles slides the grid out and the next one in.
  *
  * A cross-fade between two weeks is very nearly invisible: same columns, same
  * hours, same shapes, only the dates and a few events differ — so blending them
@@ -345,52 +345,66 @@
  * says which direction you went, and the direction is the whole content of that
  * control.
  *
- * The direction class goes on `<html>` because these pseudo-elements live on the
- * document root, and it is set before the transition starts and removed when it
- * finishes — see `setMode`. Without a direction the grid cross-fades in place,
- * which is what "show all" wants: nothing there has moved anywhere. */
-@keyframes grid-leave-left {
+ * ## Plain CSS, not a view transition, and it has to be
+ *
+ * A view transition needs the DOM to hold still for its whole duration, and this
+ * interaction is defined by a second thing arriving from the network partway
+ * through: switching the period refetches the review covering it, and re-seeding
+ * the selection can unmount the entire "this week" section and the ~50 pills in
+ * it. Every one of those carries a `view-transition-name`, and a browser
+ * abandons a transition when named elements vanish underneath it — measured at
+ * 76ms into a 450ms animation, over by 85ms. See `useCycleSlide`.
+ *
+ * These run on the live element instead, so nothing happening elsewhere on the
+ * page can interrupt them. The two halves can't overlap — it's one element, not
+ * two snapshots — so they're sequential, each taking half of `--transition-time`
+ * so the whole gesture still lasts as long as everything else that moves here.
+ * `useCycleSlide` swaps the period at the halfway point, while the grid is off
+ * screen. */
+@keyframes grid-out-left {
   to {
     opacity: 0;
-    transform: translateX(-3%);
+    transform: translateX(-2rem);
   }
 }
 
-@keyframes grid-enter-right {
+@keyframes grid-in-right {
   from {
     opacity: 0;
-    transform: translateX(3%);
+    transform: translateX(2rem);
   }
 }
 
-@keyframes grid-leave-right {
+@keyframes grid-out-right {
   to {
     opacity: 0;
-    transform: translateX(3%);
+    transform: translateX(2rem);
   }
 }
 
-@keyframes grid-enter-left {
+@keyframes grid-in-left {
   from {
     opacity: 0;
-    transform: translateX(-3%);
+    transform: translateX(-2rem);
   }
 }
 
-:root.cycle-forward::view-transition-old(review-grid) {
-  animation: grid-leave-left var(--transition-time) ease-in both;
-}
+.review-calendar-frame {
+  &.cycle-out-forward {
+    animation: grid-out-left calc(var(--transition-time) / 2) ease-in both;
+  }
 
-:root.cycle-forward::view-transition-new(review-grid) {
-  animation: grid-enter-right var(--transition-time) ease-out both;
-}
+  &.cycle-in-forward {
+    animation: grid-in-right calc(var(--transition-time) / 2) ease-out both;
+  }
 
-:root.cycle-back::view-transition-old(review-grid) {
-  animation: grid-leave-right var(--transition-time) ease-in both;
-}
+  &.cycle-out-back {
+    animation: grid-out-right calc(var(--transition-time) / 2) ease-in both;
+  }
 
-:root.cycle-back::view-transition-new(review-grid) {
-  animation: grid-enter-left var(--transition-time) ease-out both;
+  &.cycle-in-back {
+    animation: grid-in-left calc(var(--transition-time) / 2) ease-out both;
+  }
 }
 
 .review-calendar-loading {

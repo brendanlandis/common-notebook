@@ -17,6 +17,7 @@ import { canViewTransition } from "@/app/lib/viewTransition";
 import { leaveThenUpdate } from "../leaveThenUpdate";
 import { useReviewCovering, useSaveReview } from "../hooks/useReview";
 import { useArrival } from "../hooks/useArrival";
+import { useCycleSlide } from "../hooks/useCycleSlide";
 import { useCalendarEvents, useSetDecision } from "../hooks/useCalendarEvents";
 import { isFullyDecided, undecided, type ResolvedInstance } from "@/app/lib/ics/resolveDecisions";
 import TaskPickList from "../components/TaskPickList";
@@ -84,41 +85,22 @@ export default function WeeklyReviewPage() {
       ? defaultReviewMode(cadence, timeZoneSettings, { anchorDate: cadence.anchorDate })
       : "remainder");
   /**
-   * Switching cycles redraws the grid, so the grid cross-fades.
+   * Switching cycles slides the grid out and the new one in.
    *
-   * Without this the calendar was the one thing on the page that changed by
-   * jumping: the columns, the dates and the hours all swapped instantly while
-   * the events inside them faded, which read as the events being the only real
-   * thing on screen. A view transition works here where it doesn't for a
-   * decision, because the mode is local state — `flushSync` has something to
-   * flush.
+   * Without an animation the calendar was the one thing on the page that changed
+   * by jumping — the columns, the dates and the hours all swapped at once — and
+   * a cross-fade between two weeks turned out to be very nearly invisible: same
+   * columns, same hours, only the dates differ. A slide says which direction you
+   * went, which is the entire content of this control.
    *
-   * Everything with a `view-transition-name` (the pills) is lifted out of the
-   * snapshot and tweened separately; since none of them move, they sit still
-   * while the grid behind them changes.
+   * `useCycleSlide` rather than a view transition, for a reason worth reading
+   * before changing it back: the period change sets off a *second*,
+   * asynchronous DOM change that removes named elements, and that kills a view
+   * transition partway through. See the hook.
    */
+  const cycle = useCycleSlide();
   const setMode = (next: ReviewPeriodMode) => {
-    if (!canViewTransition()) {
-      setChosenMode(next);
-      return;
-    }
-
-    // Which way you went, which is the entire content of this control. Read by
-    // the `::view-transition-*(review-grid)` rules, which live on the document
-    // root and so need the class there rather than on the grid.
-    const direction = next === "upcoming" ? "cycle-forward" : "cycle-back";
-    document.documentElement.classList.add(direction);
-
-    const transition = document.startViewTransition(() =>
-      flushSync(() => setChosenMode(next))
-    );
-    // `finished` rather than `ready`: removing the class mid-animation would
-    // strip the rule that is currently running it. It settles either way — a
-    // transition that is skipped still resolves — so the class can't be left
-    // behind to slide something that isn't a cycle change.
-    transition.finished.finally(() => {
-      document.documentElement.classList.remove(direction);
-    });
+    cycle.run(next === "upcoming" ? "forward" : "back", () => setChosenMode(next));
   };
 
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -438,7 +420,7 @@ export default function WeeklyReviewPage() {
           {/* No heading. It's a labelled seven-day grid — anything written over
               it is a caption on a photograph of itself. The key and the controls
               sit in the row above, outside this section. */}
-          <div className="review-calendar-frame">
+          <div className={`review-calendar-frame${cycle.phase ? ` ${cycle.phase}` : ""}`}>
             <WeekCalendar
               events={shownEvents}
               periodStart={period.periodStart}
