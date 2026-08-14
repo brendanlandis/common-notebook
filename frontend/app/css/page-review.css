@@ -214,6 +214,9 @@
    * came from — the same complaint as the width, in the other direction. */
   li {
     padding: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
   }
 
   /* `inline-flex`, so the row is as wide as its own contents rather than as wide
@@ -236,6 +239,33 @@
   label.is-done span {
     text-decoration: line-through;
     opacity: 0.55;
+  }
+
+  /* Send it back down to the pool.
+   *
+   * `margin-left: auto` is what lines the arrows up: the rows are all the width
+   * of the column, so pushing each button to its row's right edge puts every one
+   * of them at the same x — a column of arrows answering the column of
+   * checkboxes, rather than one trailing each title at a different place.
+   *
+   * Quiet at rest and quieter than the task it belongs to. It's an escape hatch,
+   * not a thing to look at; the point of the list is the list. */
+  .daily-unpick {
+    margin-left: auto;
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem;
+    background: none;
+    border: none;
+    color: inherit;
+    opacity: 0.4;
+    cursor: pointer;
+    transition: opacity var(--transition-time) ease;
+
+    &:hover,
+    &:focus-visible {
+      opacity: 1;
+    }
   }
 }
 

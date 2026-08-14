@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { flushSync } from "react-dom";
+import { ArrowDownIcon } from "@phosphor-icons/react";
 import { useDateTimeSettings } from "@/app/contexts/DateTimeSettingsContext";
 import { useLocation } from "@/app/hooks/useLocation";
 import { getToday, shiftISODate, toISODate, wallClockNow } from "@/app/lib/dateUtils";
@@ -225,6 +226,24 @@ export default function DailyReviewPage() {
                     />
                     <span>{task.title}</span>
                   </label>
+                  {/* Back to the pool.
+                      A separate control because the row already has one, and it
+                      means what a checkbox means everywhere else in this app:
+                      done. Overloading the title to un-pick would have been free
+                      in pixels and expensive in convention — a task's name is
+                      not a button anywhere else here.
+                      Right-aligned rather than trailing the text, so the arrows
+                      line up in a column the way the checkboxes do; a control
+                      that lands in a different place on every row reads as
+                      clutter even when it's the same control. */}
+                  <button
+                    type="button"
+                    className="daily-unpick"
+                    aria-label={`put ${task.title} back`}
+                    onClick={() => toggle(task.documentId)}
+                  >
+                    <ArrowDownIcon aria-hidden="true" />
+                  </button>
                 </li>
               ))}
             </ul>

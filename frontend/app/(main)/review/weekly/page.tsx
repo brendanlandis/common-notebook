@@ -111,21 +111,6 @@ export default function WeeklyReviewPage() {
   // things you already dismissed is most of what you'd be looking at — the
   // opposite of seeing what the week actually is.
   const [showIgnored, setShowIgnored] = useState(false);
-  /**
-   * True while the ignored events are on their way out.
-   *
-   * Two states rather than one, because the checkbox and the grid answer on
-   * different schedules. Deferring the single `showIgnored` until the fade
-   * finished deferred the checkbox with it — click it and nothing moved for
-   * most of a second, which is the one thing a checkbox must never do. So the
-   * control flips at once and the grid keeps rendering the fading events until
-   * they're actually gone.
-   */
-  const [foldingAway, setFoldingAway] = useState(false);
-  const ignoredOnGrid = showIgnored || foldingAway;
-  // Only so the ignored events can be found and faded when they're folded away;
-  // nothing here reads the grid otherwise.
-  const calendarFrame = useRef<HTMLDivElement | null>(null);
 
   const period = useMemo(() => {
     if (!cadence) return null;
@@ -171,22 +156,33 @@ export default function WeeklyReviewPage() {
   };
 
   /**
-   * Folding the fake ones away, which removes several events at once.
+   * Folding the fake ones away, or bringing them back.
    *
-   * Same fade as a single decision, applied to all of them — otherwise the one
-   * control that empties a visible part of the grid is the one thing on the page
-   * that does it instantly. Revealing them needs no equivalent: an event
-   * arriving already fades in, because the animation runs when FullCalendar
-   * inserts the element.
+   * This one change does three different things to the grid at once: events
+   * leave, events arrive, and the *real* events that overlap them grow or shrink
+   * as FullCalendar re-runs its overlap layout. Animating those separately would
+   * mean owning all three, and the third has no hook at all — the widths are
+   * inline styles FullCalendar computes.
+   *
+   * A view transition does all three for free, because it animates the
+   * difference between two rendered states rather than any particular element's
+   * story. It's available here where a decision can't use one: `showIgnored` is
+   * local state, so `flushSync` has something to flush. The checkbox flips in the
+   * same frame, which an earlier deferred version got wrong — a checkbox that
+   * doesn't move for most of a second is the one thing a checkbox must never do.
+   *
+   * No `view-transition-name` on the events themselves. The default root
+   * snapshot cross-fades the whole grid, which is what makes the width changes
+   * legible; naming each event would tween them individually, and the names
+   * would have to stay stable across a change that reorders the very list they
+   * are derived from.
    */
   const revealIgnored = (show: boolean) => {
-    // The control moves immediately either way; only the grid waits.
-    setShowIgnored(show);
-    if (show) return;
-
-    const leaving = calendarFrame.current?.querySelectorAll(".cal-event-hide") ?? [];
-    setFoldingAway(true);
-    leaveThenUpdate(leaving, () => setFoldingAway(false));
+    if (canViewTransition()) {
+      document.startViewTransition(() => flushSync(() => setShowIgnored(show)));
+    } else {
+      setShowIgnored(show);
+    }
   };
 
   // The counts below deliberately read the *whole* set, not the filtered one:
@@ -196,12 +192,12 @@ export default function WeeklyReviewPage() {
   const ignoredCount = events.filter((event) => event.state === "hide").length;
   // Nothing undecided and nothing fake on screen means every block is a real
   // event, which needs no key.
-  const needsLegend = !isFullyDecided(events) || ignoredOnGrid;
+  const needsLegend = !isFullyDecided(events) || showIgnored;
   // Memoized because a fresh array each render would rebuild the calendar's
   // event list every time anything else on the page changes.
   const shownEvents = useMemo(
-    () => (ignoredOnGrid ? events : events.filter((event) => event.state !== "hide")),
-    [events, ignoredOnGrid]
+    () => (showIgnored ? events : events.filter((event) => event.state !== "hide")),
+    [events, showIgnored]
   );
 
   // An existing review for this period means we're re-running one; its selection
@@ -384,10 +380,7 @@ export default function WeeklyReviewPage() {
             )}
             {/* Only while they're on screen — a key to a symbol you can't see is
                 just more to read. */}
-            {/* `ignoredOnGrid`, not the checkbox: the key belongs on screen for
-                as long as the glyph it explains is, which includes the beat
-                while the fake ones are fading out. */}
-            {needsLegend && ignoredOnGrid && (
+            {needsLegend && showIgnored && (
               <span>
                 <i className="swatch swatch-hide" aria-hidden="true" />✕ fake
               </span>
@@ -429,7 +422,7 @@ export default function WeeklyReviewPage() {
           {/* No heading. It's a labelled seven-day grid — anything written over
               it is a caption on a photograph of itself. The key and the controls
               sit in the row above, outside this section. */}
-          <div className="review-calendar-frame" ref={calendarFrame}>
+          <div className="review-calendar-frame">
             <WeekCalendar
               events={shownEvents}
               periodStart={period.periodStart}
