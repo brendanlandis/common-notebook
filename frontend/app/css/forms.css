@@ -41,6 +41,13 @@ input.toggle {
   border-radius: 999px;
 }
 
+/* The knob, which daisyUI gives `--radius-selector` — 0.5rem on an 18px square,
+ * i.e. a rounded square rolling around inside a pill. Round, to match the track
+ * it moves in. */
+input.toggle::before {
+  border-radius: 50%;
+}
+
 .error {
   font-style: italic;
 }

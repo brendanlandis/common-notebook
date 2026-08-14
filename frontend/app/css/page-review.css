@@ -21,9 +21,9 @@
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  /* Nothing between this row and the grid. It is a caption on the thing
-   * directly below it, and a gap made it read as its own band. */
-  margin: 1rem 0 0;
+  /* Close to the grid — this row is a caption on the thing directly below it,
+   * and a full margin made it read as its own band — but not touching it. */
+  margin: 1rem 0 0.5rem;
 }
 
 /* The cycle switch, labelled on both sides. A switch rather than two radios
