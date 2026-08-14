@@ -128,6 +128,26 @@ export function expandIcs(
   const out: CalendarEventInstance[] = [];
   const inRange = (isoDay: string) => isoDay >= rangeStart && isoDay <= rangeEnd;
 
+  /**
+   * How far outside the window to keep walking a series, in case an occurrence
+   * has been moved into it.
+   *
+   * A RECURRENCE-ID override can put an occurrence on a different day from the
+   * slot it came from, in either direction, so the slot cannot decide whether
+   * the event is in range — but it is still the only thing that can *bound* the
+   * walk, since an unbounded RRULE has no last occurrence to stop at.
+   *
+   * A week each way covers dragging a rehearsal to the weekend, which is what
+   * this is for. Something moved further than that is missed, which is the
+   * deliberate trade for not resolving every occurrence of every series back to
+   * 2019 — `getOccurrenceDetails` is the expensive call in this loop.
+   */
+  const OVERRIDE_GRACE_DAYS = 7;
+
+  /** Plain-date arithmetic on a `YYYY-MM-DD`, so month ends behave. */
+  const shiftDay = (isoDay: string, days: number) =>
+    Temporal.PlainDate.from(isoDay).add({ days }).toString();
+
   for (const event of masters) {
     if (!event.isRecurring()) {
       const start = render(event.startDate, settings);
@@ -150,14 +170,26 @@ export function expandIcs(
     // far more than any window this feature asks for.
     let guard = 0;
     while ((occurrence = iterator.next()) && guard++ < 800) {
-      const startDay = render(occurrence, settings).value.slice(0, 10);
-      if (startDay > rangeEnd) break;
-      if (startDay < rangeStart) continue;
+      // Where the *series* puts this occurrence, before any override moves it.
+      // Used only to bound the walk — never to decide whether the event is in
+      // range, which is a different question once an occurrence can move.
+      const slotDay = render(occurrence, settings).value.slice(0, 10);
+      if (slotDay > shiftDay(rangeEnd, OVERRIDE_GRACE_DAYS)) break;
+      // Skipping the far-past ones cheaply matters: `getOccurrenceDetails` is
+      // the expensive call, and a weekly series from 2019 has ~370 occurrences
+      // before it reaches this week.
+      if (slotDay < shiftDay(rangeStart, -OVERRIDE_GRACE_DAYS)) continue;
 
       // `getOccurrenceDetails` folds in any RECURRENCE-ID override, so an edited
       // instance reports its own moved time and title rather than the series'.
       const details = event.getOccurrenceDetails(occurrence);
       const start = render(details.startDate, settings);
+      // Range-tested on where the occurrence *actually is*, not on the slot it
+      // came from. A rehearsal that recurs on Sundays but was dragged to the
+      // Saturday sits on Saturday, and asking the series where it belongs got
+      // the answer "Sunday" — so it was excluded from a window ending Saturday,
+      // and, because that test was a `break`, so was everything after it.
+      if (!inRange(start.value.slice(0, 10))) continue;
       out.push({
         uid: event.uid,
         recurrenceId: occurrence.toString(),

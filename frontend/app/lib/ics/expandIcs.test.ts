@@ -134,6 +134,64 @@ describe('expandIcs', () => {
     expect(instances[0].recurrenceId).not.toBeNull();
   });
 
+  it('finds an occurrence moved BACKWARD into the window, past the series slot', () => {
+    // The bug this is here for. A rehearsal recurs on Sundays; this week's was
+    // dragged to the Saturday. The window ends on that Saturday.
+    //
+    // The range test used to run on the *series slot* — Sunday — so the event
+    // was judged out of range and, because that test was a `break` rather than a
+    // `continue`, every later occurrence went with it. On the daily page, which
+    // asks for exactly today..tomorrow, tomorrow's moved rehearsal vanished
+    // while the same event showed up fine on the review page, whose window
+    // happened to run a day further.
+    const feed = ics(
+      event([
+        'UID:moved@test',
+        'DTSTART;TZID=America/New_York:20260719T113000',
+        'DTEND;TZID=America/New_York:20260719T133000',
+        'RRULE:FREQ=WEEKLY;BYDAY=SU',
+        'SUMMARY:Receive',
+      ]),
+      event([
+        'UID:moved@test',
+        'RECURRENCE-ID;TZID=America/New_York:20260816T113000',
+        'DTSTART;TZID=America/New_York:20260815T163000',
+        'DTEND;TZID=America/New_York:20260815T183000',
+        'SUMMARY:Receive',
+      ])
+    );
+
+    const instances = expandIcs(feed, '2026-08-14', '2026-08-15', EST);
+
+    expect(instances.map((i) => i.start)).toContain('2026-08-15T16:30:00');
+  });
+
+  it('leaves out an occurrence moved OUT of the window', () => {
+    // The other direction, and the reason the test moved onto the resolved start
+    // rather than simply widening the window: the slot is inside the range and
+    // the event is not.
+    const feed = ics(
+      event([
+        'UID:movedout@test',
+        'DTSTART;TZID=America/New_York:20260719T113000',
+        'DTEND;TZID=America/New_York:20260719T133000',
+        'RRULE:FREQ=WEEKLY;BYDAY=SU',
+        'SUMMARY:Receive',
+      ]),
+      event([
+        'UID:movedout@test',
+        'RECURRENCE-ID;TZID=America/New_York:20260816T113000',
+        'DTSTART;TZID=America/New_York:20260820T163000',
+        'DTEND;TZID=America/New_York:20260820T183000',
+        'SUMMARY:Receive',
+      ])
+    );
+
+    const instances = expandIcs(feed, '2026-08-16', '2026-08-16', EST);
+
+    expect(instances).toHaveLength(0);
+  });
+
   it('honors EXDATE', () => {
     const feed = ics(
       event([

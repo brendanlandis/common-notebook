@@ -742,14 +742,15 @@
 
 /* Today's practice, at the top of the chosen column beside the calendar.
  *
- * Items rather than a checklist: there is nothing to tick, and each one is a
- * button that takes you into the practice screen.
+ * Formatted exactly like the tasks below it — same row shape, same spacing, the
+ * metronome standing where a checkbox stands. It is one of today's things,
+ * worked differently, and giving it a shape of its own made it read as a badge
+ * sitting over the list rather than the top of it.
  *
- * Stacked, not wrapped in a row. It sits in a narrow column with the day's
- * tasks now rather than spanning the page above the calendar, and a row of
- * pills there would wrap into a ragged block instead of reading as a list. */
+ * No bottom margin: the two lists are one column, and a gap between them would
+ * reintroduce the separation the row formatting just removed. */
 .daily-practice {
-  margin-bottom: 1rem;
+  margin: 0;
 }
 
 .daily-practice ul {
@@ -775,19 +776,25 @@
   margin-left: auto;
 }
 
+/* Formatted as a task row, not as a pill.
+ *
+ * It sits directly above the day's tasks in the same column, so anything with
+ * its own shape reads as a different *kind* of thing — a badge over a list. The
+ * metronome takes the checkbox's place and the title sits where a title sits,
+ * which is the whole idea: it is one of today's things, worked differently.
+ *
+ * `inline-flex` and the same vertical padding as `.daily-todo label`, for the
+ * same reason given there — this element carries the view-transition name, and
+ * a full-width box would make the pill appear to grow across the column rather
+ * than travel into place. */
 .daily-practice-item {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.4rem 0.9rem;
-  border-radius: 999px;
-  border: 1px solid currentColor;
+  padding: 0.25rem 0;
+  border: none;
   background: none;
   color: inherit;
   cursor: pointer;
-  transition: background-color var(--transition-time);
-}
-
-.daily-practice-item:hover {
-  background: color-mix(in srgb, currentColor 8%, transparent);
+  text-align: left;
 }
