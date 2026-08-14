@@ -11,7 +11,7 @@ import {
 } from "@/app/lib/reviewCycle";
 import { cadenceIsUsable, cycleNoun } from "@/app/lib/reviewCadence";
 import { buildReviewLists, partitionSelected, type ProjectGroup } from "@/app/lib/reviewLists";
-import { getToday, toISODate, wallClockNow } from "@/app/lib/dateUtils";
+import { wallClockNow } from "@/app/lib/dateUtils";
 import { useReviewCovering, useSaveReview } from "../hooks/useReview";
 import { useCalendarEvents, useSetDecision } from "../hooks/useCalendarEvents";
 import { isFullyDecided, undecided, type ResolvedInstance } from "@/app/lib/ics/resolveDecisions";
@@ -82,10 +82,6 @@ export default function WeeklyReviewPage() {
   const setMode = setChosenMode;
 
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  // Whether the last pick actually reached the server. Not "has the user picked
-  // something" — with no button to press, this line is the only acknowledgement
-  // there is, so it must not appear until the write has landed.
-  const [saved, setSaved] = useState(false);
   // Ignored events stay out of the way by default. They were kept on the grid so
   // you could change your mind about one, but a week's worth of struck-through
   // things you already dismissed is most of what you'd be looking at — the
@@ -205,7 +201,6 @@ export default function WeeklyReviewPage() {
           });
           reviewId.current = created?.data?.documentId ?? null;
         }
-        setSaved(true);
       });
   };
 
@@ -230,7 +225,6 @@ export default function WeeklyReviewPage() {
     if (next.has(documentId)) next.delete(documentId);
     else next.add(documentId);
     setSelected(next);
-    setSaved(false);
     persist([...next]);
   };
 
@@ -248,7 +242,6 @@ export default function WeeklyReviewPage() {
     );
   }
 
-  const today = toISODate(getToday(timeZoneSettings), timeZoneSettings);
   // "week", "month", "moon phase" — whatever one period of this cadence is.
   const noun = cycleNoun(cadence);
 
@@ -417,18 +410,16 @@ export default function WeeklyReviewPage() {
         <p className="review-empty">nothing on your plate — enjoy it</p>
       )}
 
-      {/* No commit button: a pick saves itself. What's left is the failure
-          case, shown rather than swallowed — losing a pick is the one write here
-          a person would actually notice, and with no button to press there is
-          nothing else that would tell them. */}
+      {/* No commit button and no confirmation: a pick saves itself, and the
+          pill going solid is the acknowledgement. A line reporting success under
+          a page whose whole interaction is one click each is a receipt for
+          something nobody doubted.
+
+          The failure case does still show. Losing a pick is the one write here a
+          person would notice, and with no button to press there is nothing else
+          that would tell them. */}
       {error && (
         <p className="error">couldn&apos;t save that — {error.message}</p>
-      )}
-      {saved && !error && (
-        <p className="review-committed">
-          saved
-          {period && period.periodStart <= today ? " — see you on the daily page" : ""}
-        </p>
       )}
     </div>
   );

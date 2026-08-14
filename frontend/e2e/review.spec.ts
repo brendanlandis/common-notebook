@@ -72,7 +72,12 @@ test.describe('review', () => {
       await page.locator('input[name="review-mode"]').uncheck();
       // A pill, not a checkbox — checking one off is what a checkbox means
       // everywhere else in this app, and nothing on this page completes a task.
-      // And picking it *is* the save; there is no commit button to press.
+      // And picking it *is* the save; there is no commit button to press, and no
+      // confirmation to wait for either, so the write is awaited directly.
+      const written = page.waitForResponse(
+        (response) =>
+          response.url().includes('/api/reviews') && response.request().method() === 'POST'
+      );
       await page.getByRole('button', { name: chosen.title, pressed: false }).click();
       await expect(
         page.getByRole('button', { name: chosen.title, pressed: true })
@@ -82,7 +87,7 @@ test.describe('review', () => {
         page.locator('section', { has: page.getByRole('heading', { name: 'picked' }) })
           .getByRole('button', { name: chosen.title })
       ).toBeVisible();
-      await expect(page.getByText(/saved/)).toBeVisible({ timeout: 15_000 });
+      expect((await written).ok()).toBe(true);
 
       await page.goto('/review/daily');
       await expect(page.getByRole('heading', { name: 'today' })).toBeVisible({
@@ -136,7 +141,6 @@ test.describe('review', () => {
       // The point: the failure is shown, not swallowed into a console.error while
       // the page pretends it saved.
       await expect(page.getByText(/couldn't save that/i)).toBeVisible({ timeout: 15_000 });
-      await expect(page.getByText(/^saved/)).toHaveCount(0);
     } finally {
       await deleteTask(request, task.documentId);
       await deleteProject(request, project.documentId);

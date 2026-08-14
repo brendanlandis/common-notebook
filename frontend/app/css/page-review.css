@@ -153,10 +153,6 @@
   margin: 2rem 0;
 }
 
-.review-committed {
-  opacity: 0.7;
-}
-
 /* ── The week grid ──────────────────────────────────────────────────────── */
 
 /* Sits directly under the controls row, so no margin of its own at the top —
