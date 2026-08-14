@@ -269,19 +269,37 @@ export interface StrapiResponse<T> {
   };
 }
 
-// Practice Log interface
+// A practice session.
+//
+// `type` is gone — it was a six-value enum duplicated across four files. A
+// session now points at the piece of `material` it was spent on (a task, in a
+// subject, in the practice world), so "minutes per day per subject" is a sum
+// over rows rather than a hardcoded list.
 export interface PracticeLog {
   id: number;
   documentId: string;
-  start: string; // ISO datetime
+  start: string; // ISO datetime — the first segment's start
   stop: string | null; // ISO datetime, nullable for in-progress sessions
-  type: PracticeType;
+  /** The task being practised. Populated with its project by the BFF. */
+  material?: Task | null;
+  /**
+   * The stretches actually practised, so a session can be paused and can survive
+   * a closed tab. `duration` is their sum, which is why it is no longer
+   * `stop - start`. See `app/lib/practiceSession.ts`.
+   */
+  segments: PracticeSegment[] | null;
   notes: StrapiBlock[];
   duration: number; // minutes
-  date: string; // YYYY-MM-DD
+  date: string; // YYYY-MM-DD — the effective day the session *started*
   createdAt: string;
   updatedAt: string;
   publishedAt: string;
+}
+
+/** One uninterrupted stretch of practice. `stop` is null while it is running. */
+export interface PracticeSegment {
+  start: string;
+  stop: string | null;
 }
 
 export type ProjectsResponse = StrapiResponse<Project[]>;
