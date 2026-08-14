@@ -37,7 +37,20 @@ describe('practice-logs stats route — 30-day range', () => {
   });
 
   it('builds exactly 30 distinct consecutive day buckets ending today', async () => {
-    mockFetch(() => ({ data: [], meta: { pagination: { page: 1, pageCount: 1 } } }));
+    // One session, so there is a subject to draw a line for. The series used to
+    // be a hardcoded list of six enum values and existed whether or not anything
+    // had been practised; they are discovered from the data now, so an empty
+    // window is an empty chart rather than six flat zeroes.
+    mockFetch(() => ({
+      data: [
+        {
+          date: '2026-07-10',
+          duration: 30,
+          material: { documentId: 'm-1', project: { documentId: 's-1', title: 'guitar' } },
+        },
+      ],
+      meta: { pagination: { page: 1, pageCount: 1 } },
+    }));
     const res = await statsGET(request('http://localhost/api/practice-logs/stats'));
     const body = await res.json();
 

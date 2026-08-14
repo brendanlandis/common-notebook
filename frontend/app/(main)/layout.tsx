@@ -1,7 +1,6 @@
 import MainMenuPanel from "../components/MainMenuPanel";
 import HeaderContent from "../components/HeaderContent";
 import TaskActionsDrawer from "../components/TaskActionsDrawer";
-import { PracticeContextProvider } from "../contexts/PracticeContext";
 import { PracticeSessionProvider } from "../contexts/PracticeSessionContext";
 import PracticeSessionModal from "../components/PracticeSessionModal";
 import { TaskActionsProvider } from "../contexts/TaskActionsContext";
@@ -49,7 +48,6 @@ export default async function MainLayout({
     <QueryProvider>
       <DateTimeSettingsProvider initial={dateTimeSettings}>
         <StuffProjectsProvider>
-          <PracticeContextProvider>
             <PracticeSessionProvider>
             <TaskActionsProvider>
             <SessionGuard />
@@ -96,7 +94,6 @@ export default async function MainLayout({
           </div>
             </TaskActionsProvider>
             </PracticeSessionProvider>
-          </PracticeContextProvider>
         </StuffProjectsProvider>
       </DateTimeSettingsProvider>
     </QueryProvider>

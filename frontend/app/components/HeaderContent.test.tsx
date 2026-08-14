@@ -17,9 +17,6 @@ vi.mock("@/app/hooks/useViews", () => ({
 vi.mock("@/app/contexts/StuffProjectsContext", () => ({
   useStuffProjects: () => ({ stuffProjectsEnabled: false }),
 }));
-vi.mock("@/app/contexts/PracticeContext", () => ({
-  usePractice: () => ({ selectedPracticeType: "guitar", setSelectedPracticeType: vi.fn() }),
-}));
 vi.mock("@/app/contexts/TaskActionsContext", () => ({
   useTaskActions: () => ({
     openTaskForm: vi.fn(),

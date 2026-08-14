@@ -130,14 +130,11 @@ export interface FilterSet {
   longOnly: boolean;
 }
 
-// Practice type
-export type PracticeType = 
-  | 'guitar'
-  | 'voice'
-  | 'drums'
-  | 'writing'
-  | 'composing'
-  | 'ear training';
+// There was a `PracticeType` here: a six-value union of guitar/voice/drums/
+// writing/composing/ear training, duplicated in the Strapi schema, a header
+// dropdown and the stats route, so adding a seventh was a four-file edit. It is
+// gone. A session points at the piece of material it was spent on, and a subject
+// is an ordinary project — so the list of things you can practise is data.
 
 // Project importance types
 export type ProjectImportance =

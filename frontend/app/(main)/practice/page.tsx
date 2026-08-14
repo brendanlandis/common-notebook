@@ -1,100 +1,35 @@
 "use client";
-import { useState, useEffect, useCallback, useRef } from "react";
-import { usePractice } from "@/app/contexts/PracticeContext";
-import { PlayIcon, StopIcon } from "@phosphor-icons/react";
-import type { StrapiBlock } from "@/app/types/index";
-import PracticeTimer from "./components/PracticeTimer";
+
+import type { PracticeLog } from "@/app/types/index";
 import PracticeSessionItem from "./components/PracticeSessionItem";
-import RichTextEditor from "@/app/components/RichTextEditor";
 import PracticeCharts from "./components/PracticeCharts";
-import { toISODate, getToday, shiftISODate } from "@/app/lib/dateUtils";
-import { getEffectiveDayForTimestamp } from "@/app/lib/dayBoundaryHelpers";
+import {
+  toISODate,
+  getToday,
+  shiftISODate,
+  parseDate,
+  formatInTimezone,
+} from "@/app/lib/dateUtils";
+import type { TimeZoneSettings } from "@/app/lib/timeZoneSettings";
 import { useDateTimeSettings } from "@/app/contexts/DateTimeSettingsContext";
 import { usePracticeLogs } from "./hooks/usePracticeLogs";
 import FaviconManager from "@/app/components/FaviconManager";
 
+/**
+ * What you have practised — a record, not a place you practise.
+ *
+ * The play button and the subject dropdown used to live here, which made this
+ * page both the timer and the history of it. Practising now happens in a modal
+ * over whatever you were looking at (see `PracticeSessionModal`), so what is
+ * left is the chart and the sessions, grouped by the day they belong to.
+ *
+ * Read-only apart from editing a session's notes or deleting one outright. There
+ * is deliberately no way to start a session from here: the thing you press play
+ * on is a piece of material, and material lives on /todo and the review pages.
+ */
 export default function PracticePage() {
   const { timeZoneSettings } = useDateTimeSettings();
-  const { selectedPracticeType } = usePractice();
-  const {
-    logs,
-    activeSession,
-    loading,
-    error,
-    start,
-    stop,
-    update,
-    remove,
-    saveNotes,
-    isStarting,
-    isStopping,
-    isSavingNotes,
-  } = usePracticeLogs(selectedPracticeType);
-
-  const [activeSessionNotes, setActiveSessionNotes] = useState<StrapiBlock[]>([]);
-  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Seed the editor when a *different* session becomes active — not on every
-  // refetch. The list refetches on window focus now, and the old code re-seeded
-  // the editor from the response every time, which would drop whatever had been
-  // typed since. Keyed on identity so an unrelated refetch leaves the text alone.
-  const seededSessionIdRef = useRef<string | null>(null);
-  useEffect(() => {
-    const activeId = activeSession?.documentId ?? null;
-    if (activeId === seededSessionIdRef.current) return;
-    seededSessionIdRef.current = activeId;
-    setActiveSessionNotes(activeSession?.notes ?? []);
-  }, [activeSession]);
-
-  const handleStart = async () => {
-    if (activeSession) return; // guard: never two open sessions
-    const now = new Date();
-    await start({
-      start: now.toISOString(),
-      stop: null,
-      type: selectedPracticeType,
-      notes: [],
-      duration: 0,
-      // Effective day, not calendar day: an after-midnight session before the
-      // day boundary belongs to the previous day, matching how the stats chart
-      // reads it back (via getTodayForRecurrence). The stop route recomputes the
-      // same value from `start`, so the two always agree.
-      date: getEffectiveDayForTimestamp(now, timeZoneSettings),
-    });
-  };
-
-  const handleStop = async () => {
-    if (!activeSession) return;
-    await stop(activeSession.documentId);
-  };
-
-  const handleManualSave = async () => {
-    if (!activeSession) return;
-    await saveNotes(activeSession.documentId, activeSessionNotes);
-  };
-
-  // Debounced auto-save for active session notes
-  const handleNotesChange = useCallback(
-    (notes: StrapiBlock[]) => {
-      setActiveSessionNotes(notes);
-      if (!activeSession) return;
-
-      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
-      saveTimeoutRef.current = setTimeout(() => {
-        void saveNotes(activeSession.documentId, notes);
-      }, 500);
-    },
-    [activeSession, saveNotes]
-  );
-
-  // Cleanup timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (saveTimeoutRef.current) {
-        clearTimeout(saveTimeoutRef.current);
-      }
-    };
-  }, []);
+  const { logs, loading, error, update, remove } = usePracticeLogs();
 
   if (loading) {
     return <main id="container-practice"></main>;
@@ -108,7 +43,7 @@ export default function PracticePage() {
     );
   }
 
-  // Filter out active session and only show sessions from past 30 days.
+  // Finished sessions from the last 30 days, matching the chart's window.
   // Day arithmetic on the ISO string: setDate() on the instant ran in the
   // machine's calendar and, being midnight-anchored, showed 31 days for ~29 days
   // each spring on a non-matching server zone.
@@ -119,66 +54,63 @@ export default function PracticePage() {
     (log) => log.stop !== null && log.date >= thirtyDaysAgoString
   );
 
+  // Sessions run together in an undifferentiated list once there are more than a
+  // handful of them, and "when" is the first thing you want of a practice
+  // record. Grouped by effective day — which the server already stamped, so
+  // there is no date arithmetic to get wrong here.
+  const byDay = new Map<string, PracticeLog[]>();
+  for (const log of completedLogs) {
+    const day = byDay.get(log.date);
+    if (day) day.push(log);
+    else byDay.set(log.date, [log]);
+  }
+
   return (
     <>
       <FaviconManager type="metronome" />
       <main id="container-practice">
-        <div className="practice-controls">
-          {activeSession ? (
-            <div className="active-session">
-              <button
-                className="stop-button"
-                onClick={handleStop}
-                disabled={isStopping}
-              >
-                <StopIcon size={80} weight="regular" />
-              </button>
-              <div className="session-info">
-                <PracticeTimer startTime={activeSession.start} />
-                <RichTextEditor
-                  value={activeSessionNotes}
-                  onChange={handleNotesChange}
-                />
-                <button
-                  className="btn save-button"
-                  onClick={handleManualSave}
-                  disabled={isSavingNotes}
-                >
-                  {isSavingNotes ? "saving..." : "save"}
-                </button>
-              </div>
-            </div>
-          ) : (
-            <button
-              className="start-button"
-              onClick={handleStart}
-              disabled={isStarting}
-            >
-              <PlayIcon size={80} weight="regular" />
-            </button>
-          )}
-        </div>
-
         <PracticeCharts />
 
         {completedLogs.length > 0 && (
           <div className="practice-sessions">
-            <h3>Practice History</h3>
-            {completedLogs.map((log) => (
-              <PracticeSessionItem
-                key={log.documentId}
-                practiceLog={log}
-                onUpdate={update}
-                onDelete={remove}
-              />
+            <h3>practice history</h3>
+            {[...byDay.entries()].map(([date, sessions]) => (
+              <section key={date} className="practice-day">
+                <h4>{dayLabel(date, todayString, timeZoneSettings)}</h4>
+                {sessions.map((log) => (
+                  <PracticeSessionItem
+                    key={log.documentId}
+                    practiceLog={log}
+                    onUpdate={update}
+                    onDelete={remove}
+                  />
+                ))}
+              </section>
             ))}
           </div>
         )}
 
-        {completedLogs.length === 0 && !activeSession && (
-          <p className="no-sessions"></p>
+        {completedLogs.length === 0 && (
+          <p className="no-sessions">nothing practised in the last 30 days</p>
         )}
       </main>
     </>
   );
+}
+
+/**
+ * "today" / "yesterday" / "thu 8/14" — the same wording and format the Done view
+ * uses, because they are the same idea and being told the date two ways in one
+ * app is worse than either.
+ *
+ * The *comparisons* are string comparisons: these are `YYYY-MM-DD` wall-clock
+ * dates with no time and no zone, and lexicographic order on that format is
+ * chronological order. Only the fallback label parses, and it parses through
+ * `parseDate`/`formatInTimezone` so the day name is the user's, not the
+ * machine's.
+ */
+function dayLabel(date: string, today: string, settings: TimeZoneSettings): string {
+  if (date === today) return "today";
+  if (date === shiftISODate(today, -1)) return "yesterday";
+  return formatInTimezone(parseDate(date, settings), "EEE M/d", settings).toLowerCase();
 }

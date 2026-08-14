@@ -3,11 +3,9 @@
 import { useState } from "react";
 import { usePathname } from "next/navigation";
 import LayoutSelector from "../(main)/todo/components/LayoutSelector";
-import PracticeSelector from "../(main)/practice/components/PracticeSelector";
 import { getDefaultViewSlug } from "../lib/views";
 import { useViews } from "../hooks/useViews";
 import { useStuffProjects } from "../contexts/StuffProjectsContext";
-import { usePractice } from "../contexts/PracticeContext";
 import { useTaskActions } from "../contexts/TaskActionsContext";
 import {
   PlusCircleIcon,
@@ -42,7 +40,6 @@ export default function HeaderContent() {
   const pathname = usePathname();
   const { views } = useViews();
   const { stuffProjectsEnabled } = useStuffProjects();
-  const { selectedPracticeType, setSelectedPracticeType } = usePractice();
   const { openTaskForm, openProjectForm, openManageProjects, openWorlds, openViews } =
     useTaskActions();
   const queryClient = useQueryClient();
@@ -190,14 +187,10 @@ export default function HeaderContent() {
     );
   }
 
-  if (pathname === "/practice") {
-    return (
-      <PracticeSelector
-        value={selectedPracticeType}
-        onChange={setSelectedPracticeType}
-      />
-    );
-  }
+  // /practice carries no header controls. It held a dropdown of the six
+  // practice types, which is the enum that no longer exists — you pick what to
+  // practise by pressing play on a piece of material, not by choosing a category
+  // up here first.
 
   // For home or other routes, return null (nothing displayed)
   return null;
