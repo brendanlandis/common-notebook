@@ -1,8 +1,9 @@
 # overview
 
 `common-notebook` is a suite of no-brand, personal utilities: primarily a **task list** (shown on the *To Do*
-page), plus a **review** feature (weekly planning + a daily page, with subscribed calendars) and a
-**practice** timer. Two independent npm projects (no workspace tooling):
+page), plus a **review** feature (periodic planning + a daily page, with subscribed calendars) and
+**practice and study**, which runs on the same task substrate. Two independent npm projects (no
+workspace tooling):
 
 - `frontend/` — Next.js 16 (App Router), React 19, TypeScript. The UI. Runs on `localhost:3000`.
 - `backend/`  — Strapi 5 headless CMS/API (`common-notebook-api`). The data layer. Runs on `localhost:1337`.
@@ -68,9 +69,11 @@ License: AGPL v3.
 ## Layout (`frontend/app/`)
 - `(main)/` — authed route group (`layout.tsx`). Features: `todo/`, `review/`, `practice/`, home.
   Each feature colocates its own `components/`, `hooks/`, `utils/`. `todo/components/layouts/` holds
-  the per-layout components + `types.ts`; `review/` holds `weekly/` and `daily/` pages plus
+  the per-layout components + `types.ts`; `review/` holds `periodic/` and `daily/` pages plus
   `WeekCalendar`/`TaskPickList` and the `useReview`/`useDailyPick`/`useCalendarEvents` hooks.
   Settings is a **drawer**, not a page (`components/SettingsPanel.tsx`).
+  `PracticeSessionModal` is **not** under `practice/` — it lives in `components/` and is mounted in the
+  authed layout, because it covers every page.
 - `api/` — Next.js route handlers acting as a BFF/proxy to Strapi (`tasks/`, `projects/`, `views/`,
   `worlds/`, `reviews/`, `daily-picks/`, `calendars/`, `practice-logs/`, `system-settings/`, `auth/`, …).
 - `lib/` — pure, unit-tested business logic. Core files: `layoutTransformers.ts` (the task-grouping
