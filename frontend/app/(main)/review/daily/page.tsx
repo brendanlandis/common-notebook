@@ -188,6 +188,7 @@ export default function DailyReviewPage() {
             periodStart={today}
             periodEnd={tomorrow}
             now={wallClockNow(timeZoneSettings)}
+            boundaryHour={timeZoneSettings.dayBoundaryHour}
             sunsets={sunsets}
             showNow
           />

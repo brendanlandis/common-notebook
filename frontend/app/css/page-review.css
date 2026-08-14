@@ -118,7 +118,7 @@
  * reduced-motion rule here because the transition is never started at all in
  * that case; see `canViewTransition`. */
 ::view-transition-group(*) {
-  animation-duration: 0.45s;
+  animation-duration: var(--transition-time);
 }
 
 /* Filled means "yes, this one" — the same thing it means on the calendar above.
@@ -187,7 +187,7 @@
  * landed — see the daily page. Nothing to declare here but the transition, so
  * that the list slides as the day passes rather than jumping each minute. */
 .daily-chosen {
-  transition: padding-top 0.4s ease;
+  transition: padding-top var(--transition-time) ease;
 }
 
 .daily-todo {
@@ -263,12 +263,31 @@
  *
  * It's a one-minute background event (see `toSunsetEvents`) squashed to a
  * hairline, because FullCalendar has no notion of "draw a line here" and its own
- * now-indicator is the only built-in of that shape. Dashed and dim: this is
- * information about the day, not an appointment in it. */
+ * now-indicator is the only built-in of that shape.
+ *
+ * Dashed, to say "this is information about the day rather than an appointment
+ * in it" — but not faint. The first version was a 1px hairline at 0.55 opacity
+ * with the label inheriting FullCalendar's muted background-event colour, and it
+ * read as a rendering artefact. The distinction it needs to carry is against
+ * *events*, and the dashes already carry that; dimness on top only made it hard
+ * to find. */
 .cal-sunset {
   background: none !important;
-  border-top: 1px dashed var(--primary-color) !important;
-  opacity: 0.55;
+  border-top: 2px dashed var(--primary-color) !important;
+  opacity: 1 !important;
+}
+
+/* `!important` throughout, as everywhere else in this file: FullCalendar v6
+ * injects its stylesheet at runtime, so it lands *after* this one and wins every
+ * tie on specificity. Its `.fc-bg-event` is `opacity: 0.3`, which is what left
+ * the label a grey smudge while the border — already `!important` — came through
+ * fine. */
+.cal-sunset .fc-event-title {
+  color: var(--primary-color) !important;
+  font-style: italic !important;
+  font-size: 0.85em !important;
+  padding-left: 0.3rem !important;
+  opacity: 1 !important;
 }
 
 /* The three states have to be unmistakable at a glance, because clicking to

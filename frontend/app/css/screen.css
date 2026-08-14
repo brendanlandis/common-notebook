@@ -9,11 +9,18 @@
 @import "./forms.css";
 @import "./rich-text.css";
 
-/* handle transitions */
-
+/* One duration for everything that moves.
+ *
+ * Long enough to read as a movement rather than a jump, short enough that doing
+ * a thing half a dozen times in a row doesn't feel like queuing. It was found by
+ * tuning the pill that flies up the review page and then applied everywhere, so
+ * that nothing in the app moves at a speed the rest of it doesn't.
+ *
+ * Not the spinner in settings.css, which is a loop rather than a transition —
+ * "how fast a thing moves from A to B" has no bearing on how fast something
+ * spins forever. */
 :root {
-  --transition-time: 1000ms;
-  --transition-time-fast: 100ms;
+  --transition-time: 450ms;
 }
 
 /* layout */

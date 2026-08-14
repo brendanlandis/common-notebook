@@ -77,41 +77,51 @@ describe("toFullCalendarEvents", () => {
 });
 
 describe("slotWindow", () => {
+  const BOUNDARY = { boundaryHour: 4 };
+
   it("starts at 9am when nothing is earlier", () => {
-    expect(slotWindow([instance()]).min).toBe("09:00:00");
+    expect(slotWindow([instance()], BOUNDARY).min).toBe("09:00:00");
   });
 
   it("opens earlier for an early event", () => {
     expect(
-      slotWindow([instance({ start: "2026-01-12T06:30:00", end: "2026-01-12T07:00:00" })]).min
+      slotWindow(
+        [instance({ start: "2026-01-12T06:30:00", end: "2026-01-12T07:00:00" })],
+        BOUNDARY
+      ).min
     ).toBe("06:00:00");
   });
 
   it("ignores an ignored event", () => {
-    // Deciding to ignore the 6am thing is exactly the statement that it
-    // shouldn't stretch the picture of the day.
+    // Deciding an event is fake is exactly the statement that it shouldn't
+    // stretch the picture of the day.
     expect(
-      slotWindow([
-        instance({ state: "hide", start: "2026-01-12T06:00:00", end: "2026-01-12T07:00:00" }),
-      ]).min
+      slotWindow(
+        [instance({ state: "hide", start: "2026-01-12T06:00:00", end: "2026-01-12T07:00:00" })],
+        BOUNDARY
+      ).min
     ).toBe("09:00:00");
   });
 
   it("opens earlier for an undecided one", () => {
     expect(
-      slotWindow([
-        instance({ state: "unset", start: "2026-01-12T07:00:00", end: "2026-01-12T08:00:00" }),
-      ]).min
+      slotWindow(
+        [instance({ state: "unset", start: "2026-01-12T07:00:00", end: "2026-01-12T08:00:00" })],
+        BOUNDARY
+      ).min
     ).toBe("07:00:00");
   });
 
   it("takes the earliest of several", () => {
     expect(
-      slotWindow([
-        instance({ start: "2026-01-12T08:00:00", end: "2026-01-12T09:00:00" }),
-        instance({ start: "2026-01-13T05:15:00", end: "2026-01-13T06:00:00" }),
-        instance({ start: "2026-01-14T11:00:00", end: "2026-01-14T12:00:00" }),
-      ]).min
+      slotWindow(
+        [
+          instance({ start: "2026-01-12T08:00:00", end: "2026-01-12T09:00:00" }),
+          instance({ start: "2026-01-13T05:15:00", end: "2026-01-13T06:00:00" }),
+          instance({ start: "2026-01-14T11:00:00", end: "2026-01-14T12:00:00" }),
+        ],
+        BOUNDARY
+      ).min
     ).toBe("05:00:00");
   });
 
@@ -119,31 +129,65 @@ describe("slotWindow", () => {
     // It renders in its own row above the grid, so its 00:00 start is not a
     // claim that the day begins at midnight.
     expect(
-      slotWindow([instance({ allDay: true, start: "2026-01-12", end: "2026-01-13" })]).min
+      slotWindow(
+        [instance({ allDay: true, start: "2026-01-12", end: "2026-01-13" })],
+        BOUNDARY
+      ).min
     ).toBe("09:00:00");
   });
 
-  it("extends past 11pm rather than clipping a late event", () => {
-    expect(
-      slotWindow([instance({ start: "2026-01-12T22:00:00", end: "2026-01-12T23:30:00" })]).max
-    ).toBe("24:00:00");
+  it("ends at midnight by default", () => {
+    // The week grid. Seven columns each running three hours into the next is a
+    // lot of mostly-empty grid for the sake of the occasional late night.
+    expect(slotWindow([])).toEqual({ min: "09:00:00", max: "24:00:00" });
   });
 
-  it("reports a run past midnight as the end of the day", () => {
-    // Hour zero would read as ending before it started and collapse the grid.
-    expect(
-      slotWindow([instance({ start: "2026-01-12T22:00:00", end: "2026-01-13T01:00:00" })]).max
-    ).toBe("24:00:00");
+  it("opens down to a small-hours event when it isn't extended", () => {
+    // Without the boundary there's no tail to put it in, so the only way it's
+    // visible at all is for the window to reach up to it — and the span stays
+    // inside 24 hours, so it still can't render twice.
+    const window = slotWindow([
+      instance({ start: "2026-01-13T01:00:00", end: "2026-01-13T02:00:00" }),
+    ]);
+
+    expect(window).toEqual({ min: "01:00:00", max: "24:00:00" });
+  });
+
+  it("runs to the day boundary, past midnight", () => {
+    // 4am the following morning, so a gig ending at 1am sits at the bottom of
+    // the night it belongs to rather than at the top of the next morning.
+    expect(slotWindow([], BOUNDARY).max).toBe("28:00:00");
+    expect(slotWindow([], { boundaryHour: 0 }).max).toBe("24:00:00");
+    expect(slotWindow([], { boundaryHour: 6 }).max).toBe("30:00:00");
+  });
+
+  it("never opens before the boundary", () => {
+    // The one real hazard of a >24h slot range: let `min` fall below
+    // `max - 24` and a 1am event renders twice — once in its own column and
+    // again in the previous column's tail.
+    const window = slotWindow(
+      [instance({ start: "2026-01-13T01:00:00", end: "2026-01-13T02:00:00" })],
+      BOUNDARY
+    );
+
+    expect(window.min).toBe("04:00:00");
+    expect(Number(window.max.slice(0, 2)) - Number(window.min.slice(0, 2))).toBe(24);
+  });
+
+  it("clamps a nonsense boundary rather than producing a broken range", () => {
+    expect(slotWindow([], { boundaryHour: -3 }).max).toBe("24:00:00");
+    expect(slotWindow([], { boundaryHour: 99 }).max).toBe("47:00:00");
+    expect(slotWindow([], { boundaryHour: Number.NaN }).max).toBe("24:00:00");
   });
 
   it("keeps the default window for an empty week", () => {
-    expect(slotWindow([])).toEqual({ min: "09:00:00", max: "23:00:00" });
+    expect(slotWindow([], BOUNDARY)).toEqual({ min: "09:00:00", max: "28:00:00" });
   });
 });
 
 describe("WeekCalendar", () => {
   it("paints an event at the wall-clock time it was given", () => {
-    render(<WeekCalendar events={[instance()]} {...PERIOD} now={NOW} onCycle={vi.fn()} />);
+    render(<WeekCalendar events={[instance()]} {...PERIOD} now={NOW} boundaryHour={4} onCycle={vi.fn()} />);
 
     // 2pm, whatever zone the machine running this is in. A grid doing its own
     // conversion would show 9am here under TZ=UTC.
@@ -153,7 +197,7 @@ describe("WeekCalendar", () => {
 
   it("renders the period's days, not the current week", () => {
     const { container } = render(
-      <WeekCalendar events={[instance()]} {...PERIOD} now={NOW} onCycle={vi.fn()} />
+      <WeekCalendar events={[instance()]} {...PERIOD} now={NOW} boundaryHour={4} onCycle={vi.fn()} />
     );
 
     const headers = [...container.querySelectorAll(".fc-col-header-cell")].map(
@@ -171,11 +215,11 @@ describe("WeekCalendar", () => {
     // belonged. The remount that hid it only happens the first time a period is
     // fetched; a period already in the query cache re-renders in place.
     const { container, rerender } = render(
-      <WeekCalendar events={[]} periodStart="2026-01-15" periodEnd="2026-01-18" now={NOW} onCycle={vi.fn()} />
+      <WeekCalendar events={[]} periodStart="2026-01-15" periodEnd="2026-01-18" now={NOW} boundaryHour={4} onCycle={vi.fn()} />
     );
 
     rerender(
-      <WeekCalendar events={[]} periodStart="2026-01-19" periodEnd="2026-01-25" now={NOW} onCycle={vi.fn()} />
+      <WeekCalendar events={[]} periodStart="2026-01-19" periodEnd="2026-01-25" now={NOW} boundaryHour={4} onCycle={vi.fn()} />
     );
 
     const headers = [...container.querySelectorAll(".fc-col-header-cell")].map(
@@ -194,6 +238,7 @@ describe("WeekCalendar", () => {
         periodStart="2026-01-15"
         periodEnd="2026-01-18"
         now={NOW}
+        boundaryHour={4}
         onCycle={vi.fn()}
       />
     );
@@ -212,6 +257,7 @@ describe("WeekCalendar", () => {
         ]}
         {...PERIOD}
         now={NOW}
+        boundaryHour={4}
         onCycle={vi.fn()}
       />
     );
@@ -229,7 +275,7 @@ describe("WeekCalendar", () => {
       end: "2026-01-12T07:30:00",
     });
     const { container, rerender } = render(
-      <WeekCalendar events={[early]} {...PERIOD} now={NOW} onCycle={vi.fn()} />
+      <WeekCalendar events={[early]} {...PERIOD} now={NOW} boundaryHour={4} onCycle={vi.fn()} />
     );
 
     // Trimmed and compared whole: a bare /^6/ also matches 6pm, which is inside
@@ -241,7 +287,7 @@ describe("WeekCalendar", () => {
     expect(showsSixAm()).toBe(true);
 
     rerender(
-      <WeekCalendar events={[{ ...early, state: "hide" }]} {...PERIOD} now={NOW} onCycle={vi.fn()} />
+      <WeekCalendar events={[{ ...early, state: "hide" }]} {...PERIOD} now={NOW} boundaryHour={4} onCycle={vi.fn()} />
     );
 
     expect(showsSixAm()).toBe(false);
@@ -255,11 +301,35 @@ describe("WeekCalendar", () => {
     // This assertion only means something across the TZ matrix: on a machine
     // already in New York, the wrong answer and the right one coincide.
     const { container } = render(
-      <WeekCalendar events={[]} {...PERIOD} now="2026-01-14T20:00:00" onCycle={vi.fn()} />
+      <WeekCalendar events={[]} {...PERIOD} now="2026-01-14T20:00:00" boundaryHour={4} onCycle={vi.fn()} />
     );
 
     const today = container.querySelector(".fc-col-header-cell.fc-day-today");
     expect(today?.textContent).toContain("1/14");
+  });
+
+  it("puts a small-hours event at the end of the night it belongs to", () => {
+    // 1am on the 13th, drawn in the 12th's column at 25:00, because the day runs
+    // to the 4am boundary. Every other surface in this app already believes 1am
+    // belongs to the night before; this is the grid agreeing.
+    const { container } = render(
+      <WeekCalendar
+        events={[
+          instance({ title: "Late set", start: "2026-01-13T01:00:00", end: "2026-01-13T02:00:00" }),
+        ]}
+        {...PERIOD}
+        now={NOW}
+        boundaryHour={4}
+        onCycle={vi.fn()}
+      />
+    );
+
+    const nightBefore = container.querySelector('[data-date="2026-01-12"] .fc-event');
+    const ownDate = container.querySelector('[data-date="2026-01-13"] .fc-event');
+    expect(nightBefore).toBeTruthy();
+    // And exactly once: a window wider than 24 hours would draw it twice.
+    expect(ownDate).toBeNull();
+    expect(container.querySelectorAll(".fc-timegrid-body .fc-event")).toHaveLength(1);
   });
 
   it("keeps an all-day event out of the timed grid", () => {
@@ -270,6 +340,7 @@ describe("WeekCalendar", () => {
         ]}
         {...PERIOD}
         now={NOW}
+        boundaryHour={4}
         onCycle={vi.fn()}
       />
     );
@@ -281,7 +352,7 @@ describe("WeekCalendar", () => {
   it("hands the clicked instance back to the caller", () => {
     const onCycle = vi.fn();
     const { container } = render(
-      <WeekCalendar events={[instance()]} {...PERIOD} now={NOW} onCycle={onCycle} />
+      <WeekCalendar events={[instance()]} {...PERIOD} now={NOW} boundaryHour={4} onCycle={onCycle} />
     );
 
     (container.querySelector(".fc-event") as HTMLElement | null)?.click();
@@ -317,17 +388,17 @@ describe("slotWindow with a now-indicator", () => {
   it("keeps an early now in view", () => {
     // A line above the top of the grid isn't drawn at all, and 7am on a day with
     // nothing before 9 is a perfectly normal morning.
-    expect(slotWindow([], "2026-01-12T07:20:00").min).toBe("07:00:00");
+    expect(slotWindow([], { boundaryHour: 4, now: "2026-01-12T07:20:00" }).min).toBe("07:00:00");
   });
 
-  it("keeps a late now in view", () => {
-    expect(slotWindow([], "2026-01-12T23:40:00").max).toBe("24:00:00");
+  it("needs no help with a late now — the grid already runs past midnight", () => {
+    expect(slotWindow([], { boundaryHour: 4, now: "2026-01-12T23:40:00" }).max).toBe("28:00:00");
   });
 
   it("changes nothing when now is inside the default window", () => {
-    expect(slotWindow([], "2026-01-12T14:00:00")).toEqual({
+    expect(slotWindow([], { boundaryHour: 4, now: "2026-01-12T14:00:00" })).toEqual({
       min: "09:00:00",
-      max: "23:00:00",
+      max: "28:00:00",
     });
   });
 });

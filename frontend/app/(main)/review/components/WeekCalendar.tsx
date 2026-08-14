@@ -47,6 +47,12 @@ interface WeekCalendarProps {
   sunsets?: string[];
   /** Draw the line marking the current time. Off on the review, on for today. */
   showNow?: boolean;
+  /**
+   * The hour the user's day turns over. Given, the grid runs past midnight to
+   * `boundary + 24` — which only the daily view wants; the week stops at
+   * midnight.
+   */
+  boundaryHour?: number;
   /** Omitted where the grid is for reading rather than deciding. */
   onCycle?: (instance: ResolvedInstance) => void;
 }
@@ -81,70 +87,91 @@ export function toFullCalendarEvents(events: ResolvedInstance[]) {
   }));
 }
 
-/** The default working window — the hours a week is normally read in. */
+/** Where a day is normally read from, when nothing earlier demands otherwise. */
 const DEFAULT_FIRST_HOUR = 9;
-const DEFAULT_LAST_HOUR = 23;
 
 const asSlot = (hour: number) => `${String(hour).padStart(2, "0")}:00:00`;
 
 /**
- * The band of hours the grid shows.
+ * The band of hours a day column shows.
  *
- * Starts at 9am, because that is where a week is normally read from and eight
- * empty rows above the first event are eight rows of nothing. It opens earlier
- * only when something is actually up there — so the window is decided by the
- * week rather than fixed in advance, and an early meeting can't fall off the top
- * of the grid where it would be invisible rather than merely undecided.
+ * ## Where the day ends
  *
- * **Ignored events don't count.** Deciding to ignore the 6am thing is exactly
- * the statement that it shouldn't stretch your picture of the day; only kept and
- * undecided events widen the window. Which means the grid tightens up as a
- * review is worked through, and that's the intended feel.
+ * Midnight, unless a `boundaryHour` is given — and only the daily grid gives
+ * one. There, a day ends where the rest of the app says it ends (the user's
+ * `dayBoundaryHour`), so the column runs to `boundary + 24`: `27:00:00` for a
+ * 3am boundary. FullCalendar supports slot times beyond 24 hours precisely for
+ * this and renders the small hours of the *following* date in the current
+ * column, so a gig ending at 1am sits at the bottom of the night it belongs to
+ * rather than at the top of the next morning — which is what every other surface
+ * in this app already believes about 1am.
  *
- * The same rule runs at the bottom, for the same reason: an event ending after
- * 11pm would otherwise be silently clipped.
+ * The week grid doesn't do that. Seven columns each running three hours into the
+ * next is a lot of mostly-empty grid to carry for the sake of the occasional
+ * late night, and the week is read for its shape rather than its edges.
+ *
+ * **The window must never exceed 24 hours**, and that's the one real hazard of
+ * the extended form. Let `min` fall below `max - 24` and a 1am event renders
+ * twice: once in its own column at 01:00 and again in the previous column at
+ * 25:00. Hence the clamp to the boundary below.
+ *
+ * ## It starts at 9am, unless
+ *
+ * Eight empty rows above the first event are eight rows of nothing. It opens
+ * earlier when something is actually up there — so the window is decided by the
+ * day rather than fixed in advance, and an early meeting can't fall off the top
+ * where it would be invisible rather than merely undecided. Never earlier than
+ * the boundary, per above.
+ *
+ * **Ignored events don't count.** Deciding an event is fake is exactly the
+ * statement that it shouldn't stretch your picture of the day; only real and
+ * undecided ones widen the window. So the grid tightens up as a review is worked
+ * through, which is the intended feel.
  *
  * Exported and pure so the rule can be asserted without a rendered grid.
  */
+export interface SlotWindowOptions {
+  /**
+   * The hour the user's day turns over. Given, the grid runs to `boundary + 24`
+   * and never opens before the boundary; omitted, a day ends at midnight.
+   */
+  boundaryHour?: number;
+  /**
+   * Kept in view where the grid draws a now-indicator — a line above the top of
+   * the grid isn't drawn at all, and an empty morning is a normal morning.
+   */
+  now?: string;
+}
+
 export function slotWindow(
   events: ResolvedInstance[],
-  /** Kept in view where the grid draws a now-indicator — a line above the top
-   *  of the grid isn't drawn at all, and an empty morning is a normal morning. */
-  now?: string
+  { boundaryHour, now }: SlotWindowOptions = {}
 ): { min: string; max: string } {
+  const extended = boundaryHour !== undefined && Number.isFinite(boundaryHour);
+  const boundary = extended
+    ? Math.min(23, Math.max(0, Math.trunc(boundaryHour as number)))
+    : 0;
   let first = DEFAULT_FIRST_HOUR;
-  let last = DEFAULT_LAST_HOUR;
 
-  if (now) {
-    const nowHour = Number(now.slice(11, 13));
-    if (Number.isFinite(nowHour)) {
-      first = Math.min(first, nowHour);
-      last = Math.max(last, Math.min(24, nowHour + 1));
-    }
-  }
+  const openTo = (value: string) => {
+    const hour = Number(value.slice(11, 13));
+    if (Number.isFinite(hour)) first = Math.min(first, hour);
+  };
+
+  if (now) openTo(now);
 
   for (const event of events) {
     // All-day events live in their own row above the grid, so they say nothing
     // about which hours to show.
     if (event.allDay || event.state === "hide") continue;
-
-    const startHour = Number(event.start.slice(11, 13));
-    if (Number.isFinite(startHour)) first = Math.min(first, startHour);
-
-    // A run past midnight is reported as the end of the day rather than as hour
-    // zero, which would read as "ends before it starts" and collapse the grid.
-    const crossesMidnight = event.end.slice(0, 10) !== event.start.slice(0, 10);
-    const endHour = Number(event.end.slice(11, 13));
-    const endMinute = Number(event.end.slice(14, 16));
-    if (crossesMidnight) last = 24;
-    else if (Number.isFinite(endHour)) {
-      last = Math.max(last, endMinute > 0 ? endHour + 1 : endHour);
-    }
+    openTo(event.start);
   }
 
   return {
-    min: asSlot(Math.max(0, Math.min(first, DEFAULT_FIRST_HOUR))),
-    max: asSlot(Math.min(24, last)),
+    // Never before the boundary, or the column would overlap the one before it
+    // and render the small hours twice.
+    min: asSlot(Math.max(boundary, Math.min(first, DEFAULT_FIRST_HOUR))),
+    max: asSlot(boundary + 24),
   };
 }
 
@@ -180,6 +207,7 @@ export default function WeekCalendar({
   now,
   sunsets = [],
   showNow = false,
+  boundaryHour,
   onCycle,
 }: WeekCalendarProps) {
   const fcEvents = useMemo(
@@ -187,8 +215,8 @@ export default function WeekCalendar({
     [events, sunsets]
   );
   const slots = useMemo(
-    () => slotWindow(events, showNow ? now : undefined),
-    [events, showNow, now]
+    () => slotWindow(events, { boundaryHour, now: showNow ? now : undefined }),
+    [events, boundaryHour, showNow, now]
   );
   const calendarRef = useRef<FullCalendar | null>(null);
 
