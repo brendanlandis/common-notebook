@@ -35,6 +35,9 @@ vi.mock('@/app/hooks/usePracticeSession', () => ({
 }));
 
 const readyMaterial = vi.hoisted(() => ({ current: null as Task | null }));
+// Stable across renders, so `dismiss` can be asserted on — a fresh `vi.fn()` per
+// render would also make the component's effect dependency churn every time.
+const ui = vi.hoisted(() => ({ openFor: vi.fn(), dismiss: vi.fn() }));
 
 vi.mock('@/app/contexts/PracticeSessionContext', async () => {
   const actual = await vi.importActual<typeof import('@/app/contexts/PracticeSessionContext')>(
@@ -44,8 +47,8 @@ vi.mock('@/app/contexts/PracticeSessionContext', async () => {
     ...actual,
     usePracticeSessionUI: () => ({
       readyMaterial: readyMaterial.current,
-      openFor: vi.fn(),
-      dismiss: vi.fn(),
+      openFor: ui.openFor,
+      dismiss: ui.dismiss,
     }),
   };
 });
@@ -75,6 +78,8 @@ beforeEach(() => {
   vi.useFakeTimers({ shouldAdvanceTime: true });
   vi.setSystemTime(new Date('2026-08-14T15:00:00.000Z'));
   readyMaterial.current = null;
+  ui.openFor.mockClear();
+  ui.dismiss.mockClear();
   session.current = {
     ...session.current,
     session: null,
@@ -112,6 +117,28 @@ describe('ready state', () => {
     );
     expect(session.current.start).toHaveBeenCalledWith('material-1');
   });
+
+  it('closes from the corner rather than a button at the foot of the panel', () => {
+    readyMaterial.current = material;
+    renderModal();
+
+    fireEvent.click(screen.getByRole('button', { name: 'close' }));
+    expect(ui.dismiss).toHaveBeenCalled();
+  });
+
+  it('stays on screen while the start is in flight', () => {
+    // The regression: pressing play used to `dismiss()` synchronously, clearing
+    // the offer while the POST was still going. For the length of the round trip
+    // there was neither an offer nor a session, so the modal unmounted and the
+    // page flashed through behind it. The offer is now released by an effect,
+    // once there is a session to replace it with.
+    readyMaterial.current = material;
+    session.current = { ...session.current, isStarting: true };
+    renderModal();
+
+    expect(screen.getByRole('dialog', { name: 'start practicing' })).toBeDefined();
+    expect(ui.dismiss).not.toHaveBeenCalled();
+  });
 });
 
 describe('running', () => {
@@ -145,6 +172,16 @@ describe('running', () => {
   it('does not offer to correct a session that has just started', () => {
     renderModal();
     expect(screen.queryByText(/you left this running/i)).toBeNull();
+  });
+
+  it('releases the offer once the session it was for exists', () => {
+    // The other half of the no-flash fix: the offer is dropped here rather than
+    // on click, and the running panel takes over in the same paint.
+    readyMaterial.current = material;
+    renderModal();
+
+    expect(screen.getByRole('dialog', { name: 'practicing' })).toBeDefined();
+    expect(ui.dismiss).toHaveBeenCalled();
   });
 });
 

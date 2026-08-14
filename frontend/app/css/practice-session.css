@@ -1,9 +1,13 @@
 /* The practice screen.
  *
- * Full-bleed and opaque while a session runs, because that is the point: there
- * is nothing to read and nothing to decide, and the app being unreachable is
- * what makes a forgotten timer impossible to ignore. Pausing collapses it to a
- * corner button — the only way out, deliberately. */
+ * A panel over a dimmed page, not a full-bleed takeover. What the design needs
+ * is that the app is *unreachable* while a session runs — the backdrop covers
+ * everything and eats every click, so a forgotten timer is impossible to ignore
+ * and pausing remains the only way back to the app. Painting the page out
+ * entirely as well was a step past that: it stopped reading as a modal and
+ * started reading as a navigation, with no visible edge to say otherwise.
+ *
+ * Pausing collapses it to a corner button — the only way out, deliberately. */
 
 .practice-modal {
   position: fixed;
@@ -11,17 +15,48 @@
   z-index: 60;
   display: grid;
   place-items: center;
-  background: var(--color-base-100);
+  padding: 1rem;
+  /* Literal black rather than a theme token: this is a shadow over the page, and
+   * it has to read as one against a light theme and a dark one alike. */
+  background: rgb(0 0 0 / 0.55);
 }
 
 .practice-modal-body {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 2rem;
-  padding: 2rem;
+  padding: 2.5rem 2rem;
   text-align: center;
-  max-width: 32rem;
+  width: 100%;
+  max-width: 26rem;
+  border-radius: 1rem;
+  background: var(--color-base-100);
+  box-shadow: 0 1.5rem 3rem rgb(0 0 0 / 0.35);
+}
+
+/* Top right, and only in the ready state — the running panel deliberately has no
+ * close. A dismiss that left the clock running is exactly the "hide but keep
+ * practicing" escape the whole design is built to refuse, and
+ * `PracticeSessionModal.test.tsx` asserts its absence there. */
+.practice-close {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  display: inline-flex;
+  padding: 0.5rem;
+  border: none;
+  background: none;
+  color: inherit;
+  opacity: 0.5;
+  cursor: pointer;
+  transition: opacity var(--transition-time) ease;
+
+  &:hover,
+  &:focus-visible {
+    opacity: 1;
+  }
 }
 
 .practice-subject h2 {
@@ -65,10 +100,6 @@
 .practice-stop:disabled {
   opacity: 0.4;
   cursor: default;
-}
-
-.practice-dismiss {
-  opacity: 0.7;
 }
 
 /* Paused: a small button, top right, over everything. Still visible from every

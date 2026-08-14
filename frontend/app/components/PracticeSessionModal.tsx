@@ -1,7 +1,7 @@
 'use client';
 
-import { useMemo } from 'react';
-import { PlayIcon, PauseIcon, StopIcon, MetronomeIcon } from '@phosphor-icons/react';
+import { useEffect, useMemo } from 'react';
+import { PlayIcon, PauseIcon, StopIcon, MetronomeIcon, XIcon } from '@phosphor-icons/react';
 import { useActiveSession } from '@/app/hooks/usePracticeSession';
 import { usePracticeSessionUI } from '@/app/contexts/PracticeSessionContext';
 import { useDateTimeSettings } from '@/app/contexts/DateTimeSettingsContext';
@@ -25,11 +25,18 @@ import PracticeClock from './PracticeClock';
  * Three states:
  *
  * - **ready** — you clicked a practice icon and haven't pressed play. Name,
- *   subject, play button.
- * - **running** — full screen, clock, pause and stop.
- * - **paused** — a button in the corner. Pause is the only way out of
- *   full-screen, deliberately: an escape that left the clock running would
- *   reintroduce precisely the forgetting this prevents.
+ *   subject, play button, and a close in the corner.
+ * - **running** — the same panel, with a clock, pause and stop, and **no close**.
+ * - **paused** — a button in the corner. Pause is the only way out,
+ *   deliberately: an escape that left the clock running would reintroduce
+ *   precisely the forgetting this prevents.
+ *
+ * The panel is a dialog over a dimmed page rather than an opaque full-bleed
+ * screen. The property that matters isn't that the app is invisible, it's that
+ * the app is *unreachable* — the backdrop still covers everything and eats every
+ * click, so a running session is still something you have to deal with before you
+ * can do anything else. Hiding the page as well only made it hard to tell the
+ * practice screen from a navigation.
  */
 export default function PracticeSessionModal() {
   const { timeZoneSettings } = useDateTimeSettings();
@@ -48,6 +55,28 @@ export default function PracticeSessionModal() {
     [session, segments, timeZoneSettings]
   );
 
+  /**
+   * Let go of the offer once there is a real session to show instead.
+   *
+   * This used to happen in the play button's `onClick`, immediately after
+   * `start()` — which cleared `readyMaterial` while the POST was still in flight,
+   * leaving neither an offer nor a session for the length of the round trip. The
+   * modal unmounted and the page flashed through behind it before the running
+   * screen appeared.
+   *
+   * Waiting for the session instead means the ready panel simply stays put (with
+   * its play button disabled) until the server answers, and the two states hand
+   * over with nothing in between. It also leaves the offer intact when a start is
+   * *refused*, so the material is still named and the button can be pressed
+   * again, rather than the whole thing vanishing with no explanation.
+   *
+   * Safe against the other order too: `openFor` while something is already
+   * running clears immediately, which is right — you cannot start a second one.
+   */
+  useEffect(() => {
+    if (session && readyMaterial) dismiss();
+  }, [session, readyMaterial, dismiss]);
+
   // Nothing running and nothing offered: the modal isn't there at all.
   if (!session && !readyMaterial) return null;
 
@@ -57,24 +86,23 @@ export default function PracticeSessionModal() {
     return (
       <div className="practice-modal is-ready" role="dialog" aria-label="start practicing">
         <div className="practice-modal-body">
+          <button
+            type="button"
+            className="practice-close"
+            aria-label="close"
+            onClick={dismiss}
+          >
+            <XIcon size={20} weight="bold" />
+          </button>
           <PracticeSubject title={readyMaterial.title} subject={readyMaterial.project?.title} />
           <button
             type="button"
             className="practice-play"
             aria-label={`start practicing ${readyMaterial.title}`}
             disabled={isStarting}
-            onClick={() => {
-              start(readyMaterial.documentId);
-              // Let go of the offer: from here the server's open session is what
-              // puts this on screen, and holding both would leave a stale name
-              // behind if the start were refused.
-              dismiss();
-            }}
+            onClick={() => start(readyMaterial.documentId)}
           >
             <PlayIcon size={96} weight="regular" />
-          </button>
-          <button type="button" className="btn practice-dismiss" onClick={dismiss}>
-            not now
           </button>
         </div>
       </div>
