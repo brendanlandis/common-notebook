@@ -349,15 +349,21 @@ describe("WeekCalendar", () => {
     expect(container.querySelector(".fc-daygrid-body .fc-event")).toBeTruthy();
   });
 
-  it("hands the clicked instance back to the caller", () => {
+  it("hands the clicked instance back to the caller, with its element", () => {
+    // The element as well as the instance: a decision that takes the event off
+    // the grid fades it out first, and only the DOM node can be faded.
     const onCycle = vi.fn();
     const { container } = render(
       <WeekCalendar events={[instance()]} {...PERIOD} now={NOW} boundaryHour={4} onCycle={onCycle} />
     );
 
-    (container.querySelector(".fc-event") as HTMLElement | null)?.click();
+    const element = container.querySelector(".fc-event") as HTMLElement | null;
+    element?.click();
 
-    expect(onCycle).toHaveBeenCalledWith(expect.objectContaining({ uid: "evt@test" }));
+    expect(onCycle).toHaveBeenCalledWith(
+      expect.objectContaining({ uid: "evt@test" }),
+      element
+    );
   });
 });
 

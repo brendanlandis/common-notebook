@@ -48,6 +48,39 @@ input.toggle::before {
   border-radius: 50%;
 }
 
+/* A switch is still an `<input type="checkbox">` underneath, and
+ * `@tailwindcss/forms` paints a checkmark SVG on *any* checked checkbox — so a
+ * tick appeared in the middle of the track, behind the knob, whenever the
+ * switch was on. Two controls drawn on top of each other, each saying the same
+ * thing a different way.
+ *
+ * daisyUI can't prevent it: it sets `background-image` on the knob's
+ * pseudo-element, not on the input, so the plugin's rule is unopposed. The
+ * knob's position is the whole vocabulary of a switch; nothing else belongs in
+ * there. */
+input.toggle:checked {
+  background-image: none;
+}
+
+/* …and they move at the site's speed.
+ *
+ * daisyUI ships its own durations — .2s for the toggle's knob and .1s for its
+ * fill, .2s for a checkbox — which is roughly half `--transition-time` and reads
+ * as another app's animation sitting in the same row as things that move at
+ * ours. Most visible on the review page, where the cycle switch and the "show
+ * all" checkbox sit directly above a grid and beside pills that fly.
+ *
+ * `transition-duration` with a single value covers every property in whatever
+ * shorthand daisyUI declared, so this neither restates their list nor rots when
+ * it changes. Unlayered, so it beats their `@layer utilities` rule outright —
+ * the same mechanism as the radii above. */
+input.toggle,
+input.toggle::before,
+input.checkbox,
+input.checkbox::before {
+  transition-duration: var(--transition-time);
+}
+
 .error {
   font-style: italic;
 }

@@ -183,11 +183,24 @@
   }
 }
 
-/* The padding-top is set inline, from a measurement of where the now-indicator
- * landed — see the daily page. Nothing to declare here but the transition, so
- * that the list slides as the day passes rather than jumping each minute. */
+/* Lined up with the now-indicator — but only when there's something to line up
+ * with.
+ *
+ * The offset is measured from the rendered grid and handed in as `--now-offset`
+ * (see the daily page). It's applied here rather than inline because it is only
+ * meaningful in the two-column layout: stacked, the list sits *above* the
+ * calendar, and padding matching a line several hundred pixels down another
+ * element is just a screenful of nothing at the top of the page. The old inline
+ * padding applied at every width, so that is exactly what a narrow window got.
+ *
+ * The transition is so the list slides as the day passes rather than jumping
+ * each minute. */
 .daily-chosen {
   transition: padding-top var(--transition-time) ease;
+
+  @media (min-width: 60rem) {
+    padding-top: var(--now-offset, 0);
+  }
 }
 
 .daily-todo {
@@ -195,14 +208,26 @@
   padding: 0;
   margin: 0;
 
+  /* The row's spacing lives on the label rather than here, so that the label's
+   * own box is a pill's height. The `li` would otherwise contribute the gap from
+   * outside it, and the shape that morphs would be 10px shorter than the pill it
+   * came from — the same complaint as the width, in the other direction. */
   li {
-    padding: 0.15rem 0;
+    padding: 0;
   }
 
+  /* `inline-flex`, so the row is as wide as its own contents rather than as wide
+   * as the column. That width is what the pill morphs into when a task is
+   * picked (the name sits on this element, not the `li`), and against a
+   * full-width row the browser scaled the pill up to meet it — the task read as
+   * growing rather than moving. Shrink-wrapped, it's a checkbox's worth wider
+   * than the pill was and the movement is all you see. */
   label {
-    display: flex;
+    display: inline-flex;
     align-items: center;
     gap: 0.5rem;
+    /* Matches the pill's vertical padding, per above. */
+    padding: 0.25rem 0;
     cursor: pointer;
   }
 
@@ -257,6 +282,63 @@
   width: 3rem;
   height: 3rem;
   color: var(--primary-color);
+}
+
+/* Events fade in as the feeds answer, rather than landing in one jump.
+ *
+ * The grid is drawn immediately and the events arrive several seconds later
+ * (see the spinner above), so without this the week's contents simply appear —
+ * the one moment on the page where something moves at no speed at all, next to
+ * pills and toggles that all move at `--transition-time`.
+ *
+ * An animation rather than a transition because there is nothing to transition
+ * *from*: these elements don't exist until the events arrive, and a transition
+ * on a freshly-inserted element doesn't run.
+ *
+ * On the *harness* rather than the event, which is what keeps it to arrival.
+ * FullCalendar creates one harness per occurrence and reuses it for an event
+ * whose id hasn't changed — and `toFullCalendarEvents` builds the id from the
+ * calendar, uid and recurrence, none of which a decision touches. So cycling an
+ * event's state repaints it in place instead of re-firing this, which as a fade
+ * on every click would be worse than no fade at all. */
+@keyframes cal-event-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.review-calendar .fc-timegrid-event-harness,
+.review-calendar .fc-daygrid-event-harness {
+  animation: cal-event-in var(--transition-time) ease both;
+}
+
+/* The pills' transition is skipped outright in this case rather than shortened
+ * (see `canViewTransition`); there's no equivalent hook for a CSS animation, so
+ * it's turned off here. */
+@media (prefers-reduced-motion: reduce) {
+  .review-calendar .fc-timegrid-event-harness,
+  .review-calendar .fc-daygrid-event-harness {
+    animation: none;
+  }
+}
+
+/* …and out again, when a decision takes an event off the grid.
+ *
+ * The class is put on by `leaveThenUpdate`, which then waits exactly this long
+ * before making the change that removes the element — CSS alone can't animate a
+ * node that is about to stop existing. `pointer-events` goes with it so a second
+ * click can't land on an event whose fate is already decided.
+ *
+ * More specific than `.cal-event-hide`'s own `opacity: 0.75`, so it wins without
+ * `!important`. Reduced motion is handled in `leaveThenUpdate`, which skips the
+ * wait entirely rather than fading at zero duration. */
+.review-calendar .is-leaving {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--transition-time) ease;
 }
 
 /* Sunset: a line across the day, not a block.

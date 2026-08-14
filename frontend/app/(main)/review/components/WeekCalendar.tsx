@@ -53,8 +53,14 @@ interface WeekCalendarProps {
    * midnight.
    */
   boundaryHour?: number;
-  /** Omitted where the grid is for reading rather than deciding. */
-  onCycle?: (instance: ResolvedInstance) => void;
+  /**
+   * Omitted where the grid is for reading rather than deciding.
+   *
+   * Handed the clicked element as well as the instance, because a decision that
+   * takes the event off the grid has to fade it out first, and only the DOM node
+   * can be faded — see `leaveThenUpdate`.
+   */
+  onCycle?: (instance: ResolvedInstance, element: HTMLElement) => void;
 }
 
 const STATE_CLASS: Record<string, string> = {
@@ -282,7 +288,7 @@ export default function WeekCalendar({
           const instance = info.event.extendedProps.instance as ResolvedInstance | undefined;
           // Background events (the sunset line) carry no instance, and a grid
           // with no `onCycle` is for reading.
-          if (instance) onCycle?.(instance);
+          if (instance) onCycle?.(instance, info.el);
         }}
       />
     </div>

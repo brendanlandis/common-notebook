@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach, vi } from 'vitest';
-import { canViewTransition } from './viewTransition';
+import { canViewTransition, prefersReducedMotion as asksForLessMotion, transitionMs } from './viewTransition';
 
 /**
  * Both branches, because both are load-bearing and neither is exercised by the
@@ -59,5 +59,45 @@ describe('canViewTransition', () => {
     (window as Partial<Window>).matchMedia = undefined;
 
     expect(canViewTransition()).toBe(true);
+  });
+});
+
+describe('prefersReducedMotion', () => {
+  it('answers without asking whether view transitions exist', () => {
+    // A plain fade needs the preference and not the capability: Firefox has no
+    // view transitions and can still fade something out perfectly well.
+    delete (document as Partial<Document>).startViewTransition;
+    prefersReducedMotion(true);
+    expect(asksForLessMotion()).toBe(true);
+
+    prefersReducedMotion(false);
+    expect(asksForLessMotion()).toBe(false);
+  });
+});
+
+describe('transitionMs', () => {
+  const setToken = (value: string) =>
+    document.documentElement.style.setProperty('--transition-time', value);
+
+  afterEach(() => document.documentElement.style.removeProperty('--transition-time'));
+
+  it('reads the site token in either unit', () => {
+    // `450ms` is what screen.css declares; `.45s` is what a browser reports back
+    // from `getComputedStyle` for the same thing, and both have shown up.
+    setToken('450ms');
+    expect(transitionMs()).toBe(450);
+
+    setToken('.45s');
+    expect(transitionMs()).toBe(450);
+  });
+
+  it('falls back rather than returning NaN', () => {
+    // A NaN timeout fires immediately, which would silently delete the fade it
+    // exists to wait for.
+    setToken('');
+    expect(transitionMs()).toBe(450);
+
+    setToken('lightning');
+    expect(transitionMs()).toBe(450);
   });
 });

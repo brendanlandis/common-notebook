@@ -123,9 +123,15 @@ test.describe('review', () => {
       await expect(
         page.getByRole('button', { name: chosen.title, pressed: true })
       ).toBeVisible();
-      // And it moves out of its project group into the picked list above.
+      // And it moves out of its project group into the picked list above. That
+      // heading names the period rather than the act of picking — "this week" on
+      // a weekly cadence — so it's located by position instead of by text, which
+      // would otherwise break the moment the account changed its review
+      // schedule.
+      // Located structurally: the picked list is the one hanging directly off a
+      // section, where every list in the pool below sits inside a project group.
       await expect(
-        page.locator('section', { has: page.getByRole('heading', { name: 'picked' }) })
+        page.locator('.review-section > .review-pick-list')
           .getByRole('button', { name: chosen.title })
       ).toBeVisible();
       expect((await written).ok()).toBe(true);

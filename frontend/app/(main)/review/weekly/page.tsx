@@ -14,6 +14,7 @@ import { cadenceIsUsable, cycleNoun } from "@/app/lib/reviewCadence";
 import { buildReviewLists, partitionSelected, type ProjectGroup } from "@/app/lib/reviewLists";
 import { wallClockNow } from "@/app/lib/dateUtils";
 import { canViewTransition } from "@/app/lib/viewTransition";
+import { leaveThenUpdate } from "../leaveThenUpdate";
 import { useReviewCovering, useSaveReview } from "../hooks/useReview";
 import { useCalendarEvents, useSetDecision } from "../hooks/useCalendarEvents";
 import { isFullyDecided, undecided, type ResolvedInstance } from "@/app/lib/ics/resolveDecisions";
@@ -89,6 +90,21 @@ export default function WeeklyReviewPage() {
   // things you already dismissed is most of what you'd be looking at — the
   // opposite of seeing what the week actually is.
   const [showIgnored, setShowIgnored] = useState(false);
+  /**
+   * True while the ignored events are on their way out.
+   *
+   * Two states rather than one, because the checkbox and the grid answer on
+   * different schedules. Deferring the single `showIgnored` until the fade
+   * finished deferred the checkbox with it — click it and nothing moved for
+   * most of a second, which is the one thing a checkbox must never do. So the
+   * control flips at once and the grid keeps rendering the fading events until
+   * they're actually gone.
+   */
+  const [foldingAway, setFoldingAway] = useState(false);
+  const ignoredOnGrid = showIgnored || foldingAway;
+  // Only so the ignored events can be found and faded when they're folded away;
+  // nothing here reads the grid otherwise.
+  const calendarFrame = useRef<HTMLDivElement | null>(null);
 
   const period = useMemo(() => {
     if (!cadence) return null;
@@ -114,15 +130,41 @@ export default function WeeklyReviewPage() {
    * series-level, so deciding once about a standup covers every future one.
    * Only an event already carrying its own override keeps overriding.
    */
-  const cycleEvent = (instance: ResolvedInstance) => {
+  const cycleEvent = (instance: ResolvedInstance, element: HTMLElement) => {
     const next =
       instance.state === "unset" ? "show" : instance.state === "show" ? "hide" : null;
-    setDecision({
-      calendar: instance.calendarDocumentId,
-      uid: instance.uid,
-      recurrenceId: instance.source === "instance" ? instance.recurrenceId : null,
-      state: next,
-    });
+
+    // Calling an event fake takes it off the grid unless the ignored ones are
+    // being shown, so it fades before it goes. Every other step of the cycle
+    // repaints in place and needs nothing.
+    const willVanish = next === "hide" && !showIgnored;
+    leaveThenUpdate(willVanish ? [element] : [], () =>
+      setDecision({
+        calendar: instance.calendarDocumentId,
+        uid: instance.uid,
+        recurrenceId: instance.source === "instance" ? instance.recurrenceId : null,
+        state: next,
+      })
+    );
+  };
+
+  /**
+   * Folding the fake ones away, which removes several events at once.
+   *
+   * Same fade as a single decision, applied to all of them — otherwise the one
+   * control that empties a visible part of the grid is the one thing on the page
+   * that does it instantly. Revealing them needs no equivalent: an event
+   * arriving already fades in, because the animation runs when FullCalendar
+   * inserts the element.
+   */
+  const revealIgnored = (show: boolean) => {
+    // The control moves immediately either way; only the grid waits.
+    setShowIgnored(show);
+    if (show) return;
+
+    const leaving = calendarFrame.current?.querySelectorAll(".cal-event-hide") ?? [];
+    setFoldingAway(true);
+    leaveThenUpdate(leaving, () => setFoldingAway(false));
   };
 
   // The counts below deliberately read the *whole* set, not the filtered one:
@@ -132,12 +174,12 @@ export default function WeeklyReviewPage() {
   const ignoredCount = events.filter((event) => event.state === "hide").length;
   // Nothing undecided and nothing fake on screen means every block is a real
   // event, which needs no key.
-  const needsLegend = !isFullyDecided(events) || showIgnored;
+  const needsLegend = !isFullyDecided(events) || ignoredOnGrid;
   // Memoized because a fresh array each render would rebuild the calendar's
   // event list every time anything else on the page changes.
   const shownEvents = useMemo(
-    () => (showIgnored ? events : events.filter((event) => event.state !== "hide")),
-    [events, showIgnored]
+    () => (ignoredOnGrid ? events : events.filter((event) => event.state !== "hide")),
+    [events, ignoredOnGrid]
   );
 
   // An existing review for this period means we're re-running one; its selection
@@ -320,7 +362,10 @@ export default function WeeklyReviewPage() {
             )}
             {/* Only while they're on screen — a key to a symbol you can't see is
                 just more to read. */}
-            {needsLegend && showIgnored && (
+            {/* `ignoredOnGrid`, not the checkbox: the key belongs on screen for
+                as long as the glyph it explains is, which includes the beat
+                while the fake ones are fading out. */}
+            {needsLegend && ignoredOnGrid && (
               <span>
                 <i className="swatch swatch-hide" aria-hidden="true" />✕ fake
               </span>
@@ -334,7 +379,7 @@ export default function WeeklyReviewPage() {
                   type="checkbox"
                   className="checkbox"
                   checked={showIgnored}
-                  onChange={(event) => setShowIgnored(event.target.checked)}
+                  onChange={(event) => revealIgnored(event.target.checked)}
                 />
                 show all
               </label>
@@ -362,7 +407,7 @@ export default function WeeklyReviewPage() {
           {/* No heading. It's a labelled seven-day grid — anything written over
               it is a caption on a photograph of itself. The key and the controls
               sit in the row above, outside this section. */}
-          <div className="review-calendar-frame">
+          <div className="review-calendar-frame" ref={calendarFrame}>
             <WeekCalendar
               events={shownEvents}
               periodStart={period.periodStart}
@@ -404,7 +449,14 @@ export default function WeeklyReviewPage() {
           object in both places is what makes the move legible at all. */}
       {picked.length > 0 && (
         <section className="review-section">
-          <h2>picked</h2>
+          {/* Named for the period it's a plan for, in the same words as the
+              switch above — "this week" while you're reviewing this one, "next
+              week" while you're reviewing the next. A fixed "this week" would be
+              a lie half the time, and on a lunar or seasonal cadence it would be
+              the wrong noun as well. */}
+          <h2>
+            {mode === "upcoming" ? "next" : "this"} {noun}
+          </h2>
           <TaskPickList
             tasks={picked}
             selected={selected}
@@ -422,7 +474,11 @@ export default function WeeklyReviewPage() {
           project it's part of. */}
       {remaining.length > 0 && (
         <section className="review-section">
-          <h2>presently</h2>
+          {/* Everything you haven't picked, which is not the same as everything
+              you're ignoring — hence the wording. It says "these are real and
+              they're coming" without saying when, which is the whole line this
+              feature walks. */}
+          <h2>not yet but soon</h2>
           {remaining.map((group) => (
             <ProjectGroupList
               key={group.key}

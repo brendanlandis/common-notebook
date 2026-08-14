@@ -25,9 +25,45 @@
 export function canViewTransition(): boolean {
   if (typeof document === 'undefined' || typeof window === 'undefined') return false;
   if (typeof document.startViewTransition !== 'function') return false;
+  return !prefersReducedMotion();
+}
 
+/**
+ * The reduced-motion half of the check above, on its own.
+ *
+ * An animation that is *only* a fade needs this and not the support check — a
+ * browser without view transitions can still fade something out perfectly well,
+ * and gating it on `canViewTransition` would deny Firefox an animation it is
+ * entirely capable of.
+ */
+export function prefersReducedMotion(): boolean {
+  if (typeof window === 'undefined') return false;
   // `matchMedia` is absent in some test environments and older embedded
   // browsers; treat "can't ask" as "no preference expressed".
-  const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-  return !reduced;
+  return window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
+}
+
+/** Fallback for `--transition-time`, and the only place it's duplicated. */
+const DEFAULT_TRANSITION_MS = 450;
+
+/**
+ * `--transition-time` in milliseconds.
+ *
+ * Read from the document rather than declared here, because the token in
+ * `screen.css` is the site's one answer to "how fast does anything move" and a
+ * second copy in JS would drift from it silently. Needed wherever an animation
+ * has to *finish before* something else happens — a fade-out, where the element
+ * is removed at the end — which is the one case CSS cannot express alone.
+ */
+export function transitionMs(): number {
+  if (typeof window === 'undefined' || typeof document === 'undefined') {
+    return DEFAULT_TRANSITION_MS;
+  }
+  const raw = getComputedStyle(document.documentElement)
+    .getPropertyValue('--transition-time')
+    .trim();
+  // Authored as `450ms` or `.45s`; both are legal and both have shown up.
+  const value = Number.parseFloat(raw);
+  if (!Number.isFinite(value)) return DEFAULT_TRANSITION_MS;
+  return raw.endsWith('ms') ? value : value * 1000;
 }
