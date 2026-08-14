@@ -364,7 +364,7 @@ describe('partitionSelected', () => {
  * nothing zone-dependent here to test across the matrix — and nothing that
  * should become zone-dependent later.
  */
-describe('buildReviewLists — the cycle window', () => {
+describe('buildReviewLists — has it come round yet', () => {
   const WEEK: ReviewWindow = { periodStart: '2026-08-10', periodEnd: '2026-08-16' };
 
   const recurring = (displayDate: string | null, title: string) =>
@@ -378,8 +378,8 @@ describe('buildReviewLists — the cycle window', () => {
     expect(titles(groups)).toEqual(['water the plants']);
   });
 
-  it('keeps one landing on either edge of the window', () => {
-    // Inclusive at both ends: the first and last day of a cycle are in it.
+  it('keeps one landing on the last day of the cycle', () => {
+    // Inclusive: the final day of a cycle is in it.
     const { groups } = buildReviewLists(
       [recurring('2026-08-10', 'monday'), recurring('2026-08-16', 'sunday')],
       WEEK
@@ -396,13 +396,33 @@ describe('buildReviewLists — the cycle window', () => {
     expect(titles(groups)).toEqual([]);
   });
 
-  it('drops one whose date has already gone by', () => {
-    // A recurring task is dropped rather than shown and marked late. Nothing in
-    // this feature says "overdue", and a list that quietly accumulated last
-    // cycle's misses would be exactly that, wearing different words.
-    const { groups } = buildReviewLists([recurring('2026-08-03', 'last week')], WEEK);
+  it('keeps one whose date has already gone by', () => {
+    // The test is one-sided on purpose. A chore that came round last Tuesday and
+    // never got done is still on your plate, and the review is the only page you
+    // plan on — dropping it here while it carried on showing on /todo made the
+    // two disagree about what there is to do.
+    const { groups } = buildReviewLists(
+      [recurring('2026-08-03', 'last week'), recurring('2019-01-01', 'long ago')],
+      WEEK
+    );
 
-    expect(titles(groups)).toEqual([]);
+    expect(titles(groups)).toEqual(['last week', 'long ago']);
+  });
+
+  it('keeps one whose due date is in the window, shown early', () => {
+    // `displayDate` is `dueDate` minus a positive offset, so a task due on
+    // Friday and surfaced three days ahead has both dates inside the window and
+    // needs no separate due-date test — this pins that reading.
+    const early = task({
+      title: 'passport renewal',
+      isRecurring: true,
+      recurrenceType: 'annually' as RecurrenceType,
+      displayDate: '2026-08-11',
+      dueDate: '2026-08-14',
+      displayDateOffset: 3,
+    });
+
+    expect(titles(buildReviewLists([early], WEEK).groups)).toEqual(['passport renewal']);
   });
 
   it('keeps a recurring task with no date at all', () => {

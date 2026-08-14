@@ -15,11 +15,13 @@ import type { Task, RecurrenceType } from '../types/index';
  * than of what it's asking for now, and it made a dozen tasks read as seven
  * lists.)
  *
- * Recurring tasks are the ones **whose `displayDate` falls inside the cycle** —
+ * Recurring tasks are the ones that **have come round by the end of the cycle** —
  * the review is a picture of what this week is going to ask for, and an annual
  * task due in November has nothing to say about a week in August. They were
  * included wholesale at first, which made the list a catalogue of everything
- * that recurs rather than of anything to do with the period on screen.
+ * that recurs rather than of anything to do with the period on screen. Note the
+ * one-sidedness: something whose date passed last week is still on your plate,
+ * so it stays.
  *
  * Within that, they appear with no dates and no ordering by age. That is
  * deliberate and is the rule this whole feature is shaped around: if a task has
@@ -48,11 +50,23 @@ export interface ReviewWindow {
 }
 
 /**
- * Does this recurring task actually come round during the cycle being reviewed?
+ * Has this recurring task come round by the end of the cycle being reviewed?
  *
  * Recurring tasks used to be included wholesale, which put an annual task due in
  * November into a review of a week in August — a list of everything that recurs
  * rather than of what this cycle is going to ask for.
+ *
+ * The test is **one-sided**, and that's the point. A task is left out only when
+ * it hasn't come round *yet*; one whose date has already gone by is still on
+ * your plate and still belongs in the review. Excluding those as well — which an
+ * earlier version did, reading "within the cycle" as both bounds — quietly
+ * dropped last week's unfinished chores from the only page you plan on, while
+ * they carried on showing up on /todo.
+ *
+ * **`dueDate` needs no separate test.** When a task has one, `displayDate` is
+ * that date minus a positive offset (`recurrence.ts`), so it is never later; a
+ * due date inside the window therefore implies a display date inside or before
+ * it, and checking both would be two names for the same comparison.
  *
  * Compared as strings, deliberately. `displayDate` and the period bounds are all
  * `YYYY-MM-DD` wall-clock dates with no time and no zone, and lexicographic
@@ -63,10 +77,9 @@ export interface ReviewWindow {
  * A task with no `displayDate` is kept, matching `groupTasksForLayout`: absent
  * means "nothing is holding this back", not "hide it".
  */
-function recursWithin(task: Task, window: ReviewWindow | null): boolean {
+function hasComeRoundBy(task: Task, window: ReviewWindow | null): boolean {
   if (!window || !task.displayDate) return true;
-  const day = task.displayDate.slice(0, 10);
-  return day >= window.periodStart && day <= window.periodEnd;
+  return task.displayDate.slice(0, 10) <= window.periodEnd;
 }
 
 const TOP_OF_MIND = 'top of mind';
@@ -179,10 +192,10 @@ export function buildReviewLists(
 
   for (const task of live) {
     if (task.isRecurring) {
-      // Only the ones that come round during this cycle. A recurring task is
-      // still dropped entirely rather than being shown and marked late: see the
-      // note above about dates and ranking.
-      if (recursWithin(task, window)) recurring.push(task);
+      // Everything that has come round by the end of this cycle, including what
+      // came round before it. Nothing marks the older ones as late — see the
+      // note at the top of the file about dates and ranking.
+      if (hasComeRoundBy(task, window)) recurring.push(task);
       continue;
     }
     if (topOfMindProject && task.project?.documentId === topOfMindProject.documentId) {
