@@ -248,6 +248,38 @@
   font-size: 0.85rem;
 }
 
+/* FullCalendar, in this app's colours.
+ *
+ * Its defaults are hard-coded light-mode values — `#ddd` grid lines, a `#fff`
+ * page background, a yellow today tint — and they are *values*, not tokens
+ * pointing at anything, so a dark theme leaves them exactly where they were. In
+ * `dim` that meant near-white gridlines ruling a near-black page (the harshest
+ * thing on the screen by some distance) and a white header strip carrying pale
+ * blue text, which was simply illegible.
+ *
+ * Set through FullCalendar's own custom properties rather than by overriding its
+ * rules: the variables are the documented seam, they apply everywhere the value
+ * is used rather than everywhere we remembered to look, and they need none of
+ * the `!important` the rest of this file carries — a variable set on an ancestor
+ * beats one set on `.fc` by the library, whatever the specificity of the rule
+ * that reads it.
+ *
+ * Everything derives from the two theme tokens, so light and dark both follow
+ * from `color.css` and neither needs its own block. */
+.review-calendar .fc {
+  /* The header strip and any sticky section behind it. */
+  --fc-page-bg-color: var(--background);
+  /* Lines that structure the grid without being read as content. */
+  --fc-border-color: color-mix(in oklab, var(--primary-color) 20%, transparent);
+  --fc-neutral-bg-color: color-mix(in oklab, var(--primary-color) 8%, transparent);
+  --fc-neutral-text-color: color-mix(in oklab, var(--primary-color) 65%, transparent);
+  /* Today, marked but not shouted. The default is a warm yellow that suits the
+   * light theme and turns to olive mud on a dark one. */
+  --fc-today-bg-color: color-mix(in oklab, var(--primary-color) 11%, transparent);
+  --fc-more-link-bg-color: var(--background-lighter);
+  --fc-more-link-text-color: var(--primary-color);
+}
+
 .review-calendar-section {
   margin-top: 0;
 }
@@ -284,43 +316,58 @@
   color: var(--primary-color);
 }
 
-/* Events fade in as the feeds answer, rather than landing in one jump.
+/* Events arrive, rather than landing in one jump.
  *
- * The grid is drawn immediately and the events arrive several seconds later
+ * The grid is drawn immediately and the events turn up several seconds later
  * (see the spinner above), so without this the week's contents simply appear —
- * the one moment on the page where something moves at no speed at all, next to
+ * the one moment on the page where something moved at no speed at all, next to
  * pills and toggles that all move at `--transition-time`.
  *
  * An animation rather than a transition because there is nothing to transition
  * *from*: these elements don't exist until the events arrive, and a transition
  * on a freshly-inserted element doesn't run.
  *
- * On the *harness* rather than the event, which is what keeps it to arrival.
- * FullCalendar creates one harness per occurrence and reuses it for an event
- * whose id hasn't changed — and `toFullCalendarEvents` builds the id from the
- * calendar, uid and recurrence, none of which a decision touches. So cycling an
- * event's state repaints it in place instead of re-firing this, which as a fade
- * on every click would be worse than no fade at all. */
+ * ## Only under `.is-arriving`, which is the whole trick
+ *
+ * FullCalendar rebuilds its event elements whenever the array it's handed
+ * changes — not just for the events that changed. Unscoped, this animation
+ * therefore re-fired on every interaction: folding the fake events away flashed
+ * every real event on the grid, and deciding about one flashed all the undecided
+ * ones. Things that had not moved appeared to blink.
+ *
+ * `useArrival` puts the class on for exactly one transition's length after a
+ * load finishes, so the fade belongs to arrival and to nothing else.
+ *
+ * ## It moves as well as fading
+ *
+ * A pure opacity fade reads as finished around halfway through — next to a pill
+ * travelling for the same 450ms it looked like a much quicker animation, which
+ * is precisely the mismatch this file exists to avoid. A few pixels of settle
+ * gives the eye something to follow for the whole duration. Small enough not to
+ * read as the event changing size, which is a complaint this feature has already
+ * had once. */
 @keyframes cal-event-in {
   from {
     opacity: 0;
+    transform: translateY(-0.35rem);
   }
   to {
     opacity: 1;
+    transform: none;
   }
 }
 
-.review-calendar .fc-timegrid-event-harness,
-.review-calendar .fc-daygrid-event-harness {
-  animation: cal-event-in var(--transition-time) ease both;
+.review-calendar.is-arriving .fc-timegrid-event-harness,
+.review-calendar.is-arriving .fc-daygrid-event-harness {
+  animation: cal-event-in var(--transition-time) ease-out both;
 }
 
 /* The pills' transition is skipped outright in this case rather than shortened
  * (see `canViewTransition`); there's no equivalent hook for a CSS animation, so
  * it's turned off here. */
 @media (prefers-reduced-motion: reduce) {
-  .review-calendar .fc-timegrid-event-harness,
-  .review-calendar .fc-daygrid-event-harness {
+  .review-calendar.is-arriving .fc-timegrid-event-harness,
+  .review-calendar.is-arriving .fc-daygrid-event-harness {
     animation: none;
   }
 }
@@ -337,8 +384,12 @@
  * wait entirely rather than fading at zero duration. */
 .review-calendar .is-leaving {
   opacity: 0;
+  /* The mirror of the arrival's settle, so leaving is the same gesture run
+   * backwards and takes the same 450ms to read. */
+  transform: translateY(-0.35rem);
   pointer-events: none;
-  transition: opacity var(--transition-time) ease;
+  transition: opacity var(--transition-time) ease-in,
+    transform var(--transition-time) ease-in;
 }
 
 /* Sunset: a line across the day, not a block.

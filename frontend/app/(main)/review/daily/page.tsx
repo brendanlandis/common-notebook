@@ -11,6 +11,7 @@ import { canViewTransition } from "@/app/lib/viewTransition";
 import { useReviewCovering } from "../hooks/useReview";
 import { useDailyPick } from "../hooks/useDailyPick";
 import { useCompleteTask } from "../hooks/useCompleteTask";
+import { useArrival } from "../hooks/useArrival";
 import { useCalendarEvents } from "../hooks/useCalendarEvents";
 import TaskPickList from "../components/TaskPickList";
 import WeekCalendar from "../components/WeekCalendar";
@@ -41,6 +42,7 @@ export default function DailyReviewPage() {
   const { location } = useLocation();
   const { events, loading: calendarLoading } = useCalendarEvents(today, tomorrow);
   const { toggleComplete } = useCompleteTask(today);
+  const arriving = useArrival(calendarLoading);
 
   // Only what you decided to be at. This is the reading surface, not the
   // deciding one — fake events are rendered on the review page precisely so you
@@ -243,6 +245,7 @@ export default function DailyReviewPage() {
             now={wallClockNow(timeZoneSettings)}
             boundaryHour={timeZoneSettings.dayBoundaryHour}
             sunsets={sunsets}
+            arriving={arriving}
             showNow
           />
           {calendarLoading && (

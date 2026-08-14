@@ -16,6 +16,7 @@ import { wallClockNow } from "@/app/lib/dateUtils";
 import { canViewTransition } from "@/app/lib/viewTransition";
 import { leaveThenUpdate } from "../leaveThenUpdate";
 import { useReviewCovering, useSaveReview } from "../hooks/useReview";
+import { useArrival } from "../hooks/useArrival";
 import { useCalendarEvents, useSetDecision } from "../hooks/useCalendarEvents";
 import { isFullyDecided, undecided, type ResolvedInstance } from "@/app/lib/ics/resolveDecisions";
 import TaskPickList from "../components/TaskPickList";
@@ -82,7 +83,27 @@ export default function WeeklyReviewPage() {
     (cadence
       ? defaultReviewMode(cadence, timeZoneSettings, { anchorDate: cadence.anchorDate })
       : "remainder");
-  const setMode = setChosenMode;
+  /**
+   * Switching cycles redraws the grid, so the grid cross-fades.
+   *
+   * Without this the calendar was the one thing on the page that changed by
+   * jumping: the columns, the dates and the hours all swapped instantly while
+   * the events inside them faded, which read as the events being the only real
+   * thing on screen. A view transition works here where it doesn't for a
+   * decision, because the mode is local state — `flushSync` has something to
+   * flush.
+   *
+   * Everything with a `view-transition-name` (the pills) is lifted out of the
+   * snapshot and tweened separately; since none of them move, they sit still
+   * while the grid behind them changes.
+   */
+  const setMode = (next: ReviewPeriodMode) => {
+    if (canViewTransition()) {
+      document.startViewTransition(() => flushSync(() => setChosenMode(next)));
+    } else {
+      setChosenMode(next);
+    }
+  };
 
   const [selected, setSelected] = useState<Set<string>>(new Set());
   // Ignored events stay out of the way by default. They were kept on the grid so
@@ -121,6 +142,7 @@ export default function WeeklyReviewPage() {
     period?.periodEnd ?? null
   );
   const { setDecision } = useSetDecision();
+  const arriving = useArrival(calendarLoading);
 
   /**
    * Clicking an event walks unset → show → hide → unset.
@@ -413,6 +435,7 @@ export default function WeeklyReviewPage() {
               periodStart={period.periodStart}
               periodEnd={period.periodEnd}
               now={wallClockNow(timeZoneSettings)}
+              arriving={arriving}
               onCycle={cycleEvent}
             />
             {calendarLoading && (

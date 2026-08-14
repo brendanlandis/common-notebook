@@ -48,6 +48,12 @@ interface WeekCalendarProps {
   /** Draw the line marking the current time. Off on the review, on for today. */
   showNow?: boolean;
   /**
+   * The events have just turned up, so fade them in — see `useArrival` for why
+   * this is a window rather than a standing rule, and `.is-arriving` for what it
+   * does.
+   */
+  arriving?: boolean;
+  /**
    * The hour the user's day turns over. Given, the grid runs past midnight to
    * `boundary + 24` — which only the daily view wants; the week stops at
    * midnight.
@@ -213,6 +219,7 @@ export default function WeekCalendar({
   now,
   sunsets = [],
   showNow = false,
+  arriving = false,
   boundaryHour,
   onCycle,
 }: WeekCalendarProps) {
@@ -256,7 +263,7 @@ export default function WeekCalendar({
   );
 
   return (
-    <div className="review-calendar">
+    <div className={`review-calendar${arriving ? " is-arriving" : ""}`}>
       <FullCalendar
         ref={calendarRef}
         plugins={[timeGridPlugin]}
