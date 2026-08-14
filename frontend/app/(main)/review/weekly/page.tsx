@@ -101,8 +101,6 @@ export default function WeeklyReviewPage() {
   }, [cadence, timeZoneSettings, mode]);
 
   const lists = useMemo(() => buildReviewLists(tasks), [tasks]);
-  const hasAnyTasks =
-    (lists.topOfMind?.tasks.length ?? 0) + lists.soon.length + lists.recurring.length > 0;
 
   const { events, calendars, loading: calendarLoading } = useCalendarEvents(
     period?.periodStart ?? null,
@@ -134,6 +132,9 @@ export default function WeeklyReviewPage() {
   // review says is left to decide.
   const stillUnset = undecided(events);
   const ignoredCount = events.filter((event) => event.state === "hide").length;
+  // Nothing undecided and nothing fake on screen means every block is a real
+  // event, which needs no key.
+  const needsLegend = !isFullyDecided(events) || showIgnored;
   // Memoized because a fresh array each render would rebuild the calendar's
   // event list every time anything else on the page changes.
   const shownEvents = useMemo(
@@ -286,54 +287,82 @@ export default function WeeklyReviewPage() {
       {/* The calendar's job here is to show what the week already is, so the
           intentions below get chosen against it rather than in a vacuum. Not to
           hold the tasks — nothing on this page ever becomes a calendar entry. */}
-      {period && !calendarLoading && events.length > 0 && (
+      {/* The grid renders as soon as the period is known, and the spinner sits
+          over it while the feeds are polled — rather than the whole section
+          appearing at once when the slowest calendar answers. The week's shape
+          is knowable without the network, so there's no reason to withhold it,
+          and a page that grows a large block several seconds after load is worse
+          than one that fills a block that was already there.
+
+          It does still vanish for someone with no calendars at all: an empty
+          grid promising events that can never arrive would be a worse lie than
+          showing nothing. `calendars` is only known once the query answers,
+          hence the `calendarLoading ||`. */}
+      {period && (calendarLoading || calendars.length > 0) && (
         <section className="review-section">
           {/* No heading. It's a labelled seven-day grid — anything written over
               it is a caption on a photograph of itself. */}
-          {/* Three glyphs on a grid are a puzzle without a key, and nothing else
-              on the page says that clicking is how a decision gets made. */}
-          <div className="review-legend">
-            <span>
-              <i className="swatch swatch-unset" aria-hidden="true" />? undecided
-            </span>
-            <span>
-              <i className="swatch swatch-show" aria-hidden="true" />✓ keeping
-            </span>
-            {/* Only while they're on screen — a key to a symbol you can't see is
-                just more to read. */}
-            {showIgnored && (
-              <span>
-                <i className="swatch swatch-hide" aria-hidden="true" />✕ ignoring
-              </span>
-            )}
-            <span>click an event to change it</span>
-            {/* Only offered when there's something to reveal — an empty checkbox
-                promising nothing is just another control to read past. */}
-            {ignoredCount > 0 && (
-              <label className="review-legend-toggle">
-                <input
-                  type="checkbox"
-                  className="checkbox"
-                  checked={showIgnored}
-                  onChange={(event) => setShowIgnored(event.target.checked)}
-                />
-                show {ignoredCount} ignored
-              </label>
+          {/* A key to glyphs that are on the grid, and nothing more.
+              Once the week is fully decided and the fake ones are folded away,
+              every block on the grid is a real event and there is nothing left
+              to explain — so the key goes and only the toggle remains. */}
+          {events.length > 0 && (needsLegend || ignoredCount > 0) && (
+            <div className="review-legend">
+              {needsLegend && stillUnset.length > 0 && (
+                <span>
+                  <i className="swatch swatch-unset" aria-hidden="true" />? undecided
+                </span>
+              )}
+              {needsLegend && (
+                <span>
+                  <i className="swatch swatch-show" aria-hidden="true" />✓ real
+                </span>
+              )}
+              {/* Only while they're on screen — a key to a symbol you can't see
+                  is just more to read. */}
+              {needsLegend && showIgnored && (
+                <span>
+                  <i className="swatch swatch-hide" aria-hidden="true" />✕ fake
+                </span>
+              )}
+              {/* Only offered when there's something to reveal — an empty
+                  checkbox promising nothing is just another control to read
+                  past. Pinned right (see the stylesheet) so it doesn't move as
+                  the keys beside it come and go. */}
+              {ignoredCount > 0 && (
+                <label className="review-legend-toggle">
+                  <input
+                    type="checkbox"
+                    className="checkbox"
+                    checked={showIgnored}
+                    onChange={(event) => setShowIgnored(event.target.checked)}
+                  />
+                  show all
+                </label>
+              )}
+            </div>
+          )}
+          <div className="review-calendar-frame">
+            <WeekCalendar
+              events={shownEvents}
+              periodStart={period.periodStart}
+              periodEnd={period.periodEnd}
+              onCycle={cycleEvent}
+            />
+            {calendarLoading && (
+              <div className="review-calendar-loading" role="status">
+                <span className="loading loading-spinner" aria-hidden="true" />
+                <span className="sr-only">fetching your calendars</span>
+              </div>
             )}
           </div>
-          <WeekCalendar
-            events={shownEvents}
-            periodStart={period.periodStart}
-            periodEnd={period.periodEnd}
-            onCycle={cycleEvent}
-          />
-          {/* A definition of done, which is the thing weekly reviews usually
-              lack — so you either fiddle indefinitely or quit early. */}
-          <p className="review-hint">
-            {isFullyDecided(events)
-              ? "every event decided"
-              : `${stillUnset.length} still undecided`}
-          </p>
+          {/* How much is left, while there is any left. Finishing says itself:
+              the count stops, the key above disappears, and every block on the
+              grid is a real event — a line announcing that you're done is a
+              congratulation nobody asked for. */}
+          {stillUnset.length > 0 && (
+            <p className="review-hint">{stillUnset.length} still undecided</p>
+          )}
           {calendars.some((c) => c.unreachable) && (
             <p className="error">
               couldn&apos;t reach:{" "}
@@ -343,31 +372,16 @@ export default function WeeklyReviewPage() {
         </section>
       )}
 
-      {/* A heading over nothing is a heading you have to read to find out it was
-          nothing. Each list appears only when it has something in it — which
-          also means the shape of the page tells you what kind of cycle this is
-          before you've read a word of it. */}
-      {lists.topOfMind && lists.topOfMind.tasks.length > 0 && (
+      {/* One list, grouped by project.
+          It was three — the top-of-mind project, `soon`, and recurring — which
+          is a distinction that matters to the code deciding what belongs here
+          and not to the person reading it. Whatever put a task on this page,
+          it's on this page; the only grouping that helps while choosing is which
+          project it's part of. */}
+      {lists.groups.length > 0 && (
         <section className="review-section">
-          <h2>{lists.topOfMind.projectTitle}</h2>
-          <TaskPickList
-            tasks={lists.topOfMind.tasks}
-            selected={selected}
-            onToggle={toggle}
-          />
-        </section>
-      )}
-
-      {/* Two lists rather than one subdivided by recurrence type. The old
-          headings ("every few days", "weekly", …) described how a task was set
-          up, which is nothing a person choosing what to do this week can act
-          on, and they broke a dozen tasks into seven stubs. Grouped by project
-          within each, because forty pills in one block reads as a quantity
-          rather than as things. */}
-      {lists.soon.length > 0 && (
-        <section className="review-section">
-          <h2>soon</h2>
-          {lists.soon.map((group) => (
+          <h2>presently</h2>
+          {lists.groups.map((group) => (
             <ProjectGroupList
               key={group.key}
               group={group}
@@ -378,22 +392,7 @@ export default function WeeklyReviewPage() {
         </section>
       )}
 
-      {lists.recurring.length > 0 && (
-        <section className="review-section">
-          <h2>recurring</h2>
-          {lists.recurring.map((group) => (
-            <ProjectGroupList
-              key={group.key}
-              group={group}
-              selected={selected}
-              onToggle={toggle}
-            />
-          ))}
-        </section>
-      )}
-
-      {/* Said once, rather than three times over three empty headings. */}
-      {!hasAnyTasks && (
+      {lists.groups.length === 0 && (
         <p className="review-empty">nothing on your plate — enjoy it</p>
       )}
 

@@ -1,19 +1,19 @@
 import type { Task, RecurrenceType } from '../types/index';
 
 /**
- * The three lists a review is conducted from.
+ * What's on your plate this cycle: one list, grouped by project.
  *
- * They answer different questions, which is why they're separate. `topOfMind` is
- * *chosen* work — the tasks of the single top-of-mind project, the thing you
- * already decided matters this cycle. `soon` is the one-offs you flagged.
- * `recurring` is everything that comes back around regardless of what you think
- * about it.
+ * Three things land in it — the tasks of the single top-of-mind project, the
+ * one-offs flagged `soon`, and every incomplete recurring task. They came from
+ * different places and for a while they were rendered as separate lists, which
+ * turned out to be a distinction the reader doesn't need: whatever put a task
+ * here, it's here, and the only grouping that helps when you're choosing is
+ * which project it belongs to.
  *
- * `soon` and `recurring` were one list at first, subdivided by recurrence type
- * with a heading over each ("every few days", "weekly", …). Those headings said
- * nothing a reader deciding what to do this week could act on — the cadence is a
- * property of how the task was set up, not of what it's asking for now — and
- * they made a dozen tasks read as seven lists. Two plain lists instead.
+ * (Before that they were subdivided by *recurrence type* — "every few days",
+ * "weekly" — which was worse still: a property of how the task was set up rather
+ * than of what it's asking for now, and it made a dozen tasks read as seven
+ * lists.)
  *
  * Recurring tasks appear in full, with no dates and no ordering by age. That is
  * deliberate and is the rule this whole feature is shaped around: if a task has
@@ -31,12 +31,8 @@ export interface ProjectGroup {
 }
 
 export interface ReviewLists {
-  /** The top-of-mind project's tasks, `soon` ones first. Null when nothing is top of mind. */
-  topOfMind: { projectTitle: string; tasks: Task[] } | null;
-  /** One-off tasks flagged `soon`, by project. */
-  soon: ProjectGroup[];
-  /** Every incomplete recurring task, most to least frequent, by project. */
-  recurring: ProjectGroup[];
+  /** Everything on your plate this cycle, grouped by project. */
+  groups: ProjectGroup[];
 }
 
 const TOP_OF_MIND = 'top of mind';
@@ -113,16 +109,18 @@ function frequencyRank(task: Task): number {
 }
 
 /**
- * Partition the task list into the review's lists.
+ * Gather what this cycle is about, and group it.
  *
- * Every task lands in **at most one** of them. The precedence rules, in order:
+ * A task qualifies if it belongs to the top-of-mind project, is flagged `soon`,
+ * or recurs — and it appears **once**, however many of those are true of it.
+ * Everything else is left out: the review is a narrowing, and /todo is where the
+ * whole list lives.
  *
- *  1. A recurring task always goes to `recurring`, even when it belongs to the
- *     top-of-mind project — "recurring" says more about how you relate to a task
- *     than which project it sits in.
- *  2. Otherwise a task of the top-of-mind project goes to `topOfMind`, `soon`
- *     ones sorted first.
- *  3. Otherwise a `soon` task goes to `soon`.
+ * Order within the pool is top-of-mind project first (its `soon` tasks leading),
+ * then the flagged one-offs, then the recurring work from most to least
+ * frequent. Grouping is stable, so that ordering survives into the groups, and
+ * the top-of-mind project's group is moved to the front — it's the thing you
+ * already decided matters this cycle.
  *
  * Completed tasks are dropped throughout. The visibility window that keeps a
  * just-ticked task on the To Do page has no meaning here: this is a planning
@@ -159,13 +157,14 @@ export function buildReviewLists(tasks: Task[]): ReviewLists {
   topOfMindTasks.sort((a, b) => Number(b.soon) - Number(a.soon));
   recurring.sort((a, b) => frequencyRank(a) - frequencyRank(b));
 
-  return {
-    topOfMind: topOfMindProject
-      ? { projectTitle: topOfMindProject.title, tasks: topOfMindTasks }
-      : null,
-    // Not grouped: that list is one project by definition, and its name is
-    // already the heading over it.
-    soon: groupByProject(soon),
-    recurring: groupByProject(recurring),
-  };
+  const groups = groupByProject([...topOfMindTasks, ...soon, ...recurring]);
+
+  // The top-of-mind project leads. `groupByProject` keeps incidentals last, and
+  // moving a group to the front doesn't disturb that.
+  if (topOfMindProject) {
+    const index = groups.findIndex((group) => group.key === topOfMindProject.documentId);
+    if (index > 0) groups.unshift(...groups.splice(index, 1));
+  }
+
+  return { groups };
 }

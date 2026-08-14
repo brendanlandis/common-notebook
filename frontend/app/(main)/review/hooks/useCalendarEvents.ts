@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useRef } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiFetch, apiSend } from '@/app/lib/apiFetch';
 import type { ClientCalendar } from '@/app/lib/ics/clientCalendar';
@@ -151,9 +151,38 @@ const sameDecision = (row: StoredDecision, input: DecisionInput) =>
 export function useSetDecision() {
   const queryClient = useQueryClient();
 
+  /**
+   * Decision writes, serialized — and why they have to be.
+   *
+   * The upsert on the server is read-then-write, and Strapi has no
+   * compare-and-set. Two writes for the same event in flight together therefore
+   * both read "no row here" and both create one, leaving a permanent duplicate:
+   * from then on the handler updates one row while the resolver reads the other,
+   * so that event's state reverts on every refetch and cannot be changed from
+   * the UI at all. It happened to a real event within a day of shipping this.
+   *
+   * It was always possible; making the clicks instant is what made it likely.
+   * Before that, every click waited on an invalidate that re-polled every ICS
+   * feed, which serialized the writes by accident — several seconds of accident.
+   *
+   * Only the *request* queues. `onMutate` still runs the moment you click, so
+   * the pill of an event repaints immediately whether or not an earlier write is
+   * still in the air. TanStack's `scope` option would serialize the whole
+   * mutation including `onMutate`, which would put the lag straight back.
+   */
+  const queue = useRef<Promise<unknown>>(Promise.resolve());
+  const inFlight = useRef(0);
+
   const mutation = useMutation({
-    mutationFn: (decision: DecisionInput) =>
-      apiSend('/api/calendars/decisions', 'PUT', decision),
+    mutationFn: (decision: DecisionInput) => {
+      const next = queue.current
+        // A failed write must not wedge every later one; the rollback is
+        // handled per-mutation in onError.
+        .catch(() => {})
+        .then(() => apiSend('/api/calendars/decisions', 'PUT', decision));
+      queue.current = next;
+      return next;
+    },
 
     /**
      * Written locally first, because the alternative is a click with no visible
@@ -167,6 +196,7 @@ export function useSetDecision() {
      * correctly leaves alone the ones carrying their own override.
      */
     onMutate: async (decision) => {
+      inFlight.current += 1;
       await queryClient.cancelQueries({ queryKey: CALENDAR_DECISIONS_KEY });
       const previous = queryClient.getQueryData<DecisionsResponse>(CALENDAR_DECISIONS_KEY);
 
@@ -189,9 +219,23 @@ export function useSetDecision() {
       }
     },
 
-    // Only the decisions. Invalidating the whole `['calendars']` family would
-    // re-poll every ICS feed to learn something none of them can tell us.
-    onSettled: () => queryClient.invalidateQueries({ queryKey: CALENDAR_DECISIONS_KEY }),
+    /**
+     * Refetch once the queue has drained, not after each write.
+     *
+     * Only the decisions, because invalidating the whole `['calendars']` family
+     * would re-poll every ICS feed to learn something none of them can tell us.
+     *
+     * And only when nothing else is pending: a refetch landing between two
+     * queued writes returns the state as of the *first* one and overwrites the
+     * second's optimistic value, so a quick second click visibly bounces back
+     * before settling. The last write to settle is the one that refreshes.
+     */
+    onSettled: () => {
+      inFlight.current -= 1;
+      if (inFlight.current === 0) {
+        queryClient.invalidateQueries({ queryKey: CALENDAR_DECISIONS_KEY });
+      }
+    },
   });
 
   return { setDecision: mutation.mutate, isSaving: mutation.isPending, error: mutation.error };

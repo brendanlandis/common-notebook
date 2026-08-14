@@ -253,6 +253,77 @@ describe('useCalendarEvents', () => {
     expect(eventsCalls).toBe(1);
   });
 
+  it('never has two writes in the air at once', async () => {
+    // The upsert is read-then-write against a store with no compare-and-set, so
+    // two overlapping writes each find nothing and each create a row. The
+    // duplicate is permanent and makes that event unchangeable from the UI
+    // afterwards — the handler updates one row while the resolver reads the
+    // other. This happened to a real event the day after shipping.
+    let concurrent = 0;
+    let peak = 0;
+    (apiSend as Mock).mockImplementation(async () => {
+      concurrent += 1;
+      peak = Math.max(peak, concurrent);
+      await new Promise((resolve) => setTimeout(resolve, 20));
+      concurrent -= 1;
+      return { success: true };
+    });
+
+    const { result } = setup();
+    await waitFor(() => expect(result.current.read.events).toHaveLength(3));
+
+    const decide = (state: 'show' | 'hide') =>
+      result.current.write.setDecision({
+        calendar: 'cal-1',
+        uid: 'standup@test',
+        recurrenceId: null,
+        state,
+      });
+
+    // Three clicks in a row, faster than any of them can complete.
+    act(() => {
+      decide('show');
+      decide('hide');
+      decide('show');
+    });
+
+    await waitFor(() => expect(apiSend).toHaveBeenCalledTimes(3));
+    await waitFor(() => expect(concurrent).toBe(0));
+    expect(peak).toBe(1);
+  });
+
+  it('paints the newest click while an earlier write is still in the air', async () => {
+    // The reason only the *request* is queued. Serializing the optimistic write
+    // too — which is what TanStack's `scope` option would do — puts the lag
+    // straight back.
+    (apiSend as Mock).mockImplementation(
+      () => new Promise((resolve) => setTimeout(() => resolve({ success: true }), 50))
+    );
+
+    const { result } = setup();
+    await waitFor(() => expect(result.current.read.events).toHaveLength(3));
+
+    act(() => {
+      result.current.write.setDecision({
+        calendar: 'cal-1',
+        uid: 'standup@test',
+        recurrenceId: null,
+        state: 'show',
+      });
+      result.current.write.setDecision({
+        calendar: 'cal-1',
+        uid: 'standup@test',
+        recurrenceId: null,
+        state: 'hide',
+      });
+    });
+
+    // Both requests are still outstanding; the second click is already on screen.
+    await waitFor(() =>
+      expect(result.current.read.events.every((e) => e.state === 'hide')).toBe(true)
+    );
+  });
+
   it('puts the old state back when the write fails', async () => {
     const { result } = setup();
     await waitFor(() => expect(result.current.read.events).toHaveLength(3));

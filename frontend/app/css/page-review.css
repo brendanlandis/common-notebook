@@ -135,6 +135,33 @@
   font-size: 0.85rem;
 }
 
+/* The grid is drawn immediately and the spinner sits over it, so the page has
+ * its full height from the first paint and nothing jumps when the feeds answer.
+ * The overlay is translucent rather than opaque: the days and hours underneath
+ * are already correct and worth reading while the events are on their way. */
+.review-calendar-frame {
+  position: relative;
+}
+
+.review-calendar-loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in oklab, var(--background) 65%, transparent);
+}
+
+/* Sized and coloured explicitly. daisyUI's default spinner is 1.5rem in
+ * `currentColor`, which over a cream grid at this scale is a faint smudge
+ * — indistinguishable from a rendering artefact. It draws itself from
+ * `background-color: currentColor` behind a mask, so `color` is the control. */
+.review-calendar-loading .loading {
+  width: 3rem;
+  height: 3rem;
+  color: var(--primary-color);
+}
+
 /* The three states have to be unmistakable at a glance, because clicking to
  * cycle them is the entire interaction of this page.
  *
@@ -147,6 +174,11 @@
  * So: filled versus hollow, which reads instantly, plus a glyph, so the states
  * survive being greyscale, low-contrast, or looked at by someone who doesn't
  * separate colours. Never colour alone.
+ *
+ * The three states are `unset`, `show` and `hide` in the data and in these
+ * class names, because that's what the server stores. The UI calls them
+ * "undecided", "real" and "fake" — an event you've decided is fake is one that
+ * is on the calendar but isn't a claim on you.
  *
  * `hide` is styled at all — rather than simply not rendered — because this is
  * where decisions get made, and you cannot change your mind about something you
