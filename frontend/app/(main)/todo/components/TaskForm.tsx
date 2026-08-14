@@ -18,6 +18,8 @@ import { calculateNextRecurrence, hasEventDate } from "@/app/lib/recurrence";
 import RecurrencePicker from "@/app/components/RecurrencePicker";
 import { useDateTimeSettings } from "@/app/contexts/DateTimeSettingsContext";
 import { useTasks } from "../hooks/useTasks";
+import { useProjects } from "@/app/hooks/useProjects";
+import { isPracticeWorld } from "@/app/lib/worlds";
 import RichTextEditor from "@/app/components/RichTextEditor";
 import {
   showTrackingUrl,
@@ -51,6 +53,8 @@ const schema = z.object({
   wishListCategory: z.string().nullable().optional(),
   soon: z.boolean(),
   long: z.boolean(),
+  onHold: z.boolean(),
+  materialCategory: z.string().nullable().optional(),
 }).superRefine((data, ctx) => {
   // Validate recurrence fields based on recurrence type
   if (data.isRecurring && data.recurrenceType) {
@@ -134,6 +138,12 @@ export default function TaskForm({ task, onSubmit, onCancel }: TaskFormProps) {
   const [showWishListCategorySuggestions, setShowWishListCategorySuggestions] =
     useState(false);
 
+  const [materialCategoryInput, setMaterialCategoryInput] = useState<string>(
+    task?.materialCategory || ""
+  );
+  const [showMaterialCategorySuggestions, setShowMaterialCategorySuggestions] =
+    useState(false);
+
   // The selected project's type drives which shopping-list fields appear.
   // Derived from the selected project (reported by ProjectSelector) rather than
   // stored on the task.
@@ -169,6 +179,8 @@ export default function TaskForm({ task, onSubmit, onCancel }: TaskFormProps) {
       wishListCategory: task?.wishListCategory || null,
       soon: task?.soon || false,
       long: task?.long || false,
+      onHold: task?.onHold || false,
+      materialCategory: task?.materialCategory || null,
     },
   });
 
@@ -212,6 +224,48 @@ export default function TaskForm({ task, onSubmit, onCancel }: TaskFormProps) {
         suggestion.toLowerCase().includes(wishListCategoryInput.toLowerCase())
       )
     : wishListCategorySuggestions;
+
+  /**
+   * Is the chosen project a practice subject?
+   *
+   * Asked of the project's *world*, which `/api/tasks` doesn't populate — hence
+   * `useProjects`, the same list `useTasks` joins against for exactly this
+   * reason. Matching on the world rather than on `projectType` keeps it one
+   * fact: a project moved into practice-and-study becomes a subject without
+   * anything being re-tagged.
+   */
+  const { projects } = useProjects();
+  const isPracticeSubject = useMemo(
+    () => isPracticeWorld(projects.find((p) => p.documentId === selectedProject)?.world),
+    [projects, selectedProject]
+  );
+
+  /**
+   * Categories already used *within this subject* — scales, arpeggios, chords.
+   *
+   * Scoped to the subject rather than to every practice task, because the
+   * vocabulary is per-instrument: "scales" means something under guitar and
+   * nothing under Anki, and offering one subject's words while filling in
+   * another's is noise. Same shape as the wishlist suggestions above, which are
+   * scoped by project *type* because a wishlist's categories genuinely are
+   * shared across wishlists.
+   */
+  const materialCategorySuggestions = useMemo(() => {
+    if (!isPracticeSubject || !selectedProject) return [];
+    const categories = new Set<string>();
+    tasks.forEach((candidate) => {
+      if (candidate.project?.documentId === selectedProject && candidate.materialCategory) {
+        categories.add(candidate.materialCategory.trim());
+      }
+    });
+    return Array.from(categories).sort();
+  }, [isPracticeSubject, selectedProject, tasks]);
+
+  const filteredMaterialCategorySuggestions = materialCategoryInput
+    ? materialCategorySuggestions.filter((suggestion) =>
+        suggestion.toLowerCase().includes(materialCategoryInput.toLowerCase())
+      )
+    : materialCategorySuggestions;
 
   const handleFormSubmit: SubmitHandler<TaskFormInputs> = (data) => {
     // Helper to check if block is empty
@@ -304,6 +358,8 @@ export default function TaskForm({ task, onSubmit, onCancel }: TaskFormProps) {
       purchaseUrl: data.purchaseUrl || null,
       price: data.price || null,
       wishListCategory: data.wishListCategory || null,
+      onHold: data.onHold,
+      materialCategory: data.materialCategory || null,
       soon: data.soon,
       long: data.long,
     };
@@ -469,6 +525,25 @@ export default function TaskForm({ task, onSubmit, onCancel }: TaskFormProps) {
                 className="checkbox"
               />
               long
+            </label>
+          </div>
+        )}
+
+        {/* Set aside — not finished, and not due on a date either.
+            Only offered for practice material, which is the only thing here with
+            a state between "working on it" and "done with it": scales are never
+            complete, but a scale *exercise* can be put down for a month. It is
+            what keeps the practice pool readable without pretending you have
+            abandoned anything. */}
+        {isPracticeSubject && (
+          <div className="task-form-element">
+            <label>
+              <input
+                type="checkbox"
+                {...register("onHold")}
+                className="checkbox"
+              />
+              on hold
             </label>
           </div>
         )}

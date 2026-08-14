@@ -34,6 +34,11 @@ vi.mock("@/app/contexts/DateTimeSettingsContext", () => ({
 // Only the wishlist-category suggestions read this, and none of these tests use
 // a wishlist project.
 vi.mock("../hooks/useTasks", () => ({ useTasks: () => ({ tasks: [] }) }));
+// Read to decide whether the chosen project is a practice subject, which gates
+// the `kind` field and the on-hold checkbox. Mocked for the same reason as
+// useTasks: it is a query, and an unmocked one here has no QueryClientProvider
+// and would hit a real relative URL.
+vi.mock("@/app/hooks/useProjects", () => ({ useProjects: () => ({ projects: [] }) }));
 
 // Both pull their own server state and neither participates in the recurrence
 // payload. A null project keeps `selectedProjectType` null, which is what makes

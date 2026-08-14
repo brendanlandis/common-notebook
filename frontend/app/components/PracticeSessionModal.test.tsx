@@ -95,7 +95,7 @@ afterEach(() => {
 describe('nothing running', () => {
   it('renders nothing at all', () => {
     const { container } = renderModal();
-    expect(container).toBeEmptyDOMElement();
+    expect(container.firstChild).toBeNull();
   });
 });
 

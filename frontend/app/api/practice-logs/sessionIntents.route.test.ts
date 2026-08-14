@@ -23,9 +23,8 @@ function request(url: string, body?: unknown): NextRequest {
     method: 'POST',
     ...(body === undefined ? {} : { body: JSON.stringify(body) }),
   });
-  vi.spyOn(req.cookies, 'get').mockImplementation(
-    (name: string) => (name === 'auth_token' ? ({ value: 'test-token', name } as any) : undefined)
-  );
+  vi.spyOn(req.cookies, 'get').mockImplementation(((name: string) =>
+    name === 'auth_token' ? { value: 'test-token', name } : undefined) as never);
   return req;
 }
 
