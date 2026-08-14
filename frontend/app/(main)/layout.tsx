@@ -2,6 +2,8 @@ import MainMenuPanel from "../components/MainMenuPanel";
 import HeaderContent from "../components/HeaderContent";
 import TaskActionsDrawer from "../components/TaskActionsDrawer";
 import { PracticeContextProvider } from "../contexts/PracticeContext";
+import { PracticeSessionProvider } from "../contexts/PracticeSessionContext";
+import PracticeSessionModal from "../components/PracticeSessionModal";
 import { TaskActionsProvider } from "../contexts/TaskActionsContext";
 import { DateTimeSettingsProvider } from "../contexts/DateTimeSettingsContext";
 import { StuffProjectsProvider } from "../contexts/StuffProjectsContext";
@@ -48,9 +50,14 @@ export default async function MainLayout({
       <DateTimeSettingsProvider initial={dateTimeSettings}>
         <StuffProjectsProvider>
           <PracticeContextProvider>
+            <PracticeSessionProvider>
             <TaskActionsProvider>
             <SessionGuard />
             <EscapeKeyHandler />
+            {/* Outside the drawers and last in the tree, so a running session
+                covers the header, the menu and whatever page is open. That it
+                cannot be navigated away from is the feature. */}
+            <PracticeSessionModal />
             <div className="drawer">
             <input
               id="taskActionsDrawer"
@@ -88,6 +95,7 @@ export default async function MainLayout({
             <TaskActionsDrawer />
           </div>
             </TaskActionsProvider>
+            </PracticeSessionProvider>
           </PracticeContextProvider>
         </StuffProjectsProvider>
       </DateTimeSettingsProvider>

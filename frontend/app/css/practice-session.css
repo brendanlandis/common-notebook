@@ -1,0 +1,125 @@
+/* The practice screen.
+ *
+ * Full-bleed and opaque while a session runs, because that is the point: there
+ * is nothing to read and nothing to decide, and the app being unreachable is
+ * what makes a forgotten timer impossible to ignore. Pausing collapses it to a
+ * corner button — the only way out, deliberately. */
+
+.practice-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  background: var(--color-base-100);
+}
+
+.practice-modal-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2rem;
+  padding: 2rem;
+  text-align: center;
+  max-width: 32rem;
+}
+
+.practice-subject h2 {
+  margin: 0;
+  font-size: 1.75rem;
+  line-height: 1.2;
+}
+
+/* The subject, under the material's name. Muted because you know what
+ * instrument you are holding — it is there to disambiguate two pieces with
+ * similar names, not to be read every time. */
+.practice-subject p {
+  margin: 0.25rem 0 0;
+  opacity: 0.6;
+}
+
+.practice-clock {
+  font-variant-numeric: tabular-nums;
+  font-size: 3.5rem;
+  line-height: 1;
+}
+
+.practice-controls-row {
+  display: flex;
+  gap: 2rem;
+}
+
+.practice-play,
+.practice-pause,
+.practice-stop {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: inherit;
+  padding: 0;
+  transition: opacity var(--transition-time);
+}
+
+.practice-play:disabled,
+.practice-pause:disabled,
+.practice-stop:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.practice-dismiss {
+  opacity: 0.7;
+}
+
+/* Paused: a small button, top right, over everything. Still visible from every
+ * page, because a paused session you cannot see is a session you will forget. */
+.practice-collapsed {
+  position: fixed;
+  top: 0.75rem;
+  right: 0.75rem;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.75rem;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+  background: var(--color-base-100);
+  color: inherit;
+  cursor: pointer;
+}
+
+.practice-collapsed .practice-clock {
+  font-size: 1rem;
+}
+
+/* The "you left this running" offer. Understated: it is a question, not a
+ * warning, and the answer is often "no, it really was that long". */
+.practice-correction {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  opacity: 0.85;
+}
+
+.practice-correction p {
+  margin: 0;
+}
+
+.practice-correction-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+}
+
+@media (max-width: 480px) {
+  .practice-clock {
+    font-size: 2.5rem;
+  }
+
+  .practice-controls-row {
+    gap: 1.25rem;
+  }
+}
