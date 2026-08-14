@@ -1,7 +1,8 @@
 # overview
 
-`common-notebook` is a suite of no-brand, personal utilities: primarily a **task list** (shown on the *To Do* page). Two independent
-npm projects (no workspace tooling):
+`common-notebook` is a suite of no-brand, personal utilities: primarily a **task list** (shown on the *To Do*
+page), plus a **review** feature (weekly planning + a daily page, with subscribed calendars) and a
+**practice** timer. Two independent npm projects (no workspace tooling):
 
 - `frontend/` — Next.js 16 (App Router), React 19, TypeScript. The UI. Runs on `localhost:3000`.
 - `backend/`  — Strapi 5 headless CMS/API (`common-notebook-api`). The data layer. Runs on `localhost:1337`.
@@ -16,9 +17,11 @@ License: AGPL v3.
   hand-written CSS in `app/css/`. No CSS modules.
 - Editor: TipTap 3 (`@tiptap/*` all `^3.27.1`) + `@strapi/blocks-react-renderer`.
 - Forms: react-hook-form 7 + zod 4. Charts: recharts 3. Icons: `@phosphor-icons/react`.
+- Calendar: **FullCalendar 6** (`@fullcalendar/{core,react,timegrid,daygrid}`) renders the review grid;
+  **`ical.js` 2** parses subscribed ICS feeds. Both are review-only — nothing in `todo/` touches them.
 - Dates: **`temporal-polyfill`** (the TC39 Temporal API; Node/browsers don't ship it natively yet) — all
   zone- and calendar-aware date logic goes through it. `date-fns`/`date-fns-tz` were removed. Also
-  `astronomy-engine` (moon-phase / solstice recurrence).
+  `astronomy-engine` (moon-phase / solstice recurrence, and sunset in `lib/sunset.ts`).
 - **Server state lives in TanStack Query** (`@tanstack/react-query` 5): `useQuery` for reads,
   `useMutation` + `invalidateQueries` for writes, optimistic `onMutate`/`onError` where a failure
   would otherwise leave the wrong thing on screen. Context is for **UI state only** (drawer,
@@ -63,16 +66,22 @@ License: AGPL v3.
   fixtures. See `e2e/helpers.ts` for the shared setup and the waits.
 
 ## Layout (`frontend/app/`)
-- `(main)/` — authed route group (`layout.tsx`). Features: `todo/`, `practice/`, `settings/`, home.
+- `(main)/` — authed route group (`layout.tsx`). Features: `todo/`, `review/`, `practice/`, home.
   Each feature colocates its own `components/`, `hooks/`, `utils/`. `todo/components/layouts/` holds
-  ~11 view variants + `types.ts`.
-- `api/` — Next.js route handlers acting as a BFF/proxy to Strapi (`tasks/`, `projects/`,
-  `practice-logs/`, `system-settings/`, `auth/`, …).
+  the per-layout components + `types.ts`; `review/` holds `weekly/` and `daily/` pages plus
+  `WeekCalendar`/`TaskPickList` and the `useReview`/`useDailyPick`/`useCalendarEvents` hooks.
+  Settings is a **drawer**, not a page (`components/SettingsPanel.tsx`).
+- `api/` — Next.js route handlers acting as a BFF/proxy to Strapi (`tasks/`, `projects/`, `views/`,
+  `worlds/`, `reviews/`, `daily-picks/`, `calendars/`, `practice-logs/`, `system-settings/`, `auth/`, …).
 - `lib/` — pure, unit-tested business logic. Core files: `layoutTransformers.ts` (the task-grouping
-  engine), `groupTasks.ts`, `layoutPresets.ts`, `projectPriority.ts`, `recurrence*.ts`, `dateUtils.ts`,
-  `moonPhase*.ts`, `dayBoundary*.ts`.
-- `components/` — shared UI. `contexts/` — `LayoutRulesetContext`, `TaskActionsContext`,
-  `TimezoneContext`, `PracticeContext`. `hooks/` — global hooks. `types/index.ts` — central domain types.
+  engine), `groupTasks.ts`, `views.ts`/`worlds.ts` (resolve a stored View/World selection to a
+  `LayoutRuleset`), `projectPriority.ts`, `recurrence*.ts`, `dateUtils.ts`, `moonPhase*.ts`,
+  `dayBoundary*.ts`, `reviewCadence.ts`/`reviewCycle.ts`/`reviewLists.ts`, `sunset.ts`/`location.ts`,
+  and `ics/` (`trimIcs` → `expandIcs` → `resolveDecisions`).
+- `components/` — shared UI. `contexts/` — `DateTimeSettingsContext`, `TaskActionsContext`,
+  `StuffProjectsContext`, `PracticeContext` (**all UI-state or server-provided props; no fetching
+  Contexts** — `LayoutRulesetContext` and `TimezoneContext` are gone). `hooks/` — global hooks.
+  `types/index.ts` — central domain types.
 
 ## Backend communication
 Browser never calls Strapi directly. Flow: browser → Next `app/api/*` handler → `getAccessToken(req)`
@@ -95,25 +104,101 @@ Strapi `5.50.0`, TypeScript. Scripts: `npm run develop` / `build` / `start` / `d
 DB via `DATABASE_CLIENT` (mysql | postgres | sqlite), **defaults to SQLite** locally
 (`backend/config/database.ts`). Media uploads go to AWS S3.
 
-Content types under `backend/src/api/*/content-types/*/schema.json`: `task`, `project`,
-`practice-log`, `system-setting`. Strapi 5 style — `documentId` is the stable identifier used
-throughout the frontend. Node engine constraint: `>=18 <=22.x`.
+Content types under `backend/src/api/*/content-types/*/schema.json`: `task`, `project`, `world`, `view`,
+`review`, `daily-pick`, `calendar-subscription`, `calendar-event-decision`, `practice-log`,
+`system-setting`, `invite`. Strapi 5 style — `documentId` is the stable identifier used throughout the
+frontend. Every one of them carries a `private` `owner` relation and is registered for the ownership
+middleware. Node engine constraint: `>=18 <=22.x`.
+
+**Never edit a `schema.json` by hand to change a content type** — add fields and enum values through the
+Strapi Admin UI (see the standing note in Brendan's memory). Editing the file skips the migration Strapi
+runs on save and leaves the DB and the schema disagreeing.
 
 # Domain model (task app)
 
-- **World** — a top-level bucket: `day job`, `life stuff`, `music admin`, `make music`, `computer`,
-  `stuff` (`app/types/index.ts`). A project belongs to one world.
+- **World** — a top-level bucket a project belongs to (`day job`, `life stuff`, `make music`, `stuff`, …).
+  A **per-user row** of `api::world.world`, *not* a hardcoded enum — users add/rename/reorder their own.
+  Reached from a task via its project (`task.project.world`, normalized from Strapi's `worldRef` by the
+  projects BFF).
+  **`systemKey` is what makes a world special, and it also hides it.** `resolveVisibleWorldIds`
+  (`app/lib/worlds.ts`) excludes *any* world with a `systemKey` from `worldMode: 'all'` and `'except'` — a
+  system world surfaces only when a section names it under `'only'`. Today that's just `stuff`, and it's
+  the mechanism for "a world that shouldn't compete with everything else in ordinary views".
 - **Importance** — project tier: `top of mind`, `normal`, `later`. World views order projects
-  top-of-mind → priority (`pN` title marker) → normal → later, creation-date within each.
+  top-of-mind → priority (`pN` title marker) → normal → later, creation-date within each. **One project
+  at a time is top-of-mind**, enforced server-side on write by `demoteTopOfMindProjects` — a convention,
+  not a DB constraint, so readers take the first rather than assuming exactly one.
 - **Project type** — a project's `projectType` (`app/types/index.ts`): `default`, `chores`, plus the four
   `STUFF_PROJECT_TYPES` (`wishlist`, `errands`, `in the mail`, `buy stuff`) that live in the `stuff` world
   and are gated by the `enableStuffProjects` setting (`app/lib/stuffProjectsConfig.ts`). This **replaced the
-  old per-task `category` enum** — see `backend/scripts/migrate-categories-to-projects.js`.
-- **View / preset / ruleset** — task views are presets in `app/lib/layoutPresets.ts`, chosen via the
-  `?view=<id>` URL param (`app/contexts/LayoutRulesetContext.tsx`). Each preset sets
-  `groupBy`/`sortBy`/`visibleWorlds`/`visibleProjects`, consumed by `transformLayout`
-  (`app/lib/layoutTransformers.ts`) → `LayoutRenderer` → a per-layout component.
-- **Incidentals** — tasks with no project.
+  old per-task `category` enum** — see `backend/scripts/migrate-categories-to-projects.js`. That config
+  file is the template for "extra fields whose options depend on the project's type": one flat enum in
+  Strapi, a frontend map of which values are offered where.
+- **View / ruleset** — a view is a **per-user row** of `api::view.view` (`LAYOUT_PRESETS` is gone),
+  composed from a fixed menu of layout engines (`projects` | `chronological` | `roulette`) plus ordered
+  `sections`, each a filter set (`worldMode`/`worlds`/`importance`/`projectType`/`recurrence`/`longOnly`).
+  Routed as `/todo/view/<slug>` and `/todo/world/<slug>`; `viewToRuleset` (`app/lib/views.ts`) reduces a
+  View to the runtime `LayoutRuleset` consumed by `transformLayout` (`app/lib/layoutTransformers.ts`) →
+  `LayoutRenderer` → a per-layout component. Two `CODE_PRESETS` (`done`, `recurring`) take a bespoke
+  branch via `codePreset`.
+- **Incidentals** — tasks with no project. Only `worldMode: 'all'` surfaces them.
+- **Task flags worth knowing** — `soon` (a one-off you've flagged for this cycle), `long` (a task worked
+  at over days rather than finished in one go), and `workSessions`, a JSON array of `{date, timestamp}`
+  recording "worked on today without completing". `transformDone` synthesises a virtual "worked on" entry
+  per session date, which is how the Done view shows progress on something not yet finished.
+  `workSessions` is a **JSON column**, so it can't be filtered server-side and rides along on every read
+  of the task — fine for a ~30-entry flag, wrong for anything you want to aggregate or chart.
+
+# Domain model (review)
+
+The review is a **planning surface**, and it is opinionated in ways the code comments defend at length —
+read `app/lib/reviewLists.ts` before changing what appears there. In short: no dates, no ordering by how
+overdue something is, no carry-over from last cycle, no scoring. "If a task has no due date then it has
+no due date, and ranking by how overdue something is turns a planning tool into a productivity tool."
+
+- **Cadence** — how often the review comes round, stored as **one JSON `system-setting` row**
+  (`reviewCadence`), parsed by `app/lib/reviewCadence.ts`. It is a `RecurrenceRule` — the same pattern
+  language tasks speak — plus an `anchorDate` that only `biweekly` needs (nothing completes a cadence, so
+  there's no occurrence to infer phase from). `parseReviewCadence` never throws; `cadenceIsUsable` is what
+  the settings UI checks so an unusable cadence can't be saved into silence.
+- **Period** — `computeReviewPeriod` (`app/lib/reviewCycle.ts`) turns a cadence into an inclusive
+  `periodStart`/`periodEnd`, in one of two modes: `upcoming` (the next whole cycle — Sunday-night planning)
+  or `remainder` (today through the end of this one). It **delegates to `calculateNextRecurrence`** rather
+  than having its own opinion about last-Fridays and new moons; keep it that way.
+- **Review** (`api::review.review`) — a `periodStart`/`periodEnd`/`cycleType`/`anchorDate` plus a `tasks`
+  relation: the handful you committed to for the cycle. Written **per pick**, not on a submit.
+- **Daily pick** (`api::daily-pick.daily-pick`) — a `date` plus a `tasks` relation, narrowing the review's
+  selection to today. `/review/daily` is **the only surface in the feature where a task can be completed**;
+  everything else is picking, deciding and looking.
+- **The pool** — `buildReviewLists` gathers three things and dedupes them: the top-of-mind project's
+  tasks, one-offs flagged `soon`, and recurring tasks **that have come round by the end of the cycle**
+  (one-sided — something whose date already passed is still on your plate). `partitionSelected` splits the
+  grouped pool into picked/remaining; both pages render the same shape.
+- **Calendars** — `calendar-subscription` (an ICS URL + colour + `defaultState`) and
+  `calendar-event-decision` (per-`uid`, optionally per-`recurrenceId`). The chain is
+  `trimIcs` (line-scan away the ~93% of a feed that can't be in the window, *before* parsing) →
+  `expandIcs` (ical.js) → `resolveDecisions`, which resolves state through
+  **instance override → series default → calendar default → unset**. The series tier is the point:
+  per-instance-only means re-deciding the same standup every week. `unset` is a real state, so
+  "nothing unset" is a definition of done that falls out of the data model.
+
+# Domain model (practice)
+
+Currently the thinnest feature and **structurally out of step with the rest of the app**: a stopwatch and
+nothing else. `practice-log` is `{start, stop, duration, date, notes, type}` where `type` is a **hardcoded
+six-value enum** (`guitar`, `voice`, `drums`, `writing`, `composing`, `ear training`) **duplicated in four
+places** — the Strapi schema, `PracticeType` in `app/types/index.ts`, `PracticeSelector.tsx`, and
+`api/practice-logs/stats/route.ts`. One flat dimension, no hierarchy, and no connection to tasks,
+projects, worlds, or the review. Changing the list means editing all four.
+
+`date` is the **effective day** (`getEffectiveDayForTimestamp`), not the calendar day, so an after-midnight
+session before the day boundary belongs to the previous day; `page.tsx` stamps it on start and the stop
+route recomputes the same value from `start`, so the two always agree.
+
+An overhaul is planned that maps practice onto the existing substrate — world:project:task as
+practice-and-study:instrument:material, with `practice-log` gaining a task relation in place of the enum,
+and the review/daily pages growing a separate practice lane so it can't be muscled out by chores. Nothing
+of it is built yet.
 
 # Conventions
 
@@ -133,7 +218,10 @@ throughout the frontend. Node engine constraint: `>=18 <=22.x`.
   resolves it **per request** from the caller's token via `getTimeZoneSettings(token)`
   (`app/lib/strapiServer.ts`); client code reads `useDateTimeSettings().timeZoneSettings`, which
   `(main)/layout.tsx` fills server-side so the first paint is already in the user's zone. Defaults for
-  every setting live in exactly one table, `app/lib/defaultSettings.ts` (EST, 4am boundary).
+  every setting live in exactly one table, `app/lib/defaultSettings.ts` (EST, 4am boundary) — currently
+  `timezone`, `dayBoundaryHour`, `completedTaskVisibilityMinutes`, `autoDeclutter`, `enableStuffProjects`,
+  `reviewCadence`, `location`. Rows are per-user and a new account may have none, so that table is also
+  what *readers* fall back to; seeding only makes a setting visible in the settings drawer.
   **`TimeZoneSettings` is a function parameter, not a settings bag** — its membership is decided by
   what the pure date math reads, not by what sounds time-related. `completedTaskVisibilityMinutes` is
   time-ish but sits *beside* it on `DateTimeSettingsProvider`, because no date function reads it (only
@@ -184,6 +272,19 @@ throughout the frontend. Node engine constraint: `>=18 <=22.x`.
   would move the event itself. Nothing pins `TZ` for the Next server, and `calculateNextRecurrence` runs
   there (`/api/tasks/[id]/complete` and `/skip`): **prod is UTC and Brendan's laptop is not**, which is
   exactly how this class of bug reaches production unseen.
+- **An element that moves between two containers is animated with a view transition, and it needs
+  `flushSync`.** `document.startViewTransition` snapshots the page, runs its callback, and snapshots
+  again — so the DOM must be updated *inside* it, and React's normal batching would defer the re-render
+  past the second snapshot and animate nothing. Always go through `canViewTransition()`
+  (`app/lib/viewTransition.ts`), which also honours `prefers-reduced-motion` and Firefox's lack of
+  support; `prefersReducedMotion()` is exported separately because a plain fade needs that check and not
+  the support one. **Do the network write outside the transition** — holding the second snapshot open
+  until the server answers freezes the page mid-morph.
+  Two things a view transition can't do, both already solved in `review/`: it dies if a *second*
+  asynchronous DOM change removes named elements partway through (hence `useCycleSlide`, a CSS slide), and
+  it can't animate a removal that must complete before the element goes (hence `leaveThenUpdate`).
+  `--transition-time` in `screen.css` is the single answer to "how fast does anything move"; read it from
+  the document via `transitionMs()` rather than duplicating the number in JS.
 - Naming: PascalCase components, camelCase lib/util files, `use*` hooks, `*.test.ts(x)` siblings for tests.
 
 # Gotchas
@@ -270,7 +371,15 @@ throughout the frontend. Node engine constraint: `>=18 <=22.x`.
   suspecting `private`.
 - **Strapi has no compare-and-set.** Anything read-then-write (invite redemption, the moon-phase reset)
   needs an in-process guard keyed by the thing being mutated. Correct on the single-process droplet; the
-  same caveat as `app/api/auth/rate-limiter.ts`.
+  same caveat as `app/api/auth/rate-limiter.ts`. This is also the argument against appending to a JSON
+  column (`task.workSessions`) for anything written often: an append is a read-modify-write and two of
+  them race, where a row insert cannot.
+- **A page that writes on every click must serialize its saves and seed its state exactly once.** Both
+  review pages hit this: picks are individual writes, so `saveQueue` chains them (two overlapping writes
+  are a lost update at best, a create racing a create at worst) and `reviewId` is a **ref**, because the
+  query cannot keep up with clicking. Seeding the selection is guarded by a `seededFor` key rather than a
+  dependency list — the query refetches after every save, and re-seeding from it would overwrite a pick
+  made while the save was in flight.
 - **`.env` is only loaded once `createStrapi()` runs.** A script reading `process.env` *before* booting
   Strapi sees nothing from the file — which silently broke `seed-dev.js`'s "refuse unless local SQLite"
   guard on prod (`DATABASE_CLIENT` read as `undefined`, defaulted to `sqlite`) and made `test-email.js`
@@ -318,5 +427,9 @@ throughout the frontend. Node engine constraint: `>=18 <=22.x`.
 - `backend/tsconfig.json`'s `include` is `"./"`, so it type-checks root files too. `vitest.config.ts` is
   explicitly excluded: it imports a devDependency that production installs omit, and Strapi type-checks on
   boot, so leaving it in fails on prod with `TS2307`.
+- **`/practice` and `/review` are both beta-gated** (`BETA_PATHS` in `app/lib/betaConfig.ts`): no menu link
+  and a 404 unless the user's Strapi record has `betaAccess: true`. Sub-routes are covered automatically.
+  It's a UX gate, not an authorization boundary — a bypass reveals only the caller's own data. New work on
+  either feature ships behind the existing gate for free.
 - `.npmrc` sets `ignore-scripts=true`.
 - Two `types` files exist: `app/types/index.ts` (current domain types) and legacy `app/types.ts`.
