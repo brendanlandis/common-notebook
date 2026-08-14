@@ -346,7 +346,7 @@ export default function WeeklyReviewPage() {
           showing nothing. `calendars` is only known once the query answers,
           hence the `calendarLoading ||`. */}
       {period && (calendarLoading || calendars.length > 0) && (
-        <section className="review-section">
+        <section className="review-section review-calendar-section">
           {/* No heading. It's a labelled seven-day grid — anything written over
               it is a caption on a photograph of itself. The key and the controls
               sit in the row above, outside this section. */}

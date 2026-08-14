@@ -21,7 +21,9 @@
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  margin: 1rem 0 0.5rem;
+  /* Nothing between this row and the grid. It is a caption on the thing
+   * directly below it, and a gap made it read as its own band. */
+  margin: 1rem 0 0;
 }
 
 /* The cycle switch, labelled on both sides. A switch rather than two radios
@@ -34,11 +36,17 @@
   gap: 0.5rem;
   cursor: pointer;
 
-  /* Whichever side is live. Both labels stay legible: dimming the inactive one
-   * to the point of illegibility would make the switch a puzzle about which
-   * word applies. */
+  /* Only the *labels* change with the state. daisyUI drives the switch itself
+   * from `--input-color`, which is half-transparent when off and opaque when on
+   * — so the control faded in and out as you flipped it, competing with the
+   * labels for the job of saying which side you're on. Pinned to one colour, the
+   * knob's position is the only thing that moves, and the words carry the rest. */
+  .toggle {
+    --input-color: var(--primary-color);
+  }
+
   span {
-    opacity: 0.55;
+    opacity: 0.3;
   }
 
   span.is-current {
@@ -151,9 +159,15 @@
 
 /* ── The week grid ──────────────────────────────────────────────────────── */
 
+/* Sits directly under the controls row, so no margin of its own at the top —
+ * see `.review-calendar-section`, which also drops the section's. */
 .review-calendar {
-  margin: 1rem 0;
+  margin: 0 0 1rem;
   font-size: 0.85rem;
+}
+
+.review-calendar-section {
+  margin-top: 0;
 }
 
 /* The grid is drawn immediately and the spinner sits over it, so the page has
