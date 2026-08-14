@@ -70,6 +70,24 @@ describe("TaskPickList", () => {
     expect(onToggle).toHaveBeenCalledWith("a");
   });
 
+  it("names each pill for the view transition, uniquely", () => {
+    // The name is what lets the browser tween a pill from one list to the other
+    // when it's picked. Duplicates make it abandon the whole transition, so
+    // uniqueness is the property worth pinning.
+    render(
+      <TaskPickList
+        tasks={[task({ documentId: "a" }), task({ documentId: "b" })]}
+        selected={new Set()}
+        onToggle={vi.fn()}
+      />
+    );
+
+    const names = screen
+      .getAllByRole("button")
+      .map((pill) => (pill as HTMLElement).style.viewTransitionName);
+    expect(names).toEqual(["pill-a", "pill-b"]);
+  });
+
   it("offers nothing to click when read-only", () => {
     // The daily page's reading view. A pill there invites a click that does
     // nothing.

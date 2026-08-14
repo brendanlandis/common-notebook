@@ -77,6 +77,16 @@ export default function TaskPickList({
               type="button"
               className={`review-pill${isSelected ? " is-selected" : ""}`}
               aria-pressed={isSelected}
+              /* Names this pill for the view transition that runs when picking
+                 moves it between the two lists, so the browser tweens it from
+                 where it was to where it lands. Inert outside a transition.
+
+                 It has to be unique in the document: duplicate names make the
+                 browser abandon the whole transition. A task appears at most
+                 once on this page — `buildReviewLists` dedupes and
+                 `partitionSelected` moves rather than copies — and the daily
+                 page renders only one of these lists at a time. */
+              style={{ viewTransitionName: `pill-${task.documentId}` }}
               onClick={() => onToggle(task.documentId)}
             >
               <span>{task.title}</span>

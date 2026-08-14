@@ -108,6 +108,19 @@
   text-align: left;
 }
 
+/* The move between the two lists. Each pill carries its own
+ * `view-transition-name` (see `TaskPickList`), so the browser tweens it from
+ * where it was to where it landed rather than blinking it out of one list and
+ * into the other. Everything else on the page cross-fades as one.
+ *
+ * Long enough to read as a move rather than a jump, short enough that picking
+ * half a dozen things in a row doesn't feel like queuing. There is no
+ * reduced-motion rule here because the transition is never started at all in
+ * that case; see `canViewTransition`. */
+::view-transition-group(*) {
+  animation-duration: 0.35s;
+}
+
 /* Filled means "yes, this one" — the same thing it means on the calendar above.
  * Colour is not carrying it alone: a picked pill is also the only filled shape
  * in the list, the way a kept event is the only filled block on the grid. */

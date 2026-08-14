@@ -18,20 +18,64 @@ import {
  * other.
  */
 
-// Reviews are per-period and the account is real, so a spec that committed a
-// review for the live period would collide with Brendan's own. Everything here
-// cleans up after itself.
-async function deleteReviewsCovering(request: any, iso: string) {
+/**
+ * Reviews are per-period and the account is real, so this spec runs *inside the
+ * user's own review* for the current period rather than beside it.
+ *
+ * That changed under it. When a review was only written by pressing "commit",
+ * the spec could assume it was the one creating it and delete it afterwards.
+ * Now a pick saves itself, so by the time this runs there is usually a real
+ * review already there — and deleting it would throw away a real morning's
+ * planning. So: remember what it held, and put that back.
+ *
+ * The same shift breaks the naive "wait for the POST" — an existing review is
+ * updated, not created — hence `reviewWritten` accepting either verb.
+ */
+interface ReviewSnapshot {
+  documentId: string;
+  tasks: string[];
+}
+
+async function reviewCovering(request: any, iso: string): Promise<ReviewSnapshot | null> {
   const res = await request.get(`/api/reviews?on=${iso}`);
   const body = await res.json().catch(() => ({ success: false }));
-  if (!body.success) return;
-  for (const review of body.data ?? []) {
-    await request.delete(`/api/reviews/${review.documentId}`).catch(() => {});
+  const review = body.success ? body.data?.[0] : null;
+  return review
+    ? {
+        documentId: review.documentId,
+        tasks: (review.tasks ?? []).map((task: { documentId: string }) => task.documentId),
+      }
+    : null;
+}
+
+/** Put the user's own selection back, or remove the review this spec created. */
+async function restoreReview(request: any, iso: string, before: ReviewSnapshot | null) {
+  const after = await reviewCovering(request, iso).catch(() => null);
+  if (!after) return;
+  if (before) {
+    await request
+      .put(`/api/reviews/${before.documentId}`, { data: { tasks: before.tasks } })
+      .catch(() => {});
+  } else {
+    await request.delete(`/api/reviews/${after.documentId}`).catch(() => {});
   }
 }
 
+/** A pick reaching the server, whether it created the review or updated one. */
+const reviewWritten = (page: any) =>
+  page.waitForResponse(
+    (response: any) =>
+      /\/api\/reviews(\/|$|\?)/.test(new URL(response.url()).pathname + '?') &&
+      ['POST', 'PUT'].includes(response.request().method())
+  );
+
 test.describe('review', () => {
   test('commits a selection and reads it back on the daily page', async ({ page, request }) => {
+    const today = new Date().toISOString().slice(0, 10);
+    // What the account's own review holds right now, so it can be handed back
+    // exactly as found.
+    const before = await reviewCovering(request, today);
+
     // Titles deliberately avoid the word "review": the page's own <h1> is
     // "review", and a fixture containing it makes every heading locator
     // ambiguous under Playwright's strict mode.
@@ -74,10 +118,7 @@ test.describe('review', () => {
       // everywhere else in this app, and nothing on this page completes a task.
       // And picking it *is* the save; there is no commit button to press, and no
       // confirmation to wait for either, so the write is awaited directly.
-      const written = page.waitForResponse(
-        (response) =>
-          response.url().includes('/api/reviews') && response.request().method() === 'POST'
-      );
+      const written = reviewWritten(page);
       await page.getByRole('button', { name: chosen.title, pressed: false }).click();
       await expect(
         page.getByRole('button', { name: chosen.title, pressed: true })
@@ -94,12 +135,18 @@ test.describe('review', () => {
         timeout: 30_000,
       });
 
+      // If the account has already narrowed today to a few things, the reading
+      // view shows only those — so open the picker, which lists the review's
+      // whole selection. Reading around the user's state rather than clearing
+      // it: a daily pick is a real decision someone made this morning.
+      const changePicks = page.getByRole('button', { name: /change today's picks/ });
+      if (await changePicks.count()) await changePicks.click();
+
       // The committed task is there; the one left unticked is not.
       await expect(page.getByText(chosen.title)).toBeVisible();
       await expect(page.getByText(ignored.title)).toHaveCount(0);
     } finally {
-      const today = new Date().toISOString().slice(0, 10);
-      await deleteReviewsCovering(request, today);
+      await restoreReview(request, today, before);
       await deleteTask(request, chosen.documentId);
       await deleteTask(request, ignored.documentId);
       await deleteProject(request, project.documentId);
@@ -126,15 +173,23 @@ test.describe('review', () => {
       // `if (!response.ok) return` does nothing on a server error while an abort
       // still lands in catch — an aborted request would pass against code that
       // mishandles the real case.
-      await page.route('**/api/reviews', (route) =>
-        route.request().method() === 'POST'
+      //
+      // Both verbs, because which one a pick uses depends on whether the account
+      // already has a review for this period — and it usually does now that
+      // picking saves itself. Intercepting only the POST let the real PUT
+      // through, so the write succeeded, no error appeared, and the failure
+      // looked like the page swallowing it. It also means this test cannot
+      // touch the user's own selection: neither verb reaches the server.
+      const failWrite = (route: any) =>
+        ['POST', 'PUT'].includes(route.request().method())
           ? route.fulfill({
               status: 500,
               contentType: 'application/json',
               body: JSON.stringify({ success: false, error: 'nope' }),
             })
-          : route.continue()
-      );
+          : route.continue();
+      await page.route('**/api/reviews', failWrite);
+      await page.route('**/api/reviews/*', failWrite);
 
       await page.getByRole('button', { name: task.title, pressed: false }).click();
 

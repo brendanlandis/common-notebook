@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import { useTasks } from "@/app/(main)/todo/hooks/useTasks";
 import { useDateTimeSettings } from "@/app/contexts/DateTimeSettingsContext";
 import { useReviewCadence } from "@/app/hooks/useReviewCadence";
@@ -12,6 +13,7 @@ import {
 import { cadenceIsUsable, cycleNoun } from "@/app/lib/reviewCadence";
 import { buildReviewLists, partitionSelected, type ProjectGroup } from "@/app/lib/reviewLists";
 import { wallClockNow } from "@/app/lib/dateUtils";
+import { canViewTransition } from "@/app/lib/viewTransition";
 import { useReviewCovering, useSaveReview } from "../hooks/useReview";
 import { useCalendarEvents, useSetDecision } from "../hooks/useCalendarEvents";
 import { isFullyDecided, undecided, type ResolvedInstance } from "@/app/lib/ics/resolveDecisions";
@@ -224,7 +226,24 @@ export default function WeeklyReviewPage() {
     const next = new Set(selected);
     if (next.has(documentId)) next.delete(documentId);
     else next.add(documentId);
-    setSelected(next);
+
+    /**
+     * The pill moves between the two lists, so the move is animated.
+     *
+     * `flushSync` is what makes this work: `startViewTransition` snapshots the
+     * page, runs the callback, and snapshots again, so the DOM has to be updated
+     * *inside* it. React's normal batching would defer the re-render past the
+     * second snapshot, and the browser would tween the page against itself and
+     * animate nothing.
+     */
+    if (canViewTransition()) {
+      document.startViewTransition(() => flushSync(() => setSelected(next)));
+    } else {
+      setSelected(next);
+    }
+
+    // Outside the transition: it's a network write, and holding the second
+    // snapshot open until the server answered would freeze the page mid-morph.
     persist([...next]);
   };
 
@@ -377,12 +396,21 @@ export default function WeeklyReviewPage() {
       {/* What you've picked, lifted clear of everything else.
           A picked pill that stays where it was makes you re-read the whole page
           to see what you chose; gathered at the top, the answer is the first
-          thing you see. They keep their project name here, since there's no
-          heading above them carrying it. */}
+          thing you see.
+
+          No project name here either, though there's no heading carrying it.
+          With one, a pill changed width as it moved and the animation read as
+          the thing growing rather than travelling — and a pill that is the same
+          object in both places is what makes the move legible at all. */}
       {picked.length > 0 && (
         <section className="review-section">
           <h2>picked</h2>
-          <TaskPickList tasks={picked} selected={selected} onToggle={toggle} />
+          <TaskPickList
+            tasks={picked}
+            selected={selected}
+            onToggle={toggle}
+            showProject={false}
+          />
         </section>
       )}
 
