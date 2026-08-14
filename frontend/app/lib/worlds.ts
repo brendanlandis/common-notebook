@@ -8,8 +8,23 @@ import type { World, WorldMode } from "@/app/types/index";
 /** The stable handle of the special "stuff" world (wishlist/errands/…). */
 export const STUFF_SYSTEM_KEY = "stuff";
 
+/**
+ * The stable handle of the practice-and-study world.
+ *
+ * The *title* is the user's ("practice and study" today) and can be renamed; the
+ * systemKey is what the code matches on. Being a system world is what keeps
+ * material out of everyday views — see `resolveVisibleWorldIds` below — which is
+ * the whole reason practice can share the task substrate without competing with
+ * chores for the same attention.
+ */
+export const PRACTICE_SYSTEM_KEY = "practice";
+
 export function isStuffWorld(w: World): boolean {
   return w.systemKey === STUFF_SYSTEM_KEY;
+}
+
+export function isPracticeWorld(w: World | null | undefined): boolean {
+  return w?.systemKey === PRACTICE_SYSTEM_KEY;
 }
 
 /** True for any system world (a stable `systemKey`, e.g. stuff). */

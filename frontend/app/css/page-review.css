@@ -719,3 +719,20 @@
     padding: 0.3rem 0;
   }
 }
+
+/* The practice step.
+ *
+ * Set apart from the task lists by a rule above it rather than by colour or a
+ * box: it is a different question, not a different importance, and anything
+ * louder would make practice look like the urgent thing — which is the opposite
+ * of the problem being solved. */
+.review-practice {
+  border-top: 1px solid color-mix(in srgb, currentColor 15%, transparent);
+  padding-top: 1.5rem;
+}
+
+/* Picked material sits directly under the heading with no sub-heading of its
+ * own, the same way the task list's chosen pills do. */
+.review-practice > .review-group:first-of-type {
+  margin-top: 0.5rem;
+}

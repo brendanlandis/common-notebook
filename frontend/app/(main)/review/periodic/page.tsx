@@ -276,6 +276,16 @@ export default function PeriodicReviewPage() {
     [lists.groups, selected]
   );
 
+  // The practice lane partitions the same way against the same `selected` set —
+  // one selection, stored in one `review.tasks` relation, rendered as two steps.
+  // Splitting the *storage* would have meant a schema change and a second thing
+  // for the daily page to read; splitting only the presentation is what the
+  // attention budget actually needed.
+  const practice = useMemo(
+    () => partitionSelected(lists.practiceGroups, selected),
+    [lists.practiceGroups, selected]
+  );
+
   /**
    * Picking a task saves it. There is no commit button.
    *
@@ -508,7 +518,36 @@ export default function PeriodicReviewPage() {
         </section>
       )}
 
-      {lists.groups.length === 0 && (
+      {/* Practising, as its own step.
+          It is the same click, the same selection and the same stored review —
+          only the heading and the position separate it. That separation is the
+          entire point: in one list with the chores, practice is the thing that
+          gets left, because everything around it can be finished and ticked and
+          this can only be *done some of*. Asking "and what am I practising?" as
+          a distinct question is what makes it get an answer. */}
+      {(practice.picked.length > 0 || practice.remaining.length > 0) && (
+        <section className="review-section review-practice">
+          <h2>practising this {noun}</h2>
+          {practice.picked.length > 0 && (
+            <TaskPickList
+              tasks={practice.picked}
+              selected={selected}
+              onToggle={toggle}
+              showProject={false}
+            />
+          )}
+          {practice.remaining.map((group) => (
+            <ProjectGroupList
+              key={group.key}
+              group={group}
+              selected={selected}
+              onToggle={toggle}
+            />
+          ))}
+        </section>
+      )}
+
+      {lists.groups.length === 0 && lists.practiceGroups.length === 0 && (
         <p className="review-empty">nothing on your plate — enjoy it</p>
       )}
 

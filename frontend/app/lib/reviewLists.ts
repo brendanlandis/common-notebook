@@ -1,4 +1,5 @@
 import type { Task, RecurrenceType } from '../types/index';
+import { isPracticeWorld } from './worlds';
 
 /**
  * What's on your plate this cycle: one list, grouped by project.
@@ -41,6 +42,16 @@ export interface ProjectGroup {
 export interface ReviewLists {
   /** Everything on your plate this cycle, grouped by project. */
   groups: ProjectGroup[];
+  /**
+   * What there is to practise this cycle, grouped by subject.
+   *
+   * A lane of its own rather than more entries in `groups`, because practising
+   * is not checking things off a list. In one pool it loses every time: next to
+   * six things you can finish today, "play through the Bach" reads as the
+   * optional one, and the review's whole purpose is deciding what the cycle is
+   * *for*. Two steps, two selections, one review.
+   */
+  practiceGroups: ProjectGroup[];
 }
 
 /** The cycle being reviewed. Inclusive ISO dates, `YYYY-MM-DD`. */
@@ -173,24 +184,67 @@ function frequencyRank(task: Task): number {
  * just-ticked task on the To Do page has no meaning here: this is a planning
  * surface, not a working one.
  */
+/**
+ * Is this task a piece of practice material?
+ *
+ * Decided by the *world* its subject lives in, not by a flag on the task. That
+ * keeps it one fact in one place: a project moved into practice-and-study brings
+ * its material with it, and nothing has to be re-tagged.
+ */
+export function isPracticeMaterial(task: Task): boolean {
+  return isPracticeWorld(task.project?.world);
+}
+
+/**
+ * What there is to practise this cycle.
+ *
+ * A much simpler rule than the tasks pool, and simpler for reasons rather than
+ * by omission:
+ *
+ * - **`soon` gates it**, exactly as it gates the one-off tasks. That is the
+ *   first of the three narrowings — shelf → rotation → this cycle → today — and
+ *   it is what keeps the step readable when a subject has forty pieces of
+ *   material under it. You put things *into rotation* on /todo; you choose from
+ *   the rotation here.
+ * - **No recurrence test.** Practice material doesn't recur — you press play on
+ *   the same Bach until you're satisfied or bored, which is a state, not a
+ *   cadence. So there is no "has it come round by the end of the cycle" question
+ *   to ask either: nothing schedules it.
+ * - **`onHold` excludes it.** Set aside is neither finished nor due, and it is
+ *   the one thing `completed` cannot say about a piece you'll come back to.
+ */
+function buildPracticePool(tasks: Task[]): Task[] {
+  return tasks.filter((task) => task.soon && !task.onHold);
+}
+
 export function buildReviewLists(
   tasks: Task[],
   window: ReviewWindow | null = null
 ): ReviewLists {
   const live = tasks.filter((task) => !task.completed);
 
+  // Split the lanes before anything else, so a piece of material can never be
+  // claimed by the tasks pool as well — it would otherwise qualify as a `soon`
+  // one-off and appear in both steps.
+  const material: Task[] = [];
+  const ordinary: Task[] = [];
+  for (const task of live) {
+    (isPracticeMaterial(task) ? material : ordinary).push(task);
+  }
+  const practiceGroups = groupByProject(buildPracticePool(material));
+
   // One project can be top of mind at a time — enforced server-side on write by
   // demoteTopOfMindProjects. Read defensively anyway: the invariant is
   // maintained by writes, not by a database constraint, so take the first rather
   // than assuming there is exactly one.
   const topOfMindProject =
-    live.find((task) => task.project?.importance === TOP_OF_MIND)?.project ?? null;
+    ordinary.find((task) => task.project?.importance === TOP_OF_MIND)?.project ?? null;
 
   const topOfMindTasks: Task[] = [];
   const soon: Task[] = [];
   const recurring: Task[] = [];
 
-  for (const task of live) {
+  for (const task of ordinary) {
     if (task.isRecurring) {
       // Everything that has come round by the end of this cycle, including what
       // came round before it. Nothing marks the older ones as late — see the
@@ -219,7 +273,7 @@ export function buildReviewLists(
     if (index > 0) groups.unshift(...groups.splice(index, 1));
   }
 
-  return { groups };
+  return { groups, practiceGroups };
 }
 
 /**

@@ -469,3 +469,119 @@ describe('buildReviewLists — has it come round yet', () => {
     expect(titles(buildReviewLists([done], WEEK).groups)).toEqual([]);
   });
 });
+
+/**
+ * The practice lane.
+ *
+ * Practice material is decided by the *world* its subject lives in, and it lands
+ * in a list of its own rather than among the tasks. In one pool it loses every
+ * time: next to six things you can finish today, "play through the Bach" reads
+ * as the optional one.
+ */
+
+const practiceWorld = { documentId: 'w-practice', systemKey: 'practice' };
+
+function subject(overrides: Partial<Project> = {}): Project {
+  return project({
+    documentId: 's-guitar',
+    title: 'guitar',
+    world: practiceWorld,
+    ...overrides,
+  } as Partial<Project>);
+}
+
+const practiceIds = (lists: ReturnType<typeof buildReviewLists>) =>
+  lists.practiceGroups.flatMap((g) => g.tasks.map((t) => t.documentId));
+
+describe('the practice lane', () => {
+  it('keeps material out of the task groups entirely', () => {
+    const lists = buildReviewLists([
+      task({ documentId: 'chore', soon: true, project: project() }),
+      task({ documentId: 'bach', soon: true, project: subject() }),
+    ]);
+
+    expect(allIds(lists)).toEqual(['chore']);
+    expect(practiceIds(lists)).toEqual(['bach']);
+  });
+
+  it('takes only material that is in rotation', () => {
+    // `soon` is the first of the three narrowings — shelf → rotation → this
+    // cycle → today. Without it a subject with forty pieces would put forty
+    // pills on the page.
+    const lists = buildReviewLists([
+      task({ documentId: 'in-rotation', soon: true, project: subject() }),
+      task({ documentId: 'on-the-shelf', soon: false, project: subject() }),
+    ]);
+
+    expect(practiceIds(lists)).toEqual(['in-rotation']);
+  });
+
+  it('leaves out material that is on hold', () => {
+    // Set aside is neither finished nor due — the one state `completed` cannot
+    // express about a piece you mean to come back to.
+    const lists = buildReviewLists([
+      task({ documentId: 'active', soon: true, project: subject() }),
+      task({ documentId: 'parked', soon: true, onHold: true, project: subject() }),
+    ]);
+
+    expect(practiceIds(lists)).toEqual(['active']);
+  });
+
+  it('leaves out completed material', () => {
+    const lists = buildReviewLists([
+      task({ documentId: 'learning', soon: true, project: subject() }),
+      task({ documentId: 'learned', soon: true, completed: true, project: subject() }),
+    ]);
+
+    expect(practiceIds(lists)).toEqual(['learning']);
+  });
+
+  it('does not ask whether material has come round, because nothing schedules it', () => {
+    // A future displayDate excludes an ordinary recurring task from the cycle.
+    // Material has no cadence — you press play on the same piece until you are
+    // satisfied or bored — so the window has nothing to say about it.
+    const window: ReviewWindow = { periodStart: '2026-08-10', periodEnd: '2026-08-16' };
+    const lists = buildReviewLists(
+      [task({ documentId: 'bach', soon: true, displayDate: '2026-12-25', project: subject() })],
+      window
+    );
+
+    expect(practiceIds(lists)).toEqual(['bach']);
+  });
+
+  it('groups material by subject', () => {
+    const lists = buildReviewLists([
+      task({ documentId: 'scales', soon: true, project: subject() }),
+      task({ documentId: 'bach', soon: true, project: subject() }),
+      task({
+        documentId: 'sight-reading',
+        soon: true,
+        project: subject({ documentId: 's-theory', title: 'theory' }),
+      }),
+    ]);
+
+    expect(lists.practiceGroups.map((g) => g.projectTitle)).toEqual(['guitar', 'theory']);
+    expect(lists.practiceGroups[0].tasks.map((t) => t.documentId)).toEqual(['scales', 'bach']);
+  });
+
+  it('is empty, not absent, when there is no practice world', () => {
+    // Every account has this lane; most start with nothing in it.
+    const lists = buildReviewLists([task({ soon: true, project: project() })]);
+    expect(lists.practiceGroups).toEqual([]);
+  });
+
+  it('does not treat a task in an ordinary world as material', () => {
+    // The systemKey is the test, not the title — a world someone named
+    // "practice" without the handle is an ordinary world.
+    const lists = buildReviewLists([
+      task({
+        documentId: 'impostor',
+        soon: true,
+        project: project({ world: { documentId: 'w-1', title: 'practice' } } as Partial<Project>),
+      }),
+    ]);
+
+    expect(practiceIds(lists)).toEqual([]);
+    expect(allIds(lists)).toEqual(['impostor']);
+  });
+});
