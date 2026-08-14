@@ -118,7 +118,11 @@ export default function WeeklyReviewPage() {
     });
   }, [cadence, timeZoneSettings, mode]);
 
-  const lists = useMemo(() => buildReviewLists(tasks), [tasks]);
+  // The period decides which recurring tasks belong here — the ones that come
+  // round during it. Null while the cadence is still loading, in which case
+  // nothing is filtered; that render path shows the "needs more detail" message
+  // rather than a list.
+  const lists = useMemo(() => buildReviewLists(tasks, period), [tasks, period]);
 
   const { events, calendars, loading: calendarLoading } = useCalendarEvents(
     period?.periodStart ?? null,

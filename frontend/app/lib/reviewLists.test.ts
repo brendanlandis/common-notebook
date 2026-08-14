@@ -4,6 +4,7 @@ import {
   groupByProject,
   partitionSelected,
   type ProjectGroup,
+  type ReviewWindow,
 } from './reviewLists';
 import type { Task, Project, RecurrenceType } from '../types/index';
 
@@ -345,5 +346,104 @@ describe('partitionSelected', () => {
     partitionSelected(original, new Set(['1', '2', '3']));
 
     expect(flat(original)).toEqual(['1', '2', '3']);
+  });
+});
+
+/**
+ * Which recurring tasks belong to the cycle on screen.
+ *
+ * They were included wholesale at first, so a review of a week in August listed
+ * an annual task due in November — a catalogue of everything that recurs rather
+ * than a picture of what this week is going to ask for.
+ *
+ * These dates are compared as strings on purpose, and that is the thing to
+ * preserve: `displayDate` and the period bounds are all `YYYY-MM-DD` wall-clock
+ * dates, and lexicographic order on that format is chronological order. Parsing
+ * them into instants would introduce a timezone question where none exists,
+ * which is how this codebase has produced three separate date bugs. So there is
+ * nothing zone-dependent here to test across the matrix — and nothing that
+ * should become zone-dependent later.
+ */
+describe('buildReviewLists — the cycle window', () => {
+  const WEEK: ReviewWindow = { periodStart: '2026-08-10', periodEnd: '2026-08-16' };
+
+  const recurring = (displayDate: string | null, title: string) =>
+    task({ title, isRecurring: true, recurrenceType: 'weekly' as RecurrenceType, displayDate });
+
+  const titles = (groups: ProjectGroup[]) => groups.flatMap((g) => g.tasks.map((t) => t.title));
+
+  it('keeps a recurring task that comes round during the cycle', () => {
+    const { groups } = buildReviewLists([recurring('2026-08-13', 'water the plants')], WEEK);
+
+    expect(titles(groups)).toEqual(['water the plants']);
+  });
+
+  it('keeps one landing on either edge of the window', () => {
+    // Inclusive at both ends: the first and last day of a cycle are in it.
+    const { groups } = buildReviewLists(
+      [recurring('2026-08-10', 'monday'), recurring('2026-08-16', 'sunday')],
+      WEEK
+    );
+
+    expect(titles(groups)).toEqual(['monday', 'sunday']);
+  });
+
+  it('drops one due after the cycle ends', () => {
+    // The case that prompted this: an annual task in November, in a review of a
+    // week in August.
+    const { groups } = buildReviewLists([recurring('2026-11-02', 'file taxes')], WEEK);
+
+    expect(titles(groups)).toEqual([]);
+  });
+
+  it('drops one whose date has already gone by', () => {
+    // A recurring task is dropped rather than shown and marked late. Nothing in
+    // this feature says "overdue", and a list that quietly accumulated last
+    // cycle's misses would be exactly that, wearing different words.
+    const { groups } = buildReviewLists([recurring('2026-08-03', 'last week')], WEEK);
+
+    expect(titles(groups)).toEqual([]);
+  });
+
+  it('keeps a recurring task with no date at all', () => {
+    // Same reading as `groupTasksForLayout`: absent means nothing is holding it
+    // back, not hide it.
+    const { groups } = buildReviewLists([recurring(null, 'whenever')], WEEK);
+
+    expect(titles(groups)).toEqual(['whenever']);
+  });
+
+  it('leaves non-recurring tasks alone, whatever their date', () => {
+    // `soon` and top-of-mind tasks earn their place a different way; a
+    // displayDate outside the cycle says nothing about them.
+    const { groups } = buildReviewLists(
+      [
+        task({ title: 'soon thing', soon: true, displayDate: '2026-11-02' }),
+        task({ title: 'top of mind thing', project: project({ importance: 'top of mind' }), displayDate: '2026-01-01' }),
+      ],
+      WEEK
+    );
+
+    expect(titles(groups).sort()).toEqual(['soon thing', 'top of mind thing']);
+  });
+
+  it('filters nothing when there is no window yet', () => {
+    // The cadence arrives from a query; until it does there is no period to
+    // filter against, and that render path shows a message rather than a list.
+    const { groups } = buildReviewLists([recurring('2026-11-02', 'file taxes')], null);
+
+    expect(titles(groups)).toEqual(['file taxes']);
+  });
+
+  it('still drops completed recurring tasks inside the window', () => {
+    const done = task({
+      title: 'done already',
+      isRecurring: true,
+      recurrenceType: 'weekly' as RecurrenceType,
+      displayDate: '2026-08-13',
+      completed: true,
+    });
+
+    expect(titles(buildReviewLists([done], WEEK).groups)).toEqual([]);
   });
 });

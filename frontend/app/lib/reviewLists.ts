@@ -15,11 +15,17 @@ import type { Task, RecurrenceType } from '../types/index';
  * than of what it's asking for now, and it made a dozen tasks read as seven
  * lists.)
  *
- * Recurring tasks appear in full, with no dates and no ordering by age. That is
+ * Recurring tasks are the ones **whose `displayDate` falls inside the cycle** —
+ * the review is a picture of what this week is going to ask for, and an annual
+ * task due in November has nothing to say about a week in August. They were
+ * included wholesale at first, which made the list a catalogue of everything
+ * that recurs rather than of anything to do with the period on screen.
+ *
+ * Within that, they appear with no dates and no ordering by age. That is
  * deliberate and is the rule this whole feature is shaped around: if a task has
  * no due date then it has no due date, and ranking by how overdue something is
- * turns a planning tool into a productivity tool. A recurring task that has sat
- * incomplete for a month is presented exactly like one generated yesterday.
+ * turns a planning tool into a productivity tool. A recurring task that came due
+ * on Monday is presented exactly like one due on Friday.
  */
 
 export interface ProjectGroup {
@@ -33,6 +39,34 @@ export interface ProjectGroup {
 export interface ReviewLists {
   /** Everything on your plate this cycle, grouped by project. */
   groups: ProjectGroup[];
+}
+
+/** The cycle being reviewed. Inclusive ISO dates, `YYYY-MM-DD`. */
+export interface ReviewWindow {
+  periodStart: string;
+  periodEnd: string;
+}
+
+/**
+ * Does this recurring task actually come round during the cycle being reviewed?
+ *
+ * Recurring tasks used to be included wholesale, which put an annual task due in
+ * November into a review of a week in August — a list of everything that recurs
+ * rather than of what this cycle is going to ask for.
+ *
+ * Compared as strings, deliberately. `displayDate` and the period bounds are all
+ * `YYYY-MM-DD` wall-clock dates with no time and no zone, and lexicographic
+ * order on that format *is* chronological order. Parsing them into instants to
+ * compare them would introduce a timezone question where none exists — which is
+ * the exact move that has produced three separate date bugs in this codebase.
+ *
+ * A task with no `displayDate` is kept, matching `groupTasksForLayout`: absent
+ * means "nothing is holding this back", not "hide it".
+ */
+function recursWithin(task: Task, window: ReviewWindow | null): boolean {
+  if (!window || !task.displayDate) return true;
+  const day = task.displayDate.slice(0, 10);
+  return day >= window.periodStart && day <= window.periodEnd;
 }
 
 const TOP_OF_MIND = 'top of mind';
@@ -126,7 +160,10 @@ function frequencyRank(task: Task): number {
  * just-ticked task on the To Do page has no meaning here: this is a planning
  * surface, not a working one.
  */
-export function buildReviewLists(tasks: Task[]): ReviewLists {
+export function buildReviewLists(
+  tasks: Task[],
+  window: ReviewWindow | null = null
+): ReviewLists {
   const live = tasks.filter((task) => !task.completed);
 
   // One project can be top of mind at a time — enforced server-side on write by
@@ -142,7 +179,10 @@ export function buildReviewLists(tasks: Task[]): ReviewLists {
 
   for (const task of live) {
     if (task.isRecurring) {
-      recurring.push(task);
+      // Only the ones that come round during this cycle. A recurring task is
+      // still dropped entirely rather than being shown and marked late: see the
+      // note above about dates and ranking.
+      if (recursWithin(task, window)) recurring.push(task);
       continue;
     }
     if (topOfMindProject && task.project?.documentId === topOfMindProject.documentId) {
