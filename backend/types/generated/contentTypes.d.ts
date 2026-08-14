@@ -614,6 +614,7 @@ export interface ApiPracticeLogPracticeLog extends Struct.CollectionTypeSchema {
       'api::practice-log.practice-log'
     > &
       Schema.Attribute.Private;
+    material: Schema.Attribute.Relation<'manyToOne', 'api::task.task'>;
     notes: Schema.Attribute.Blocks;
     owner: Schema.Attribute.Relation<
       'oneToOne',
@@ -621,11 +622,9 @@ export interface ApiPracticeLogPracticeLog extends Struct.CollectionTypeSchema {
     > &
       Schema.Attribute.Private;
     publishedAt: Schema.Attribute.DateTime;
+    segments: Schema.Attribute.JSON;
     start: Schema.Attribute.DateTime;
     stop: Schema.Attribute.DateTime;
-    type: Schema.Attribute.Enumeration<
-      ['guitar', 'voice', 'drums', 'writing', 'composing', 'ear training']
-    >;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
@@ -665,7 +664,16 @@ export interface ApiProjectProject extends Struct.CollectionTypeSchema {
     > &
       Schema.Attribute.Private;
     projectType: Schema.Attribute.Enumeration<
-      ['default', 'chores', 'wishlist', 'errands', 'in the mail', 'buy stuff']
+      [
+        'default',
+        'chores',
+        'wishlist',
+        'errands',
+        'in the mail',
+        'buy stuff',
+        'instrument',
+        'study',
+      ]
     > &
       Schema.Attribute.DefaultTo<'default'>;
     publishedAt: Schema.Attribute.DateTime;
@@ -779,11 +787,17 @@ export interface ApiTaskTask extends Struct.CollectionTypeSchema {
     localizations: Schema.Attribute.Relation<'oneToMany', 'api::task.task'> &
       Schema.Attribute.Private;
     long: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
+    materialCategory: Schema.Attribute.String;
+    onHold: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
     owner: Schema.Attribute.Relation<
       'oneToOne',
       'plugin::users-permissions.user'
     > &
       Schema.Attribute.Private;
+    practice_logs: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::practice-log.practice-log'
+    >;
     price: Schema.Attribute.Integer;
     project: Schema.Attribute.Relation<'manyToOne', 'api::project.project'>;
     publishedAt: Schema.Attribute.DateTime;
