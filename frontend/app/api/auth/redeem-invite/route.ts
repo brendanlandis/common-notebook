@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { setAuthCookies } from '@/app/lib/strapiAuth';
-import { seedDefaultSettings } from '@/app/lib/strapiServer';
+import { seedDefaultSettings, seedDefaultWorlds } from '@/app/lib/strapiServer';
 import { checkRateLimit, resetRateLimit } from '../rate-limiter';
 
 const STRAPI_API_URL = process.env.STRAPI_API_URL;
@@ -225,6 +225,12 @@ export async function POST(req: NextRequest) {
 
       const { jwt, refreshToken } = await loginResponse.json();
       await seedDefaultSettings(jwt);
+      // The system worlds — practice and study, today. Without it the practice
+      // feature is unreachable, because `systemKey` is not something a user can
+      // set from the worlds UI. Best-effort like the settings above, and
+      // idempotent, so an account created before this existed can be repaired by
+      // running it again.
+      await seedDefaultWorlds(jwt);
 
       resetRateLimit(ip, 'redeem-invite');
 

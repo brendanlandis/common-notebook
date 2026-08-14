@@ -153,6 +153,11 @@ export type ProjectImportance =
 export type ProjectType =
   | 'default'
   | 'chores'
+  // A practice subject's kind. Same column, a third axis: these are only
+  // meaningful on a project filed in the practice-and-study world, and
+  // ProjectForm sends one of these *or* chores/default, never both.
+  | 'instrument'
+  | 'study'
   | 'wishlist'
   | 'errands'
   | 'in the mail'

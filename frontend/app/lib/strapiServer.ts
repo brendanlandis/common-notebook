@@ -9,6 +9,7 @@
  */
 
 import { DEFAULT_SETTINGS } from './defaultSettings';
+import { DEFAULT_WORLDS } from './defaultWorlds';
 import { DEFAULT_TIME_ZONE_SETTINGS, parseDayBoundaryHour, type TimeZoneSettings } from './timeZoneSettings';
 import { parseVisibilityMinutes } from './completedTaskVisibilityConfig';
 
@@ -180,6 +181,54 @@ export async function seedDefaultSettings(accessToken: string): Promise<void> {
       if (!ok) console.error(`Failed to seed default setting ${setting.title}`);
     } catch (error) {
       console.error(`Failed to seed default setting ${setting.title}:`, error);
+    }
+  }
+}
+
+/**
+ * Seed the worlds a new account cannot create for itself.
+ *
+ * Only the system ones — see `defaultWorlds.ts` for why the list is short. The
+ * point is `systemKey`, which the worlds UI does not expose: a user cannot make
+ * a world the practice feature recognises, so if this does not run the feature
+ * is unreachable and silently so.
+ *
+ * **Idempotent**, keyed on `systemKey`. Seeding runs at the end of signup, after
+ * the account already exists, so it can be re-run to repair an account that was
+ * created before this existed — and re-running must not leave two worlds with
+ * the same handle, which would make `findStuffWorld`-style lookups pick one
+ * arbitrarily.
+ *
+ * Best-effort, like the settings above: a failure leaves the user without the
+ * world rather than without an account. The account is the thing that cannot be
+ * retried.
+ */
+export async function seedDefaultWorlds(accessToken: string): Promise<void> {
+  let existing: Array<{ systemKey?: string | null }> = [];
+  try {
+    existing = await fetchAllPages(accessToken, '/api/worlds');
+  } catch (error) {
+    console.error('Could not read existing worlds before seeding:', error);
+    return;
+  }
+
+  const claimed = new Set(existing.map((world) => world.systemKey).filter(Boolean));
+
+  for (const world of DEFAULT_WORLDS) {
+    if (claimed.has(world.systemKey)) continue;
+    try {
+      // `slug` is stamped by the world lifecycle and `owner` by the ownership
+      // middleware, so neither is sent here.
+      const response = await strapiFetch(accessToken, '/api/worlds', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          data: { title: world.title, systemKey: world.systemKey, position: world.position },
+        }),
+      });
+      if (!response.ok) console.error(`Failed to seed world ${world.systemKey}`);
+    } catch (error) {
+      console.error(`Failed to seed world ${world.systemKey}:`, error);
     }
   }
 }

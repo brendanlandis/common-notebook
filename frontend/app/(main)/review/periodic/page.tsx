@@ -488,7 +488,10 @@ export default function PeriodicReviewPage() {
           attention budget needed. */}
       {(practice.picked.length > 0 || practice.remaining.length > 0) && (
         <section className="review-section review-practice">
-          <h2>practising this {noun}</h2>
+          {/* Named for the world, not for the activity. "practising this week"
+              read as a verb phrase about one of the things in it, and half of
+              what is in it is study rather than practice. */}
+          <h2>practice and study</h2>
           {practice.picked.length > 0 && (
             <TaskPickList
               tasks={practice.picked}
