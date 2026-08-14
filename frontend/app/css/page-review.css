@@ -151,7 +151,16 @@
   }
 }
 
+/* The project's name, trailing the task's.
+ *
+ * Inline, and nested inside the title's span rather than sitting beside it as a
+ * second flex item — as a sibling it was pushed to the right edge of the widest
+ * line whenever the title wrapped, leaving a stripe of white between the last
+ * word and the project. Its own margin rather than the row's `gap`, for the same
+ * reason: the gap now separates the checkbox from the text, not the text from
+ * itself. */
 .review-pick-project {
+  margin-left: 0.4rem;
   opacity: 0.5;
   font-size: 0.85em;
 }

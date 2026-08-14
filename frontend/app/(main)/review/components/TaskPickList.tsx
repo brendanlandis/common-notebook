@@ -57,10 +57,12 @@ export default function TaskPickList({
       <ul className="review-task-list">
         {tasks.map((task) => (
           <li key={task.documentId}>
-            <span>{task.title}</span>
-            {showProject && task.project?.title && (
-              <span className="review-pick-project">{task.project.title}</span>
-            )}
+            <span>
+              {task.title}
+              {showProject && task.project?.title && (
+                <span className="review-pick-project">{task.project.title}</span>
+              )}
+            </span>
           </li>
         ))}
       </ul>
@@ -89,12 +91,19 @@ export default function TaskPickList({
               style={{ viewTransitionName: `pill-${task.documentId}` }}
               onClick={() => onToggle(task.documentId)}
             >
-              <span>{task.title}</span>
-              {/* The project, only where it isn't already implied by the heading
-                  above the list. Context, not status. */}
-              {showProject && task.project?.title && (
-                <span className="review-pick-project">{task.project.title}</span>
-              )}
+              {/* Title and project are one text flow, not two flex items.
+                  Side by side in the flex row, a title long enough to wrap left
+                  the project pinned to the right edge of the *widest* line, with
+                  a stripe of space after the short last one. Nested, it just
+                  follows the final word wherever that word ends up. */}
+              <span>
+                {task.title}
+                {/* The project, only where it isn't already implied by the
+                    heading above the list. Context, not status. */}
+                {showProject && task.project?.title && (
+                  <span className="review-pick-project">{task.project.title}</span>
+                )}
+              </span>
             </button>
           </li>
         );

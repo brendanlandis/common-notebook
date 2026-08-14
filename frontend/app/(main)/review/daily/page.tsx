@@ -303,10 +303,15 @@ export default function DailyReviewPage() {
                       onClick={() => openFor(task)}
                     >
                       <MetronomeIcon size={22} weight="regular" aria-hidden="true" />
-                      <span>{task.title}</span>
-                      {task.project?.title && (
-                        <span className="review-pick-project">{task.project.title}</span>
-                      )}
+                      {/* One text flow, so the subject follows the last word of a
+                          wrapped title rather than sitting off at the row's right
+                          edge — see the same nesting in `TaskPickList`. */}
+                      <span>
+                        {task.title}
+                        {task.project?.title && (
+                          <span className="review-pick-project">{task.project.title}</span>
+                        )}
+                      </span>
                     </button>
                     <button
                       type="button"
