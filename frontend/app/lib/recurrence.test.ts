@@ -44,6 +44,8 @@ function createTask(overrides: Partial<Task>): Task {
     wishListCategory: null,
     soon: false,
     long: false,
+    onHold: false,
+    materialCategory: null,
     workSessions: null,
     createdAt: '',
     updatedAt: '',

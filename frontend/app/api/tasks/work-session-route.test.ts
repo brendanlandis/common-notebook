@@ -33,6 +33,8 @@ function createTask(overrides: Partial<Task>): Task {
     wishListCategory: null,
     soon: false,
     long: true, // Default to long task
+    onHold: false,
+    materialCategory: null,
     workSessions: null,
     createdAt: '2026-01-01T00:00:00.000Z',
     updatedAt: '2026-01-01T00:00:00.000Z',

@@ -221,6 +221,15 @@ export interface Task extends RecurrenceRule, RecurrenceAnchor {
   wishListCategory: string | null;
   soon: boolean;
   long: boolean;
+  // "Come back to this sometime" — distinct from `completed` (done) and from a
+  // future `displayDate` (come back on a *date*). Practice material is what
+  // motivated it, since a piece you've set aside is neither finished nor due.
+  onHold: boolean;
+  // Free text, autocompleted from siblings within the same project: scales,
+  // arpeggios, chords. Deliberately not a reuse of `wishListCategory` — that
+  // field is named for wish lists, and giving a field a second meaning is how
+  // `projectType` and `importance` both ended up spelled 'normal'.
+  materialCategory: string | null;
   workSessions: WorkSession[] | null;
   project?: Project | null;
   workedOnPhase?: 1 | 2 | 3; // Added for worked-on state tracking

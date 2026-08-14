@@ -9,6 +9,7 @@ import type {
   Task,
   RecurrenceType,
   RecurrenceRule,
+  RecurrenceAnchor,
   ProjectType,
   StrapiBlock,
 } from "@/app/types/index";
@@ -236,14 +237,13 @@ export default function TaskForm({ task, onSubmit, onCancel }: TaskFormProps) {
     let displayDateOffset = null;
 
     if (data.isRecurring) {
-      // Create a temporary task object to calculate proper dates
-      const tempTask: Task = {
-        id: 0,
-        documentId: "",
-        title: data.title,
-        description: [],
-        completed: false,
-        completedAt: null,
+      // Just the pattern and where it currently sits — which is all
+      // `calculateNextRecurrence` reads. This was a whole fabricated `Task`,
+      // fifteen fields of which (title, price, timestamps…) the engine has never
+      // looked at; it dated from before the engine took a rule rather than a
+      // Task. Narrowing it means a new column on `Task` no longer has to be
+      // invented here to satisfy the type.
+      const rule: RecurrenceRule & RecurrenceAnchor = {
         dueDate: null,
         displayDate: null,
         displayDateOffset: isEventBased ? data.displayDateOffset ?? 0 : null,
@@ -255,21 +255,11 @@ export default function TaskForm({ task, onSubmit, onCancel }: TaskFormProps) {
         recurrenceWeekOfMonth: data.recurrenceWeekOfMonth || null,
         recurrenceDayOfWeekMonthly: data.recurrenceDayOfWeekMonthly || null,
         recurrenceMonth: data.recurrenceMonth || null,
-        trackingUrl: data.trackingUrl || null,
-        purchaseUrl: data.purchaseUrl || null,
-        price: data.price || null,
-        wishListCategory: data.wishListCategory || null,
-        soon: data.soon,
-        long: data.long,
-        workSessions: null,
-        createdAt: "",
-        updatedAt: "",
-        publishedAt: "",
       };
 
       // Calculate proper dates based on recurrence
       // Pass true for isInitialCreation to get correct initial displayDate
-      const calculatedDates = calculateNextRecurrence(tempTask, timeZoneSettings, true);
+      const calculatedDates = calculateNextRecurrence(rule, timeZoneSettings, true);
       dueDate = calculatedDates.dueDate;
       displayDate = calculatedDates.displayDate;
       displayDateOffset = isEventBased ? data.displayDateOffset ?? 0 : null;

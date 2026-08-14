@@ -17,17 +17,6 @@
     "stop": {
       "type": "datetime"
     },
-    "type": {
-      "type": "enumeration",
-      "enum": [
-        "guitar",
-        "voice",
-        "drums",
-        "writing",
-        "composing",
-        "ear training"
-      ]
-    },
     "notes": {
       "type": "blocks"
     },
@@ -42,6 +31,15 @@
       "relation": "oneToOne",
       "target": "plugin::users-permissions.user",
       "private": true
+    },
+    "material": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::task.task",
+      "inversedBy": "practice_logs"
+    },
+    "segments": {
+      "type": "json"
     }
   }
 }

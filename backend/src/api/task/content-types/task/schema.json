@@ -113,6 +113,19 @@
       "relation": "oneToOne",
       "target": "plugin::users-permissions.user",
       "private": true
+    },
+    "practice_logs": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::practice-log.practice-log",
+      "mappedBy": "material"
+    },
+    "onHold": {
+      "type": "boolean",
+      "default": false
+    },
+    "materialCategory": {
+      "type": "string"
     }
   }
 }

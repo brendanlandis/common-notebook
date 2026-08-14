@@ -87,6 +87,8 @@ export async function POST(
             purchaseUrl: task.purchaseUrl,
             price: task.price,
             wishListCategory: task.wishListCategory,
+            onHold: task.onHold,
+            materialCategory: task.materialCategory,
           },
         }),
       });
