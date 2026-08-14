@@ -137,31 +137,77 @@ export default function DailyReviewPage() {
   const [nowOffset, setNowOffset] = useState<number | null>(null);
 
   useEffect(() => {
+    const container = calendarRef.current;
+    if (!container) return;
+
     const measure = () => {
-      const container = calendarRef.current;
-      const line = container?.querySelector<HTMLElement>(
+      const line = container.querySelector<HTMLElement>(
         ".fc-timegrid-now-indicator-line"
       );
-      if (!container || !line) {
+      if (!line) {
         setNowOffset(null);
-        return;
+        return null;
       }
-      setNowOffset(
-        line.getBoundingClientRect().top - container.getBoundingClientRect().top
-      );
+      const offset =
+        line.getBoundingClientRect().top - container.getBoundingClientRect().top;
+      setNowOffset(offset);
+      return offset;
     };
 
-    measure();
-    // FullCalendar positions the line after its first layout pass, which is
-    // after this effect runs.
-    const settled = requestAnimationFrame(measure);
+    /**
+     * Measure every frame until the answer stops changing.
+     *
+     * Two failures this replaces, both of which showed up as the list sitting at
+     * the top of its column instead of beside the current hour.
+     *
+     * FullCalendar draws the now-indicator after its own first layout pass, some
+     * unknown number of frames after this effect — so a single
+     * `requestAnimationFrame` was usually too early, and the next measurement
+     * was whenever the events arrived. The list waited several seconds for the
+     * feeds to answer a question the clock had already answered.
+     *
+     * And measuring once as soon as the line exists is also too early: the grid
+     * is still settling, and the line moved ~36px after the first frame it
+     * appeared in. So this stops when the same value comes back a few times
+     * running, not when it first gets one.
+     */
+    let raf = 0;
+    const settle = () => {
+      let frames = 0;
+      let steady = 0;
+      let last: number | null = null;
+
+      const tick = () => {
+        const offset = measure();
+        steady = offset !== null && offset === last ? steady + 1 : 0;
+        last = offset;
+        // Three frames of agreement, or a second of trying. Beyond that it's
+        // waiting on something that isn't coming, and the observer below picks
+        // up anything that turns up later.
+        if (steady >= 3 || ++frames > 60) return;
+        raf = requestAnimationFrame(tick);
+      };
+
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(tick);
+    };
+
+    settle();
+
+    // The line moves whenever the grid is laid out again — when the events
+    // arrive and widen the visible hours, when the window resizes, when the
+    // column reflows. One observer covers all three, and each time it fires the
+    // measurement has to settle again for the same reason as above.
+    const observer = new ResizeObserver(() => settle());
+    observer.observe(container);
+
+    // And it moves on its own as the day passes.
     const ticking = window.setInterval(measure, 60_000);
-    window.addEventListener("resize", measure);
 
     return () => {
-      cancelAnimationFrame(settled);
+      cancelAnimationFrame(raf);
+      observer.disconnect();
       window.clearInterval(ticking);
-      window.removeEventListener("resize", measure);
     };
   }, [todaysEvents, sunsets]);
 

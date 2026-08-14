@@ -263,7 +263,16 @@ export default function WeekCalendar({
   );
 
   return (
-    <div className={`review-calendar${arriving ? " is-arriving" : ""}`}>
+    /* `is-readonly` where there's nothing to click. The daily grid is for
+       reading — it has no `onCycle` — but FullCalendar still gave every event a
+       pointer cursor and painted its selected-overlay on click, so the events
+       looked like controls and appeared to respond to being pressed. Neither is
+       true there. */
+    <div
+      className={`review-calendar${arriving ? " is-arriving" : ""}${
+        onCycle ? "" : " is-readonly"
+      }`}
+    >
       <FullCalendar
         ref={calendarRef}
         plugins={[timeGridPlugin]}

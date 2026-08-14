@@ -98,11 +98,27 @@ export default function WeeklyReviewPage() {
    * while the grid behind them changes.
    */
   const setMode = (next: ReviewPeriodMode) => {
-    if (canViewTransition()) {
-      document.startViewTransition(() => flushSync(() => setChosenMode(next)));
-    } else {
+    if (!canViewTransition()) {
       setChosenMode(next);
+      return;
     }
+
+    // Which way you went, which is the entire content of this control. Read by
+    // the `::view-transition-*(review-grid)` rules, which live on the document
+    // root and so need the class there rather than on the grid.
+    const direction = next === "upcoming" ? "cycle-forward" : "cycle-back";
+    document.documentElement.classList.add(direction);
+
+    const transition = document.startViewTransition(() =>
+      flushSync(() => setChosenMode(next))
+    );
+    // `finished` rather than `ready`: removing the class mid-animation would
+    // strip the rule that is currently running it. It settles either way — a
+    // transition that is skipped still resolves — so the class can't be left
+    // behind to slide something that isn't a cycle change.
+    transition.finished.finally(() => {
+      document.documentElement.classList.remove(direction);
+    });
   };
 
   const [selected, setSelected] = useState<Set<string>>(new Set());

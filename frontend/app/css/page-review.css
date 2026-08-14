@@ -320,6 +320,77 @@
  * are already correct and worth reading while the events are on their way. */
 .review-calendar-frame {
   position: relative;
+
+  /* Named, so the grid is animated as itself rather than as part of the page.
+   *
+   * Two things follow, and both were bugs before:
+   *
+   * 1. It is no longer inside the root snapshot. Picking a task on the daily
+   *    page changes the page's *height*, so the old and new root snapshots are
+   *    different sizes; the browser scales one into the other and every pixel in
+   *    the page — the calendar included — warps for 450ms. That was the "quick
+   *    flash-fade" on a grid that hadn't changed at all. Lifted out, its own
+   *    snapshots are identical and nothing happens to it, which is right: today's
+   *    calendar has no opinion about which tasks you picked.
+   * 2. It can be animated on its own terms, which is what the cycle switch
+   *    below needs. */
+  view-transition-name: review-grid;
+}
+
+/* Switching cycles slides, rather than cross-fading.
+ *
+ * A cross-fade between two weeks is very nearly invisible: same columns, same
+ * hours, same shapes, only the dates and a few events differ — so blending them
+ * looks like nothing happened, which is exactly what it was reported as. A slide
+ * says which direction you went, and the direction is the whole content of that
+ * control.
+ *
+ * The direction class goes on `<html>` because these pseudo-elements live on the
+ * document root, and it is set before the transition starts and removed when it
+ * finishes — see `setMode`. Without a direction the grid cross-fades in place,
+ * which is what "show all" wants: nothing there has moved anywhere. */
+@keyframes grid-leave-left {
+  to {
+    opacity: 0;
+    transform: translateX(-3%);
+  }
+}
+
+@keyframes grid-enter-right {
+  from {
+    opacity: 0;
+    transform: translateX(3%);
+  }
+}
+
+@keyframes grid-leave-right {
+  to {
+    opacity: 0;
+    transform: translateX(3%);
+  }
+}
+
+@keyframes grid-enter-left {
+  from {
+    opacity: 0;
+    transform: translateX(-3%);
+  }
+}
+
+:root.cycle-forward::view-transition-old(review-grid) {
+  animation: grid-leave-left var(--transition-time) ease-in both;
+}
+
+:root.cycle-forward::view-transition-new(review-grid) {
+  animation: grid-enter-right var(--transition-time) ease-out both;
+}
+
+:root.cycle-back::view-transition-old(review-grid) {
+  animation: grid-leave-right var(--transition-time) ease-in both;
+}
+
+:root.cycle-back::view-transition-new(review-grid) {
+  animation: grid-enter-left var(--transition-time) ease-out both;
 }
 
 .review-calendar-loading {
@@ -480,6 +551,23 @@
 
 .fc-event {
   cursor: pointer;
+}
+
+/* …except where clicking one does nothing.
+ *
+ * The daily grid is a reading surface: decisions are made on the review page, so
+ * it's handed no `onCycle`. FullCalendar doesn't know that — it gives every
+ * event a pointer cursor and paints `--fc-event-selected-overlay-color` over one
+ * that's been pressed, so the events read as controls and appeared to respond to
+ * a click that did nothing at all. The overlay is turned off through
+ * FullCalendar's own variable rather than by chasing the `::after` that draws
+ * it. */
+.review-calendar.is-readonly {
+  --fc-event-selected-overlay-color: transparent;
+
+  .fc-event {
+    cursor: default;
+  }
 }
 
 /* FullCalendar colours the time and the title separately, and its default for
