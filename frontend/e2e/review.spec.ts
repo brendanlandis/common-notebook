@@ -93,12 +93,12 @@ test.describe('review', () => {
     });
 
     try {
-      await page.goto('/review/weekly');
+      await page.goto('/review/periodic');
 
       // A positive signal rather than waiting for "loading..." to detach — the
       // page has two sequential gates and the text can vanish in the gap.
       await expect(
-        page.getByRole('heading', { name: 'review', exact: true })
+        page.getByRole('heading', { name: 'periodic review', exact: true })
       ).toBeVisible({ timeout: 30_000 });
 
       // The top-of-mind project titles its own list.
@@ -170,9 +170,9 @@ test.describe('review', () => {
     });
 
     try {
-      await page.goto('/review/weekly');
+      await page.goto('/review/periodic');
       await expect(
-        page.getByRole('heading', { name: 'review', exact: true })
+        page.getByRole('heading', { name: 'periodic review', exact: true })
       ).toBeVisible({ timeout: 30_000 });
 
       // `fulfill`, not `abort`. A 500 *resolves*, so code guarded by

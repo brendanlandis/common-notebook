@@ -32,7 +32,7 @@ export const DEFAULT_SETTINGS: ReadonlyArray<{ title: SettingTitle; value: strin
   { title: 'completedTaskVisibilityMinutes', value: '15' },
   { title: 'autoDeclutter', value: 'true' },
   { title: 'enableStuffProjects', value: 'true' },
-  // How often the weekly review comes round. JSON because a cadence is one
+  // How often the periodic review comes round. JSON because a cadence is one
   // indivisible value (see reviewCadence.ts); weekly starting Monday by default.
   { title: 'reviewCadence', value: '{"recurrenceType":"weekly","recurrenceDayOfWeek":1}' },
   // Only used to work out sunset (see location.ts). Matches the default

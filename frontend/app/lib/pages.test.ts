@@ -7,11 +7,11 @@ describe('visiblePages', () => {
   });
 
   it('lists the daily review, not the review ritual', () => {
-    // `/review/weekly` is reached deliberately, roughly once a cycle; the daily
+    // `/review/periodic` is reached deliberately, roughly once a cycle; the daily
     // page is the one you land on. Listing both would make the menu offer two
     // entries for what is really one feature.
     expect(MAIN_PAGES).toContain('/review/daily');
-    expect(MAIN_PAGES).not.toContain('/review/weekly');
+    expect(MAIN_PAGES).not.toContain('/review/periodic');
   });
 
   it('hides beta pages from a non-beta user', () => {

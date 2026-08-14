@@ -62,7 +62,7 @@ function ProjectGroupList({
  * each review opens on the same blank slate, which is what keeps it a planning
  * ritual rather than a report card.
  */
-export default function WeeklyReviewPage() {
+export default function PeriodicReviewPage() {
   const { timeZoneSettings } = useDateTimeSettings();
   const { tasks, loading: tasksLoading } = useTasks();
   const { cadence, loading: cadenceLoading } = useReviewCadence();
@@ -314,7 +314,7 @@ export default function WeeklyReviewPage() {
   if (!cadence || !cadenceIsUsable(cadence)) {
     return (
       <div className="review-page">
-        <h1>review</h1>
+        <h1>periodic review</h1>
         <p>
           your review cadence needs a little more detail before it can work out a
           period — have a look in settings.
@@ -328,7 +328,7 @@ export default function WeeklyReviewPage() {
 
   return (
     <div className="review-page">
-      <h1>review</h1>
+      <h1>periodic review</h1>
 
       {/* The period used to be spelled out here as a date range. The calendar
           below is a week of labelled day columns, so it was saying the same

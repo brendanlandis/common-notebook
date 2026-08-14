@@ -8,7 +8,7 @@ import { hasEventDate } from "@/app/lib/recurrence";
  *
  * Lifted out of `TaskForm`, where it was ~200 lines of inline JSX wired
  * directly to that form's react-hook-form instance. It moved because tasks are
- * no longer the only thing with a recurrence: the weekly review's cadence
+ * no longer the only thing with a recurrence: the periodic review's cadence
  * ("every other Monday", "every new moon", "the last Friday of the month") is
  * the same pattern language, and a second hand-written copy of these option
  * lists is how the two start disagreeing about what "monthly" offers.

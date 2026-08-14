@@ -79,7 +79,7 @@ export default function MenuItems({
             </Link>
           </li>
           <li>
-            <Link href="/review/weekly" onClick={closeDrawer}>
+            <Link href="/review/periodic" onClick={closeDrawer}>
               <CompassIcon size={30} weight="thin" />
               <span>review</span>
             </Link>
