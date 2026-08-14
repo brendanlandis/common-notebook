@@ -720,15 +720,18 @@
   }
 }
 
-/* The practice step.
+/* The practice step, which comes first on both review pages.
  *
- * Set apart from the task lists by a rule above it rather than by colour or a
- * box: it is a different question, not a different importance, and anything
- * louder would make practice look like the urgent thing — which is the opposite
- * of the problem being solved. */
+ * Set apart by a rule *below* it — it leads, so the line marks where practice
+ * ends and the tasks begin. (It was a border-top, from when this section sat
+ * last; above the first block it would just be a stray line under the header.)
+ *
+ * A rule and nothing else: no colour, no box. Practice is a different question,
+ * not a more important one, and anything louder would make it look like the
+ * urgent thing — the exact opposite of the problem being solved. */
 .review-practice {
-  border-top: 1px solid color-mix(in srgb, currentColor 15%, transparent);
-  padding-top: 1.5rem;
+  border-bottom: 1px solid color-mix(in srgb, currentColor 15%, transparent);
+  padding-bottom: 1.5rem;
 }
 
 /* Picked material sits directly under the heading with no sub-heading of its

@@ -386,15 +386,14 @@ export default function DailyReviewPage() {
         </div>
       </div>
 
-      {/* The pool, same as the review page's: pick one and it lifts out, up into
-          the list above. */}
-      {remaining.length > 0 && (
-        <section className="review-section">
-          {/* The same words the review page uses for the same pool, because it
-              is the same pool — what's on your plate, minus whatever you've
-              already lifted out of it. */}
-          <h2>not yet but soon</h2>
-          {remaining.map((group) => (
+      {/* Material committed to this cycle but not picked up today.
+          Leads the pools, the same way it leads the periodic review — a separate
+          question, asked first. Below the tasks it is the section you have
+          already scrolled past by the time you reach it. */}
+      {practice.remaining.length > 0 && (
+        <section className="review-section review-practice">
+          <h2>could practise</h2>
+          {practice.remaining.map((group) => (
             <div key={group.key} className="review-group">
               <h3>{group.projectTitle ?? "incidentals"}</h3>
               <TaskPickList
@@ -408,13 +407,15 @@ export default function DailyReviewPage() {
         </section>
       )}
 
-      {/* Material you committed to this cycle but haven't picked up today.
-          Its own section rather than more groups in the pool above, for the same
-          reason it has its own lane at the top: it is a different question. */}
-      {practice.remaining.length > 0 && (
+      {/* The pool, same as the review page's: pick one and it lifts out, up into
+          the list above. */}
+      {remaining.length > 0 && (
         <section className="review-section">
-          <h2>could practise</h2>
-          {practice.remaining.map((group) => (
+          {/* The same words the review page uses for the same pool, because it
+              is the same pool — what's on your plate, minus whatever you've
+              already lifted out of it. */}
+          <h2>not yet but soon</h2>
+          {remaining.map((group) => (
             <div key={group.key} className="review-group">
               <h3>{group.projectTitle ?? "incidentals"}</h3>
               <TaskPickList

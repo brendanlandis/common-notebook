@@ -475,6 +475,39 @@ export default function PeriodicReviewPage() {
           With one, a pill changed width as it moved and the animation read as
           the thing growing rather than travelling — and a pill that is the same
           object in both places is what makes the move legible at all. */}
+      {/* Practising, first and entirely on its own.
+          Above the tasks rather than after them, and not sharing their lists at
+          any point. Below, it is the thing that gets left: by the time you have
+          read a page of things that can be finished and ticked, "play through
+          the Bach" reads as the optional extra. Asking "what am I practising?"
+          *before* "what am I doing?" is what makes it get an answer — and it is
+          the whole reason practice lives in this app rather than beside it.
+
+          Still one click, one `selected` set and one stored review. Only the
+          order and the heading separate the two, which is all the separation the
+          attention budget needed. */}
+      {(practice.picked.length > 0 || practice.remaining.length > 0) && (
+        <section className="review-section review-practice">
+          <h2>practising this {noun}</h2>
+          {practice.picked.length > 0 && (
+            <TaskPickList
+              tasks={practice.picked}
+              selected={selected}
+              onToggle={toggle}
+              showProject={false}
+            />
+          )}
+          {practice.remaining.map((group) => (
+            <ProjectGroupList
+              key={group.key}
+              group={group}
+              selected={selected}
+              onToggle={toggle}
+            />
+          ))}
+        </section>
+      )}
+
       {picked.length > 0 && (
         <section className="review-section">
           {/* Named for the period it's a plan for, in the same words as the
@@ -518,34 +551,6 @@ export default function PeriodicReviewPage() {
         </section>
       )}
 
-      {/* Practising, as its own step.
-          It is the same click, the same selection and the same stored review —
-          only the heading and the position separate it. That separation is the
-          entire point: in one list with the chores, practice is the thing that
-          gets left, because everything around it can be finished and ticked and
-          this can only be *done some of*. Asking "and what am I practising?" as
-          a distinct question is what makes it get an answer. */}
-      {(practice.picked.length > 0 || practice.remaining.length > 0) && (
-        <section className="review-section review-practice">
-          <h2>practising this {noun}</h2>
-          {practice.picked.length > 0 && (
-            <TaskPickList
-              tasks={practice.picked}
-              selected={selected}
-              onToggle={toggle}
-              showProject={false}
-            />
-          )}
-          {practice.remaining.map((group) => (
-            <ProjectGroupList
-              key={group.key}
-              group={group}
-              selected={selected}
-              onToggle={toggle}
-            />
-          ))}
-        </section>
-      )}
 
       {lists.groups.length === 0 && lists.practiceGroups.length === 0 && (
         <p className="review-empty">nothing on your plate — enjoy it</p>
