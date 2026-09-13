@@ -19,8 +19,10 @@ const EST: TimeZoneSettings = { timezone: 'America/New_York', dayBoundaryHour: 4
 //  - Soon + top-of-mind section pulls soon tasks AND all tasks of the top-of-mind
 //    project from EVERY world (day job included), no day-job filter.
 //  - Future displayDate tasks are hidden.
-//  - Incidentals asymmetry: soon (no-world) incidentals show under worldMode "all";
-//    recurring (no-world) incidentals do NOT under worldMode "except".
+//  - Incidentals (no-world tasks) show under worldMode "all" and "except" alike:
+//    an except-list names worlds, and an incidental has none to be named by.
+//    (Until 2026-09-12 "except" dropped them, and this file recorded that as an
+//    asymmetry; the everything view lost every project-less task to it.)
 
 const musicWorld: World = {
   id: 1,
@@ -247,7 +249,9 @@ describe('good-morning golden output', () => {
               ],
             },
           ],
-          "incidentals": [],
+          "incidentals": [
+            "t-water",
+          ],
           "name": "recurring",
         },
       ]

@@ -146,7 +146,7 @@ runs on save and leaves the DB and the schema disagreeing.
   View to the runtime `LayoutRuleset` consumed by `transformLayout` (`app/lib/layoutTransformers.ts`) →
   `LayoutRenderer` → a per-layout component. Two `CODE_PRESETS` (`done`, `recurring`) take a bespoke
   branch via `codePreset`.
-- **Incidentals** — tasks with no project. Only `worldMode: 'all'` surfaces them.
+- **Incidentals** — tasks with no project. `worldMode: 'all'` and `'except'` surface them; only `'only'` hides them (an incidental has no world for an except-list to name).
 - **Task flags worth knowing** — `soon` (a one-off you've flagged for this cycle), `long` (a task worked
   at over days rather than finished in one go), `onHold` (practice material set aside — neither finished
   nor due), `materialCategory` (free text on material: scales, arpeggios…), and `workSessions`, a JSON

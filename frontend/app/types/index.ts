@@ -53,9 +53,9 @@ export interface World {
 // random task from the filtered set.
 export type ViewLayout = 'projects' | 'chronological' | 'roulette';
 
-// How a section selects worlds. `all` also shows incidentals (no-world tasks)
-// and never surfaces system worlds (stuff); `only`/`except` name worlds
-// explicitly.
+// How a section selects worlds. `only`/`except` name worlds explicitly. `all`
+// and `except` also show incidentals (no-world tasks) and never surface system
+// worlds (stuff); `only` is scoped to its named worlds and hides incidentals.
 export type WorldMode = 'all' | 'only' | 'except';
 
 // Effective-tier importance filter — a contiguous range over the ordered tiers

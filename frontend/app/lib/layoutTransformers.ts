@@ -94,7 +94,7 @@ function importanceAllows(filter: ImportanceFilter, task: Task): boolean {
 
 interface SectionContext {
   visibleWorldIds: Set<string>;
-  showIncidentals: boolean; // only worldMode === "all" surfaces no-world tasks
+  showIncidentals: boolean; // no-world tasks show under "all" and "except"; only "only" hides them
 }
 
 // Does a task belong in a section? ANDs the section's filter set, plus the
@@ -176,7 +176,9 @@ function collectSectionTasks(
 ): Task[] {
   const ctx: SectionContext = {
     visibleWorldIds: resolveVisibleWorldIds(section.worldMode, section.worldIds, worlds),
-    showIncidentals: section.worldMode === "all",
+    // An incidental has no world, so nothing in an "except" list can exclude
+    // it; it belongs in every view that is not scoped to named worlds.
+    showIncidentals: section.worldMode !== "only",
   };
   const matched: Task[] = [];
   for (const task of allTasks) {
