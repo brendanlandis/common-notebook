@@ -8,6 +8,7 @@ import { useLocation } from "@/app/hooks/useLocation";
 import { getToday, shiftISODate, toISODate, wallClockNow } from "@/app/lib/dateUtils";
 import { sunsetOn } from "@/app/lib/sunset";
 import { groupByProject, partitionSelected, isPracticeMaterial } from "@/app/lib/reviewLists";
+import { isRecurringVisibleToday } from "@/app/lib/groupTasks";
 import { usePracticeSessionUI } from "@/app/contexts/PracticeSessionContext";
 import { useProjects, withProjectWorld } from "@/app/hooks/useProjects";
 import { canViewTransition } from "@/app/lib/viewTransition";
@@ -85,12 +86,20 @@ export default function DailyReviewPage() {
    * all go through `withProjectWorld`) — and because the world would otherwise
    * reach this page by a different route from every other page, which is two
    * sources of truth for one fact.
+   *
+   * A recurring task picked for the cycle waits until it is showing today, by
+   * the same rule as every other task list.
    */
   const { projectsById } = useProjects();
-  const reviewTasks = useMemo(
-    () => (review?.tasks ?? []).map((task) => withProjectWorld(task, projectsById)),
-    [review, projectsById]
-  );
+  const reviewTasks = useMemo(() => {
+    const todayDate = getToday(timeZoneSettings);
+    return (review?.tasks ?? [])
+      .filter(
+        (task) =>
+          !task.isRecurring || isRecurringVisibleToday(task, todayDate, timeZoneSettings)
+      )
+      .map((task) => withProjectWorld(task, projectsById));
+  }, [review, projectsById, timeZoneSettings]);
 
   /**
    * The day's selection, held locally and saved behind itself.

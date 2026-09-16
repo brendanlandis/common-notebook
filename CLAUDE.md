@@ -178,8 +178,8 @@ no due date, and ranking by how overdue something is turns a planning tool into 
   selection to today. `/review/daily` is **the only surface in the feature where a task can be completed**;
   everything else is picking, deciding and looking.
 - **The pool** — `buildReviewLists` gathers three things and dedupes them: the top-of-mind project's
-  tasks, one-offs flagged `soon`, and recurring tasks **that have come round by the end of the cycle**
-  (one-sided — something whose date already passed is still on your plate). `partitionSelected` splits the
+  tasks, one-offs flagged `soon`, and recurring tasks **showing today** (`isRecurringVisibleToday`, the rule every
+  task list uses — something whose date already passed is still on your plate). `partitionSelected` splits the
   grouped pool into picked/remaining; both pages render the same shape.
   **Practice material is split off first**, into `practiceGroups`, so it can never be claimed by both
   lanes — it would otherwise qualify as a `soon` one-off and appear in both steps.
@@ -215,7 +215,7 @@ sessions themselves.
 
 **Narrowing is the same three stages tasks use** — shelf → rotation (`soon`) → this cycle (the periodic
 review's practice step) → today (the daily page's practice lane). The practice pool is simply "`soon`,
-not completed, not `onHold`": no recurrence test and no come-round-by-the-end filter, because material
+not completed, not `onHold`": no recurrence test and no showing-today filter, because material
 has no cadence. `onHold` is the state between "working on it" and "done with it" — scales are never
 complete, but a scale exercise can be put down for a month.
 

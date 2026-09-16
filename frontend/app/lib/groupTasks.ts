@@ -17,6 +17,23 @@ export interface GroupedTasks {
   allRecurringIncidentals: Task[];
 }
 
+/**
+ * Is this recurring task showing today?
+ *
+ * The one rule every task list uses for recurring work: it appears once its
+ * `displayDate` has arrived, and a task with no date is never held back. The
+ * review pages read it too, so a chore you just completed or skipped — whose
+ * next copy is dated later — leaves them the same way it leaves /todo.
+ */
+export function isRecurringVisibleToday(
+  task: Task,
+  today: Date,
+  settings: TimeZoneSettings
+): boolean {
+  if (!task.displayDate) return true;
+  return parseDate(task.displayDate, settings) <= today;
+}
+
 // Group a flat list of tasks by project; project-less tasks become incidentals.
 // `tasks` is assumed to already be visibility-filtered and phase-enriched.
 // `projects` is the user's full project list (from /api/projects) and seeds the
@@ -34,12 +51,9 @@ export function groupTasksForLayout(
 ): GroupedTasks {
   const allRecurringTasksUnfiltered = tasks.filter((task) => task.isRecurring);
 
-  const recurringTasks = tasks.filter((task) => {
-    if (!task.isRecurring) return false;
-    if (!task.displayDate) return true;
-    const startDate = parseDate(task.displayDate, settings);
-    return startDate <= today;
-  });
+  const recurringTasks = tasks.filter(
+    (task) => task.isRecurring && isRecurringVisibleToday(task, today, settings)
+  );
   const nonRecurringTasks = tasks.filter((task) => !task.isRecurring);
 
   // Split a task list into project groups + project-less incidentals.

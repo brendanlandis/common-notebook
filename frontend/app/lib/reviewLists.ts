@@ -1,4 +1,6 @@
 import type { Task, RecurrenceType } from '../types/index';
+import type { TimeZoneSettings } from './timeZoneSettings';
+import { isRecurringVisibleToday } from './groupTasks';
 import { isPracticeWorld } from './worlds';
 
 /**
@@ -16,13 +18,12 @@ import { isPracticeWorld } from './worlds';
  * than of what it's asking for now, and it made a dozen tasks read as seven
  * lists.)
  *
- * Recurring tasks are the ones that **have come round by the end of the cycle** —
- * the review is a picture of what this week is going to ask for, and an annual
- * task due in November has nothing to say about a week in August. They were
- * included wholesale at first, which made the list a cataloge of everything
- * that recurs rather than of anything to do with the period on screen. Note the
- * one-sidedness: something whose date passed last week is still on your plate,
- * so it stays.
+ * Recurring tasks are the ones **showing today**, by the same rule as every
+ * other task list (`isRecurringVisibleToday`). It used to be "has come round by
+ * the end of the cycle", which meant completing or skipping a weekly chore put
+ * its next copy — dated later that week — straight back on the review, looking
+ * exactly like the one you'd just done. Something whose date passed last week
+ * is still on your plate, so it stays.
  *
  * Within that, they appear with no dates and no ordering by age. That is
  * deliberate and is the rule this whole feature is shaped around: if a task has
@@ -54,43 +55,10 @@ export interface ReviewLists {
   practiceGroups: ProjectGroup[];
 }
 
-/** The cycle being reviewed. Inclusive ISO dates, `YYYY-MM-DD`. */
-export interface ReviewWindow {
-  periodStart: string;
-  periodEnd: string;
-}
-
-/**
- * Has this recurring task come round by the end of the cycle being reviewed?
- *
- * Recurring tasks used to be included wholesale, which put an annual task due in
- * November into a review of a week in August — a list of everything that recurs
- * rather than of what this cycle is going to ask for.
- *
- * The test is **one-sided**, and that's the point. A task is left out only when
- * it hasn't come round *yet*; one whose date has already gone by is still on
- * your plate and still belongs in the review. Excluding those as well — which an
- * earlier version did, reading "within the cycle" as both bounds — quietly
- * dropped last week's unfinished chores from the only page you plan on, while
- * they carried on showing up on /todo.
- *
- * **`dueDate` needs no separate test.** When a task has one, `displayDate` is
- * that date minus a positive offset (`recurrence.ts`), so it is never later; a
- * due date inside the window therefore implies a display date inside or before
- * it, and checking both would be two names for the same comparison.
- *
- * Compared as strings, deliberately. `displayDate` and the period bounds are all
- * `YYYY-MM-DD` wall-clock dates with no time and no zone, and lexicographic
- * order on that format *is* chronological order. Parsing them into instants to
- * compare them would introduce a timezone question where none exists — which is
- * the exact move that has produced three separate date bugs in this codebase.
- *
- * A task with no `displayDate` is kept, matching `groupTasksForLayout`: absent
- * means "nothing is holding this back", not "hide it".
- */
-function hasComeRoundBy(task: Task, window: ReviewWindow | null): boolean {
-  if (!window || !task.displayDate) return true;
-  return task.displayDate.slice(0, 10) <= window.periodEnd;
+/** Today, for deciding which recurring tasks are showing. */
+export interface ReviewToday {
+  today: Date;
+  settings: TimeZoneSettings;
 }
 
 const TOP_OF_MIND = 'top of mind';
@@ -208,8 +176,8 @@ export function isPracticeMaterial(task: Task): boolean {
  *   the rotation here.
  * - **No recurrence test.** Practice material doesn't recur — you press play on
  *   the same Bach until you're satisfied or bored, which is a state, not a
- *   cadence. So there is no "has it come round by the end of the cycle" question
- *   to ask either: nothing schedules it.
+ *   cadence. So there is no "is it showing today" question to ask either:
+ *   nothing schedules it.
  * - **`onHold` excludes it.** Set aside is neither finished nor due, and it is
  *   the one thing `completed` cannot say about a piece you'll come back to.
  */
@@ -219,7 +187,7 @@ function buildPracticePool(tasks: Task[]): Task[] {
 
 export function buildReviewLists(
   tasks: Task[],
-  window: ReviewWindow | null = null
+  today: ReviewToday | null = null
 ): ReviewLists {
   const live = tasks.filter((task) => !task.completed);
 
@@ -246,10 +214,12 @@ export function buildReviewLists(
 
   for (const task of ordinary) {
     if (task.isRecurring) {
-      // Everything that has come round by the end of this cycle, including what
-      // came round before it. Nothing marks the older ones as late — see the
-      // note at the top of the file about dates and ranking.
-      if (hasComeRoundBy(task, window)) recurring.push(task);
+      // Whatever is showing today, including what came round before it. Nothing
+      // marks the older ones as late — see the note at the top of the file about
+      // dates and ranking.
+      if (!today || isRecurringVisibleToday(task, today.today, today.settings)) {
+        recurring.push(task);
+      }
       continue;
     }
     if (topOfMindProject && task.project?.documentId === topOfMindProject.documentId) {

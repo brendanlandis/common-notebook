@@ -12,7 +12,7 @@ import {
 } from "@/app/lib/reviewCycle";
 import { cadenceIsUsable, cycleNoun } from "@/app/lib/reviewCadence";
 import { buildReviewLists, partitionSelected, type ProjectGroup } from "@/app/lib/reviewLists";
-import { wallClockNow } from "@/app/lib/dateUtils";
+import { getToday, wallClockNow } from "@/app/lib/dateUtils";
 import { canViewTransition } from "@/app/lib/viewTransition";
 import { leaveThenUpdate } from "../leaveThenUpdate";
 import { useReviewCovering, useSaveReview } from "../hooks/useReview";
@@ -118,11 +118,17 @@ export default function PeriodicReviewPage() {
     });
   }, [cadence, timeZoneSettings, mode]);
 
-  // The period decides which recurring tasks belong here — the ones that come
-  // round during it. Null while the cadence is still loading, in which case
-  // nothing is filtered; that render path shows the "needs more detail" message
-  // rather than a list.
-  const lists = useMemo(() => buildReviewLists(tasks, period), [tasks, period]);
+  // Recurring tasks are the ones showing today, as on every other page — not
+  // the ones due by the end of the period, which put a just-completed chore's
+  // next copy straight back on the list.
+  const lists = useMemo(
+    () =>
+      buildReviewLists(tasks, {
+        today: getToday(timeZoneSettings),
+        settings: timeZoneSettings,
+      }),
+    [tasks, timeZoneSettings]
+  );
 
   const { events, calendars, loading: calendarLoading } = useCalendarEvents(
     period?.periodStart ?? null,
