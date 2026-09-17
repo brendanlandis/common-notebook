@@ -85,56 +85,6 @@ input.checkbox::before {
   font-style: italic;
 }
 
-/* layout */
-
-.row-one-one {
-  @media (min-width: 450px) {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1rem;
-  }
-}
-.row-one-one-one {
-  display: grid;
-  gap: 1rem;
-  grid-template-columns: 1fr;
-  &.row-short {
-    grid-template-columns: 1fr 1fr 1fr;
-  }
-  @media (min-width: 450px) {
-    grid-template-columns: 1fr 1fr 1fr;
-  }
-}
-
-.row-one-two {
-  @media (min-width: 450px) {
-    display: grid;
-    grid-template-columns: 1fr 1.5fr;
-    gap: 1rem;
-  }
-}
-
 .form-actions:has(button[type="submit"]:only-child) {
   text-align: center;
-}
-
-.wishListCategory-autocomplete {
-  position: absolute;
-  z-index: 1000;
-  top: 100%;
-  left: 0;
-  right: 0;
-  border-width: 1px;
-  border-style: solid;
-  border-bottom-left-radius: 0.5rem;
-  border-bottom-right-radius: 0.5rem;
-  max-height: 200px;
-  overflow-y: auto;
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  li {
-    padding: 8px 12px;
-    cursor: pointer;
-  }
 }

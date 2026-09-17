@@ -2,6 +2,7 @@
 
 import type { RecurrenceType, RecurrenceRule } from "@/app/types/index";
 import { hasEventDate } from "@/app/lib/recurrence";
+import { Field, Input, Select } from "@/app/components/FormControls";
 
 /**
  * The recurrence pattern editor, as a controlled component.
@@ -131,6 +132,12 @@ export interface RecurrencePickerProps {
    * field the form is unhappy about.
    */
   errors?: Partial<Record<keyof RecurrenceRule, string | undefined>>;
+  /**
+   * Labels above each control. The task form leaves them to screen readers,
+   * since each select's value already reads as a phrase ("weekly", "mondays");
+   * the settings drawer shows them.
+   */
+  showLabels?: boolean;
 }
 
 export default function RecurrencePicker({
@@ -138,17 +145,16 @@ export default function RecurrencePicker({
   onChange,
   offset,
   errors,
+  showLabels = false,
 }: RecurrencePickerProps) {
   const type = value.recurrenceType;
   const set = (patch: Partial<RecurrenceRule>) => onChange({ ...value, ...patch });
-  const error = (field: keyof RecurrenceRule) =>
-    errors?.[field] ? <span className="error">{errors[field]}</span> : null;
+  const hideLabel = !showLabels;
 
   return (
     <>
-      <div className="task-form-element">
-        <label htmlFor="recurrenceType">recurrence type</label>
-        <select
+      <Field label="recurrence type" htmlFor="recurrenceType" hideLabel={hideLabel}>
+        <Select
           id="recurrenceType"
           value={type}
           onChange={(e) => set({ recurrenceType: e.target.value as RecurrenceType })}
@@ -162,13 +168,17 @@ export default function RecurrencePicker({
               ))}
             </optgroup>
           ))}
-        </select>
-      </div>
+        </Select>
+      </Field>
 
       {type === "every x days" && (
-        <div className="task-form-element">
-          <label htmlFor="recurrenceInterval">how many days</label>
-          <input
+        <Field
+          label="how many days"
+          htmlFor="recurrenceInterval"
+          hideLabel={hideLabel}
+          error={errors?.recurrenceInterval}
+        >
+          <Input
             id="recurrenceInterval"
             type="number"
             placeholder="how many days"
@@ -179,14 +189,17 @@ export default function RecurrencePicker({
               })
             }
           />
-          {error("recurrenceInterval")}
-        </div>
+        </Field>
       )}
 
       {(type === "weekly" || type === "biweekly") && (
-        <div className="task-form-element">
-          <label htmlFor="recurrenceDayOfWeek">day of week</label>
-          <select
+        <Field
+          label="day of week"
+          htmlFor="recurrenceDayOfWeek"
+          hideLabel={hideLabel}
+          error={errors?.recurrenceDayOfWeek}
+        >
+          <Select
             id="recurrenceDayOfWeek"
             value={value.recurrenceDayOfWeek ?? 1}
             onChange={(e) => set({ recurrenceDayOfWeek: Number(e.target.value) })}
@@ -196,15 +209,18 @@ export default function RecurrencePicker({
                 {type === "biweekly" ? `every other ${day}` : `${day}s`}
               </option>
             ))}
-          </select>
-          {error("recurrenceDayOfWeek")}
-        </div>
+          </Select>
+        </Field>
       )}
 
       {type === "monthly date" && (
-        <div className="task-form-element">
-          <label htmlFor="recurrenceDayOfMonth">day of month (1-31)</label>
-          <input
+        <Field
+          label="day of month (1-31)"
+          htmlFor="recurrenceDayOfMonth"
+          hideLabel={hideLabel}
+          error={errors?.recurrenceDayOfMonth}
+        >
+          <Input
             id="recurrenceDayOfMonth"
             type="number"
             min="1"
@@ -217,15 +233,18 @@ export default function RecurrencePicker({
               })
             }
           />
-          {error("recurrenceDayOfMonth")}
-        </div>
+        </Field>
       )}
 
       {type === "monthly day" && (
-        <div className="row-one-two">
-          <div className="task-form-element">
-            <label htmlFor="recurrenceWeekOfMonth">Week of Month</label>
-            <select
+        <div className="grid gap-4 sm:grid-cols-[1fr_1.5fr]">
+          <Field
+            label="week of month"
+            htmlFor="recurrenceWeekOfMonth"
+            hideLabel={hideLabel}
+            error={errors?.recurrenceWeekOfMonth}
+          >
+            <Select
               id="recurrenceWeekOfMonth"
               value={value.recurrenceWeekOfMonth ?? 1}
               onChange={(e) => set({ recurrenceWeekOfMonth: Number(e.target.value) })}
@@ -235,12 +254,15 @@ export default function RecurrencePicker({
                   {option.label}
                 </option>
               ))}
-            </select>
-            {error("recurrenceWeekOfMonth")}
-          </div>
-          <div className="task-form-element">
-            <label htmlFor="recurrenceDayOfWeekMonthly">day of week</label>
-            <select
+            </Select>
+          </Field>
+          <Field
+            label="day of week"
+            htmlFor="recurrenceDayOfWeekMonthly"
+            hideLabel={hideLabel}
+            error={errors?.recurrenceDayOfWeekMonthly}
+          >
+            <Select
               id="recurrenceDayOfWeekMonthly"
               value={value.recurrenceDayOfWeekMonthly ?? 1}
               onChange={(e) =>
@@ -252,17 +274,20 @@ export default function RecurrencePicker({
                   {day} of the month
                 </option>
               ))}
-            </select>
-            {error("recurrenceDayOfWeekMonthly")}
-          </div>
+            </Select>
+          </Field>
         </div>
       )}
 
       {type === "annually" && (
-        <div className="row-one-one">
-          <div className="task-form-element">
-            <label htmlFor="recurrenceMonth">month</label>
-            <select
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field
+            label="month"
+            htmlFor="recurrenceMonth"
+            hideLabel={hideLabel}
+            error={errors?.recurrenceMonth}
+          >
+            <Select
               id="recurrenceMonth"
               value={value.recurrenceMonth ?? 1}
               onChange={(e) => set({ recurrenceMonth: Number(e.target.value) })}
@@ -272,12 +297,10 @@ export default function RecurrencePicker({
                   {month}
                 </option>
               ))}
-            </select>
-            {error("recurrenceMonth")}
-          </div>
-          <div className="task-form-element">
-            <label htmlFor="recurrenceDayOfMonth">day of month</label>
-            <select
+            </Select>
+          </Field>
+          <Field label="day of month" htmlFor="recurrenceDayOfMonth" hideLabel={hideLabel}>
+            <Select
               id="recurrenceDayOfMonth"
               value={value.recurrenceDayOfMonth ?? 1}
               onChange={(e) => set({ recurrenceDayOfMonth: Number(e.target.value) })}
@@ -290,15 +313,14 @@ export default function RecurrencePicker({
                   {day}
                 </option>
               ))}
-            </select>
-          </div>
+            </Select>
+          </Field>
         </div>
       )}
 
       {offset && hasEventDate(type) && (
-        <div className="task-form-element labeled">
-          <label htmlFor="displayDateOffset">when to display</label>
-          <select
+        <Field label="when to display" htmlFor="displayDateOffset">
+          <Select
             id="displayDateOffset"
             value={offset.value}
             onChange={(e) => offset.onChange(Number(e.target.value))}
@@ -308,8 +330,8 @@ export default function RecurrencePicker({
                 {option.label}
               </option>
             ))}
-          </select>
-        </div>
+          </Select>
+        </Field>
       )}
     </>
   );

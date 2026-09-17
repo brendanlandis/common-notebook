@@ -5,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useState } from "react";
 import type { Project, StrapiBlock } from "@/app/types/index";
+import { Checkbox, Field, Input, Select } from "@/app/components/FormControls";
 import RichTextEditor from "@/app/components/RichTextEditor";
 import { slugify } from "@/app/lib/slugify";
 import { useWorlds } from "@/app/hooks/useWorlds";
@@ -114,83 +115,70 @@ export default function ProjectForm({
   };
 
   return (
-    <form className="project-form" onSubmit={handleSubmit(handleFormSubmit)}>
+    <form
+      className="flex flex-col gap-4 text-left"
+      onSubmit={handleSubmit(handleFormSubmit)}
+    >
       <h2>{project ? "edit project" : "new project"}</h2>
 
-      <div>
-        <label htmlFor="title">title</label>
-        <input
+      <Field label="title" htmlFor="title" hideLabel error={errors.title?.message}>
+        <Input
           id="title"
           placeholder="name of project"
           type="text"
           {...register("title")}
         />
-        {errors.title && <span className="error">{errors.title.message}</span>}
-      </div>
+      </Field>
 
-      <div>
-        <label htmlFor="slug">slug</label>
-        <input
-          id="slug"
-          type="text"
-          value={slugPreview}
-          readOnly
-          tabIndex={-1}
-        />
-      </div>
+      <Field label="slug" htmlFor="slug" hideLabel>
+        <Input id="slug" type="text" value={slugPreview} readOnly tabIndex={-1} />
+      </Field>
 
-      <div>
-        <label htmlFor="description">description</label>
+      <Field label="description" htmlFor="description" hideLabel>
         <RichTextEditor value={description} onChange={setDescription} />
-      </div>
+      </Field>
 
-      <div>
-        <label htmlFor="world">world</label>
-        <select id="world" {...register("world")}>
+      <Field label="world" htmlFor="world" hideLabel>
+        <Select id="world" {...register("world")}>
           <option value="">no world</option>
           {worlds.map((w) => (
             <option key={w.documentId} value={w.documentId}>
               {w.title}
             </option>
           ))}
-        </select>
-      </div>
+        </Select>
+      </Field>
 
       {/* Subject type, only for practice and study. Appears as soon as the
           world is chosen, since the two questions are really one: filing a
           project there is what makes "instrument or study?" worth asking. */}
       {isSubject && (
-        <div>
-          <label htmlFor="subjectType">kind of subject</label>
-          <select id="subjectType" {...register("subjectType")}>
+        <Field label="kind of subject" htmlFor="subjectType" hideLabel>
+          <Select id="subjectType" {...register("subjectType")}>
             <option value="instrument">instrument</option>
             <option value="study">study</option>
-          </select>
-        </div>
+          </Select>
+        </Field>
       )}
 
       {/* Hidden for a subject: chores and subject type are the same Strapi
           column, and a subject is never a chores project. Offering both would
           let you tick a box that the save then silently discards. */}
       {!isSubject && (
-        <div>
-          <label className="settings-checkbox" htmlFor="chores">
-            <input id="chores" type="checkbox" {...register("chores")} />
-            chores
-          </label>
-        </div>
+        <Checkbox id="chores" {...register("chores")}>
+          chores
+        </Checkbox>
       )}
 
-      <div>
-        <label htmlFor="importance">importance</label>
-        <select id="importance" {...register("importance")}>
+      <Field label="importance" htmlFor="importance" hideLabel>
+        <Select id="importance" {...register("importance")}>
           <option value="normal">normal</option>
           <option value="top of mind">top of mind</option>
           <option value="later">later</option>
-        </select>
-      </div>
+        </Select>
+      </Field>
 
-      <div className="form-actions">
+      <div className="text-center">
         <button className="btn" type="submit">
           {project ? "update" : "create"} project
         </button>

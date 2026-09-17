@@ -186,7 +186,7 @@ describe("TaskForm recurrence", () => {
     const onSubmit = renderRecurringForm();
     selectRecurrence("monthly day");
     // Blank the week-of-month, which defaults to a valid 1.
-    fireEvent.change(screen.getByLabelText("Week of Month"), { target: { value: "0" } });
+    fireEvent.change(screen.getByLabelText("week of month"), { target: { value: "0" } });
 
     fireEvent.click(screen.getByRole("button", { name: /create task/i }));
 
@@ -199,7 +199,7 @@ describe("TaskForm recurrence", () => {
   it("carries week-of-month and weekday for a monthly-day task", async () => {
     const onSubmit = renderRecurringForm();
     selectRecurrence("monthly day");
-    fireEvent.change(screen.getByLabelText("Week of Month"), {
+    fireEvent.change(screen.getByLabelText("week of month"), {
       target: { value: "2" },
     });
     fireEvent.change(screen.getByLabelText("day of week"), {
@@ -223,7 +223,7 @@ describe("TaskForm recurrence", () => {
     // walk back from the end of the month.
     const onSubmit = renderRecurringForm();
     selectRecurrence("monthly day");
-    fireEvent.change(screen.getByLabelText("Week of Month"), {
+    fireEvent.change(screen.getByLabelText("week of month"), {
       target: { value: "-1" },
     });
     fireEvent.change(screen.getByLabelText("day of week"), {

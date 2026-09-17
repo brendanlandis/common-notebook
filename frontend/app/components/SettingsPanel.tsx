@@ -15,7 +15,7 @@ import { useLocation } from "@/app/hooks/useLocation";
 import RecurrencePicker from "@/app/components/RecurrencePicker";
 import { cadenceIsUsable } from "@/app/lib/reviewCadence";
 import CalendarsManager from "@/app/components/CalendarsManager";
-import Field from "@/app/components/Field";
+import { Field } from "@/app/components/FormControls";
 
 export default function SettingsPanel() {
   const [autoDeclutter, setAutoDeclutter] = useState<boolean>(true); // Default on
@@ -179,11 +179,9 @@ export default function SettingsPanel() {
             title="review"
             description="How often do you want to sit down and plan?"
           >
-            {/* RecurrencePicker is shared with the task form, whose sheet lays
-                out its labels; here they sit above their selects. Goes when
-                the form controls get their shared components. */}
-            <div className="flex flex-col gap-3 [&_label]:mb-1 [&_label]:block [&_label]:text-sm [&_select]:w-full">
+            <div className="flex flex-col gap-3">
               <RecurrencePicker
+                showLabels
                 value={cadence}
                 onChange={(next) => saveCadence({ ...cadence, ...next })}
               />

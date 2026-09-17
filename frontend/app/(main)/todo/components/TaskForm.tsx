@@ -15,6 +15,7 @@ import type {
 } from "@/app/types/index";
 import { getTaskProjectType } from "@/app/lib/taskProjectType";
 import { calculateNextRecurrence, hasEventDate } from "@/app/lib/recurrence";
+import { Checkbox, Field, Input } from "@/app/components/FormControls";
 import RecurrencePicker from "@/app/components/RecurrencePicker";
 import { useDateTimeSettings } from "@/app/contexts/DateTimeSettingsContext";
 import { useTasks } from "../hooks/useTasks";
@@ -368,13 +369,15 @@ export default function TaskForm({ task, onSubmit, onCancel }: TaskFormProps) {
   };
 
   return (
-    <form className="task-form" onSubmit={handleSubmit(handleFormSubmit)}>
+    <form
+      className="flex flex-col gap-4 text-left"
+      onSubmit={handleSubmit(handleFormSubmit)}
+    >
       <h3>{task ? "edit task" : "new task"}</h3>
 
-      {/* project */}
-      <div className="task-form-element">
-        <label htmlFor="project">project</label>
+      <Field label="project" htmlFor="project" hideLabel>
         <ProjectSelector
+          id="project"
           value={unifiedValue}
           onChange={(documentId, projectType) => {
             setValue("projectDocumentId", documentId);
@@ -384,67 +387,50 @@ export default function TaskForm({ task, onSubmit, onCancel }: TaskFormProps) {
             }
           }}
         />
-      </div>
+      </Field>
 
-      {/* title */}
-      <div className="task-form-element">
-        <label htmlFor="title">title</label>
-        <input
-          id="title"
-          placeholder="what"
-          type="text"
-          {...register("title")}
-        />
-        {errors.title && <span className="error">{errors.title.message}</span>}
-      </div>
+      <Field label="title" htmlFor="title" hideLabel error={errors.title?.message}>
+        <Input id="title" placeholder="what" type="text" {...register("title")} />
+      </Field>
 
-      {/* description */}
-      <div className="task-form-element">
-        <label htmlFor="description">description</label>
+      <Field label="description" htmlFor="description" hideLabel>
         <RichTextEditor value={description} onChange={setDescription} />
-      </div>
+      </Field>
 
-      {/* tracking url */}
       {showTrackingUrl(selectedProjectType) && (
-        <div className="task-form-element">
-          <label htmlFor="trackingUrl">tracking url</label>
-          <input
+        <Field label="tracking url" htmlFor="trackingUrl" hideLabel>
+          <Input
             id="trackingUrl"
             type="url"
             placeholder="tracking url"
             {...register("trackingUrl")}
           />
-        </div>
+        </Field>
       )}
 
-      {/* purchase url */}
       {showPurchaseUrl(selectedProjectType) && (
-        <div className="task-form-element">
-          <label htmlFor="purchaseUrl">purchase url</label>
-          <input
+        <Field label="purchase url" htmlFor="purchaseUrl" hideLabel>
+          <Input
             id="purchaseUrl"
             type="url"
             placeholder="purchase url"
             {...register("purchaseUrl")}
           />
-        </div>
+        </Field>
       )}
 
-      {/* price and wish list category */}
       {showPriceAndWishlistCategory(selectedProjectType) && (
         <>
-          <div className="task-form-element">
-            <label htmlFor="price">price</label>
-            <input
+          <Field label="price" htmlFor="price" hideLabel>
+            <Input
               id="price"
               type="number"
               placeholder="price"
               {...register("price", { valueAsNumber: true })}
             />
-          </div>
-          <div className="task-form-element">
-            <label htmlFor="wishListCategory">wish list category</label>
-            <input
+          </Field>
+          <Field label="wish list category" htmlFor="wishListCategory" hideLabel>
+            <Input
               id="wishListCategory"
               type="text"
               placeholder="wish list category"
@@ -466,10 +452,11 @@ export default function TaskForm({ task, onSubmit, onCancel }: TaskFormProps) {
             />
             {showWishListCategorySuggestions &&
               filteredWishListCategorySuggestions.length > 0 && (
-                <ul className="wishListCategory-autocomplete">
+                <ul className="absolute top-full right-0 left-0 z-50 max-h-[200px] overflow-y-auto rounded-b-lg border border-base-content bg-base-300 text-base-content">
                   {filteredWishListCategorySuggestions.map((suggestion) => (
                     <li
                       key={suggestion}
+                      className="cursor-pointer px-3 py-2 hover:bg-base-200"
                       onMouseDown={(e) => {
                         e.preventDefault();
                         setWishListCategoryInput(suggestion);
@@ -482,51 +469,27 @@ export default function TaskForm({ task, onSubmit, onCancel }: TaskFormProps) {
                   ))}
                 </ul>
               )}
-          </div>
+          </Field>
         </>
       )}
 
-      {/* checkboxes */}
-      <div className="row-one-one-one row-short">
+      <div className="grid grid-cols-3 gap-4">
         {showRecurringCheckbox(selectedProjectType) && (
-          <div className="task-form-element">
-            <label>
-              <input
-                type="checkbox"
-                checked={isRecurring}
-                className="checkbox"
-                onChange={(e) => {
-                  setValue("isRecurring", e.target.checked);
-                }}
-              />
-              recurring
-            </label>
-          </div>
+          <Checkbox
+            checked={isRecurring}
+            onChange={(e) => {
+              setValue("isRecurring", e.target.checked);
+            }}
+          >
+            recurring
+          </Checkbox>
         )}
         {showSoonCheckbox(selectedProjectType, isRecurring) && (
-          <div className="task-form-element">
-            <label>
-              <input
-                type="checkbox"
-                {...register("soon")}
-                className="checkbox"
-              />
-              soon
-            </label>
-          </div>
+          <Checkbox {...register("soon")}>soon</Checkbox>
         )}
 
         {showLongCheckbox(selectedProjectType) && (
-          <div className="task-form-element">
-            <label>
-              <input
-                type="checkbox"
-                {...register("long")}
-                className="checkbox"
-              />
-              long
-            </label>
-          </div>
+          <Checkbox {...register("long")}>long</Checkbox>
         )}
 
         {/* Set aside — not finished, and not due on a date either.
@@ -535,41 +498,21 @@ export default function TaskForm({ task, onSubmit, onCancel }: TaskFormProps) {
             complete, but a scale *exercise* can be put down for a month. It is
             what keeps the practice pool readable without pretending you have
             abandoned anything. */}
-        {isPracticeSubject && (
-          <div className="task-form-element">
-            <label>
-              <input
-                type="checkbox"
-                {...register("onHold")}
-                className="checkbox"
-              />
-              on hold
-            </label>
-          </div>
-        )}
+        {isPracticeSubject && <Checkbox {...register("onHold")}>on hold</Checkbox>}
       </div>
 
-      {/* display date and due date */}
       {showDateFields(selectedProjectType, isRecurring) && (
-        <div className="row-one-one">
-          <div className="task-form-element labeled">
-            <label htmlFor="displayDate">display date</label>
-            <input
-              id="displayDate"
-              type="date"
-              {...register("displayDate")}
-            />
-            {errors.displayDate && (
-              <span className="error">{errors.displayDate.message}</span>
-            )}
-          </div>
-          <div className="task-form-element labeled">
-            <label htmlFor="dueDate">due date</label>
-            <input id="dueDate" type="date" {...register("dueDate")} />
-            {errors.dueDate && (
-              <span className="error">{errors.dueDate.message}</span>
-            )}
-          </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field
+            label="display date"
+            htmlFor="displayDate"
+            error={errors.displayDate?.message}
+          >
+            <Input id="displayDate" type="date" {...register("displayDate")} />
+          </Field>
+          <Field label="due date" htmlFor="dueDate" error={errors.dueDate?.message}>
+            <Input id="dueDate" type="date" {...register("dueDate")} />
+          </Field>
         </div>
       )}
 
@@ -607,8 +550,7 @@ export default function TaskForm({ task, onSubmit, onCancel }: TaskFormProps) {
         />
       )}
 
-      {/* send button */}
-      <div className="form-actions">
+      <div className="text-center">
         <button className="btn" type="submit">
           {task ? "update" : "create"} task
         </button>

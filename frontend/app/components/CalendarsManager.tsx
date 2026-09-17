@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiFetch, apiSend } from "@/app/lib/apiFetch";
 import type { ClientCalendar } from "@/app/lib/ics/clientCalendar";
-import Field from "@/app/components/Field";
+import { Field } from "@/app/components/FormControls";
 
 /**
  * Subscribing to calendars, by pasting a secret ICS URL each.

@@ -102,7 +102,7 @@ describe("RecurrencePicker", () => {
   it("offers 'the last' as -1 rather than an index", () => {
     const { onChange } = renderPicker({ recurrenceType: "monthly day" });
 
-    fireEvent.change(screen.getByLabelText("Week of Month"), {
+    fireEvent.change(screen.getByLabelText("week of month"), {
       target: { value: "-1" },
     });
 

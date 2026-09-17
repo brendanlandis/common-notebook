@@ -4,13 +4,16 @@ import type { Project, ProjectType } from "@/app/types/index";
 import { useStuffProjects } from "@/app/contexts/StuffProjectsContext";
 import { useWorlds } from "@/app/hooks/useWorlds";
 import { useProjects } from "@/app/hooks/useProjects";
+import { Select } from "@/app/components/FormControls";
 
 interface ProjectSelectorProps {
+  id?: string;
   value: string | null;
   onChange: (documentId: string | null, projectType: ProjectType | null) => void;
 }
 
 export default function ProjectSelector({
+  id,
   value,
   onChange,
 }: ProjectSelectorProps) {
@@ -23,9 +26,9 @@ export default function ProjectSelector({
 
   if (loading) {
     return (
-      <select disabled>
+      <Select id={id} disabled>
         <option>Loading projects...</option>
-      </select>
+      </Select>
     );
   }
 
@@ -53,7 +56,8 @@ export default function ProjectSelector({
   noWorldProjects.sort((a, b) => a.title.localeCompare(b.title));
 
   return (
-    <select
+    <Select
+      id={id}
       value={value || ""}
       onChange={(e) => {
         const documentId = e.target.value || null;
@@ -84,6 +88,6 @@ export default function ProjectSelector({
           ))}
         </optgroup>
       )}
-    </select>
+    </Select>
   );
 }
