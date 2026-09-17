@@ -5,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { AuthPage, AuthForm, AuthField } from "@/app/components/auth/Auth";
 
 const schema = z
   .object({
@@ -63,47 +64,36 @@ function ResetForm() {
 
   if (!code) {
     return (
-      <main id="reset-password-page">
+      <AuthPage>
         <p>this reset link is missing its code.</p>
         <p>
           <a href="/forgot-password">request a new one</a>
         </p>
-      </main>
+      </AuthPage>
     );
   }
 
   return (
-    <main id="reset-password-page">
-      <form onSubmit={handleSubmit(onSubmit)}>
-        <div>
-          <label htmlFor="password">new password</label>
-          <input
-            id="password"
-            type="password"
-            autoComplete="new-password"
-            {...register("password")}
-            disabled={isSubmitting}
-            placeholder="new password"
-          />
-          {errors.password && (
-            <div className="error">{errors.password.message}</div>
-          )}
-        </div>
-
-        <div>
-          <label htmlFor="passwordConfirmation">confirm password</label>
-          <input
-            id="passwordConfirmation"
-            type="password"
-            autoComplete="new-password"
-            {...register("passwordConfirmation")}
-            disabled={isSubmitting}
-            placeholder="confirm password"
-          />
-          {errors.passwordConfirmation && (
-            <div className="error">{errors.passwordConfirmation.message}</div>
-          )}
-        </div>
+    <AuthPage>
+      <AuthForm onSubmit={handleSubmit(onSubmit)}>
+        <AuthField
+          id="password"
+          label="new password"
+          type="password"
+          autoComplete="new-password"
+          {...register("password")}
+          disabled={isSubmitting}
+          error={errors.password?.message}
+        />
+        <AuthField
+          id="passwordConfirmation"
+          label="confirm password"
+          type="password"
+          autoComplete="new-password"
+          {...register("passwordConfirmation")}
+          disabled={isSubmitting}
+          error={errors.passwordConfirmation?.message}
+        />
 
         {errorMessage && (
           <div className="error-message">{errorMessage.toLowerCase()}</div>
@@ -114,8 +104,8 @@ function ResetForm() {
             {isSubmitting ? "resetting..." : "set new password"}
           </button>
         </div>
-      </form>
-    </main>
+      </AuthForm>
+    </AuthPage>
   );
 }
 

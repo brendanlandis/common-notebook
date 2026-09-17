@@ -4,6 +4,7 @@ import { useForm, SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useState } from "react";
+import { AuthPage, AuthForm, AuthField } from "@/app/components/auth/Auth";
 
 const schema = z.object({
   email: z.email("enter a valid email"),
@@ -41,37 +42,34 @@ export default function ForgotPasswordPage() {
 
   if (sent) {
     return (
-      <main id="forgot-password-page">
+      <AuthPage>
         <p>if that email has an account, a reset link is on its way.</p>
         <p>
           <a href="/login">back to login</a>
         </p>
-      </main>
+      </AuthPage>
     );
   }
 
   return (
-    <main id="forgot-password-page">
-      <form onSubmit={handleSubmit(onSubmit)}>
-        <div>
-          <label htmlFor="email">email</label>
-          <input
-            id="email"
-            type="email"
-            autoComplete="email"
-            {...register("email")}
-            disabled={isSubmitting}
-            placeholder="email"
-          />
-          {errors.email && <div className="error">{errors.email.message}</div>}
-        </div>
+    <AuthPage>
+      <AuthForm onSubmit={handleSubmit(onSubmit)}>
+        <AuthField
+          id="email"
+          label="email"
+          type="email"
+          autoComplete="email"
+          {...register("email")}
+          disabled={isSubmitting}
+          error={errors.email?.message}
+        />
 
         <div>
           <button className="btn" type="submit" disabled={isSubmitting}>
             {isSubmitting ? "sending..." : "send reset link"}
           </button>
         </div>
-      </form>
-    </main>
+      </AuthForm>
+    </AuthPage>
   );
 }

@@ -5,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { AuthPage, AuthForm, AuthField } from "@/app/components/auth/Auth";
 
 const schema = z.object({
   identifier: z.string().min(1, "enter a username"),
@@ -63,35 +64,26 @@ export default function LoginPage() {
   };
 
   return (
-    <main id="login-page">
-      <form onSubmit={handleSubmit(onSubmit)}>
-        <div>
-          <label htmlFor="identifier">user or email</label>
-          <input
-            id="identifier"
-            type="text"
-            {...register("identifier")}
-            disabled={isSubmitting}
-            placeholder="user or email"
-          />
-          {errors.identifier && (
-            <div className="error">{errors.identifier.message}</div>
-          )}
-        </div>
-
-        <div>
-          <label htmlFor="password">password</label>
-          <input
-            id="password"
-            type="password"
-            {...register("password")}
-            disabled={isSubmitting}
-            placeholder="password"
-          />
-          {errors.password && (
-            <div className="error">{errors.password.message}</div>
-          )}
-        </div>
+    <AuthPage>
+      <AuthForm onSubmit={handleSubmit(onSubmit)}>
+        <AuthField
+          id="identifier"
+          label="user or email"
+          type="text"
+          {...register("identifier")}
+          disabled={isSubmitting}
+          error={errors.identifier?.message}
+          quietError
+        />
+        <AuthField
+          id="password"
+          label="password"
+          type="password"
+          {...register("password")}
+          disabled={isSubmitting}
+          error={errors.password?.message}
+          quietError
+        />
 
         {errorMessage && (
           <div className="error-message">
@@ -110,7 +102,7 @@ export default function LoginPage() {
         <div>
           <a href="/forgot-password">forgot your password?</a>
         </div>
-      </form>
-    </main>
+      </AuthForm>
+    </AuthPage>
   );
 }

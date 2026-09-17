@@ -5,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { AuthPage, AuthForm, AuthField } from "@/app/components/auth/Auth";
 
 const schema = z
   .object({
@@ -69,77 +70,52 @@ function RegisterForm() {
   };
 
   return (
-    <main id="register-page">
-      <form onSubmit={handleSubmit(onSubmit)}>
-        <div>
-          <label htmlFor="code">invite code</label>
-          <input
-            id="code"
-            type="text"
-            {...register("code")}
-            disabled={isSubmitting}
-            placeholder="invite code"
-          />
-          {errors.code && <div className="error">{errors.code.message}</div>}
-        </div>
-
-        <div>
-          <label htmlFor="username">username</label>
-          <input
-            id="username"
-            type="text"
-            autoComplete="username"
-            {...register("username")}
-            disabled={isSubmitting}
-            placeholder="username"
-          />
-          {errors.username && (
-            <div className="error">{errors.username.message}</div>
-          )}
-        </div>
-
-        <div>
-          <label htmlFor="email">email</label>
-          <input
-            id="email"
-            type="email"
-            autoComplete="email"
-            {...register("email")}
-            disabled={isSubmitting}
-            placeholder="email"
-          />
-          {errors.email && <div className="error">{errors.email.message}</div>}
-        </div>
-
-        <div>
-          <label htmlFor="password">password</label>
-          <input
-            id="password"
-            type="password"
-            autoComplete="new-password"
-            {...register("password")}
-            disabled={isSubmitting}
-            placeholder="password"
-          />
-          {errors.password && (
-            <div className="error">{errors.password.message}</div>
-          )}
-        </div>
-
-        <div>
-          <label htmlFor="passwordConfirmation">confirm password</label>
-          <input
-            id="passwordConfirmation"
-            type="password"
-            autoComplete="new-password"
-            {...register("passwordConfirmation")}
-            disabled={isSubmitting}
-            placeholder="confirm password"
-          />
-          {errors.passwordConfirmation && (
-            <div className="error">{errors.passwordConfirmation.message}</div>
-          )}
-        </div>
+    <AuthPage>
+      <AuthForm onSubmit={handleSubmit(onSubmit)}>
+        <AuthField
+          id="code"
+          label="invite code"
+          type="text"
+          {...register("code")}
+          disabled={isSubmitting}
+          error={errors.code?.message}
+        />
+        <AuthField
+          id="username"
+          label="username"
+          type="text"
+          autoComplete="username"
+          {...register("username")}
+          disabled={isSubmitting}
+          error={errors.username?.message}
+        />
+        <AuthField
+          id="email"
+          label="email"
+          type="email"
+          autoComplete="email"
+          {...register("email")}
+          disabled={isSubmitting}
+          error={errors.email?.message}
+        />
+        <AuthField
+          id="password"
+          label="password"
+          type="password"
+          autoComplete="new-password"
+          {...register("password")}
+          disabled={isSubmitting}
+          error={errors.password?.message}
+        />
+        <AuthField
+          id="passwordConfirmation"
+          label="confirm password"
+          type="password"
+          autoComplete="new-password"
+          {...register("passwordConfirmation")}
+          disabled={isSubmitting}
+          error={errors.passwordConfirmation?.message}
+        />
 
         {errorMessage && (
           <div className="error-message">{errorMessage.toLowerCase()}</div>
@@ -150,8 +126,8 @@ function RegisterForm() {
             {isSubmitting ? "creating account..." : "join"}
           </button>
         </div>
-      </form>
-    </main>
+      </AuthForm>
+    </AuthPage>
   );
 }
 

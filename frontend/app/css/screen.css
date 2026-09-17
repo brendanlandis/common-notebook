@@ -180,7 +180,6 @@ hr {
 }
 }
 
-@import "./page-login.css" layer(utilities.legacy);
 @import "./page-task.css" layer(utilities.legacy);
 @import "./page-practice.css" layer(utilities.legacy);
 @import "./practice-session.css" layer(utilities.legacy);
