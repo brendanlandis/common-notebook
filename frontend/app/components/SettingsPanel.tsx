@@ -110,8 +110,8 @@ export default function SettingsPanel() {
   };
 
   return (
-    <div className="settings-page">
-      <section className="settings-section">
+    <div>
+      <section>
         <h2>timezone</h2>
         <TimezoneManager />
 
@@ -158,7 +158,7 @@ export default function SettingsPanel() {
         <label className="settings-checkbox">
           <input
             type="checkbox"
-            className="checkbox"
+            className="checkbox border-base-content"
             checked={autoDeclutter}
             onChange={handleAutoDeclutterChange}
             disabled={isLoading || isSaving}

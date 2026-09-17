@@ -213,22 +213,23 @@ export default function TimezoneManager() {
   };
 
   return (
-    <div id="timezone-manager">
+    <div className="flex items-center gap-2">
       <button
         type="button"
         onClick={handleDetectTimezone}
-        className="timezone-detect-button"
+        className="flex cursor-pointer items-center justify-center disabled:cursor-not-allowed disabled:opacity-50"
         title="detect timezone"
       >
-        <span 
-          className={`timezone-icon-wrapper ${isDetecting ? 'detecting' : ''} ${isCompleting ? 'completing' : ''}`}
+        {/* Counterclockwise, a little faster than Tailwind's spin. A loop, not a
+            transition, so --transition-time has no say in it. */}
+        <span
+          className={`origin-center ${isDetecting || isCompleting ? 'animate-spin [animation-direction:reverse] [animation-duration:750ms]' : ''}`}
           onAnimationIteration={handleAnimationIteration}
         >
           <MapPinIcon size={24} weight={isDetecting || isCompleting ? "fill" : "regular"} />
         </span>
       </button>
       <select
-        className="timezone-select"
         value={currentTimezone}
         onChange={(e) => handleTimezoneChange(e.target.value)}
         title="select timezone"

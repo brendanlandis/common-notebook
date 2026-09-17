@@ -27,7 +27,7 @@
  * tuning the pill that flies up the review page and then applied everywhere, so
  * that nothing in the app moves at a speed the rest of it doesn't.
  *
- * Not the spinner in settings.css, which is a loop rather than a transition —
+ * Not the timezone spinner in settings, which is a loop rather than a transition —
  * "how fast a thing moves from A to B" has no bearing on how fast something
  * spins forever. */
 :root {
@@ -59,7 +59,6 @@ hr {
 @import "./page-practice.css" layer(utilities.legacy);
 @import "./practice-session.css" layer(utilities.legacy);
 @import "./page-review.css" layer(utilities.legacy);
-@import "./settings.css" layer(utilities.legacy);
 @import "./managers.css" layer(utilities.legacy);
 @import "./charts.css" layer(utilities.legacy);
 
