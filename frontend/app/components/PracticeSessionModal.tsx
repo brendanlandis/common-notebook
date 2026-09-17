@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, type ReactNode } from 'react';
 import { PlayIcon, PauseIcon, StopIcon, MetronomeIcon, XIcon } from '@phosphor-icons/react';
 import { useActiveSession } from '@/app/hooks/usePracticeSession';
 import { usePracticeSessionUI } from '@/app/contexts/PracticeSessionContext';
@@ -84,11 +84,15 @@ export default function PracticeSessionModal() {
   // project — the subject — without a second fetch.
   if (!session && readyMaterial) {
     return (
-      <div className="practice-modal is-ready" role="dialog" aria-label="start practicing">
-        <div className="practice-modal-body">
+      <PracticeModal label="start practicing">
           <button
             type="button"
-            className="practice-close"
+            // Top right, and only in the ready state — the running panel
+        // deliberately has no close. A dismiss that left the clock running is
+        // exactly the "hide but keep practicing" escape the whole design is
+        // built to refuse, and PracticeSessionModal.test.tsx asserts its
+        // absence there.
+        className="absolute top-2 right-2 inline-flex cursor-pointer p-2 opacity-50 transition-opacity hover:opacity-100 focus-visible:opacity-100 [transition-duration:var(--transition-time)]"
             aria-label="close"
             onClick={dismiss}
           >
@@ -97,15 +101,14 @@ export default function PracticeSessionModal() {
           <PracticeSubject title={readyMaterial.title} subject={readyMaterial.project?.title} />
           <button
             type="button"
-            className="practice-play"
+            className="cursor-pointer transition-opacity [transition-duration:var(--transition-time)] disabled:cursor-default disabled:opacity-40"
             aria-label={`start practicing ${readyMaterial.title}`}
             disabled={isStarting}
             onClick={() => start(readyMaterial.documentId)}
           >
             <PlayIcon size={96} weight="regular" />
           </button>
-        </div>
-      </div>
+      </PracticeModal>
     );
   }
 
@@ -116,7 +119,10 @@ export default function PracticeSessionModal() {
     return (
       <button
         type="button"
-        className="practice-collapsed"
+        // Paused: a small button, top right, over everything. Still visible
+        // from every page, because a paused session you cannot see is a session
+        // you will forget.
+        className="fixed top-3 right-3 z-60 flex cursor-pointer items-center gap-2 rounded-full border border-current bg-base-100 px-3 py-1.5 [&_[role=timer]]:text-base"
         aria-label={`resume practicing ${material?.title ?? 'your session'}`}
         disabled={isToggling}
         onClick={resume}
@@ -128,15 +134,14 @@ export default function PracticeSessionModal() {
   }
 
   return (
-    <div className="practice-modal is-running" role="dialog" aria-label="practicing">
-      <div className="practice-modal-body">
+    <PracticeModal label="practicing">
         <PracticeSubject title={material?.title} subject={material?.project?.title} />
         <PracticeClock segments={segments} />
 
-        <div className="practice-controls-row">
+        <div className="flex gap-5 sm:gap-8">
           <button
             type="button"
-            className="practice-pause"
+            className="cursor-pointer transition-opacity [transition-duration:var(--transition-time)] disabled:cursor-default disabled:opacity-40"
             aria-label="pause"
             disabled={isToggling}
             onClick={pause}
@@ -145,7 +150,7 @@ export default function PracticeSessionModal() {
           </button>
           <button
             type="button"
-            className="practice-stop"
+            className="cursor-pointer transition-opacity [transition-duration:var(--transition-time)] disabled:cursor-default disabled:opacity-40"
             aria-label="stop"
             disabled={isStopping}
             onClick={stop}
@@ -160,9 +165,9 @@ export default function PracticeSessionModal() {
             segments cannot tell four hours of practice from four hours of the
             tab being open, and you can. */}
         {stale && (
-          <div className="practice-correction">
+          <div className="flex flex-col items-center gap-3 opacity-85 [&_p]:m-0">
             <p>you left this running — call it</p>
-            <div className="practice-correction-options">
+            <div className="flex flex-wrap justify-center gap-2">
               {[30, 60, 90, 120].map((minutes) => (
                 <button
                   key={minutes}
@@ -176,6 +181,29 @@ export default function PracticeSessionModal() {
             </div>
           </div>
         )}
+    </PracticeModal>
+  );
+}
+
+/**
+ * A panel over a dimmed page, not a full-bleed takeover. What the design needs
+ * is that the app is *unreachable* while a session runs — the backdrop covers
+ * everything and eats every click, so a forgotten timer is impossible to ignore
+ * and pausing remains the only way back to the app. Painting the page out
+ * entirely as well was a step past that: it stopped reading as a modal and
+ * started reading as a navigation, with no visible edge to say otherwise.
+ */
+function PracticeModal({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    // Literal black rather than a theme token: this is a shadow over the page,
+    // and it has to read as one against a light theme and a dark one alike.
+    <div
+      className="fixed inset-0 z-60 grid place-items-center bg-black/55 p-4"
+      role="dialog"
+      aria-label={label}
+    >
+      <div className="relative flex w-full max-w-104 flex-col items-center gap-8 rounded-2xl bg-base-100 px-8 py-10 text-center shadow-[0_1.5rem_3rem_rgb(0_0_0/0.35)]">
+        {children}
       </div>
     </div>
   );
@@ -184,9 +212,12 @@ export default function PracticeSessionModal() {
 /** What you're practicing, and what it's part of. */
 function PracticeSubject({ title, subject }: { title?: string; subject?: string }) {
   return (
-    <div className="practice-subject">
-      <h2>{title ?? 'practice'}</h2>
-      {subject && <p>{subject}</p>}
+    <div>
+      <h2 className="m-0 text-3xl leading-tight">{title ?? 'practice'}</h2>
+      {/* Muted because you know what instrument you are holding — it is there to
+          disambiguate two pieces with similar names, not to be read every
+          time. */}
+      {subject && <p className="mt-1 mb-0 opacity-60">{subject}</p>}
     </div>
   );
 }

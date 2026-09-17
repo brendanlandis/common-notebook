@@ -42,11 +42,11 @@ function PieTooltip({
   if (!slice) return null;
 
   return (
-    <div className="chart-tooltip">
-      <div className="chart-tooltip-row">
-        <span className="chart-tooltip-swatch" style={{ background: slice.color }} />
-        <span className="chart-tooltip-name">{slice.name}</span>
-        <span className="chart-tooltip-value">{payload[0].value}</span>
+    <div className="grid min-w-32 gap-1.5 rounded-lg border border-base-content/25 bg-base-100 px-2.5 py-2 text-xs text-base-content">
+      <div className="flex items-center gap-2">
+        <span className="inline-block size-2.5 shrink-0 rounded-[3px]" style={{ background: slice.color }} />
+        <span className="flex-1 text-left opacity-80">{slice.name}</span>
+        <span className="font-semibold tabular-nums">{payload[0].value}</span>
       </div>
     </div>
   );
@@ -56,10 +56,10 @@ function PieTooltip({
 // so each chip renders the slice's color.
 function PieLegend({ data }: { data: PreparedSlice[] }) {
   return (
-    <ul className="chart-legend">
+    <ul className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 pt-3 text-[0.775rem]">
       {data.map((slice) => (
-        <li key={slice.name} className="chart-legend-item">
-          <span className="chart-legend-swatch" style={{ background: slice.color }} />
+        <li key={slice.name} className="flex items-center gap-1.5">
+          <span className="inline-block size-2.5 shrink-0 rounded-[3px]" style={{ background: slice.color }} />
           <span>{slice.name}</span>
         </li>
       ))}

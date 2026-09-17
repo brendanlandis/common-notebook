@@ -52,7 +52,7 @@ export default function PracticeChart({ stats }: { stats: SubjectStats[] }) {
   }));
 
   return (
-    <div className="practice-chart">
+    <div className="w-full">
       <LineChart
         data={Array.from(dateMap.values())}
         xKey="date"

@@ -13,8 +13,8 @@ export default function PracticeCharts() {
 
   if (error) {
     return (
-      <div className="practice-charts">
-        <p className="error">{error}</p>
+      <div className="mx-auto">
+        <p className="italic">{error}</p>
       </div>
     );
   }
@@ -24,7 +24,7 @@ export default function PracticeCharts() {
   }
 
   return (
-    <div className="practice-charts">
+    <div className="mx-auto">
       <h3>Last 30 Days</h3>
       <PracticeChart stats={stats} />
     </div>

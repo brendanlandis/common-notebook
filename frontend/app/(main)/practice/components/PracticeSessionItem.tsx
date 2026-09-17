@@ -59,7 +59,7 @@ export default function PracticeSessionItem({
 
   if (isEditing) {
     return (
-      <div className="practice-session-item editing">
+      <div className="mt-4 first:mt-0">
         <PracticeForm
           practiceLog={practiceLog}
           onSubmit={handleSubmit}
@@ -73,8 +73,8 @@ export default function PracticeSessionItem({
   const date = formatInTimezone(startDate, "EEEE M/d", timeZoneSettings);
 
   return (
-    <div className="practice-session-item">
-      <div className="session-header">
+    <div className="mt-4 first:mt-0">
+      <div className="flex gap-4">
         <div className="session-date-time">
           <span className="date">{date}</span>
         </div>

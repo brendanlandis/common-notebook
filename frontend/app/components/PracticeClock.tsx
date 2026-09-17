@@ -29,7 +29,11 @@ export default function PracticeClock({ segments }: { segments: PracticeSegment[
   // state: the state would be one second stale on the first paint after a
   // resume, and `setTick` exists only to schedule the re-render.
   return (
-    <div className="practice-clock" role="timer" aria-live="off">
+    <div
+      className="text-[2.5rem] leading-none tabular-nums sm:text-[3.5rem]"
+      role="timer"
+      aria-live="off"
+    >
       {formatElapsed(elapsedMs(segments, new Date()))}
     </div>
   );

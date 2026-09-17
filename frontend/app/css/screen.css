@@ -41,9 +41,6 @@ hr {
 }
 
 @import "./page-task.css" layer(utilities.legacy);
-@import "./page-practice.css" layer(utilities.legacy);
-@import "./practice-session.css" layer(utilities.legacy);
 @import "./page-review.css" layer(utilities.legacy);
-@import "./charts.css" layer(utilities.legacy);
 
 @import "./print.css" layer(utilities.legacy);

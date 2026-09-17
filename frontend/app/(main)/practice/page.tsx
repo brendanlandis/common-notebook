@@ -112,5 +112,5 @@ export default function PracticePage() {
 function dayLabel(date: string, today: string, settings: TimeZoneSettings): string {
   if (date === today) return "today";
   if (date === shiftISODate(today, -1)) return "yesterday";
-  return formatInTimezone(parseDate(date, settings), "EEE M/d", settings).toLowerCase();
+  return formatInTimezone(parseDate(date, settings), "EEE MM/d", settings).toLowerCase();
 }

@@ -56,15 +56,15 @@ function makeLineTooltip(series: LineSeries[]) {
     if (rows.length === 0) return null;
 
     return (
-      <div className="chart-tooltip">
-        <div className="chart-tooltip-label">{label}</div>
+      <div className="grid min-w-32 gap-1.5 rounded-lg border border-base-content/25 bg-base-100 px-2.5 py-2 text-xs text-base-content">
+        <div className="text-left font-semibold">{label}</div>
         {rows.map((entry) => {
           const key = String(entry.dataKey);
           return (
-            <div key={key} className="chart-tooltip-row">
-              <span className="chart-tooltip-swatch" style={{ background: swatches.get(key) }} />
-              <span className="chart-tooltip-name">{labels.get(key) ?? key}</span>
-              <span className="chart-tooltip-value">{entry.value}</span>
+            <div key={key} className="flex items-center gap-2">
+              <span className="inline-block size-2.5 shrink-0 rounded-[3px]" style={{ background: swatches.get(key) }} />
+              <span className="flex-1 text-left opacity-80">{labels.get(key) ?? key}</span>
+              <span className="font-semibold tabular-nums">{entry.value}</span>
             </div>
           );
         })}
@@ -75,10 +75,10 @@ function makeLineTooltip(series: LineSeries[]) {
 
 function LineLegend({ series }: { series: LineSeries[] }) {
   return (
-    <ul className="chart-legend">
+    <ul className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 pt-3 text-[0.775rem]">
       {series.map((s) => (
-        <li key={s.key} className="chart-legend-item">
-          <span className="chart-legend-swatch" style={{ background: s.color }} />
+        <li key={s.key} className="flex items-center gap-1.5">
+          <span className="inline-block size-2.5 shrink-0 rounded-[3px]" style={{ background: s.color }} />
           <span>{s.label}</span>
         </li>
       ))}
