@@ -70,12 +70,17 @@ export default async function MainLayout({
                   className="drawer-toggle"
                 />
                 <div className="drawer-content">
-                  <header>
-                    <div>
+                  <header className="mb-4 grid grid-cols-1 items-start p-4">
+                    {/* Wraps, because on a phone this row is wider than the
+                        screen. Revealing the manage cluster adds three buttons
+                        to a row that already fills a 393px viewport; without
+                        wrapping they extended past the right edge, present in
+                        the DOM and impossible to touch. */}
+                    <div className="flex flex-wrap items-center gap-4 justify-self-start">
                       <label
                         htmlFor="mainMenu"
                         aria-label="open menu"
-                        className="header-icon drawer-button"
+                        className="cursor-pointer text-success dim:text-primary"
                       >
                         <HeaderIcon />
                       </label>

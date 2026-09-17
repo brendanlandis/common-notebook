@@ -4,6 +4,10 @@
 }
 @plugin "@tailwindcss/forms";
 
+/* dim: styles for the dark theme only, where a daisyUI color token alone
+   doesn't cover the difference between the two themes. */
+@custom-variant dim (&:where([data-theme="dim"], [data-theme="dim"] *));
+
 /* The hand-written sheets sit in `utilities.legacy`: above daisyUI (whose
  * components ship as sublayers of `utilities`, declared earlier, so ours still
  * override theirs as they did unlayered) and below Tailwind's own utility
@@ -30,110 +34,16 @@
   --transition-time: 450ms;
 }
 
-/* layout */
-
-body {
-  text-align: left;
-  display: grid;
-  grid-template-columns: 1fr;
-  align-items: start;
-  align-content: start;
-  gap: 0;
-  justify-content: center;
-  min-height: 100vh;
-  min-width: 100vw;
-  max-width: 100vw;
-  width: 100vw;
-}
-
-header {
-  display: grid;
-  grid-template-columns: 1fr;
-  align-items: start;
-  padding: 1rem;
-  > *:first-child {
-    justify-self: start;
-    display: flex;
-    gap: 1rem;
-    align-items: center;
-    /* Wraps, because on a phone this row is wider than the screen.
-     *
-     * Revealing the manage cluster adds three buttons to a row that already
-     * fills a 393px viewport, and without wrapping they simply extended past
-     * the right edge — present in the DOM, impossible to touch. The caret sat
-     * at x=379 of 393 with the buttons it reveals off-screen behind it. */
-    flex-wrap: wrap;
-  }
-}
-
-.moon-phase-icon svg {
-  border-radius: 50%;
-}
-
-/* The "manage" cluster (worlds / views / manage projects) sits in the header's
-   flex row, revealed on hover of the small caret. Both are flex rows so the
-   caret and the revealed buttons stay inline rather than stacking. */
-.manage-cluster,
-.manage-buttons {
-  display: flex;
-  gap: 1rem;
-  align-items: center;
-}
-
-/* Smaller and bold, no tooltip — a quiet but legible affordance. */
-.manage-caret {
-  display: flex;
-  align-items: center;
-  opacity: 1;
-  cursor: pointer;
-}
-
 hr {
   width: 80%;
   margin: 3rem auto;
 }
 
-.drawer-button {
-  cursor: pointer;
-}
-
+/* Still here until the drawers' contents move: the settings panel, the task
+   and project forms and the three managers. */
 .drawer-side {
-  z-index: 5;
-  ul.menu {
-    min-width: 320px;
-    /* Anchor the absolutely-positioned footer row below to the menu panel.
-       .drawer-side is fixed and spans the whole viewport (it holds the
-       overlay), so without this a right-aligned footer would land against the
-       window's right edge instead of the menu's. */
-    position: relative;
-  }
-  .actions-drawer {
-    width: 100%;
-    @media (min-width: 500px) {
-      width: 500px;
-    }
-  }
   h3 {
     margin: 0;
-  }
-  a:not(.editor-link) {
-    text-decoration: none;
-    display: flex;
-    flex-wrap: nowrap;
-    justify-content: start;
-    align-items: center;
-    gap: 0.75rem;
-    padding-left: 0.2rem;
-    padding-top: 0.75rem;
-    padding-bottom: 0.75rem;
-    font-size: 1.2rem;
-    &:hover,
-    &:active,
-    &:focus {
-      text-decoration: underline;
-      background-color: transparent !important;
-      color: inherit !important;
-    }
   }
   button:not(.btn):not(.slate-editor-toolbar-button) {
     padding: 0;
@@ -141,41 +51,6 @@ hr {
     &:hover {
       background: transparent;
     }
-  }
-
-  /* Header row of the main menu: the action icons (log out, settings, theme) on
-     the left, the close button on the right, vertically centered. */
-  .main-menu-header {
-    display: flex;
-    flex-direction: row;
-    flex-wrap: nowrap;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-    margin-bottom: 3rem;
-  }
-
-  .menu-actions {
-    display: flex;
-    flex-wrap: nowrap;
-    align-items: center;
-    gap: 1rem;
-    padding: 0;
-    &:hover {
-      background: transparent;
-      cursor: default;
-    }
-    #settings-link {
-      padding: 0;
-    }
-  }
-
-  /* The logout tooltip bubble is nudged right via --tt-trans (see LogoutButton)
-     so it clears the drawer's left edge. daisyUI shares --tt-trans between the
-     bubble and its tail, so re-center only the tail here — nudging the triangle
-     back the other way — to keep it pointing at the icon. */
-  #logout-button.tooltip-bottom::after {
-    transform: translateX(-50%) translateY(var(--tt-pos, -0.25rem)) rotate(180deg);
   }
 }
 }

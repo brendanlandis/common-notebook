@@ -97,30 +97,30 @@ describe("HeaderContent manage-buttons disclosure", () => {
     expect(container.querySelector('[data-tip="add task"]')).toBeTruthy();
     expect(container.querySelector('[data-tip="declutter"]')).toBeTruthy();
     // …but the config cluster is hidden until the caret is hovered or pressed.
-    // The caret has no tooltip (data-tip); it's the .manage-cluster's only child
+    // The caret has no tooltip (data-tip); it's the cluster's only child
     // when collapsed.
     expect(container.querySelector('[data-tip="manage projects"]')).toBeNull();
     expect(container.querySelector('[data-tip="manage worlds"]')).toBeNull();
-    expect(container.querySelector(".manage-caret")).toBeTruthy();
+    expect(container.querySelector('[aria-label="more buttons"]')).toBeTruthy();
   });
 
   it("reveals and wires the manage-projects button on hover", () => {
     const { container } = renderHeader();
-    fireEvent.pointerEnter(container.querySelector(".manage-cluster")!);
+    fireEvent.pointerEnter(container.querySelector('[aria-label="more buttons"]')!.parentElement!);
     const manageBtn = container.querySelector('[data-tip="manage projects"]');
     expect(manageBtn).toBeTruthy();
     expect(container.querySelector('[data-tip="manage worlds"]')).toBeTruthy();
     fireEvent.click(manageBtn!);
     expect(openManageProjects).toHaveBeenCalledTimes(1);
     // Leaving collapses it again.
-    fireEvent.pointerLeave(container.querySelector(".manage-cluster")!);
+    fireEvent.pointerLeave(container.querySelector('[aria-label="more buttons"]')!.parentElement!);
     expect(container.querySelector('[data-tip="manage projects"]')).toBeNull();
   });
 
   it("opens on a press, which is how a phone and a keyboard both get in", () => {
     withHover(false);
     const { container } = renderHeader();
-    const caret = container.querySelector(".manage-caret")!;
+    const caret = container.querySelector('[aria-label="more buttons"]')!;
 
     expect(caret.getAttribute("aria-expanded")).toBe("false");
     fireEvent.click(caret);
@@ -132,7 +132,7 @@ describe("HeaderContent manage-buttons disclosure", () => {
   it("closes again on a second press", () => {
     withHover(false);
     const { container } = renderHeader();
-    const caret = container.querySelector(".manage-caret")!;
+    const caret = container.querySelector('[aria-label="more buttons"]')!;
 
     fireEvent.click(caret);
     fireEvent.click(caret);
@@ -148,12 +148,12 @@ describe("HeaderContent manage-buttons disclosure", () => {
     // and nothing happened at all.
     withHover(false);
     const { container } = renderHeader();
-    const cluster = container.querySelector(".manage-cluster")!;
+    const cluster = container.querySelector('[aria-label="more buttons"]')!.parentElement!;
 
     fireEvent.pointerEnter(cluster);
     expect(container.querySelector('[data-tip="manage views"]')).toBeNull();
 
-    fireEvent.click(container.querySelector(".manage-caret")!);
+    fireEvent.click(container.querySelector('[aria-label="more buttons"]')!);
     expect(container.querySelector('[data-tip="manage views"]')).toBeTruthy();
 
     // And a stray pointerleave must not snatch it away again.

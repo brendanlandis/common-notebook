@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { ArrowLeftIcon } from "@phosphor-icons/react/dist/ssr";
 import MenuItems from "./MenuItems";
+import DrawerHeader from "./DrawerHeader";
 import SettingsPanel from "./SettingsPanel";
 
 /**
@@ -34,19 +35,19 @@ export default function MainMenuPanel() {
   }, []);
 
   return (
-    <div className="drawer-side">
+    <div className="drawer-side z-5">
       <label
         htmlFor="mainMenu"
         aria-label="close sidebar"
         className="drawer-overlay"
       ></label>
       {panel === "menu" ? (
-        <ul className="menu min-h-full w-auto p-4">
+        <ul className="menu relative min-h-full w-auto min-w-80 bg-base-300 p-4 text-base-content">
           <MenuItems onOpenSettings={() => setPanel("settings")} />
         </ul>
       ) : (
         <div className="bg-base-200 text-base-content min-h-full w-80 max-w-[90vw] p-4">
-          <div className="main-menu-header">
+          <DrawerHeader>
             <button
               type="button"
               onClick={() => setPanel("menu")}
@@ -54,7 +55,7 @@ export default function MainMenuPanel() {
             >
               <ArrowLeftIcon size={40} weight="regular" />
             </button>
-          </div>
+          </DrawerHeader>
           <SettingsPanel />
         </div>
       )}

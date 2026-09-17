@@ -88,6 +88,7 @@ export default function RootLayout({
       </head>
       <body
         className={`
+          grid min-h-screen w-screen content-start
           ${fontSweetheart.variable}
           ${fontPlexSerif.variable}
         `}

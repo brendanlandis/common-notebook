@@ -13,15 +13,6 @@
   --tooltip-bg: var(--color-success);
   --tooltip-color: var(--color-success-content);
   color-scheme: light;
-
-  .moon-phase-icon svg {
-    background: var(--primary-color);
-    color: var(--background);
-  }
-
-  .header-icon {
-    color: var(--color-success);
-  }
 }
 
 html[data-theme="dim"] {
@@ -40,15 +31,6 @@ html[data-theme="dim"] {
   --tooltip-bg: var(--color-accent);
   --tooltip-color: var(--color-accent-content);
   color-scheme: dark;
-
-  .moon-phase-icon svg {
-    background: transparent;
-    color: var(--primary-color);
-  }
-
-  .header-icon {
-    color: var(--color-primary);
-  }
 }
 
 html {
@@ -85,16 +67,6 @@ button.btn {
     background: var(--primary-color);
     border-color: var(--primary-color);
     color: var(--background);
-  }
-}
-
-/* drawers */
-
-.drawer-side {
-  ul.menu,
-  .actions-drawer {
-    background: var(--background-light);
-    color: var(--primary-color-light);
   }
 }
 

@@ -2,6 +2,7 @@
 
 import { usePathname } from 'next/navigation';
 import { XIcon } from '@phosphor-icons/react';
+import DrawerHeader from "./DrawerHeader";
 import { useTaskActions } from '../contexts/TaskActionsContext';
 
 export default function TaskActionsDrawer() {
@@ -12,19 +13,19 @@ export default function TaskActionsDrawer() {
   const showContent = pathname.startsWith('/todo');
 
   return (
-    <div className="drawer-side">
+    <div className="drawer-side z-5">
       <div
         aria-label="close sidebar"
         className="drawer-overlay"
         onClick={closeDrawer}
       ></div>
       {showContent && (
-        <div className="actions-drawer min-h-full p-4">
-          <div className="main-menu-header">
+        <div className="actions-drawer min-h-full w-full bg-base-300 p-4 text-base-content min-[500px]:w-[500px]">
+          <DrawerHeader>
             <button onClick={closeDrawer}>
               <XIcon size={40} weight="regular" />
             </button>
-          </div>
+          </DrawerHeader>
           <div id="drawer-form-container">
             {/* Forms will be portaled here from the page */}
           </div>

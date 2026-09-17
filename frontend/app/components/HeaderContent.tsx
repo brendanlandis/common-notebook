@@ -100,7 +100,7 @@ export default function HeaderContent() {
           <FolderSimplePlusIcon size={25} />
         </button>
         <button
-          className="moon-phase-icon tooltip tooltip-bottom"
+          className="tooltip tooltip-bottom [&_svg]:rounded-full [&_svg]:bg-base-content [&_svg]:text-base-100 dim:[&_svg]:bg-transparent dim:[&_svg]:text-base-content"
           data-tip="declutter"
           onClick={handleResetMoonPhase}
         >
@@ -129,7 +129,7 @@ export default function HeaderContent() {
             the same path as everyone else. Revealing on focus additionally meant
             the focus opened it and the resulting click closed it again. */}
         <div
-          className="manage-cluster"
+          className="flex items-center gap-4"
           onPointerEnter={() => {
             if (canHover()) setShowManage(true);
           }}
@@ -139,7 +139,7 @@ export default function HeaderContent() {
         >
           <button
             type="button"
-            className="manage-caret"
+            className="flex cursor-pointer items-center"
             aria-label="more buttons"
             aria-expanded={showManage}
             onClick={() => setShowManage((open) => !open)}
@@ -151,7 +151,7 @@ export default function HeaderContent() {
             )}
           </button>
           {showManage && (
-            <div className="manage-buttons">
+            <div className="flex items-center gap-4">
               {/* aria-label as well as data-tip: these are icon-only buttons, so
                   the tooltip is the only thing naming them and it is presentation
                   — a screen reader announced three unlabeled buttons, and no

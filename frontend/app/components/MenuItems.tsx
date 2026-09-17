@@ -8,7 +8,9 @@ import {
   SunIcon,
   CompassIcon,
 } from "@phosphor-icons/react/dist/ssr";
+import type { Icon } from "@phosphor-icons/react";
 import MenuClose from "./MenuClose";
+import DrawerHeader from "./DrawerHeader";
 import ThemeToggle from "./ThemeToggle";
 import LogoutButton from "./LogoutButton";
 import { soleDestination, visiblePages } from "@/app/lib/pages";
@@ -31,11 +33,10 @@ export default function MenuItems({
   };
   return (
     <>
-      <li className="main-menu-header">
-        <div className="menu-actions">
+      <DrawerHeader as="li">
+        <div className="flex flex-nowrap items-center gap-4 p-0 hover:cursor-default hover:bg-transparent">
           <LogoutButton />
           <button
-            id="settings-link"
             type="button"
             onClick={onOpenSettings}
             className="tooltip tooltip-bottom"
@@ -47,45 +48,62 @@ export default function MenuItems({
           <ThemeToggle />
         </div>
         <MenuClose />
-      </li>
+      </DrawerHeader>
       {showHome && (
-        <li>
-          <Link href="/" onClick={closeDrawer}>
-            <BirdIcon size={30} weight="thin" />
-            <span>home</span>
-          </Link>
-        </li>
+        <MenuLink href="/" icon={BirdIcon} label="home" onClick={closeDrawer} />
       )}
-      <li>
-        <Link href="/todo" onClick={closeDrawer}>
-          <BroomIcon size={30} weight="thin" />
-          <span>to do</span>
-        </Link>
-      </li>
+      <MenuLink href="/todo" icon={BroomIcon} label="to do" onClick={closeDrawer} />
       {pages.includes("/practice") && (
-        <li>
-          <Link href="/practice" onClick={closeDrawer}>
-            <MetronomeIcon size={30} weight="thin" />
-            <span>practice</span>
-          </Link>
-        </li>
+        <MenuLink
+          href="/practice"
+          icon={MetronomeIcon}
+          label="practice"
+          onClick={closeDrawer}
+        />
       )}
       {pages.includes("/review/daily") && (
         <>
-          <li>
-            <Link href="/review/daily" onClick={closeDrawer}>
-              <SunIcon size={30} weight="thin" />
-              <span>today</span>
-            </Link>
-          </li>
-          <li>
-            <Link href="/review/periodic" onClick={closeDrawer}>
-              <CompassIcon size={30} weight="thin" />
-              <span>review</span>
-            </Link>
-          </li>
+          <MenuLink
+            href="/review/daily"
+            icon={SunIcon}
+            label="today"
+            onClick={closeDrawer}
+          />
+          <MenuLink
+            href="/review/periodic"
+            icon={CompassIcon}
+            label="review"
+            onClick={closeDrawer}
+          />
         </>
       )}
     </>
+  );
+}
+
+function MenuLink({
+  href,
+  icon: Icon,
+  label,
+  onClick,
+}: {
+  href: string;
+  icon: Icon;
+  label: string;
+  onClick: () => void;
+}) {
+  // No background on hover, press or focus, which daisyUI's menu would add;
+  // the underline is the whole affordance.
+  return (
+    <li>
+      <Link
+        href={href}
+        onClick={onClick}
+        className="flex flex-nowrap items-center justify-start gap-3 py-3 pl-1 text-xl no-underline hover:bg-transparent hover:text-inherit hover:underline focus:bg-transparent focus:text-inherit focus:underline active:bg-transparent active:text-inherit active:underline"
+      >
+        <Icon size={30} weight="thin" />
+        <span>{label}</span>
+      </Link>
+    </li>
   );
 }

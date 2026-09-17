@@ -39,8 +39,10 @@ export default function LogoutButton() {
       id="logout-button"
       // tooltip-bottom shows it below the icon; --tt-trans is daisyUI's tooltip
       // X-translate (default -50% = centered) — nudge it right so the leftmost
-      // icon's tooltip doesn't run off the drawer edge.
-      className="tooltip tooltip-bottom [--tt-trans:calc(-50%_+_0.9rem)]"
+      // icon's tooltip doesn't run off the drawer edge. daisyUI shares
+      // --tt-trans between the bubble and its tail, so the after: transform
+      // puts the tail back under the icon.
+      className="tooltip tooltip-bottom [--tt-trans:calc(-50%_+_0.9rem)] after:[transform:translateX(-50%)_translateY(var(--tt-pos,-0.25rem))_rotate(180deg)]"
       data-tip="logout"
     >
       <PlugsIcon size={25} weight="regular" />
