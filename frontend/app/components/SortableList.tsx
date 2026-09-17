@@ -177,12 +177,15 @@ export function SortableRow({
   return (
     <li
       ref={setNodeRef}
-      className={`${className ?? ""}${isDragging ? " is-dragging" : ""}`}
+      // dnd-kit sets the transform and transition inline; this is only the lifted look.
+      className={`${className ?? ""}${isDragging ? " relative z-10 opacity-85" : ""}`}
       style={{ transform: CSS.Transform.toString(transform), transition }}
+      data-dragging={isDragging || undefined}
     >
       <button
         type="button"
-        className="drag-handle"
+        // touch-none lets dnd-kit's pointer sensor own the gesture on touch.
+        className="flex cursor-grab touch-none items-center justify-center active:cursor-grabbing disabled:cursor-default disabled:opacity-30"
         aria-label={handleLabel}
         disabled={disabled}
         {...attributes}

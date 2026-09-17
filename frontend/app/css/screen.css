@@ -39,27 +39,12 @@ hr {
   margin: 3rem auto;
 }
 
-/* Still here until the drawers' contents move: the settings panel, the task
-   and project forms and the three managers. */
-.drawer-side {
-  h3 {
-    margin: 0;
-  }
-  button:not(.btn):not(.slate-editor-toolbar-button) {
-    padding: 0;
-    margin: 0;
-    &:hover {
-      background: transparent;
-    }
-  }
-}
 }
 
 @import "./page-task.css" layer(utilities.legacy);
 @import "./page-practice.css" layer(utilities.legacy);
 @import "./practice-session.css" layer(utilities.legacy);
 @import "./page-review.css" layer(utilities.legacy);
-@import "./managers.css" layer(utilities.legacy);
 @import "./charts.css" layer(utilities.legacy);
 
 @import "./print.css" layer(utilities.legacy);

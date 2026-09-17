@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import type { Project, ProjectImportance } from "@/app/types/index";
 import { useTasks } from "@/app/(main)/todo/hooks/useTasks";
 import { useWorlds } from "@/app/hooks/useWorlds";
@@ -10,6 +10,8 @@ import { saveStuffProjectsEnabledToStrapi } from "@/app/lib/stuffProjectsConfig"
 import { doneCandidates, orderDoneCandidates, groupProjectsByWorld } from "@/app/lib/manageProjects";
 import { swallow } from "@/app/lib/apiFetch";
 import ProjectForm from "@/app/(main)/todo/components/ProjectForm";
+import { Checkbox, Input, Select } from "./FormControls";
+import DisclosureToggle from "./DisclosureToggle";
 
 const PER_WORLD = 10; // section 3: rows shown per world before "load more"
 
@@ -114,17 +116,15 @@ export default function ProjectsManager() {
   const search3Lower = search3.trim().toLowerCase();
 
   return (
-    <div className="projects-manager manager">
+    <div className="flex flex-col gap-6">
       {/* 1 ── Are these done yet? ─────────────────────────────────────────── */}
-      <section className="pm-section">
-        <h3>are these done yet?</h3>
+      <ManagerSection title="are these done yet?">
         {candidates.length === 0 ? (
-          <p className="pm-empty">nothing to review</p>
+          <Muted>nothing to review</Muted>
         ) : (
-          <ul className="manager-list">
+          <ul className="flex flex-col gap-2">
             {candidates.map((p) => (
-              <li key={p.documentId} className="pm-row">
-                <span className="pm-title">{worldPrefixed(p)}</span>
+              <ProjectRow key={p.documentId} as="li" title={worldPrefixed(p)}>
                 <button
                   type="button"
                   onClick={() => swallow("complete project", manage.completeProject(p.documentId))}
@@ -132,21 +132,18 @@ export default function ProjectsManager() {
                 >
                   mark complete
                 </button>
-              </li>
+              </ProjectRow>
             ))}
           </ul>
         )}
-      </section>
+      </ManagerSection>
 
       {/* 2 ── Importance ──────────────────────────────────────────────────── */}
-      <section className="pm-section">
-        <h3>importance</h3>
-
-        <div className="pm-tier">
-          <h4>top of mind</h4>
+      <ManagerSection title="importance">
+        <div className="flex flex-col gap-1.5">
+          <h4 className="mt-1 mb-0 text-sm opacity-75">top of mind</h4>
           {topOfMind ? (
-            <div className="pm-row">
-              <span className="pm-title">{worldPrefixed(topOfMind)}</span>
+            <ProjectRow title={worldPrefixed(topOfMind)}>
               <button
                 type="button"
                 onClick={() => setImportance(topOfMind.documentId, "normal")}
@@ -154,11 +151,11 @@ export default function ProjectsManager() {
               >
                 → normal
               </button>
-            </div>
+            </ProjectRow>
           ) : (
-            <p className="pm-empty">none</p>
+            <Muted>none</Muted>
           )}
-          <select
+          <Select
             aria-label="set top of mind"
             value=""
             disabled={manage.busy}
@@ -166,18 +163,17 @@ export default function ProjectsManager() {
           >
             <option value="">set top of mind…</option>
             {groupedOptions(projects.filter((p) => p.importance !== "top of mind"))}
-          </select>
+          </Select>
         </div>
 
-        <div className="pm-tier">
-          <h4>later</h4>
+        <div className="flex flex-col gap-1.5">
+          <h4 className="mt-1 mb-0 text-sm opacity-75">later</h4>
           {laterProjects.length === 0 ? (
-            <p className="pm-empty">none</p>
+            <Muted>none</Muted>
           ) : (
-            <ul className="manager-list">
+            <ul className="flex flex-col gap-2">
               {laterProjects.map((p) => (
-                <li key={p.documentId} className="pm-row">
-                  <span className="pm-title">{worldPrefixed(p)}</span>
+                <ProjectRow key={p.documentId} as="li" title={worldPrefixed(p)}>
                   <button
                     type="button"
                     onClick={() => setImportance(p.documentId, "normal")}
@@ -185,11 +181,11 @@ export default function ProjectsManager() {
                   >
                     → normal
                   </button>
-                </li>
+                </ProjectRow>
               ))}
             </ul>
           )}
-          <select
+          <Select
             aria-label="add to later"
             value=""
             disabled={manage.busy}
@@ -197,16 +193,15 @@ export default function ProjectsManager() {
           >
             <option value="">add to later…</option>
             {groupedOptions(projects.filter((p) => p.importance !== "later"))}
-          </select>
+          </Select>
         </div>
-      </section>
+      </ManagerSection>
 
       {/* 3 ── Manage all projects ─────────────────────────────────────────── */}
-      <section className="pm-section">
-        <h3>manage all projects</h3>
-        <input
+      <ManagerSection title="manage all projects">
+        <Input
           type="text"
-          className="pm-search"
+          className="min-w-0"
           placeholder="search projects"
           value={search3}
           onChange={(e) => setSearch3(e.target.value)}
@@ -223,40 +218,40 @@ export default function ProjectsManager() {
           // otherwise the world respects its own collapse state (collapsed default).
           const worldOpen = !!search3Lower || expandedWorlds.has(group.key);
           return (
-            <div key={group.key} className="pm-world-group pm-disclosure">
-              <button
-                type="button"
-                className="sections-toggle pm-world-toggle"
-                aria-expanded={worldOpen}
-                onClick={() => toggleWorld(group.key)}
+            <div key={group.key}>
+              <DisclosureToggle
+                expanded={worldOpen}
+                onToggle={() => toggleWorld(group.key)}
+                className="w-full font-semibold opacity-80"
               >
                 {group.label}
-              </button>
+              </DisclosureToggle>
               {worldOpen && (
                 <>
-                  <ul className="manager-list">
+                  <ul className="mt-2 flex flex-col gap-2">
                     {shown.map((p) => (
-                      <li key={p.documentId} className="pm-disclosure">
-                        <button
-                          type="button"
-                          className="sections-toggle"
-                          aria-expanded={expanded.has(p.documentId)}
-                          onClick={() => toggleExpand(p.documentId)}
+                      <li key={p.documentId}>
+                        <DisclosureToggle
+                          expanded={expanded.has(p.documentId)}
+                          onToggle={() => toggleExpand(p.documentId)}
+                          className="w-full"
                         >
                           {p.title}
-                        </button>
+                        </DisclosureToggle>
                         {expanded.has(p.documentId) && (
-                          <ProjectForm
-                            project={p}
-                            onSubmit={(data) => handleSave(p, data)}
-                            onCancel={() => collapse(p.documentId)}
-                          />
+                          <div className="mt-2">
+                            <ProjectForm
+                              project={p}
+                              onSubmit={(data) => handleSave(p, data)}
+                              onCancel={() => collapse(p.documentId)}
+                            />
+                          </div>
                         )}
                       </li>
                     ))}
                   </ul>
                   {!search3Lower && matched.length > shown.length && (
-                    <button type="button" className="pm-more" onClick={() => loadMore(group.key)}>
+                    <button type="button" className="mt-2 self-start text-sm" onClick={() => loadMore(group.key)}>
                       load more
                     </button>
                   )}
@@ -265,28 +260,26 @@ export default function ProjectsManager() {
             </div>
           );
         })}
-      </section>
+      </ManagerSection>
 
       {/* 4 ── Revive old projects ─────────────────────────────────────────── */}
-      <section className="pm-section">
-        <h3>revive old projects</h3>
-        <input
+      <ManagerSection title="revive old projects">
+        <Input
           type="text"
-          className="pm-search"
+          className="min-w-0"
           placeholder="search completed"
           value={search4}
           onChange={(e) => setSearch4(e.target.value)}
           aria-label="search completed projects"
         />
         {manage.completedLoading ? (
-          <p className="pm-empty">loading…</p>
+          <Muted>loading…</Muted>
         ) : manage.completedProjects.length === 0 ? (
-          <p className="pm-empty">none</p>
+          <Muted>none</Muted>
         ) : (
-          <ul className="manager-list">
+          <ul className="flex flex-col gap-2">
             {manage.completedProjects.map((p) => (
-              <li key={p.documentId} className="pm-row">
-                <span className="pm-title">{p.title}</span>
+              <ProjectRow key={p.documentId} as="li" title={p.title}>
                 <button
                   type="button"
                   onClick={() => swallow("revive project", manage.reviveProject(p.documentId))}
@@ -294,40 +287,66 @@ export default function ProjectsManager() {
                 >
                   revive
                 </button>
-              </li>
+              </ProjectRow>
             ))}
           </ul>
         )}
         {manage.hasMoreCompleted && (
           <button
             type="button"
-            className="pm-more"
+            className="self-start text-sm"
             onClick={() => manage.fetchMoreCompleted()}
             disabled={manage.fetchingMoreCompleted}
           >
             load more
           </button>
         )}
-      </section>
+      </ManagerSection>
 
       {/* ── stuff projects (moved here from /settings) ─────────────────────── */}
-      <section className="pm-section">
-        <h3>stuff projects</h3>
-        <p className="pm-note">
+      <ManagerSection title="stuff projects">
+        <p className="m-0 text-sm opacity-75">
           show the &quot;stuff&quot; world (shopping, errands, wishlist, and &quot;in the
           mail&quot; projects) and its view? turning this off hides them without deleting
           anything.
         </p>
-        <label className="settings-checkbox">
-          <input
-            type="checkbox"
-            className="checkbox"
-            checked={stuffProjectsEnabled}
-            onChange={handleStuffToggle}
-            disabled={stuffSaving}
-          />
-        </label>
-      </section>
+        <Checkbox
+          checked={stuffProjectsEnabled}
+          onChange={handleStuffToggle}
+          disabled={stuffSaving}
+        />
+      </ManagerSection>
     </div>
   );
+}
+
+function ManagerSection({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <section className="flex flex-col gap-2">
+      <h3 className="m-0">{title}</h3>
+      {children}
+    </section>
+  );
+}
+
+/** A project's name, cut short if it has to be, with its one action at the right. */
+function ProjectRow({
+  as: Tag = "div",
+  title,
+  children,
+}: {
+  as?: "div" | "li";
+  title: string;
+  children: ReactNode;
+}) {
+  return (
+    <Tag className="flex items-center gap-2">
+      <span className="min-w-0 flex-auto truncate">{title}</span>
+      {children}
+    </Tag>
+  );
+}
+
+function Muted({ children }: { children: ReactNode }) {
+  return <p className="m-0 text-sm opacity-60">{children}</p>;
 }

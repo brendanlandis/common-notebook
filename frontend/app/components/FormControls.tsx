@@ -7,7 +7,11 @@ import type { ComponentProps, ReactNode } from "react";
  * the ref reaches the element.
  */
 
-const FIELD = "w-full rounded-none border-base-content";
+const FIELD = "rounded-none border-base-content";
+
+/** Full width by default; `fullWidth={false}` sizes a control to its content. */
+type Sizing = { fullWidth?: boolean };
+const width = (fullWidth: boolean) => (fullWidth ? "w-full" : "w-auto");
 
 /**
  * A control with its label. The label sits above it, or with `hideLabel` is
@@ -43,12 +47,24 @@ export function Field({
   );
 }
 
-export function Input({ className = "", ...props }: ComponentProps<"input">) {
-  return <input className={`input ${FIELD} ${className}`} {...props} />;
+export function Input({
+  className = "",
+  fullWidth = true,
+  ...props
+}: ComponentProps<"input"> & Sizing) {
+  return (
+    <input className={`input ${FIELD} ${width(fullWidth)} ${className}`} {...props} />
+  );
 }
 
-export function Select({ className = "", ...props }: ComponentProps<"select">) {
-  return <select className={`select ${FIELD} ${className}`} {...props} />;
+export function Select({
+  className = "",
+  fullWidth = true,
+  ...props
+}: ComponentProps<"select"> & Sizing) {
+  return (
+    <select className={`select ${FIELD} ${width(fullWidth)} ${className}`} {...props} />
+  );
 }
 
 /** A checkbox with its label beside it; clicking the words ticks it. */
@@ -56,7 +72,7 @@ export function Checkbox({
   children,
   className = "",
   ...props
-}: Omit<ComponentProps<"input">, "type"> & { children: ReactNode }) {
+}: Omit<ComponentProps<"input">, "type"> & { children?: ReactNode }) {
   return (
     <label className={`flex cursor-pointer items-center gap-2 ${className}`}>
       <input

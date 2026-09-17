@@ -58,17 +58,25 @@ const openManageCluster = async (page: Page) => {
   await expect(caret).toHaveAttribute('aria-expanded', 'true');
 };
 
+// Rows by the lists' names, and grips by their "reorder …" labels, rather than
+// by styling classes.
+const viewRows = (page: Page) =>
+  page.getByRole('list', { name: 'views' }).locator(':scope > li');
+const sectionRows = (viewRow: ReturnType<Page['locator']>) =>
+  viewRow.getByRole('list', { name: /^sections of / }).locator(':scope > li');
+const GRIP = ':scope > button[aria-label^="reorder"]';
+
 const openViewsDrawer = async (page: Page) => {
   await gotoTodo(page);
   await openManageCluster(page);
   await page.getByRole('button', { name: 'manage views' }).click();
-  await expect(page.locator('li.view-row').first()).toBeVisible({ timeout: 30_000 });
+  await expect(viewRows(page).first()).toBeVisible({ timeout: 30_000 });
 
   await waitUntilStill(page, page.locator('.actions-drawer'), 'views drawer');
 };
 
 const viewNames = (page: Page) =>
-  page.locator('li.view-row input[aria-label="view name"]').evaluateAll(
+  viewRows(page).locator('input[aria-label="view name"]').evaluateAll(
     (els) => els.map((el) => (el as HTMLInputElement).value)
   );
 
@@ -98,7 +106,7 @@ const dragRow = async (
   from: number,
   to: number
 ) => {
-  const grip = (await rows.nth(from).locator('> button.drag-handle').boundingBox())!;
+  const grip = (await rows.nth(from).locator(GRIP).boundingBox())!;
   const source = (await rows.nth(from).boundingBox())!;
   const target = (await rows.nth(to).boundingBox())!;
 
@@ -118,7 +126,7 @@ const dragRow = async (
 };
 
 const dragViewRow = (page: Page, from: number, to: number) =>
-  dragRow(page, page.locator('li.view-row'), from, to);
+  dragRow(page, viewRows(page), from, to);
 
 // The keyboard path that replaced the ↑/↓ buttons: focus a handle, Space to
 // lift, arrows to move, Space to drop. Takes the row locator so it serves both
@@ -129,13 +137,13 @@ const keyboardMove = async (
   from: number,
   key: 'ArrowUp' | 'ArrowDown'
 ) => {
-  await rows.locator('> button.drag-handle').nth(from).focus();
+  await rows.locator(GRIP).nth(from).focus();
   await page.keyboard.press('Space');
   // Wait for the lift itself rather than sleeping: dnd-kit measures the layout
   // before it will respond to an arrow key, and a fixed 150ms made this flaky.
   // Only one row lifts at a time, at either level, so this is unambiguous.
-  await expect(page.locator('.is-dragging')).toHaveCount(1, { timeout: 5_000 });
-  // The class lands immediately, but dnd-kit measures the droppable rects a beat
+  await expect(page.locator('[data-dragging]')).toHaveCount(1, { timeout: 5_000 });
+  // The marker lands immediately, but dnd-kit measures the droppable rects a beat
   // later and ignores an arrow key that arrives before it has: without this the
   // lift succeeds and the move silently does nothing.
   await page.waitForTimeout(300);
@@ -145,7 +153,7 @@ const keyboardMove = async (
 };
 
 const keyboardMoveView = (page: Page, from: number, key: 'ArrowUp' | 'ArrowDown') =>
-  keyboardMove(page, page.locator('li.view-row'), from, key);
+  keyboardMove(page, viewRows(page), from, key);
 
 test.describe('view reorder', () => {
   test('rolls back when the save fails', async ({ page }) => {
@@ -202,9 +210,9 @@ test.describe('view reorder', () => {
   test('reorders the sections inside a view', async ({ page }) => {
     await openViewsDrawer(page);
 
-    const viewRow = page.locator('li.view-row').nth(0);
-    await viewRow.locator('.view-sections-disclosure > .sections-toggle').click();
-    const rows = viewRow.locator('li.view-section-row');
+    const viewRow = viewRows(page).nth(0);
+    await viewRow.getByRole('button', { name: /\d+ sections?$/ }).click();
+    const rows = sectionRows(viewRow);
     if ((await rows.count()) < 2) test.skip(true, 'first view has only one section');
 
     await waitUntilStill(page, rows.nth(1), 'section rows');
@@ -224,9 +232,9 @@ test.describe('view reorder', () => {
     } finally {
       // Restore, then confirm it persisted.
       await openViewsDrawer(page);
-      const row = page.locator('li.view-row').nth(0);
-      await row.locator('.view-sections-disclosure > .sections-toggle').click();
-      const back = row.locator('li.view-section-row');
+      const row = viewRows(page).nth(0);
+      await row.getByRole('button', { name: /\d+ sections?$/ }).click();
+      const back = sectionRows(row);
       await waitUntilStill(page, back.nth(1), 'section rows');
       const readBack = () => back.locator('input[aria-label="section label"]')
         .evaluateAll((els) => els.map((el) => (el as HTMLInputElement).value));

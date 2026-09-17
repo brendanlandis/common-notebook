@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import type { Project, World } from "@/app/types/index";
 import { useWorlds } from "@/app/hooks/useWorlds";
+import { Input } from "./FormControls";
 import { SortableProvider, SortableGroup, SortableRow, reorderIds } from "./SortableList";
 
 // Create / rename / reorder / delete the user's worlds. Deletion is blocked
@@ -79,10 +80,10 @@ export default function WorldsManager() {
   if (loading) return <p>loading worlds…</p>;
 
   return (
-    <div className="worlds-manager manager">
+    <div className="flex flex-col gap-6">
       <SortableProvider onDragEnd={handleDragEnd}>
         <SortableGroup ids={worlds.map((w) => w.documentId)}>
-        <ul className="worlds-list manager-list">
+        <ul aria-label="worlds" className="flex flex-col gap-2">
           {worlds.map((world) => {
             const count = projectCounts[world.documentId] ?? 0;
             const isStuff = world.systemKey === "stuff";
@@ -90,12 +91,14 @@ export default function WorldsManager() {
               <SortableRow
                 key={world.documentId}
                 id={world.documentId}
-                className="world-row manager-row"
+                // handle | name | delete
+                className="grid grid-cols-[auto_1fr_auto] items-center gap-2"
                 handleLabel={`reorder ${world.title}`}
                 disabled={busy}
               >
-                <input
+                <Input
                   type="text"
+                  className="min-w-0"
                   defaultValue={world.title}
                   onBlur={(e) => handleRename(world, e.target.value)}
                   disabled={busy}
@@ -122,9 +125,10 @@ export default function WorldsManager() {
         </SortableGroup>
       </SortableProvider>
 
-      <div className="worlds-manager-add manager-add">
-        <input
+      <div className="flex flex-wrap items-center gap-2">
+        <Input
           type="text"
+          className="min-w-0 flex-[1_1_8rem]"
           placeholder="new world"
           value={newTitle}
           onChange={(e) => setNewTitle(e.target.value)}

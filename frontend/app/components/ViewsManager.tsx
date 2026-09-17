@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import type { View, ViewSectionInput, ViewLayout, WorldMode } from "@/app/types/index";
 import { useViews } from "@/app/hooks/useViews";
 import { useWorlds } from "@/app/hooks/useWorlds";
@@ -12,6 +12,8 @@ import {
   PROJECT_TYPE_OPTIONS,
   RECURRENCE_OPTIONS,
 } from "@/app/lib/views";
+import { Checkbox, Input, Select } from "./FormControls";
+import DisclosureToggle from "./DisclosureToggle";
 import { SortableProvider, SortableGroup, SortableRow, reorderIds } from "./SortableList";
 import { defaultSection, sectionToInput, viewSections } from "@/app/lib/viewSectionInput";
 
@@ -141,30 +143,33 @@ export default function ViewsManager() {
   if (loading) return <p>loading views…</p>;
 
   return (
-    <div className="views-manager manager">
+    <div className="flex flex-col gap-6">
       <SortableProvider onDragEnd={handleDragEnd}>
         <SortableGroup groupKey="views" ids={ordered.map((v) => v.documentId)}>
-        <ul className="views-list manager-list">
+        <ul aria-label="views" className="flex flex-col gap-2">
           {ordered.map((view) => {
             const multiSection = view.layout === "projects";
             return (
               <SortableRow
                 key={view.documentId}
                 id={view.documentId}
-                className="view-row"
+                className="grid grid-cols-[auto_1fr] items-start gap-2 rounded-lg border border-base-300 p-3"
                 handleLabel={`reorder ${view.name}`}
                 disabled={busy}
               >
-                <div className="view-body">
-                  <div className="view-row-header">
-                    <input
+                <div className="flex min-w-0 flex-col gap-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    {/* The name has a row to itself; the layout and delete share the next. */}
+                    <Input
                       type="text"
+                      className="min-w-0 basis-full"
                       defaultValue={view.name}
                       onBlur={(e) => handleRename(view, e.target.value)}
                       disabled={busy}
                       aria-label="view name"
                     />
-                    <select
+                    <Select
+                      fullWidth={false}
                       value={view.layout}
                       onChange={(e) => handleLayout(view, e.target.value as ViewLayout)}
                       disabled={busy}
@@ -173,7 +178,7 @@ export default function ViewsManager() {
                       {LAYOUT_OPTIONS.map((o) => (
                         <option key={o.value} value={o.value}>{o.label}</option>
                       ))}
-                    </select>
+                    </Select>
                     <button type="button" onClick={() => handleDeleteView(view)} disabled={busy}>delete</button>
                   </div>
 
@@ -183,15 +188,14 @@ export default function ViewsManager() {
                       keyboard reordering fail outright, because
                       sortableKeyboardCoordinates can't move a row that dwarfs its
                       neighbor. Compact rows keep both usable. */}
-                  <div className="view-sections-disclosure">
-                    <button
-                      type="button"
-                      className="sections-toggle"
-                      aria-expanded={expanded.has(view.documentId)}
-                      onClick={() => toggleExpanded(view.documentId)}
+                  <div>
+                    <DisclosureToggle
+                      expanded={expanded.has(view.documentId)}
+                      onToggle={() => toggleExpanded(view.documentId)}
+                      className="text-sm opacity-75"
                     >
                       {view.sections.length} section{view.sections.length === 1 ? "" : "s"}
-                    </button>
+                    </DisclosureToggle>
                     {expanded.has(view.documentId) && (
                     <SortableGroup
                       // Its own group, so a section drag can only ever resolve
@@ -200,7 +204,7 @@ export default function ViewsManager() {
                       groupKey={`sections:${view.documentId}`}
                       ids={view.sections.map((_, si) => sectionId(view.documentId, si))}
                     >
-                      <ul className="view-sections">
+                      <ul aria-label={`sections of ${view.name}`} className="mt-2 flex flex-col gap-2">
                       {view.sections.map((section, si) => {
                         const input = sectionToInput(section);
                         const showWorlds = input.worldMode !== "all";
@@ -208,77 +212,70 @@ export default function ViewsManager() {
                           <SortableRow
                             key={si}
                             id={sectionId(view.documentId, si)}
-                            className="view-section-row"
+                            className="grid grid-cols-[auto_1fr] items-start gap-2 rounded border-l-[3px] border-base-300 bg-base-200 p-2"
                             handleLabel={`reorder section ${si + 1} of ${view.name}`}
                             disabled={busy || !multiSection || view.sections.length < 2}
                           >
-                            <div className="view-section-fields">
+                            <div className="flex min-w-0 flex-col gap-2">
                               {multiSection && (
-                                <label className="field">
-                                  <span>label</span>
+                                <InlineField label="label">
                                   {/* Keyed by its own value: the row is keyed by
                                       index, so after a reorder React reuses this
                                       DOM node and an uncontrolled input ignores
                                       the new defaultValue — the selects (which
                                       are controlled) would swap while the label
                                       stayed put. The key forces a remount. */}
-                                  <input
+                                  <Input
                                     key={`${si}-${section.name ?? ""}`}
                                     type="text"
+                                    className="min-w-0"
                                     placeholder="section label"
                                     defaultValue={section.name ?? ""}
                                     onBlur={(e) => patchSection(view, si, { name: e.target.value.trim() || undefined })}
                                     disabled={busy}
                                     aria-label="section label"
                                   />
-                                </label>
+                                </InlineField>
                               )}
-                              <label className="field">
-                                <span>worlds</span>
-                                <select value={input.worldMode} onChange={(e) => patchSection(view, si, { worldMode: e.target.value as WorldMode })} disabled={busy} aria-label="worlds mode">
+                              <InlineField label="worlds">
+                                <Select className="min-w-0" value={input.worldMode} onChange={(e) => patchSection(view, si, { worldMode: e.target.value as WorldMode })} disabled={busy} aria-label="worlds mode">
                                   {WORLD_MODE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-                                </select>
-                              </label>
+                                </Select>
+                              </InlineField>
                               {showWorlds && (
-                                <div className="view-section-worlds">
+                                <div className="flex flex-wrap gap-x-4 gap-y-2 sm:pl-[6.5rem]">
                                   {worlds.map((w) => (
-                                    <label key={w.documentId} className="settings-checkbox">
-                                      <input
-                                        type="checkbox"
-                                        className="checkbox"
-                                        checked={input.worlds.includes(w.documentId)}
-                                        onChange={() => toggleWorld(view, si, w.documentId)}
-                                        disabled={busy}
-                                      />
+                                    <Checkbox
+                                      key={w.documentId}
+                                      checked={input.worlds.includes(w.documentId)}
+                                      onChange={() => toggleWorld(view, si, w.documentId)}
+                                      disabled={busy}
+                                    >
                                       {w.title}
-                                    </label>
+                                    </Checkbox>
                                   ))}
                                 </div>
                               )}
-                              <label className="field">
-                                <span>importance</span>
-                                <select value={input.importance} onChange={(e) => patchSection(view, si, { importance: e.target.value as ViewSectionInput["importance"] })} disabled={busy} aria-label="importance">
+                              <InlineField label="importance">
+                                <Select className="min-w-0" value={input.importance} onChange={(e) => patchSection(view, si, { importance: e.target.value as ViewSectionInput["importance"] })} disabled={busy} aria-label="importance">
                                   {IMPORTANCE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-                                </select>
-                              </label>
-                              <label className="field">
-                                <span>project type</span>
-                                <select value={input.projectType} onChange={(e) => patchSection(view, si, { projectType: e.target.value as ViewSectionInput["projectType"] })} disabled={busy} aria-label="project type">
+                                </Select>
+                              </InlineField>
+                              <InlineField label="project type">
+                                <Select className="min-w-0" value={input.projectType} onChange={(e) => patchSection(view, si, { projectType: e.target.value as ViewSectionInput["projectType"] })} disabled={busy} aria-label="project type">
                                   {PROJECT_TYPE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-                                </select>
-                              </label>
-                              <label className="field">
-                                <span>recurrence</span>
-                                <select value={input.recurrence} onChange={(e) => patchSection(view, si, { recurrence: e.target.value as ViewSectionInput["recurrence"] })} disabled={busy} aria-label="recurrence">
+                                </Select>
+                              </InlineField>
+                              <InlineField label="recurrence">
+                                <Select className="min-w-0" value={input.recurrence} onChange={(e) => patchSection(view, si, { recurrence: e.target.value as ViewSectionInput["recurrence"] })} disabled={busy} aria-label="recurrence">
                                   {RECURRENCE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-                                </select>
-                              </label>
-                              <label className="settings-checkbox">
-                                <input type="checkbox" className="checkbox" checked={input.longOnly} onChange={(e) => patchSection(view, si, { longOnly: e.target.checked })} disabled={busy} />
+                                </Select>
+                              </InlineField>
+                              <Checkbox checked={input.longOnly} onChange={(e) => patchSection(view, si, { longOnly: e.target.checked })} disabled={busy}>
                                 long only
-                              </label>
+                              </Checkbox>
                               {multiSection && view.sections.length > 1 && (
-                                <button type="button" className="remove-section" onClick={() => removeSection(view, si)} disabled={busy} aria-label="remove section">✕</button>
+                                <button type="button" className="self-end" onClick={() => removeSection(view, si)} disabled={busy} aria-label="remove section">✕</button>
                               )}
                             </div>
                           </SortableRow>
@@ -289,7 +286,7 @@ export default function ViewsManager() {
                     )}
 
                     {expanded.has(view.documentId) && multiSection && (
-                      <button type="button" onClick={() => addSection(view)} disabled={busy}>add section</button>
+                      <button type="button" className="mt-2" onClick={() => addSection(view)} disabled={busy}>add section</button>
                     )}
                   </div>
                 </div>
@@ -300,9 +297,10 @@ export default function ViewsManager() {
         </SortableGroup>
       </SortableProvider>
 
-      <div className="views-manager-add manager-add">
-        <input
+      <div className="flex flex-wrap items-center gap-2">
+        <Input
           type="text"
+          className="min-w-0 flex-[1_1_8rem]"
           placeholder="new view"
           value={newName}
           onChange={(e) => setNewName(e.target.value)}
@@ -310,11 +308,21 @@ export default function ViewsManager() {
           disabled={busy}
           aria-label="new view name"
         />
-        <select value={newLayout} onChange={(e) => setNewLayout(e.target.value as ViewLayout)} disabled={busy} aria-label="new view layout">
+        <Select fullWidth={false} value={newLayout} onChange={(e) => setNewLayout(e.target.value as ViewLayout)} disabled={busy} aria-label="new view layout">
           {LAYOUT_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-        </select>
+        </Select>
         <button type="button" onClick={handleAdd} disabled={busy || !newName.trim()}>add view</button>
       </div>
     </div>
+  );
+}
+
+/** A section setting: its name in a column beside the control, or above it on a phone. */
+function InlineField({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <label className="grid gap-1 sm:grid-cols-[6.5rem_1fr] sm:items-center sm:gap-2">
+      <span className="text-sm opacity-75">{label}</span>
+      {children}
+    </label>
   );
 }
