@@ -4,11 +4,18 @@
 }
 @plugin "@tailwindcss/forms";
 
-@import "./color.css";
-@import "./type.css";
-@import "./forms.css";
-@import "./rich-text.css";
+/* The hand-written sheets sit in `utilities.legacy`: above daisyUI (whose
+ * components ship as sublayers of `utilities`, declared earlier, so ours still
+ * override theirs as they did unlayered) and below Tailwind's own utility
+ * classes, so a utility on the markup wins. Unlayered, they beat every utility
+ * whatever its specificity. Emptied page by page as the markup moves to
+ * Tailwind; see the UI refactor in !projects. */
+@import "./color.css" layer(utilities.legacy);
+@import "./type.css" layer(utilities.legacy);
+@import "./forms.css" layer(utilities.legacy);
+@import "./rich-text.css" layer(utilities.legacy);
 
+@layer utilities.legacy {
 /* One duration for everything that moves.
  *
  * Long enough to read as a movement rather than a jump, short enough that doing
@@ -37,16 +44,6 @@ body {
   min-width: 100vw;
   max-width: 100vw;
   width: 100vw;
-}
-
-.container {
-  max-width: 100vw;
-  margin: 0 auto;
-  padding: 1rem;
-  overflow: hidden;
-  @media screen and (min-width: 1600px) {
-    max-width: 1600px;
-  }
 }
 
 header {
@@ -181,14 +178,15 @@ hr {
     transform: translateX(-50%) translateY(var(--tt-pos, -0.25rem)) rotate(180deg);
   }
 }
+}
 
-@import "./page-login.css";
-@import "./page-task.css";
-@import "./page-practice.css";
-@import "./practice-session.css";
-@import "./page-review.css";
-@import "./settings.css";
-@import "./managers.css";
-@import "./charts.css";
+@import "./page-login.css" layer(utilities.legacy);
+@import "./page-task.css" layer(utilities.legacy);
+@import "./page-practice.css" layer(utilities.legacy);
+@import "./practice-session.css" layer(utilities.legacy);
+@import "./page-review.css" layer(utilities.legacy);
+@import "./settings.css" layer(utilities.legacy);
+@import "./managers.css" layer(utilities.legacy);
+@import "./charts.css" layer(utilities.legacy);
 
-@import "./print.css";
+@import "./print.css" layer(utilities.legacy);

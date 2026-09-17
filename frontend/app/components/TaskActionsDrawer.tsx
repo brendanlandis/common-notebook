@@ -19,8 +19,8 @@ export default function TaskActionsDrawer() {
         onClick={closeDrawer}
       ></div>
       {showContent && (
-        <div className="actions-drawer bg-base-200 text-base-content min-h-full p-4">
-          <div className="main-menu-header mb-4">
+        <div className="actions-drawer min-h-full p-4">
+          <div className="main-menu-header">
             <button onClick={closeDrawer}>
               <XIcon size={40} weight="regular" />
             </button>

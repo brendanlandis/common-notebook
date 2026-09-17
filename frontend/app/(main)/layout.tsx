@@ -82,7 +82,10 @@ export default async function MainLayout({
                       <HeaderContent />
                     </div>
                   </header>
-                  <main className="container" id="main-container">
+                  <main
+                    className="mx-auto w-full max-w-screen overflow-hidden p-4 min-[1600px]:max-w-[1600px]"
+                    id="main-container"
+                  >
                     <BetaGuard>{children}</BetaGuard>
                   </main>
                   <footer></footer>

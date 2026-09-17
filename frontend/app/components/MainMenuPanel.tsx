@@ -41,7 +41,7 @@ export default function MainMenuPanel() {
         className="drawer-overlay"
       ></label>
       {panel === "menu" ? (
-        <ul className="menu bg-base-200 text-base-content min-h-full w-auto p-4">
+        <ul className="menu min-h-full w-auto p-4">
           <MenuItems onOpenSettings={() => setPanel("settings")} />
         </ul>
       ) : (
