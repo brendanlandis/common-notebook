@@ -1,5 +1,6 @@
 "use client";
 
+import TaskSection, { TaskSectionHeading, TaskList } from "./TaskSection";
 import TaskItem from "./TaskItem";
 import type { Task } from "@/app/types/index";
 
@@ -38,8 +39,8 @@ export default function UpcomingSection({
   }
 
   return (
-    <div className="task-section upcoming-section">
-      <h3>upcoming</h3>
+    <TaskSection className="upcoming-section">
+      <TaskSectionHeading>upcoming</TaskSectionHeading>
       <div className="upcoming-days">
         {upcomingTasksByDay.map((dayGroup) => {
           if (dayGroup.tasks.length === 0) {
@@ -49,7 +50,7 @@ export default function UpcomingSection({
           return (
             <div key={dayGroup.title} className="upcoming-day">
               <h4>{dayGroup.title}</h4>
-              <ul className="tasks-list">
+              <TaskList>
                 {dayGroup.tasks.map((task) => (
                   <TaskItem
                     key={task.documentId}
@@ -63,12 +64,12 @@ export default function UpcomingSection({
                     showProjectName={true}
                   />
                 ))}
-              </ul>
+              </TaskList>
             </div>
           );
         })}
       </div>
-    </div>
+    </TaskSection>
   );
 }
 

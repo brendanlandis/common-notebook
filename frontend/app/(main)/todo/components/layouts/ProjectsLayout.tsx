@@ -30,8 +30,16 @@ export default function ProjectsLayout({
       {groups.map((group, i) => (
         <Fragment key={group.name ?? i}>
           {i > 0 && <hr />}
-          <div className="group-section">
-            {group.name && <h2>{group.name}</h2>}
+          {/* `group-section` stays as a name: a browser spec addresses a group by it. */}
+          <div className={`group-section text-left ${i > 0 ? "mt-40" : ""}`}>
+            {group.name && (
+              /* The heading is a dashed tab, open on the left so it reads as
+                 hanging off the page's edge — closed once the page stops
+                 growing at 1600px. */
+              <h2 className="-ml-4 mt-0 mb-8 inline-block rounded-r-2xl border-y border-r border-dashed border-base-content bg-base-300 py-4 pr-16 pl-2 text-left min-[1601px]:border-l min-[1601px]:pl-4">
+                {group.name}
+              </h2>
+            )}
             <TaskSections
               sections={group.columns}
               incidentals={group.incidentals.length > 0 ? group.incidentals : undefined}

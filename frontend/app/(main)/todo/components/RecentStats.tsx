@@ -1,3 +1,4 @@
+import TaskSection from "./TaskSection";
 import PieChart from '@/app/components/charts/PieChart';
 
 interface StatItem {
@@ -46,8 +47,8 @@ export default function RecentStats({ stats, loading, title = "recently", noWrap
 
   const chartContent = (
     <>
-      <h4>{title}</h4>
-      <div className="pie-chart-container">
+      <h4 className="text-center">{title}</h4>
+      <div className="min-h-[235px]">
         <PieChart data={chartData} />
       </div>
     </>
@@ -58,8 +59,8 @@ export default function RecentStats({ stats, loading, title = "recently", noWrap
   }
 
   return (
-    <div className="task-section recent-stats-section">
+    <TaskSection className="mx-auto w-full max-w-[600px] min-[900px]:max-w-[800px]">
       {chartContent}
-    </div>
+    </TaskSection>
   );
 }

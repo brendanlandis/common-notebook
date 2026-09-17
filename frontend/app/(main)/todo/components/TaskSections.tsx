@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import TaskItem from "./TaskItem";
+import TaskSection, { TaskGrid, TaskSectionHeading, TaskList } from "./TaskSection";
 import type { Project, Task } from "@/app/types/index";
 import { PencilIcon } from "@phosphor-icons/react";
 
@@ -46,7 +47,7 @@ export default function TaskSections({
   }
 
   return (
-    <div className="tasks-container">
+    <TaskGrid>
       {upcomingSection}
       {recentStatsSection}
       {sections.map((section) => {
@@ -66,9 +67,9 @@ export default function TaskSections({
         }
 
         return (
-          <div key={key} className="task-section">
+          <TaskSection key={key}>
             {title !== "all tasks" && (
-              <h3>
+              <TaskSectionHeading>
                 {"documentId" in section ? (
                   <Link href={`/todo/project/${section.slug || section.documentId}`}>
                     {title}
@@ -84,9 +85,9 @@ export default function TaskSections({
                     <PencilIcon size={18} />
                   </button>
                 )}
-              </h3>
+              </TaskSectionHeading>
             )}
-            <ul className="tasks-list">
+            <TaskList>
               {tasks.map((task) => (
                 <TaskItem
                   key={task.documentId}
@@ -100,15 +101,15 @@ export default function TaskSections({
                   showProjectName={showProjectName}
                 />
               ))}
-            </ul>
-          </div>
+            </TaskList>
+          </TaskSection>
         );
       })}
 
       {incidentals && incidentals.length > 0 && (
-        <div className="task-section">
-          <h3>incidentals</h3>
-          <ul className="tasks-list">
+        <TaskSection>
+          <TaskSectionHeading>incidentals</TaskSectionHeading>
+          <TaskList>
             {incidentals.map((task) => (
               <TaskItem
                 key={task.documentId}
@@ -122,10 +123,10 @@ export default function TaskSections({
                 showProjectName={showProjectName}
               />
             ))}
-          </ul>
-        </div>
+          </TaskList>
+        </TaskSection>
       )}
-    </div>
+    </TaskGrid>
   );
 }
 

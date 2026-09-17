@@ -373,7 +373,10 @@ describe("TaskItemRecurringReview", () => {
     expect(screen.getByText(/\$29\.99/)).toBeInTheDocument();
   });
 
-  it("should apply task-item-recurring-review class", () => {
+  // This row's actions do not wait for a hover, unlike an ordinary task's: the
+  // whole point of the review is that every row is being acted on. The class
+  // that used to say so is gone, so assert the behaviour instead.
+  it("shows its actions without a hover", () => {
     const { container } = render(
       <TaskItemRecurringReview
         task={baseTask}
@@ -382,8 +385,8 @@ describe("TaskItemRecurringReview", () => {
       />
     );
 
-    const listItem = container.querySelector("li");
-    expect(listItem).toHaveClass("task-item-recurring-review");
+    const actions = container.querySelector("li > div > span");
+    expect(actions?.className).not.toContain("opacity-0");
   });
 
   it("should not have clickable label", () => {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import TaskSection, { TaskGrid, TaskList } from "../TaskSection";
 import TaskItem from "../TaskItem";
 import type { LayoutRendererProps } from "./types";
 
@@ -28,9 +29,11 @@ export default function RouletteLayout({
   }
 
   return (
-    <div className="tasks-container">
-      <div className="task-section">
-        <ul className="tasks-list">
+    <TaskGrid>
+      <TaskSection>
+        {/* One task, centered, with its actions always out: there is nothing
+            else on the page to hover over. */}
+        <TaskList className="block text-center">
           <TaskItem
             key={randomTask.documentId}
             task={randomTask}
@@ -41,9 +44,10 @@ export default function RouletteLayout({
             onRemoveWorkSession={onRemoveWorkSession}
             onSkipRecurring={onSkipRecurring}
             showProjectName={true}
+            inline
           />
-        </ul>
-      </div>
-    </div>
+        </TaskList>
+      </TaskSection>
+    </TaskGrid>
   );
 }

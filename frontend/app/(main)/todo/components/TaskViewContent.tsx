@@ -91,7 +91,7 @@ export default function TaskViewContent({ slug }: { slug: string }) {
 
   if (loading) {
     return (
-      <div id="container-task" className={layoutClass} suppressHydrationWarning>
+      <div id="container-task" className={`text-center ${layoutClass}`} suppressHydrationWarning>
         <p>loading...</p>
       </div>
     );
@@ -99,7 +99,7 @@ export default function TaskViewContent({ slug }: { slug: string }) {
 
   if (error) {
     return (
-      <div id="container-task" className={layoutClass} suppressHydrationWarning>
+      <div id="container-task" className={`text-center ${layoutClass}`} suppressHydrationWarning>
         <p>error: {error}</p>
       </div>
     );
@@ -121,7 +121,7 @@ export default function TaskViewContent({ slug }: { slug: string }) {
   return (
     <>
       <FaviconManager type="broom" />
-      <div id="container-task" className={layoutClass} suppressHydrationWarning>
+      <div id="container-task" className={`text-center ${layoutClass}`} suppressHydrationWarning>
         {!hasAnyTasks && !hasRecurringTasks && !hasCompletedTasks ? (
           <p>nothin' to do, nowhere to be</p>
         ) : (

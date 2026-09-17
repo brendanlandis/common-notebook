@@ -65,7 +65,7 @@ export default function WorldPage() {
 
   if (loading || worldsLoading) {
     return (
-      <div id="container-task" className="layout-world-view" suppressHydrationWarning>
+      <div id="container-task" className="text-center layout-world-view" suppressHydrationWarning>
         <p>loading...</p>
       </div>
     );
@@ -73,7 +73,7 @@ export default function WorldPage() {
 
   if (error) {
     return (
-      <div id="container-task" className="layout-world-view" suppressHydrationWarning>
+      <div id="container-task" className="text-center layout-world-view" suppressHydrationWarning>
         <p>error: {error}</p>
       </div>
     );
@@ -86,7 +86,7 @@ export default function WorldPage() {
   return (
     <>
       <FaviconManager type="broom" />
-      <div id="container-task" className="layout-world-view" suppressHydrationWarning>
+      <div id="container-task" className="text-center layout-world-view" suppressHydrationWarning>
         <h1 className="world-title">{world?.title ?? slug}</h1>
         {hasTasks ? (
           <LayoutRenderer

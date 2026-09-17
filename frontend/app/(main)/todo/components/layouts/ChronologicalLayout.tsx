@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import TaskSection, { TaskGrid, TaskList } from "../TaskSection";
 import TaskItem from "../TaskItem";
 import type { LayoutRendererProps } from "./types";
 import type { Task } from "@/app/types/index";
@@ -44,13 +45,13 @@ export default function ChronologicalLayout({
   if (tasks.length === 0) return null;
 
   return (
-    <div className="tasks-container">
+    <TaskGrid>
       {recentStatsSection}
-      <div className="task-section">
+      <TaskSection>
         {groupedByMonth.map(([key, { date, tasks: monthTasks }]) => (
           <div key={key}>
             <h4>{formatInTimezone(date, "MMMM yyyy", timeZoneSettings)}</h4>
-            <ul className="tasks-list">
+            <TaskList>
               {monthTasks.map((task) => (
                 <TaskItem
                   key={task.documentId}
@@ -64,10 +65,10 @@ export default function ChronologicalLayout({
                   showProjectName={true}
                 />
               ))}
-            </ul>
+            </TaskList>
           </div>
         ))}
-      </div>
-    </div>
+      </TaskSection>
+    </TaskGrid>
   );
 }

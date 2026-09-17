@@ -1,5 +1,6 @@
 "use client";
 
+import TaskSection, { TaskGrid, TaskSectionHeading, TaskList } from "../TaskSection";
 import TaskItemRecurringReview from "../TaskItemRecurringReview";
 import type { LayoutRendererProps } from "./types";
 import type { RecurrenceType, Project } from "@/app/types/index";
@@ -75,7 +76,7 @@ export default function RecurringReviewLayout({
   ];
 
   return (
-    <div className="tasks-container">
+    <TaskGrid>
       {recurrenceTypeOrder.map((recurrenceType) => {
         const sections = recurringReviewSections?.get(recurrenceType);
         const incidentals = recurringReviewIncidentals?.get(recurrenceType);
@@ -87,8 +88,8 @@ export default function RecurringReviewLayout({
         const label = getRecurrenceTypeLabel(recurrenceType);
 
         return (
-          <div key={recurrenceType} className="task-section">
-            <h3>{label}</h3>
+          <TaskSection key={recurrenceType}>
+            <TaskSectionHeading>{label}</TaskSectionHeading>
             
             {/* Render projects and categories */}
             {sections && sections.map((section, index) => {
@@ -99,7 +100,7 @@ export default function RecurringReviewLayout({
               return (
                 <div key={isProject ? (section as Project).documentId : index}>
                   <h4>{sectionTitle}</h4>
-                  <ul className="tasks-list">
+                  <TaskList>
                     {tasks.map((task) => (
                       <TaskItemRecurringReview
                         key={task.documentId}
@@ -108,7 +109,7 @@ export default function RecurringReviewLayout({
                         onDelete={onDelete}
                       />
                     ))}
-                  </ul>
+                  </TaskList>
                 </div>
               );
             })}
@@ -117,7 +118,7 @@ export default function RecurringReviewLayout({
             {incidentals && incidentals.length > 0 && (
               <div>
                 <h4>incidentals</h4>
-                <ul className="tasks-list">
+                <TaskList>
                   {incidentals.map((task) => (
                     <TaskItemRecurringReview
                       key={task.documentId}
@@ -126,12 +127,12 @@ export default function RecurringReviewLayout({
                       onDelete={onDelete}
                     />
                   ))}
-                </ul>
+                </TaskList>
               </div>
             )}
-          </div>
+          </TaskSection>
         );
       })}
-    </div>
+    </TaskGrid>
   );
 }

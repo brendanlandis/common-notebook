@@ -215,7 +215,7 @@ describe('TaskItem - Work Session Features', () => {
 
       const listItem = container.querySelector('li');
       expect(listItem).toBeDefined();
-      expect(listItem!.className).toBe('worked-on');
+      expect(listItem!.className).toContain('worked-on');
     });
 
     it('should apply "completed" class for completed tasks', () => {
@@ -230,7 +230,7 @@ describe('TaskItem - Work Session Features', () => {
 
       const listItem = container.querySelector('li');
       expect(listItem).toBeDefined();
-      expect(listItem!.className).toBe('completed');
+      expect(listItem!.className).toContain('completed');
     });
 
     it('should not apply any class for incomplete non-virtual tasks', () => {
@@ -244,7 +244,8 @@ describe('TaskItem - Work Session Features', () => {
 
       const listItem = container.querySelector('li');
       expect(listItem).toBeDefined();
-      expect(listItem!.className).toBe('');
+      expect(listItem!.className).not.toContain('completed');
+      expect(listItem!.className).not.toContain('worked-on');
     });
 
     it('should prioritize "worked-on" over "completed" for virtual entries', () => {
@@ -259,7 +260,7 @@ describe('TaskItem - Work Session Features', () => {
       const { container } = render(<TaskItem {...mockHandlers} task={task} />);
 
       const listItem = container.querySelector('li');
-      expect(listItem!.className).toBe('worked-on');
+      expect(listItem!.className).toContain('worked-on');
     });
   });
 
@@ -332,7 +333,7 @@ describe('TaskItem - Work Session Features', () => {
 
       // Should have completed class
       const listItem = container.querySelector('li');
-      expect(listItem!.className).toBe('completed');
+      expect(listItem!.className).toContain('completed');
 
       // Should still show add cookie icon (for adding more work sessions)
       const cookieButton = screen.getByRole('button', { name: /mark as worked on today/i });
@@ -356,7 +357,8 @@ describe('TaskItem - Work Session Features', () => {
 
       // Should not have worked-on class
       const listItem = container.querySelector('li');
-      expect(listItem!.className).toBe('');
+      expect(listItem!.className).not.toContain('completed');
+      expect(listItem!.className).not.toContain('worked-on');
     });
 
     it('should correctly identify virtual entries with date suffix', () => {
@@ -372,7 +374,7 @@ describe('TaskItem - Work Session Features', () => {
 
       // Should have worked-on class
       const listItem = container.querySelector('li');
-      expect(listItem!.className).toBe('worked-on');
+      expect(listItem!.className).toContain('worked-on');
 
       // Should show remove cookie icon
       const removeButton = screen.getByRole('button', { name: /remove work session/i });

@@ -65,16 +65,6 @@ button.btn {
 
 /* various boxes */
 
-.group-section h2 {
-  background: var(--background-light);
-  border-color: var(--primary-color-light);
-}
-
-.task-description {
-  border-color: var(--primary-color-lighter);
-  background: var(--background-lighter);
-}
-
 /* tooltips */
 
 .tooltip > .tooltip-content,

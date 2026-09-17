@@ -28,10 +28,13 @@ interface TaskItemProps {
   onRemoveWorkSession?: (originalDocumentId: string, date: string) => void;
   onSkipRecurring: (documentId: string) => void;
   showProjectName?: boolean;
+  /** Shrink-wrapped and with its actions always out, for the roulette's one task. */
+  inline?: boolean;
 }
 
 export default function TaskItem({
   task,
+  inline = false,
   onComplete,
   onEdit,
   onDelete,
@@ -134,17 +137,18 @@ export default function TaskItem({
 
   return (
     <li
-      className={
-        isWorkedOnEntry
-          ? "worked-on"
+      // `completed` and `worked-on` stay as names: they say what the row is,
+      // and both the unit tests and a browser spec read them.
+      className={`${
+        isWorkedOnEntry || (task as any).workedOnPhase === 1
+          ? "worked-on opacity-30 line-through [&_.cookie-icon]:hidden"
           : isChecked
-          ? "completed"
-          : (task as any).workedOnPhase === 1
-          ? "worked-on"
-          : ""
-      }
+            ? "completed opacity-30"
+            : ""
+      } ${inline ? "inline-block" : ""} [.layout-done_&]:opacity-40`}
     >
-      <div className="task-item-main">
+      {/* group/item: the row's actions appear on hover of the whole row. */}
+      <div className="group/item flex items-center gap-2 leading-tight touch:gap-4">
         {/* Practice material gets a metronome where a task gets a checkbox.
             A checkbox means done, and practice is measured in minutes spent
             rather than in being finished — a piece you played today is not
@@ -155,7 +159,7 @@ export default function TaskItem({
         {isMaterial ? (
           <button
             type="button"
-            className="practice-icon"
+            className="inline-flex cursor-pointer items-center"
             onClick={() => openFor(task)}
             title="practice this"
             aria-label={`practice ${task.title}`}
@@ -176,7 +180,7 @@ export default function TaskItem({
         )}
         {task.long && !isWorkedOnEntry && (
           <button
-            className="cookie-icon"
+            className="cookie-icon cursor-pointer [.layout-done_&]:hidden"
             onClick={() => onWorkSession(task.documentId)}
             title="mark as worked on today"
             aria-label="mark as worked on today"
@@ -189,7 +193,7 @@ export default function TaskItem({
           originalDocumentId &&
           workSessionDate && (
             <button
-              className="cookie-icon"
+              className="cookie-icon cursor-pointer [.layout-done_&]:hidden"
               onClick={() =>
                 onRemoveWorkSession(originalDocumentId, workSessionDate)
               }
@@ -201,7 +205,7 @@ export default function TaskItem({
           )}
         {task.isRecurring && !isWorkedOnEntry && (
           <button
-            className="skip-recurring-icon"
+            className="cursor-pointer [.layout-done_&]:hidden"
             onClick={() => onSkipRecurring(task.documentId)}
             title="skip this one"
             aria-label="skip this one"
@@ -216,7 +220,7 @@ export default function TaskItem({
         <label
           htmlFor={isMaterial ? undefined : `task-${task.documentId}`}
           onClick={isMaterial ? () => openFor(task) : undefined}
-          className={isMaterial ? "is-material" : undefined}
+          className="cursor-pointer"
         >
           {isWorkedOnEntry && (
             <span>worked on </span>
@@ -226,14 +230,10 @@ export default function TaskItem({
           )}
           {task.title}
           {!task.isRecurring && task.dueDate && (
-            <span className="task-due-date">
-              (due {formatDueDate(task.dueDate)})
-            </span>
+            <span> (due {formatDueDate(task.dueDate)})</span>
           )}
           {task.isRecurring && task.dueDate && task.displayDate && (
-            <span className="task-due-date">
-              (due {formatDueDate(task.dueDate)})
-            </span>
+            <span> (due {formatDueDate(task.dueDate)})</span>
           )}
           {(() => {
             const projectType = getTaskProjectType(task);
@@ -241,9 +241,13 @@ export default function TaskItem({
               projectType === "wishlist" ||
               projectType === "errands") &&
               task.price !== null;
-          })() && <span className="task-due-date">(${task.price})</span>}
+          })() && <span> (${task.price})</span>}
         </label>
-        <span className="task-actions">
+        <span
+          className={`flex flex-1 justify-start gap-1 justify-self-start group-hover/item:opacity-100 touch:gap-4 touch:opacity-100 ${
+            inline ? "opacity-100" : "opacity-0"
+          }`}
+        >
           {task.trackingUrl && (
             <a
               href={task.trackingUrl}
@@ -280,7 +284,7 @@ export default function TaskItem({
       </div>
 
       {hasDescription && (
-        <div className="task-description">
+        <div className="mt-2 mr-0 mb-2 ml-8 border border-dashed border-base-content bg-base-200 px-[0.7rem] py-2 [.layout-done_&]:hidden">
           <RichTextDisplay content={task.description} />
         </div>
       )}

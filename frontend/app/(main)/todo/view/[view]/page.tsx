@@ -32,7 +32,7 @@ export default function ViewPage() {
 
   if (loading || shouldRedirect) {
     return (
-      <div id="container-task" suppressHydrationWarning>
+      <div id="container-task" className="text-center" suppressHydrationWarning>
         <p>loading...</p>
       </div>
     );

@@ -7,6 +7,10 @@
    doesn't cover the difference between the two themes. */
 @custom-variant dim (&:where([data-theme="dim"], [data-theme="dim"] *));
 
+/* touch: a device that cannot hover, where anything revealed on hover has to be
+   there all along. */
+@custom-variant touch (@media (hover: none) and (pointer: coarse));
+
 /* The hand-written sheets sit in `utilities.legacy`: above daisyUI (whose
  * components ship as sublayers of `utilities`, declared earlier, so ours still
  * override theirs as they did unlayered) and below Tailwind's own utility
@@ -40,7 +44,7 @@ hr {
 
 }
 
-@import "./page-task.css" layer(utilities.legacy);
+@import "./task-grid.css" layer(utilities.legacy);
 @import "./page-review.css" layer(utilities.legacy);
 
 @import "./print.css" layer(utilities.legacy);

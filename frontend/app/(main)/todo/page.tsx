@@ -13,7 +13,7 @@ export default function TaskPage() {
 
   if (loading) {
     return (
-      <div id="container-task" suppressHydrationWarning>
+      <div id="container-task" className="text-center" suppressHydrationWarning>
         <p>loading...</p>
       </div>
     );

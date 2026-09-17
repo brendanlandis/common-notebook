@@ -36,21 +36,20 @@ export default function TaskItemRecurringReview({
   const recurrencePrefix = getRecurrencePrefix(task);
 
   return (
-    <li className="task-item-recurring-review">
-      <div className="task-item-main">
+    <li>
+      <div className="flex items-center gap-2 leading-tight touch:gap-4">
         <div className="task-label">
-          {recurrencePrefix && <span className="recurrence-prefix">{recurrencePrefix}: </span>}
+          {recurrencePrefix && <span className="font-semibold">{recurrencePrefix}: </span>}
           {task.title}
           {(() => {
             const projectType = getTaskProjectType(task);
             return (projectType === "buy stuff" || projectType === "wishlist" || projectType === "errands") && task.price !== null;
           })() && (
-            <span className="task-due-date">
-              (${task.price})
-            </span>
+            <span> (${task.price})</span>
           )}
         </div>
-        <span className="task-actions">
+        {/* Always out: this view is a review, so every row is being acted on. */}
+        <span className="flex flex-1 justify-start gap-1 justify-self-start touch:gap-4">
           {task.trackingUrl && (
             <a
               href={task.trackingUrl}
@@ -83,7 +82,7 @@ export default function TaskItemRecurringReview({
       </div>
 
       {hasDescription && (
-        <div className="task-description">
+        <div className="mt-2 mr-0 mb-2 ml-8 border border-dashed border-base-content bg-base-200 px-[0.7rem] py-2">
           <RichTextDisplay content={task.description} />
         </div>
       )}

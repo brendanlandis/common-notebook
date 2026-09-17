@@ -66,7 +66,7 @@ export default function ProjectPage() {
 
   if (loading) {
     return (
-      <div id="container-task" className="layout-project-view" suppressHydrationWarning>
+      <div id="container-task" className="text-center layout-project-view" suppressHydrationWarning>
         <p>loading...</p>
       </div>
     );
@@ -74,7 +74,7 @@ export default function ProjectPage() {
 
   if (error) {
     return (
-      <div id="container-task" className="layout-project-view" suppressHydrationWarning>
+      <div id="container-task" className="text-center layout-project-view" suppressHydrationWarning>
         <p>error: {error}</p>
       </div>
     );
@@ -82,7 +82,7 @@ export default function ProjectPage() {
 
   if (!project) {
     return (
-      <div id="container-task" className="layout-project-view" suppressHydrationWarning>
+      <div id="container-task" className="text-center layout-project-view" suppressHydrationWarning>
         <p>
           project not found. <Link href="/todo">back to to do</Link>
         </p>
@@ -93,7 +93,7 @@ export default function ProjectPage() {
   return (
     <>
       <FaviconManager type="broom" />
-      <div id="container-task" className="layout-project-view" suppressHydrationWarning>
+      <div id="container-task" className="text-center layout-project-view" suppressHydrationWarning>
         <div className="project-view-header">
           <h1>
             {project.title}
