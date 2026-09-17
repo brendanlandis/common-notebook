@@ -1,4 +1,5 @@
 import type { ComponentProps, ReactNode } from "react";
+import { Input } from "@/app/components/FormControls";
 
 /**
  * The logged-out pages (login, register, forgot and reset password) share one
@@ -37,11 +38,12 @@ export function AuthField({
       <label htmlFor={id} className="sr-only">
         {label}
       </label>
-      <input
+      <Input
         id={id}
         placeholder={label}
         aria-invalid={error ? true : undefined}
-        className={error ? "input border-error" : "input"}
+        fullWidth={false}
+        className="aria-invalid:border-error"
         {...input}
       />
       {error && (

@@ -2,7 +2,6 @@
 @plugin "daisyui" {
   themes: retro --default, dim --prefersdark;
 }
-@plugin "@tailwindcss/forms";
 
 /* dim: styles for the dark theme only, where a daisyUI color token alone
    doesn't cover the difference between the two themes. */

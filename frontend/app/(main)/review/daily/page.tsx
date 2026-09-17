@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { CheckboxInput } from "@/app/components/FormControls";
 import { flushSync } from "react-dom";
 import { ArrowDownIcon, MetronomeIcon } from "@phosphor-icons/react";
 import { useDateTimeSettings } from "@/app/contexts/DateTimeSettingsContext";
@@ -358,9 +359,7 @@ export default function DailyReviewPage() {
                     className={task.completed ? "is-done" : undefined}
                     style={{ viewTransitionName: `pill-${task.documentId}` }}
                   >
-                    <input
-                      type="checkbox"
-                      className="checkbox"
+                    <CheckboxInput
                       checked={Boolean(task.completed)}
                       onChange={() =>
                         toggleComplete({

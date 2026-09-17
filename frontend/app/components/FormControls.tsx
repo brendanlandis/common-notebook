@@ -67,6 +67,38 @@ export function Select({
   );
 }
 
+/*
+ * Checkboxes and switches move at the site's speed rather than daisyUI's, which
+ * is about half of it; see --transition-time.
+ */
+const MOTION =
+  "[transition-duration:var(--transition-time)] before:[transition-duration:var(--transition-time)]";
+
+/** The box on its own, for rows that build their own label. */
+export function CheckboxInput({ className = "", ...props }: Omit<ComponentProps<"input">, "type">) {
+  return (
+    <input
+      type="checkbox"
+      className={`checkbox rounded-none border-base-content ${MOTION} ${className}`}
+      {...props}
+    />
+  );
+}
+
+/**
+ * A switch: a knob that slides along a track, so both are round whatever the
+ * app's square fields do.
+ */
+export function Toggle({ className = "", ...props }: Omit<ComponentProps<"input">, "type">) {
+  return (
+    <input
+      type="checkbox"
+      className={`toggle rounded-full before:rounded-full ${MOTION} ${className}`}
+      {...props}
+    />
+  );
+}
+
 /** A checkbox with its label beside it; clicking the words ticks it. */
 export function Checkbox({
   children,
@@ -75,11 +107,7 @@ export function Checkbox({
 }: Omit<ComponentProps<"input">, "type"> & { children?: ReactNode }) {
   return (
     <label className={`flex cursor-pointer items-center gap-2 ${className}`}>
-      <input
-        type="checkbox"
-        className="checkbox rounded-none border-base-content"
-        {...props}
-      />
+      <CheckboxInput {...props} />
       {children}
     </label>
   );

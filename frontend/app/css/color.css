@@ -40,9 +40,6 @@ html {
 
 /* forms */
 
-textarea,
-select,
-input,
 form .rich-text-content,
 .rich-text-toolbar button.is-active {
   border-color: var(--primary-color);
@@ -51,10 +48,6 @@ form .rich-text-content,
 
 .checkbox::before {
   background: var(--primary-color);
-}
-
-html.dark select:not(.select) {
-  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='oklch(90%25 0.027 264.364)' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
 }
 
 button.btn {

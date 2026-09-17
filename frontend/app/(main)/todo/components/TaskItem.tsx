@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { CheckboxInput } from "@/app/components/FormControls";
 import type { Task } from "@/app/types/index";
 import { getTaskProjectType } from "@/app/lib/taskProjectType";
 import {
@@ -162,9 +163,7 @@ export default function TaskItem({
             <MetronomeIcon size={25} />
           </button>
         ) : (
-          <input
-            type="checkbox"
-            className="checkbox"
+          <CheckboxInput
             id={`task-${task.documentId}`}
             checked={isChecked}
             onChange={(e) => {

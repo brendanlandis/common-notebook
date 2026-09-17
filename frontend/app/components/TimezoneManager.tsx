@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { Select } from "@/app/components/FormControls";
 import { MapPinIcon } from "@phosphor-icons/react";
 import { saveSystemSetting } from "@/app/lib/systemSettingsClient";
 import { useDateTimeSettings } from "@/app/contexts/DateTimeSettingsContext";
@@ -229,7 +230,7 @@ export default function TimezoneManager() {
           <MapPinIcon size={24} weight={isDetecting || isCompleting ? "fill" : "regular"} />
         </span>
       </button>
-      <select
+      <Select
         className="min-w-0 flex-1"
         value={currentTimezone}
         onChange={(e) => handleTimezoneChange(e.target.value)}
@@ -240,7 +241,7 @@ export default function TimezoneManager() {
             {tz.label}
           </option>
         ))}
-      </select>
+      </Select>
     </div>
   );
 }

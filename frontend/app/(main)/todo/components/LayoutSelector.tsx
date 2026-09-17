@@ -1,4 +1,5 @@
 import { useRouter } from "next/navigation";
+import { Select } from "@/app/components/FormControls";
 import { useStuffProjects } from "@/app/contexts/StuffProjectsContext";
 import { useWorlds } from "@/app/hooks/useWorlds";
 import { useViews } from "@/app/hooks/useViews";
@@ -48,8 +49,13 @@ export default function LayoutSelector({ value }: LayoutSelectorProps) {
     }
   };
 
+  // The select is sized to its widest option rather than its current one: a
+  // project route has no matching option and selects the blank row, which would
+  // otherwise shrink the control to an empty box.
   return (
-    <select
+    <Select
+      fullWidth={false}
+      className="min-w-48"
       value={value}
       onChange={(e) => handleChange(e.target.value)}
       id="order-selector"
@@ -75,6 +81,6 @@ export default function LayoutSelector({ value }: LayoutSelectorProps) {
           </option>
         ))}
       </optgroup>
-    </select>
+    </Select>
   );
 }

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiFetch, apiSend } from "@/app/lib/apiFetch";
 import type { ClientCalendar } from "@/app/lib/ics/clientCalendar";
-import { Field } from "@/app/components/FormControls";
+import { Field, Input } from "@/app/components/FormControls";
 
 /**
  * Subscribing to calendars, by pasting a secret ICS URL each.
@@ -93,19 +93,17 @@ export default function CalendarsManager() {
       )}
 
       <Field label="name" htmlFor="calendarName">
-        <input
+        <Input
           id="calendarName"
           type="text"
-          className="w-full"
           value={name}
           onChange={(e) => setName(e.target.value)}
         />
       </Field>
       <Field label="secret ics url" htmlFor="calendarUrl">
-        <input
+        <Input
           id="calendarUrl"
           type="url"
-          className="w-full"
           value={icsUrl}
           placeholder="https://calendar.google.com/calendar/ical/..."
           onChange={(e) => setIcsUrl(e.target.value)}

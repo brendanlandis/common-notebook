@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { CheckboxInput, Toggle } from "@/app/components/FormControls";
 import { flushSync } from "react-dom";
 import { useTasks } from "@/app/(main)/todo/hooks/useTasks";
 import { useDateTimeSettings } from "@/app/contexts/DateTimeSettingsContext";
@@ -367,10 +368,8 @@ export default function PeriodicReviewPage() {
           <span className={mode === "remainder" ? "is-current" : undefined}>
             this {noun}
           </span>
-          <input
-            type="checkbox"
+          <Toggle
             role="switch"
-            className="toggle"
             name="review-mode"
             checked={mode === "upcoming"}
             onChange={(event) => setMode(event.target.checked ? "upcoming" : "remainder")}
@@ -408,9 +407,7 @@ export default function PeriodicReviewPage() {
                 the row so it doesn't move as the keys beside it come and go. */}
             {ignoredCount > 0 && (
               <label className="review-legend-toggle">
-                <input
-                  type="checkbox"
-                  className="checkbox"
+                <CheckboxInput
                   checked={showIgnored}
                   onChange={(event) => revealIgnored(event.target.checked)}
                 />

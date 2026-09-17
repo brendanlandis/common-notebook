@@ -15,7 +15,7 @@ import { useLocation } from "@/app/hooks/useLocation";
 import RecurrencePicker from "@/app/components/RecurrencePicker";
 import { cadenceIsUsable } from "@/app/lib/reviewCadence";
 import CalendarsManager from "@/app/components/CalendarsManager";
-import { Field } from "@/app/components/FormControls";
+import { CheckboxInput, Field, Input, Select } from "@/app/components/FormControls";
 
 export default function SettingsPanel() {
   const [autoDeclutter, setAutoDeclutter] = useState<boolean>(true); // Default on
@@ -120,8 +120,7 @@ export default function SettingsPanel() {
         title="task completion"
         description="How long do you want tasks to stay visible after you check them off?"
       >
-        <select
-          className="w-full"
+        <Select
           value={visibilityMinutes}
           onChange={handleVisibilityChange}
           disabled={isLoading || isSaving}
@@ -131,7 +130,7 @@ export default function SettingsPanel() {
           <option value="15">15 mins</option>
           <option value="60">an hour</option>
           <option value="1440">a day</option>
-        </select>
+        </Select>
       </SettingsSection>
 
       <SettingsSection
@@ -142,9 +141,8 @@ export default function SettingsPanel() {
             select containing option value="3", on the reasoning that only the
             hour list runs 0..23 — which quietly stopped being true the moment
             another select with numeric options joined the drawer. */}
-        <select
+        <Select
           id="dayBoundaryHour"
-          className="w-full"
           value={dayBoundaryHour}
           onChange={handleDayBoundaryChange}
           disabled={isLoading || isSaving}
@@ -154,14 +152,13 @@ export default function SettingsPanel() {
               {formatHour(i)}
             </option>
           ))}
-        </select>
+        </Select>
       </SettingsSection>
 
       <SettingsSection title="auto-declutter">
         <label className="flex cursor-pointer items-start gap-3">
-          <input
-            type="checkbox"
-            className="checkbox mt-0.5 shrink-0 border-base-content"
+          <CheckboxInput
+            className="mt-0.5 shrink-0"
             checked={autoDeclutter}
             onChange={handleAutoDeclutterChange}
             disabled={isLoading || isSaving}
@@ -188,10 +185,9 @@ export default function SettingsPanel() {
 
               {cadence.recurrenceType === "biweekly" && (
                 <Field label="starting on" htmlFor="reviewAnchorDate">
-                  <input
+                  <Input
                     id="reviewAnchorDate"
                     type="date"
-                    className="w-full"
                     value={cadence.anchorDate ?? ""}
                     disabled={isSavingCadence}
                     onChange={(e) =>
@@ -226,10 +222,9 @@ export default function SettingsPanel() {
             >
               <div className="grid grid-cols-2 gap-4">
                 <Field label="latitude" htmlFor="latitude">
-                  <input
+                  <Input
                     id="latitude"
                     type="number"
-                    className="w-full"
                     step="0.01"
                     min={-90}
                     max={90}
@@ -243,10 +238,9 @@ export default function SettingsPanel() {
                   />
                 </Field>
                 <Field label="longitude" htmlFor="longitude">
-                  <input
+                  <Input
                     id="longitude"
                     type="number"
-                    className="w-full"
                     step="0.01"
                     min={-180}
                     max={180}
