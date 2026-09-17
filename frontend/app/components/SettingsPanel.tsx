@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, type ReactNode } from "react";
 import TimezoneManager from "@/app/components/TimezoneManager";
 import { saveVisibilityMinutesToStrapi } from "@/app/lib/completedTaskVisibilityConfig";
 import {
@@ -15,6 +15,7 @@ import { useLocation } from "@/app/hooks/useLocation";
 import RecurrencePicker from "@/app/components/RecurrencePicker";
 import { cadenceIsUsable } from "@/app/lib/reviewCadence";
 import CalendarsManager from "@/app/components/CalendarsManager";
+import Field from "@/app/components/Field";
 
 export default function SettingsPanel() {
   const [autoDeclutter, setAutoDeclutter] = useState<boolean>(true); // Default on
@@ -110,16 +111,17 @@ export default function SettingsPanel() {
   };
 
   return (
-    <div>
-      <section>
-        <h2>timezone</h2>
+    <div className="pb-8">
+      <SettingsSection title="timezone">
         <TimezoneManager />
+      </SettingsSection>
 
-        <h2>task completion</h2>
-        <p>
-          How long do you want tasks to stay visible after you check them off?
-        </p>
+      <SettingsSection
+        title="task completion"
+        description="How long do you want tasks to stay visible after you check them off?"
+      >
         <select
+          className="w-full"
           value={visibilityMinutes}
           onChange={handleVisibilityChange}
           disabled={isLoading || isSaving}
@@ -130,15 +132,19 @@ export default function SettingsPanel() {
           <option value="60">an hour</option>
           <option value="1440">a day</option>
         </select>
+      </SettingsSection>
 
-        <h2>day boundary</h2>
-        <p>What time does your day start and end?</p>
+      <SettingsSection
+        title="day boundary"
+        description="What time does your day start and end?"
+      >
         {/* Addressable by id. The e2e spec used to find this by filtering for a
             select containing option value="3", on the reasoning that only the
             hour list runs 0..23 — which quietly stopped being true the moment
             another select with numeric options joined the drawer. */}
         <select
           id="dayBoundaryHour"
+          className="w-full"
           value={dayBoundaryHour}
           onChange={handleDayBoundaryChange}
           disabled={isLoading || isSaving}
@@ -149,117 +155,143 @@ export default function SettingsPanel() {
             </option>
           ))}
         </select>
+      </SettingsSection>
 
-        <h2>Auto-Declutter</h2>
-        <p>
-          Should the workspace auto-refresh (remove &quot;top of mind&quot;
-          flags, &quot;soon&quot; flags) every new moon?
-        </p>
-        <label className="settings-checkbox">
+      <SettingsSection title="auto-declutter">
+        <label className="flex cursor-pointer items-start gap-3">
           <input
             type="checkbox"
-            className="checkbox border-base-content"
+            className="checkbox mt-0.5 shrink-0 border-base-content"
             checked={autoDeclutter}
             onChange={handleAutoDeclutterChange}
             disabled={isLoading || isSaving}
           />
+          <span>
+            Every new moon, clear the &quot;top of mind&quot; and &quot;soon&quot;
+            flags.
+          </span>
         </label>
+      </SettingsSection>
 
-        {betaAccess && cadence && (
-          <>
-            <h2>review</h2>
-            <p>How often do you want to sit down and plan?</p>
-            <RecurrencePicker
-              value={cadence}
-              onChange={(next) => saveCadence({ ...cadence, ...next })}
-            />
+      {betaAccess && cadence && (
+        <>
+          <SettingsSection
+            title="review"
+            description="How often do you want to sit down and plan?"
+          >
+            {/* RecurrencePicker is shared with the task form, whose sheet lays
+                out its labels; here they sit above their selects. Goes when
+                the form controls get their shared components. */}
+            <div className="flex flex-col gap-3 [&_label]:mb-1 [&_label]:block [&_label]:text-sm [&_select]:w-full">
+              <RecurrencePicker
+                value={cadence}
+                onChange={(next) => saveCadence({ ...cadence, ...next })}
+              />
 
-            {cadence.recurrenceType === "biweekly" && (
-              <div className="task-form-element labeled">
-                <label htmlFor="reviewAnchorDate">starting on</label>
-                <input
-                  id="reviewAnchorDate"
-                  type="date"
-                  value={cadence.anchorDate ?? ""}
-                  disabled={isSavingCadence}
-                  onChange={(e) =>
-                    saveCadence({ ...cadence, anchorDate: e.target.value || null })
-                  }
-                />
-              </div>
-            )}
+              {cadence.recurrenceType === "biweekly" && (
+                <Field label="starting on" htmlFor="reviewAnchorDate">
+                  <input
+                    id="reviewAnchorDate"
+                    type="date"
+                    className="w-full"
+                    value={cadence.anchorDate ?? ""}
+                    disabled={isSavingCadence}
+                    onChange={(e) =>
+                      saveCadence({ ...cadence, anchorDate: e.target.value || null })
+                    }
+                  />
+                </Field>
+              )}
 
-            {/* "Every other Monday" doesn't say which Monday, and a review has no
-                completed occurrence to infer the phase from the way a task does.
-                Without the anchor the cadence yields no period at all, so say so
-                here rather than let it look saved and then quietly do nothing. */}
-            {!cadenceIsUsable(cadence) && (
-              <p className="error">
-                pick a start date — without one, &quot;every other&quot; doesn&apos;t say
-                which week
-              </p>
-            )}
-
-            {/* The only thing in this app that asks where you are, and it asks
-                for the least that answers the question: two numbers, typed. No
-                permission prompt, no IP lookup, nothing that keeps watching. Two
-                decimal places is a few kilometres, which moves sunset by
-                seconds. */}
-            {location && (
-              <>
-                <h2>where you are</h2>
-                <p>
-                  Only used to work out when the sun goes down, which the daily
-                  page draws across the day.
+              {/* "Every other Monday" doesn't say which Monday, and a review has no
+                  completed occurrence to infer the phase from the way a task does.
+                  Without the anchor the cadence yields no period at all, so say so
+                  here rather than let it look saved and then quietly do nothing. */}
+              {!cadenceIsUsable(cadence) && (
+                <p className="text-sm italic">
+                  pick a start date — without one, &quot;every other&quot; doesn&apos;t say
+                  which week
                 </p>
-                <div className="row-one-one">
-                  <div className="task-form-element labeled">
-                    <label htmlFor="latitude">latitude</label>
-                    <input
-                      id="latitude"
-                      type="number"
-                      step="0.01"
-                      min={-90}
-                      max={90}
-                      defaultValue={location.latitude}
-                      onBlur={(e) => {
-                        const latitude = Number(e.target.value);
-                        if (Number.isFinite(latitude) && Math.abs(latitude) <= 90) {
-                          saveLocation({ ...location, latitude });
-                        }
-                      }}
-                    />
-                  </div>
-                  <div className="task-form-element labeled">
-                    <label htmlFor="longitude">longitude</label>
-                    <input
-                      id="longitude"
-                      type="number"
-                      step="0.01"
-                      min={-180}
-                      max={180}
-                      defaultValue={location.longitude}
-                      onBlur={(e) => {
-                        const longitude = Number(e.target.value);
-                        if (Number.isFinite(longitude) && Math.abs(longitude) <= 180) {
-                          saveLocation({ ...location, longitude });
-                        }
-                      }}
-                    />
-                  </div>
-                </div>
-              </>
-            )}
+              )}
+            </div>
+          </SettingsSection>
 
-            <h2>calendars</h2>
-            <p>
-              Paste a secret ics url per calendar. Adding them one at a time is the
-              point — a calendar never worth a thought never gets added.
-            </p>
+          {/* The only thing in this app that asks where you are, and it asks
+              for the least that answers the question: two numbers, typed. No
+              permission prompt, no IP lookup, nothing that keeps watching. Two
+              decimal places is a few kilometres, which moves sunset by
+              seconds. */}
+          {location && (
+            <SettingsSection
+              title="where you are"
+              description="Only used to work out when the sun goes down, which the daily page draws across the day."
+            >
+              <div className="grid grid-cols-2 gap-4">
+                <Field label="latitude" htmlFor="latitude">
+                  <input
+                    id="latitude"
+                    type="number"
+                    className="w-full"
+                    step="0.01"
+                    min={-90}
+                    max={90}
+                    defaultValue={location.latitude}
+                    onBlur={(e) => {
+                      const latitude = Number(e.target.value);
+                      if (Number.isFinite(latitude) && Math.abs(latitude) <= 90) {
+                        saveLocation({ ...location, latitude });
+                      }
+                    }}
+                  />
+                </Field>
+                <Field label="longitude" htmlFor="longitude">
+                  <input
+                    id="longitude"
+                    type="number"
+                    className="w-full"
+                    step="0.01"
+                    min={-180}
+                    max={180}
+                    defaultValue={location.longitude}
+                    onBlur={(e) => {
+                      const longitude = Number(e.target.value);
+                      if (Number.isFinite(longitude) && Math.abs(longitude) <= 180) {
+                        saveLocation({ ...location, longitude });
+                      }
+                    }}
+                  />
+                </Field>
+              </div>
+            </SettingsSection>
+          )}
+
+          <SettingsSection
+            title="calendars"
+            description="Paste a secret ics url per calendar. Adding them one at a time is the point — a calendar never worth a thought never gets added."
+          >
             <CalendarsManager />
-          </>
-        )}
-      </section>
+          </SettingsSection>
+        </>
+      )}
     </div>
+  );
+}
+
+/** One setting: a heading, what it's for, and its control. */
+function SettingsSection({
+  title,
+  description,
+  children,
+}: {
+  title: string;
+  description?: string;
+  children: ReactNode;
+}) {
+  return (
+    <section className="border-t border-base-content/15 py-6 first:border-t-0 first:pt-0">
+      <h2 className="mt-0 mb-2 text-3xl leading-none">{title}</h2>
+      {description && <p className="mb-3 text-sm opacity-75">{description}</p>}
+      {children}
+    </section>
   );
 }

@@ -46,7 +46,7 @@ export default function MainMenuPanel() {
           <MenuItems onOpenSettings={() => setPanel("settings")} />
         </ul>
       ) : (
-        <div className="bg-base-200 text-base-content min-h-full w-80 max-w-[90vw] p-4">
+        <div className="bg-base-200 text-base-content min-h-full w-96 max-w-[90vw] p-4">
           <DrawerHeader>
             <button
               type="button"

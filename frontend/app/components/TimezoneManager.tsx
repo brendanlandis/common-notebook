@@ -230,6 +230,7 @@ export default function TimezoneManager() {
         </span>
       </button>
       <select
+        className="min-w-0 flex-1"
         value={currentTimezone}
         onChange={(e) => handleTimezoneChange(e.target.value)}
         title="select timezone"

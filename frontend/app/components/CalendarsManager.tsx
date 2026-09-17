@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiFetch, apiSend } from "@/app/lib/apiFetch";
 import type { ClientCalendar } from "@/app/lib/ics/clientCalendar";
+import Field from "@/app/components/Field";
 
 /**
  * Subscribing to calendars, by pasting a secret ICS URL each.
@@ -58,18 +59,25 @@ export default function CalendarsManager() {
   });
 
   return (
-    <div className="calendars-manager">
+    <div className="flex flex-col gap-4">
       {isPending ? (
         <p>loading...</p>
       ) : (
-        <ul className="calendars-list">
+        <ul className="divide-y divide-base-content/10">
           {calendars.map((calendar) => (
-            <li key={calendar.documentId}>
-              <span>{calendar.name}</span>
-              {!calendar.hasUrl && <span className="error">no url</span>}
+            <li
+              key={calendar.documentId}
+              className="flex items-center justify-between gap-3 py-2"
+            >
+              <span className="min-w-0 truncate">
+                {calendar.name}
+                {!calendar.hasUrl && (
+                  <span className="ml-2 text-sm italic">no url</span>
+                )}
+              </span>
               <button
                 type="button"
-                className="btn"
+                className="btn btn-sm m-0 shrink-0 px-3"
                 aria-label={`remove ${calendar.name}`}
                 onClick={() => remove.mutate(calendar.documentId)}
                 disabled={remove.isPending}
@@ -78,32 +86,34 @@ export default function CalendarsManager() {
               </button>
             </li>
           ))}
-          {calendars.length === 0 && <li>no calendars yet</li>}
+          {calendars.length === 0 && (
+            <li className="py-2 text-sm italic">no calendars yet</li>
+          )}
         </ul>
       )}
 
-      <div className="task-form-element labeled">
-        <label htmlFor="calendarName">name</label>
+      <Field label="name" htmlFor="calendarName">
         <input
           id="calendarName"
           type="text"
+          className="w-full"
           value={name}
           onChange={(e) => setName(e.target.value)}
         />
-      </div>
-      <div className="task-form-element labeled">
-        <label htmlFor="calendarUrl">secret ics url</label>
+      </Field>
+      <Field label="secret ics url" htmlFor="calendarUrl">
         <input
           id="calendarUrl"
           type="url"
+          className="w-full"
           value={icsUrl}
           placeholder="https://calendar.google.com/calendar/ical/..."
           onChange={(e) => setIcsUrl(e.target.value)}
         />
-      </div>
+      </Field>
       <button
         type="button"
-        className="btn"
+        className="btn m-0 self-start"
         disabled={!name || !icsUrl || add.isPending}
         onClick={() => add.mutate({ name, icsUrl })}
       >
@@ -111,7 +121,7 @@ export default function CalendarsManager() {
       </button>
       {/* Shown rather than logged: a rejected URL that looks accepted would
           leave a calendar silently missing from every future review. */}
-      {add.error && <p className="error">{add.error.message}</p>}
+      {add.error && <p className="text-sm italic">{add.error.message}</p>}
     </div>
   );
 }

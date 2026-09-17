@@ -723,20 +723,6 @@
   margin-left: auto;
 }
 
-/* ── Calendar subscriptions ─────────────────────────────────────────────── */
-
-.calendars-list {
-  list-style: none;
-  padding: 0;
-
-  li {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    padding: 0.3rem 0;
-  }
-}
-
 /* The practice step, which comes first on both review pages.
  *
  * Set apart by a rule *below* it — it leads, so the line marks where practice
