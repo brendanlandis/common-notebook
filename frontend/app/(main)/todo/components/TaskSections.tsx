@@ -42,7 +42,15 @@ export default function TaskSections({
   upcomingSection,
   recentStatsSection,
 }: TaskSectionsProps) {
-  if (sections.length === 0 && (!incidentals || incidentals.length === 0)) {
+  // The upcoming panel and the stats chart count: on the done view they can be
+  // the only things there, and bailing out on empty `sections` alone meant an
+  // account with nothing completed lately saw neither.
+  if (
+    sections.length === 0 &&
+    (!incidentals || incidentals.length === 0) &&
+    !upcomingSection &&
+    !recentStatsSection
+  ) {
     return null;
   }
 

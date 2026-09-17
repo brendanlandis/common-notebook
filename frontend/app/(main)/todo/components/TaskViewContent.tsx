@@ -1,5 +1,6 @@
 "use client";
 
+import TaskSection, { TaskSectionHeading } from "./TaskSection";
 import { useMemo } from "react";
 import LayoutRenderer from "./LayoutRenderer";
 import RecentStats from "./RecentStats";
@@ -139,8 +140,8 @@ export default function TaskViewContent({ slug }: { slug: string }) {
             recentStatsSection={
               isDone &&
               (recentStats.length > 0 || recentStats30Days.length > 0) ? (
-                <div className="task-section recent-stats-section">
-                  <h3>recently</h3>
+                <TaskSection className="mx-auto w-full max-w-[600px] min-[900px]:max-w-[800px]">
+                  <TaskSectionHeading>recently</TaskSectionHeading>
                   <div>
                     <RecentStats
                       stats={recentStats}
@@ -155,7 +156,7 @@ export default function TaskViewContent({ slug }: { slug: string }) {
                       noWrapper
                     />
                   </div>
-                </div>
+                </TaskSection>
               ) : undefined
             }
           />
