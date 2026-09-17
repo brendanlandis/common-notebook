@@ -14,8 +14,35 @@ License: AGPL v3.
 
 ## Stack
 - Next.js `^16` App Router, React `^19`, TypeScript strict, import alias `@/` → frontend root.
-- Styling: Tailwind CSS v4 (PostCSS/CSS-based config, no `tailwind.config`) + daisyUI 5, plus
-  hand-written CSS in `app/css/`. No CSS modules.
+- Styling: Tailwind CSS v4 (PostCSS/CSS-based config, no `tailwind.config`) + daisyUI 5. No CSS
+  modules. **New styling goes on the markup, not into `app/css/`** — a refactor is moving the
+  hand-written sheets there onto Tailwind a page at a time (see
+  `!projects/notebooks/active/cn-ui-refactor-1-tailwind-and-shared-components.md`). What that
+  means in practice:
+  - **The sheets that remain sit in `@layer utilities.legacy`**, declared in `screen.css`: above
+    daisyUI's own sublayers, below Tailwind's utility classes. So a utility on an element beats
+    them, which is what lets a page move without touching the sheets other pages still use — and
+    it is why a default that a utility would override (the task grid's single column) has to live
+    in the sheet rather than as a class.
+  - **Shared components carry the app's look**, rather than a repeated string of utilities:
+    `components/FormControls.tsx` (`Field`, `Input`, `Select`, `Checkbox`, `CheckboxInput`,
+    `Toggle` — daisyUI's controls with the app's square corners and full-strength border),
+    `components/DrawerHeader.tsx`, `components/DisclosureToggle.tsx`, `components/auth/Auth.tsx`,
+    and `(main)/todo/components/TaskSection.tsx` (`TaskGrid`, `TaskSection`,
+    `TaskSectionHeading`, `TaskList`).
+  - **Two custom variants**, both in `screen.css`: `dim:` for the dark theme, where a daisyUI
+    color token alone can't say it, and `touch:` for `(hover: none) and (pointer: coarse)`, which
+    is how a control revealed on hover stays put on a phone.
+  - **A class name with no CSS behind it is a hook, not a leftover.** `task-section`,
+    `tasks-container`, `group-section`, `tasks-list`, `completed`, `worked-on` and the
+    `layout-<slug>` names are read by browser specs, unit tests, or the `[.layout-done_&]:`
+    variants. Renaming one breaks tests, not styling.
+  - **What stays CSS on purpose:** `task-grid.css` (how many columns a view gets — it depends on
+    which children actually rendered, which only `:has()` can ask), third-party DOM
+    (`page-review.css`'s FullCalendar overrides, `SlateEditor.css`, `rich-text.css`) and
+    `print.css`.
+  - **Deleting a sheet needs `rm -rf .next/dev` and a dev-server restart.** Turbopack keeps
+    serving the old CSS otherwise, which looks exactly like a change that didn't work.
 - Editor: TipTap 3 (`@tiptap/*` all `^3.27.1`) + `@strapi/blocks-react-renderer`.
 - Forms: react-hook-form 7 + zod 4. Charts: recharts 3. Icons: `@phosphor-icons/react`.
 - Calendar: **FullCalendar 6** (`@fullcalendar/{core,react,timegrid,daygrid}`) renders the review grid;
@@ -454,6 +481,13 @@ is server state via `useActiveSession`, which polls every 30s **only while somet
   warn about an `EMAIL_ENABLED` that was in fact set. Any script inspecting env before boot must
   `require('dotenv').config({ path: process.env.ENV_PATH || path.resolve(__dirname, '..', '.env') })`
   first. dotenv never overwrites an existing variable, so shell overrides still win.
+- **A script that boots Strapi needs the running backend stopped.** SQLite allows one writer, so
+  `strapi develop` holding the file makes any `createStrapi()` script die with `SQLITE_BUSY` partway
+  through — after some of its writes have landed. Stop the backend, run the script, start it again.
+  `scripts/sample-practice.js` is the one to reach for when a local database has nothing to look at:
+  it writes a month of practice across three subjects, tagged `[sample]`, and `--reset` removes them.
+  Note that a project's world relation is **`worldRef`** (`world` is what the app's own API calls it);
+  passing the wrong name sets nothing and leaves projects in no world at all.
 - **Email sending is opt-in, via `EMAIL_ENABLED=true`.** `backend/.env` holds the *production* SMTP
   credentials, and any local boot — `strapi develop`, a forgotten `strapi start`, a script — picks them up;
   that has already sent real password-reset mail to a seed address by accident. `config/plugins.ts`
