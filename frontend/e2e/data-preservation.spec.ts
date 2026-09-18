@@ -272,27 +272,43 @@ test.describe('data preservation — world', () => {
 });
 
 test.describe('data preservation — practice log', () => {
-  test('saving notes keeps type, duration, and date', async ({ request }) => {
-    const created = await postJson(request, '/api/practice-logs', {
-      type: 'guitar',
-      duration: 42,
-      date: '2026-08-01',
-      start: '2026-08-01T10:00:00.000Z',
-    });
-    expect(created.success, `createPracticeLog failed: ${JSON.stringify(created)}`).toBe(true);
-    const id = created.data.documentId;
+  // A session is started from its material alone — the server stamps start,
+  // date and segments — and given a duration by calling it (`correct`), which
+  // is how a stale session is closed out. Saving notes afterwards must leave all
+  // of that alone.
+  test('saving notes keeps material, duration, date, and start', async ({ request }) => {
+    const material = await createTask(request);
+    let id: string | null = null;
 
     try {
+      const started = await request.post('/api/practice-logs', {
+        data: { material: material.documentId },
+      });
+      // One open session at a time, globally: a real one left running on this
+      // account blocks the fixture, and that is not a failure of the write path.
+      test.skip(started.status() === 409, 'a practice session is already running on this account');
+      const created = await started.json();
+      expect(created.success, `startPracticeLog failed: ${JSON.stringify(created)}`).toBe(true);
+      id = created.data.documentId as string;
+
+      const called = await postJson(request, `/api/practice-logs/${id}/correct`, { minutes: 42 });
+      expect(called.success, `correct failed: ${JSON.stringify(called)}`).toBe(true);
+      const before = await findInList(request, '/api/practice-logs', id);
+      expect(before.duration).toBe(42);
+
       await putJson(request, `/api/practice-logs/${id}`, {
         notes: [{ type: 'paragraph', children: [{ type: 'text', text: 'worked on scales' }] }],
       });
 
       const after = await findInList(request, '/api/practice-logs', id);
-      expect(after.type).toBe('guitar');
+      expect(after.material?.documentId, 'material was lost on a notes save').toBe(material.documentId);
       expect(after.duration).toBe(42);
-      expect(after.date).toBe('2026-08-01');
+      expect(after.date).toBe(before.date);
+      expect(after.start).toBe(before.start);
+      expect(after.stop).toBe(before.stop);
     } finally {
-      await request.delete(`/api/practice-logs/${id}`).catch(() => {});
+      if (id) await request.delete(`/api/practice-logs/${id}`).catch(() => {});
+      await deleteTask(request, material.documentId).catch(() => {});
     }
   });
 });
