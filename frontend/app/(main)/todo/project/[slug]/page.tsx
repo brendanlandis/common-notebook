@@ -11,6 +11,7 @@ import TaskSections from "../../components/TaskSections";
 import FaviconManager from "@/app/components/FaviconManager";
 import { useTaskData } from "../../contexts/TaskDataContext";
 import { buildRawTaskData } from "../../utils/buildRawTaskData";
+import { TOOLTIP } from "@/app/components/tooltip";
 
 export default function ProjectPage() {
   const { timeZoneSettings } = useDateTimeSettings();
@@ -99,7 +100,7 @@ export default function ProjectPage() {
             {project.title}
             <button
               onClick={() => onEditProject(project)}
-              className="tooltip tooltip-bottom"
+              className={TOOLTIP}
               data-tip="edit project"
               aria-label="edit project"
             >

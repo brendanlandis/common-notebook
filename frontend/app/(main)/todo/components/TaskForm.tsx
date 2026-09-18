@@ -32,6 +32,7 @@ import {
   showDateFields,
   allowsRecurring,
 } from "../utils/formFieldVisibility";
+import Button from "@/app/components/Button";
 
 const schema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -551,9 +552,9 @@ export default function TaskForm({ task, onSubmit, onCancel }: TaskFormProps) {
       )}
 
       <div className="text-center">
-        <button className="btn" type="submit">
+        <Button type="submit">
           {task ? "update" : "create"} task
-        </button>
+        </Button>
       </div>
     </form>
   );

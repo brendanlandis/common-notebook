@@ -1,12 +1,5 @@
 button {
   cursor: pointer;
-  &.btn {
-    padding: 0.3rem 2rem;
-    border-radius: 0.2rem;
-    border-width: 1px;
-    border-style: solid;
-    margin: 0 auto;
-  }
 }
 
 .error {

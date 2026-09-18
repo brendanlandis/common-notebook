@@ -27,6 +27,8 @@ License: AGPL v3.
   - **Shared components carry the app's look**, rather than a repeated string of utilities:
     `components/FormControls.tsx` (`Field`, `Input`, `Select`, `Checkbox`, `CheckboxInput`,
     `Toggle` — daisyUI's controls with the app's square corners and full-strength border),
+    `components/Button.tsx` (the outlined text button), `components/tooltip.ts` (`TOOLTIP`, the
+    class string for a `data-tip` tooltip in each theme's colors),
     `components/DrawerHeader.tsx`, `components/DisclosureToggle.tsx`, `components/auth/Auth.tsx`,
     `(main)/todo/components/TaskSection.tsx` (`TaskGrid`, `TaskSection`,
     `TaskSectionHeading`, `TaskList`), and `(main)/review/components/ReviewParts.tsx` (the
@@ -51,7 +53,12 @@ License: AGPL v3.
   - **Don't butt a bracketed class against `${` in a template literal.** Tailwind's scanner
     misses `` `text-[0.85rem]${x}` `` and silently generates nothing (a plain `mb-4` in the same spot
     is fine). Put the arbitrary class first, or a space after it.
-  - **Deleting a sheet needs `rm -rf .next/dev` and a dev-server restart.** Turbopack keeps
+  - **Colors are daisyUI's tokens, by their own names** (`base-content` for ink, `base-100` for
+    paper, `success` for "yes, this one"). There is no renaming layer; where the two themes need
+    different tokens, say so with `dim:` (or `light-dark()` in a string handed to a chart).
+  - **Deleting a sheet, or adding to an `@theme` block, needs `rm -rf .next/dev` and a dev-server
+    restart** — and so does anything that swaps `screen.css` under a running server (a `git stash`
+    round trip dropped the `text-h*` tokens until restart). Turbopack keeps
     serving the old CSS otherwise, which looks exactly like a change that didn't work.
 - Editor: TipTap 3 (`@tiptap/*` all `^3.27.1`) + `@strapi/blocks-react-renderer`.
 - Forms: react-hook-form 7 + zod 4. Charts: recharts 3. Icons: `@phosphor-icons/react`.

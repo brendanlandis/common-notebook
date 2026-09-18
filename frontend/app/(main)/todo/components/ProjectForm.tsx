@@ -10,6 +10,7 @@ import RichTextEditor from "@/app/components/RichTextEditor";
 import { slugify } from "@/app/lib/slugify";
 import { useWorlds } from "@/app/hooks/useWorlds";
 import { isPracticeWorld } from "@/app/lib/worlds";
+import Button from "@/app/components/Button";
 
 const schema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -179,9 +180,9 @@ export default function ProjectForm({
       </Field>
 
       <div className="text-center">
-        <button className="btn" type="submit">
+        <Button type="submit">
           {project ? "update" : "create"} project
-        </button>
+        </Button>
       </div>
     </form>
   );

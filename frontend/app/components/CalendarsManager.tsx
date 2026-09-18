@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiFetch, apiSend } from "@/app/lib/apiFetch";
 import type { ClientCalendar } from "@/app/lib/ics/clientCalendar";
 import { Field, Input } from "@/app/components/FormControls";
+import Button from "@/app/components/Button";
 
 /**
  * Subscribing to calendars, by pasting a secret ICS URL each.
@@ -75,15 +76,15 @@ export default function CalendarsManager() {
                   <span className="ml-2 text-sm italic">no url</span>
                 )}
               </span>
-              <button
-                type="button"
-                className="btn btn-sm m-0 shrink-0 px-3"
+              <Button
+                small
+                className="shrink-0"
                 aria-label={`remove ${calendar.name}`}
                 onClick={() => remove.mutate(calendar.documentId)}
                 disabled={remove.isPending}
               >
                 remove
-              </button>
+              </Button>
             </li>
           ))}
           {calendars.length === 0 && (
@@ -109,14 +110,13 @@ export default function CalendarsManager() {
           onChange={(e) => setIcsUrl(e.target.value)}
         />
       </Field>
-      <button
-        type="button"
-        className="btn m-0 self-start"
+      <Button
+        className="self-start"
         disabled={!name || !icsUrl || add.isPending}
         onClick={() => add.mutate({ name, icsUrl })}
       >
         add calendar
-      </button>
+      </Button>
       {/* Shown rather than logged: a rejected URL that looks accepted would
           leave a calendar silently missing from every future review. */}
       {add.error && <p className="text-sm italic">{add.error.message}</p>}

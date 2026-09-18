@@ -6,6 +6,7 @@ import { z } from "zod";
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AuthPage, AuthForm, AuthField } from "@/app/components/auth/Auth";
+import Button from "@/app/components/Button";
 
 const schema = z
   .object({
@@ -100,9 +101,9 @@ function ResetForm() {
         )}
 
         <div>
-          <button className="btn" type="submit" disabled={isSubmitting}>
+          <Button type="submit" disabled={isSubmitting}>
             {isSubmitting ? "resetting..." : "set new password"}
-          </button>
+          </Button>
         </div>
       </AuthForm>
     </AuthPage>

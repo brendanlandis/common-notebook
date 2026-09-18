@@ -7,6 +7,7 @@ import { usePracticeSessionUI } from '@/app/contexts/PracticeSessionContext';
 import { useDateTimeSettings } from '@/app/contexts/DateTimeSettingsContext';
 import { isStale } from '@/app/lib/practiceSession';
 import PracticeClock from './PracticeClock';
+import Button from "@/app/components/Button";
 
 /**
  * Practicing, over whatever you were looking at.
@@ -169,14 +170,9 @@ export default function PracticeSessionModal() {
             <p>you left this running — call it</p>
             <div className="flex flex-wrap justify-center gap-2">
               {[30, 60, 90, 120].map((minutes) => (
-                <button
-                  key={minutes}
-                  type="button"
-                  className="btn"
-                  onClick={() => correct(minutes)}
-                >
+                <Button key={minutes} onClick={() => correct(minutes)}>
                   {minutes} min
-                </button>
+                </Button>
               ))}
             </div>
           </div>

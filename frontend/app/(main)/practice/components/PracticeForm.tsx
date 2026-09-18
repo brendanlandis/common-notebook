@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import type { PracticeLog, StrapiBlock } from '@/app/types/index';
 import RichTextEditor from '@/app/components/RichTextEditor';
+import Button from "@/app/components/Button";
 
 interface PracticeFormProps {
   practiceLog?: PracticeLog;
@@ -44,12 +45,8 @@ export default function PracticeForm({ practiceLog, onSubmit, onCancel }: Practi
       </div>
 
       <div className="form-actions">
-        <button type="submit" className="btn">
-          Save
-        </button>
-        <button type="button" className="btn" onClick={onCancel}>
-          Cancel
-        </button>
+        <Button type="submit">Save</Button>
+        <Button onClick={onCancel}>Cancel</Button>
       </div>
     </form>
   );

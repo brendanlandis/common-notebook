@@ -6,6 +6,7 @@ import { z } from "zod";
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AuthPage, AuthForm, AuthField } from "@/app/components/auth/Auth";
+import Button from "@/app/components/Button";
 
 const schema = z
   .object({
@@ -122,9 +123,9 @@ function RegisterForm() {
         )}
 
         <div>
-          <button className="btn" type="submit" disabled={isSubmitting}>
+          <Button type="submit" disabled={isSubmitting}>
             {isSubmitting ? "creating account..." : "join"}
-          </button>
+          </Button>
         </div>
       </AuthForm>
     </AuthPage>

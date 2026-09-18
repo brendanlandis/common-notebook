@@ -14,7 +14,7 @@ import {
 export interface LineSeries {
   key: string; // data key + config key
   label: string; // legend / tooltip label
-  color: string; // base CSS color (e.g. 'var(--secondary-color)')
+  color: string; // base CSS color (e.g. 'var(--color-success)')
 }
 
 interface LineChartProps {
@@ -101,7 +101,7 @@ export default function LineChart({
       <ReLineChart data={data} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
         <CartesianGrid
           strokeDasharray="3 3"
-          stroke="var(--primary-color)"
+          stroke="var(--color-base-content)"
           opacity={0.1}
           vertical={false}
         />
@@ -109,17 +109,17 @@ export default function LineChart({
           dataKey={xKey}
           axisLine={false}
           tickLine={false}
-          tick={{ fill: 'var(--primary-color)', fontSize: 12 }}
+          tick={{ fill: 'var(--color-base-content)', fontSize: 12 }}
           interval="preserveStartEnd"
         />
         <YAxis
           axisLine={false}
           tickLine={false}
-          tick={{ fill: 'var(--primary-color)', fontSize: 12 }}
+          tick={{ fill: 'var(--color-base-content)', fontSize: 12 }}
           domain={yDomainMax ? [0, yDomainMax] : undefined}
           label={
             yLabel
-              ? { value: yLabel, angle: -90, position: 'insideLeft', fill: 'var(--primary-color)' }
+              ? { value: yLabel, angle: -90, position: 'insideLeft', fill: 'var(--color-base-content)' }
               : undefined
           }
         />
@@ -136,8 +136,8 @@ export default function LineChart({
             strokeWidth={2}
             // Filled dot with a background-colored ring, which also masks the
             // line where it meets the dot — the gap/padding seen in the example.
-            dot={{ r: 4, fill: s.color, stroke: 'var(--background)', strokeWidth: 3 }}
-            activeDot={{ r: 6, fill: s.color, stroke: 'var(--background)', strokeWidth: 3 }}
+            dot={{ r: 4, fill: s.color, stroke: 'var(--color-base-100)', strokeWidth: 3 }}
+            activeDot={{ r: 6, fill: s.color, stroke: 'var(--color-base-100)', strokeWidth: 3 }}
             isAnimationActive={false}
           />
         ))}

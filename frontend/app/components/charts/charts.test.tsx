@@ -38,8 +38,8 @@ describe('chart smoke test', () => {
 
   it('renders the line chart with a solid stroke per series (no gradients/glow)', () => {
     const series: LineSeries[] = [
-      { key: 'guitar', label: 'guitar', color: 'var(--primary-color)' },
-      { key: 'voice', label: 'voice', color: 'var(--secondary-color)' },
+      { key: 'guitar', label: 'guitar', color: 'var(--color-base-content)' },
+      { key: 'voice', label: 'voice', color: 'var(--color-success)' },
     ];
     const { container } = render(
       <LineChart
@@ -63,7 +63,7 @@ describe('chart smoke test', () => {
     const strokes = Array.from(container.querySelectorAll('.recharts-line-curve')).map((el) =>
       el.getAttribute('stroke'),
     );
-    expect(strokes).toEqual(['var(--primary-color)', 'var(--secondary-color)']);
+    expect(strokes).toEqual(['var(--color-base-content)', 'var(--color-success)']);
     // Straight angular segments, not curves: a linear path uses line-to (L)
     // commands and no cubic-bezier (C) — monotone would emit C.
     const d = container.querySelector('.recharts-line-curve')?.getAttribute('d') ?? '';
@@ -73,7 +73,7 @@ describe('chart smoke test', () => {
     // color (a background-colored ring gives the gap between line and dot).
     expect(container.querySelectorAll('.recharts-line-dot').length).toBe(4);
     const firstDot = container.querySelector('.recharts-line-dot');
-    expect(firstDot?.getAttribute('fill')).toBe('var(--primary-color)');
-    expect(firstDot?.getAttribute('stroke')).toBe('var(--background)');
+    expect(firstDot?.getAttribute('fill')).toBe('var(--color-base-content)');
+    expect(firstDot?.getAttribute('stroke')).toBe('var(--color-base-100)');
   });
 });

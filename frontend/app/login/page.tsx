@@ -6,6 +6,7 @@ import { z } from "zod";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { AuthPage, AuthForm, AuthField } from "@/app/components/auth/Auth";
+import Button from "@/app/components/Button";
 
 const schema = z.object({
   identifier: z.string().min(1, "enter a username"),
@@ -94,9 +95,9 @@ export default function LoginPage() {
           </div>
         )}
         <div>
-          <button className="btn" type="submit" disabled={isSubmitting}>
+          <Button type="submit" disabled={isSubmitting}>
             {isSubmitting ? "logging in..." : "duh"}
-          </button>
+          </Button>
         </div>
 
         <div>

@@ -3,6 +3,7 @@
 import { useRouter, usePathname } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { PlugsIcon } from "@phosphor-icons/react";
+import { TOOLTIP } from "@/app/components/tooltip";
 
 export default function LogoutButton() {
   const router = useRouter();
@@ -42,7 +43,7 @@ export default function LogoutButton() {
       // icon's tooltip doesn't run off the drawer edge. daisyUI shares
       // --tt-trans between the bubble and its tail, so the after: transform
       // puts the tail back under the icon.
-      className="tooltip tooltip-bottom [--tt-trans:calc(-50%_+_0.9rem)] after:[transform:translateX(-50%)_translateY(var(--tt-pos,-0.25rem))_rotate(180deg)]"
+      className={`${TOOLTIP} [--tt-trans:calc(-50%_+_0.9rem)] after:[transform:translateX(-50%)_translateY(var(--tt-pos,-0.25rem))_rotate(180deg)]`}
       data-tip="logout"
     >
       <PlugsIcon size={25} weight="regular" />

@@ -12,12 +12,15 @@ import type { SubjectStats } from '../hooks/usePracticeLogs';
  * invisible line.
  */
 const PALETTE = [
-  'var(--primary-color)',
-  'var(--secondary-color)',
-  'var(--tertiary-color)',
-  'var(--quaternary-color)',
-  'var(--quinary-color)',
-  'var(--senary-color)',
+  'var(--color-base-content)',
+  'var(--color-success)',
+  // The one slot the two themes fill differently: secondary's pale content
+  // color on the light theme's paper, secondary itself on the dark one. Both
+  // daisyUI themes set `color-scheme`, which is what `light-dark()` reads.
+  'light-dark(var(--color-secondary-content), var(--color-secondary))',
+  'var(--color-accent)',
+  'var(--color-warning)',
+  'var(--color-info)',
 ];
 
 export default function PracticeChart({ stats }: { stats: SubjectStats[] }) {

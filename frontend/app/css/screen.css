@@ -31,7 +31,6 @@
  * classes, so a utility on the markup wins. Unlayered, they beat every utility
  * whatever its specificity. Emptied page by page as the markup moves to
  * Tailwind; see the UI refactor in !projects. */
-@import "./color.css" layer(utilities.legacy);
 @import "./type.css" layer(utilities.legacy);
 @import "./forms.css" layer(utilities.legacy);
 @import "./rich-text.css" layer(utilities.legacy);

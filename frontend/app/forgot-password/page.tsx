@@ -5,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useState } from "react";
 import { AuthPage, AuthForm, AuthField } from "@/app/components/auth/Auth";
+import Button from "@/app/components/Button";
 
 const schema = z.object({
   email: z.email("enter a valid email"),
@@ -65,9 +66,9 @@ export default function ForgotPasswordPage() {
         />
 
         <div>
-          <button className="btn" type="submit" disabled={isSubmitting}>
+          <Button type="submit" disabled={isSubmitting}>
             {isSubmitting ? "sending..." : "send reset link"}
-          </button>
+          </Button>
         </div>
       </AuthForm>
     </AuthPage>

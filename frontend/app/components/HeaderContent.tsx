@@ -20,6 +20,7 @@ import MoonPhaseIcon from "./MoonPhaseIcon";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiSend, swallow } from "../lib/apiFetch";
 import { TASKS_ROOT } from "../(main)/todo/hooks/useTasks";
+import { TOOLTIP } from "@/app/components/tooltip";
 
 /**
  * Can the pointing device on this machine hover?
@@ -87,20 +88,20 @@ export default function HeaderContent() {
         <LayoutSelector value={selectorValue} />
         <button
           onClick={openTaskForm}
-          className="tooltip tooltip-bottom"
+          className={TOOLTIP}
           data-tip="add task"
         >
           <PlusCircleIcon size={25} />
         </button>
         <button
           onClick={openProjectForm}
-          className="tooltip tooltip-bottom"
+          className={TOOLTIP}
           data-tip="add project"
         >
           <FolderSimplePlusIcon size={25} />
         </button>
         <button
-          className="tooltip tooltip-bottom [&_svg]:rounded-full [&_svg]:bg-base-content [&_svg]:text-base-100 dim:[&_svg]:bg-transparent dim:[&_svg]:text-base-content"
+          className={`${TOOLTIP} [&_svg]:rounded-full [&_svg]:bg-base-content [&_svg]:text-base-100 dim:[&_svg]:bg-transparent dim:[&_svg]:text-base-content`}
           data-tip="declutter"
           onClick={handleResetMoonPhase}
         >
@@ -158,7 +159,7 @@ export default function HeaderContent() {
                   locator could address them by name either. */}
               <button
                 onClick={openManageProjects}
-                className="tooltip tooltip-bottom"
+                className={TOOLTIP}
                 data-tip="manage projects"
                 aria-label="manage projects"
               >
@@ -166,7 +167,7 @@ export default function HeaderContent() {
               </button>
               <button
                 onClick={openWorlds}
-                className="tooltip tooltip-bottom"
+                className={TOOLTIP}
                 data-tip="manage worlds"
                 aria-label="manage worlds"
               >
@@ -174,7 +175,7 @@ export default function HeaderContent() {
               </button>
               <button
                 onClick={openViews}
-                className="tooltip tooltip-bottom"
+                className={TOOLTIP}
                 data-tip="manage views"
                 aria-label="manage views"
               >

@@ -79,7 +79,7 @@ export function CheckboxInput({ className = "", ...props }: Omit<ComponentProps<
   return (
     <input
       type="checkbox"
-      className={`checkbox rounded-none border-base-content ${MOTION} ${className}`}
+      className={`checkbox rounded-none border-base-content before:bg-base-content ${MOTION} ${className}`}
       {...props}
     />
   );

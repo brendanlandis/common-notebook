@@ -15,6 +15,7 @@ import ThemeToggle from "./ThemeToggle";
 import LogoutButton from "./LogoutButton";
 import { soleDestination, visiblePages } from "@/app/lib/pages";
 import { useBetaAccess } from "@/app/hooks/useBetaAccess";
+import { TOOLTIP } from "@/app/components/tooltip";
 
 export default function MenuItems({
   onOpenSettings,
@@ -39,7 +40,7 @@ export default function MenuItems({
           <button
             type="button"
             onClick={onOpenSettings}
-            className="tooltip tooltip-bottom"
+            className={TOOLTIP}
             data-tip="settings"
             aria-label="settings"
           >
