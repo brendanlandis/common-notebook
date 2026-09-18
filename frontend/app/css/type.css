@@ -2,6 +2,8 @@ body {
   font-family: var(--font-plex-serif);
 }
 
+/* Sizes and margins are on each heading's markup (`text-h1` … `text-h4`, see
+ * screen.css); only the display face is set here. */
 h1,
 h2,
 h3,
@@ -10,35 +12,4 @@ h5,
 h6 {
   font-family: var(--font-sweetheart);
   font-variation-settings: "wght" 700;
-  margin: 1rem 0;
-}
-
-h1 {
-  font-size: 4rem;
-  line-height: 3.6rem;
-}
-
-h2 {
-  font-size: 3rem;
-  line-height: 2.6rem;
-}
-
-h3 {
-  font-size: 2rem;
-  line-height: 1.6rem;
-}
-
-h4 {
-  font-size: 1rem;
-  line-height: 0.8rem;
-}
-
-h5 {
-  font-size: 0.9rem;
-  line-height: 0.8rem;
-}
-
-h6 {
-  font-size: 0.8rem;
-  line-height: 0.8rem;
 }

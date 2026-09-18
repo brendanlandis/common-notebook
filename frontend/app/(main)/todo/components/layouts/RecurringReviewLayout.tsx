@@ -99,7 +99,7 @@ export default function RecurringReviewLayout({
               
               return (
                 <div key={isProject ? (section as Project).documentId : index}>
-                  <h4>{sectionTitle}</h4>
+                  <h4 className="my-4 text-h4">{sectionTitle}</h4>
                   <TaskList>
                     {tasks.map((task) => (
                       <TaskItemRecurringReview
@@ -117,7 +117,7 @@ export default function RecurringReviewLayout({
             {/* Render incidentals */}
             {incidentals && incidentals.length > 0 && (
               <div>
-                <h4>incidentals</h4>
+                <h4 className="my-4 text-h4">incidentals</h4>
                 <TaskList>
                   {incidentals.map((task) => (
                     <TaskItemRecurringReview

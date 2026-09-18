@@ -31,6 +31,9 @@ License: AGPL v3.
     `(main)/todo/components/TaskSection.tsx` (`TaskGrid`, `TaskSection`,
     `TaskSectionHeading`, `TaskList`), and `(main)/review/components/ReviewParts.tsx` (the
     review pages' column, sections, project groups, notes and put-back arrow).
+  - **Headings carry their own size** as `text-h1` … `text-h4`, theme tokens in `screen.css`, plus
+    their own margins (`my-4` where nothing else is set). `type.css` sets only the two faces, so a
+    bare `<h2>` renders at body size: give it a token.
   - **Two custom variants**, both in `screen.css`: `dim:` for the dark theme, where a daisyUI
     color token alone can't say it, and `touch:` for `(hover: none) and (pointer: coarse)`, which
     is how a control revealed on hover stays put on a phone.

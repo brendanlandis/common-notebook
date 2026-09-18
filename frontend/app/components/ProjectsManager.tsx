@@ -323,7 +323,7 @@ export default function ProjectsManager() {
 function ManagerSection({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section className="flex flex-col gap-2">
-      <h3 className="m-0">{title}</h3>
+      <h3 className="m-0 text-h3">{title}</h3>
       {children}
     </section>
   );

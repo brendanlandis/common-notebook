@@ -3,6 +3,20 @@
   themes: retro --default, dim --prefersdark;
 }
 
+/* The headings' sizes, as `text-h1` … `text-h4` on the markup. The two faces
+   stay in type.css; these are what the headings were before they carried their
+   own classes, kept as they were until the app gets a real type scale. */
+@theme {
+  --text-h1: 4rem;
+  --text-h1--line-height: 3.6rem;
+  --text-h2: 3rem;
+  --text-h2--line-height: 2.6rem;
+  --text-h3: 2rem;
+  --text-h3--line-height: 1.6rem;
+  --text-h4: 1rem;
+  --text-h4--line-height: 0.8rem;
+}
+
 /* dim: styles for the dark theme only, where a daisyUI color token alone
    doesn't cover the difference between the two themes. */
 @custom-variant dim (&:where([data-theme="dim"], [data-theme="dim"] *));

@@ -25,7 +25,7 @@ export default function PracticeCharts() {
 
   return (
     <div className="mx-auto">
-      <h3>Last 30 Days</h3>
+      <h3 className="my-4 text-h3">Last 30 Days</h3>
       <PracticeChart stats={stats} />
     </div>
   );

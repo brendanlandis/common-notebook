@@ -317,7 +317,7 @@ export default function PeriodicReviewPage() {
   if (!cadence || !cadenceIsUsable(cadence)) {
     return (
       <ReviewPage>
-        <h1>periodic review</h1>
+        <h1 className="my-4 text-h1">periodic review</h1>
         <p>
           your review cadence needs a little more detail before it can work out a
           period — have a look in settings.
@@ -331,7 +331,7 @@ export default function PeriodicReviewPage() {
 
   return (
     <ReviewPage>
-      <h1>periodic review</h1>
+      <h1 className="my-4 text-h1">periodic review</h1>
 
       {/* The period used to be spelled out here as a date range. The calendar
           below is a week of labeled day columns, so it was saying the same
@@ -480,7 +480,7 @@ export default function PeriodicReviewPage() {
           {/* Named for the world, not for the activity. "practicing this week"
               read as a verb phrase about one of the things in it, and half of
               what is in it is study rather than practice. */}
-          <h2>practice and study</h2>
+          <h2 className="my-4 text-h2">practice and study</h2>
           {practice.picked.length > 0 && (
             <TaskPickList
               tasks={practice.picked}
@@ -517,7 +517,7 @@ export default function PeriodicReviewPage() {
           twice. */}
       {(picked.length > 0 || remaining.length > 0) && (
         <ReviewSection>
-          <h2>projects and chores</h2>
+          <h2 className="my-4 text-h2">projects and chores</h2>
           {picked.length > 0 && (
             <TaskPickList
               tasks={picked}

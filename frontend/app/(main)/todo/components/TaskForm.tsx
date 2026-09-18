@@ -373,7 +373,7 @@ export default function TaskForm({ task, onSubmit, onCancel }: TaskFormProps) {
       className="flex flex-col gap-4 text-left"
       onSubmit={handleSubmit(handleFormSubmit)}
     >
-      <h3 className="m-0">{task ? "edit task" : "new task"}</h3>
+      <h3 className="m-0 text-h3">{task ? "edit task" : "new task"}</h3>
 
       <Field label="project" htmlFor="project" hideLabel>
         <ProjectSelector

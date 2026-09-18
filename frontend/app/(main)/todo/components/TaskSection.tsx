@@ -48,7 +48,7 @@ export default function TaskSection({
 /** A column's heading. Its edit button appears on hover, or always on a touch screen. */
 export function TaskSectionHeading({ children }: { children: ReactNode }) {
   return (
-    <h3 className="group/heading mb-0 text-left has-[button]:flex has-[button]:items-center has-[button]:gap-2 [&_button]:opacity-0 [&_button]:group-hover/heading:opacity-100 touch:[&_button]:opacity-100">
+    <h3 className="group/heading mt-4 mb-0 text-left text-h3 has-[button]:flex has-[button]:items-center has-[button]:gap-2 [&_button]:opacity-0 [&_button]:group-hover/heading:opacity-100 touch:[&_button]:opacity-100">
       {children}
     </h3>
   );
