@@ -32,7 +32,6 @@
  * whatever its specificity. Emptied page by page as the markup moves to
  * Tailwind; see the UI refactor in !projects. */
 @import "./type.css" layer(utilities.legacy);
-@import "./forms.css" layer(utilities.legacy);
 @import "./rich-text.css" layer(utilities.legacy);
 
 @layer utilities.legacy {
@@ -48,6 +47,12 @@
  * spins forever. */
 :root {
   --transition-time: 450ms;
+}
+
+/* Tailwind's preflight gives buttons the default arrow; every button here is
+ * something to press. */
+button {
+  cursor: pointer;
 }
 
 hr {

@@ -447,7 +447,7 @@ export default function PeriodicReviewPage() {
             <ReviewNote>{stillUnset.length} still undecided</ReviewNote>
           )}
           {calendars.some((c) => c.unreachable) && (
-            <p className="error">
+            <p className="italic">
               couldn&apos;t reach:{" "}
               {calendars.filter((c) => c.unreachable).map((c) => c.name).join(", ")}
             </p>
@@ -550,7 +550,7 @@ export default function PeriodicReviewPage() {
           person would notice, and with no button to press there is nothing else
           that would tell them. */}
       {error && (
-        <p className="error">couldn&apos;t save that — {error.message}</p>
+        <p className="italic">couldn&apos;t save that — {error.message}</p>
       )}
     </ReviewPage>
   );

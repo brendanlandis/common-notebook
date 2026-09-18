@@ -44,7 +44,7 @@ export default function PracticeForm({ practiceLog, onSubmit, onCancel }: Practi
         />
       </div>
 
-      <div className="form-actions">
+      <div>
         <Button type="submit">Save</Button>
         <Button onClick={onCancel}>Cancel</Button>
       </div>

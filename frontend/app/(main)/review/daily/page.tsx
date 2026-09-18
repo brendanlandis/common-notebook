@@ -480,7 +480,7 @@ export default function DailyReviewPage() {
           leaves the page looking right and the server disagreeing. Nothing else
           here would ever say so — there's no button whose spinner could stall. */}
       {saveError && (
-        <p className="error">couldn&apos;t save that — {saveError.message}</p>
+        <p className="italic">couldn&apos;t save that — {saveError.message}</p>
       )}
     </ReviewPage>
   );
