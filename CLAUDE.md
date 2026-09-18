@@ -488,6 +488,13 @@ is server state via `useActiveSession`, which polls every 30s **only while somet
   it writes a month of practice across three subjects, tagged `[sample]`, and `--reset` removes them.
   Note that a project's world relation is **`worldRef`** (`world` is what the app's own API calls it);
   passing the wrong name sets nothing and leaves projects in no world at all.
+- **Imported datetimes in the local SQLite copy are text; Strapi's are epoch-ms integers.** Strapi
+  on SQLite writes and filters datetimes as integers, and SQLite sorts any text above any integer,
+  so a `$gte` filter on an imported text column matches every row (the done view's "recently" charts
+  counted every task ever completed). `tasks.completed_at` was converted 2026-09-18 with
+  `cast(round((julianday(col) - 2440587.5)*86400000) as integer)`; other datetime columns
+  (`created_at`, `updated_at`, other tables) are still text. Suspect this before the code when a date
+  filter over-includes locally. A write to the file directly with `sqlite3` works while the backend runs.
 - **Email sending is opt-in, via `EMAIL_ENABLED=true`.** `backend/.env` holds the *production* SMTP
   credentials, and any local boot — `strapi develop`, a forgotten `strapi start`, a script — picks them up;
   that has already sent real password-reset mail to a seed address by accident. `config/plugins.ts`
