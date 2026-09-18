@@ -14,16 +14,9 @@ License: AGPL v3.
 
 ## Stack
 - Next.js `^16` App Router, React `^19`, TypeScript strict, import alias `@/` → frontend root.
-- Styling: Tailwind CSS v4 (PostCSS/CSS-based config, no `tailwind.config`) + daisyUI 5. No CSS
-  modules. **New styling goes on the markup, not into `app/css/`** — a refactor is moving the
-  hand-written sheets there onto Tailwind a page at a time (see
-  `!projects/notebooks/active/cn-ui-refactor-1-tailwind-and-shared-components.md`). What that
-  means in practice:
-  - **The sheets that remain sit in `@layer utilities.legacy`**, declared in `screen.css`: above
-    daisyUI's own sublayers, below Tailwind's utility classes. So a utility on an element beats
-    them, which is what lets a page move without touching the sheets other pages still use — and
-    it is why a default that a utility would override (the task grid's single column) has to live
-    in the sheet rather than as a class.
+- Styling: Tailwind CSS v4 (PostCSS/CSS-based config, no `tailwind.config`) + daisyUI 5 (themes
+  `retro`, and `dim` for dark). No CSS modules. **Styling goes on the markup**, through the shared
+  components below where a look repeats; `app/css/` holds only what markup can't carry.
   - **Shared components carry the app's look**, rather than a repeated string of utilities:
     `components/FormControls.tsx` (`Field`, `Input`, `Select`, `Checkbox`, `CheckboxInput`,
     `Toggle` — daisyUI's controls with the app's square corners and full-strength border),
@@ -33,33 +26,36 @@ License: AGPL v3.
     `(main)/todo/components/TaskSection.tsx` (`TaskGrid`, `TaskSection`,
     `TaskSectionHeading`, `TaskList`), and `(main)/review/components/ReviewParts.tsx` (the
     review pages' column, sections, project groups, notes and put-back arrow).
-  - **Headings carry their own size** as `text-h1` … `text-h4`, theme tokens in `screen.css`, plus
-    their own margins (`my-4` where nothing else is set). `type.css` sets only the two faces, so a
-    bare `<h2>` renders at body size: give it a token.
-  - **Two custom variants**, both in `screen.css`: `dim:` for the dark theme, where a daisyUI
-    color token alone can't say it, and `touch:` for `(hover: none) and (pointer: coarse)`, which
-    is how a control revealed on hover stays put on a phone.
+  - **Colors are daisyUI's tokens, by their own names** (`base-content` for ink, `base-100` for
+    paper, `success` for "yes, this one"). Where the two themes need different tokens, say so with
+    `dim:` (or `light-dark()` in a string handed to a chart).
+  - **Headings carry their own size** as `text-h1` … `text-h4` (theme tokens in `screen.css`) and
+    their own margins (`my-4` where nothing else is set). `type.css` sets only the two faces —
+    Sweetheart for headings, IBM Plex Serif for body — so a bare `<h2>` renders at body size.
+  - **`screen.css` also holds** the `--transition-time` every animation uses (450ms), and two custom
+    variants: `dim:` for the dark theme, and `touch:` for `(hover: none) and (pointer: coarse)`,
+    which is how a control revealed on hover stays put on a phone.
+  - **The sheets, and why each is a sheet:** `task-grid.css` (how many columns a view gets depends
+    on which children actually rendered, which only `:has()` can ask), `review-calendar.css`
+    (FullCalendar's DOM, event states, keyframes and view-transition rules), `SlateEditor.css` and
+    `rich-text.css` (editor and rendered rich text), `print.css`, and `type.css`.
+  - **They sit in `@layer utilities.legacy`**, declared in `screen.css`: above daisyUI's own
+    sublayers, below Tailwind's utility classes. So a utility on an element beats them — which is
+    why a default a utility would override (the task grid's single column) lives in the sheet
+    rather than as a class. `SlateEditor.css` is imported by its component and is unlayered.
   - **A class name with no CSS behind it is a hook, not a leftover.** `task-section`,
     `tasks-container`, `group-section`, `tasks-list`, `completed`, `worked-on` and the
     `layout-<slug>` names are read by browser specs, unit tests, or the `[.layout-done_&]:`
-    variants; so are the review pages' `review-section`, `review-pick-list` and `is-selected`,
-    and `review-calendar`, `review-calendar-frame`, `is-arriving`, `is-leaving` and the
-    `cal-*` event classes are what `review-calendar.css` hangs on. Renaming one breaks tests,
-    not styling.
-  - **What stays CSS on purpose:** `task-grid.css` (how many columns a view gets — it depends on
-    which children actually rendered, which only `:has()` can ask), third-party DOM
-    (`review-calendar.css` for FullCalendar's colors, event states and animations;
-    `SlateEditor.css`, `rich-text.css`) and `print.css`.
+    variants; so are the review pages' `review-section`, `review-pick-list` and `is-selected`.
+    `review-calendar`, `review-calendar-frame`, `is-arriving`, `is-leaving` and the `cal-*` event
+    classes are what `review-calendar.css` hangs on. Renaming one breaks tests, not styling.
   - **Don't butt a bracketed class against `${` in a template literal.** Tailwind's scanner
     misses `` `text-[0.85rem]${x}` `` and silently generates nothing (a plain `mb-4` in the same spot
     is fine). Put the arbitrary class first, or a space after it.
-  - **Colors are daisyUI's tokens, by their own names** (`base-content` for ink, `base-100` for
-    paper, `success` for "yes, this one"). There is no renaming layer; where the two themes need
-    different tokens, say so with `dim:` (or `light-dark()` in a string handed to a chart).
   - **Deleting a sheet, or adding to an `@theme` block, needs `rm -rf .next/dev` and a dev-server
     restart** — and so does anything that swaps `screen.css` under a running server (a `git stash`
-    round trip dropped the `text-h*` tokens until restart). Turbopack keeps
-    serving the old CSS otherwise, which looks exactly like a change that didn't work.
+    round trip dropped the `text-h*` tokens until restart). Turbopack keeps serving the old CSS
+    otherwise, which looks exactly like a change that didn't work.
 - Editor: TipTap 3 (`@tiptap/*` all `^3.27.1`) + `@strapi/blocks-react-renderer`.
 - Forms: react-hook-form 7 + zod 4. Charts: recharts 3. Icons: `@phosphor-icons/react`.
 - Calendar: **FullCalendar 6** (`@fullcalendar/{core,react,timegrid,daygrid}`) renders the review grid;
