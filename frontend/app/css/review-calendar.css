@@ -1,0 +1,343 @@
+/* The review pages' calendar: FullCalendar's DOM, in this app's colors, and
+ * the animations no element can carry as a class.
+ *
+ * Everything else on those pages is on the markup; see
+ * `(main)/review/components/ReviewParts.tsx`. Colors are daisyUI's tokens:
+ * base-content for ink, base-100 for paper, success for "yes, this one" — the
+ * same fill as a picked pill.
+ */
+
+/* The move between the two lists. Each pill carries its own
+ * `view-transition-name` (see `TaskPickList`), so the browser tweens it from
+ * where it was to where it landed rather than blinking it out of one list and
+ * into the other. Everything else on the page cross-fades as one.
+ *
+ * Long enough to read as a move rather than a jump, short enough that picking
+ * half a dozen things in a row doesn't feel like queuing. There is no
+ * reduced-motion rule here because the transition is never started at all in
+ * that case; see `canViewTransition`. */
+::view-transition-group(*) {
+  animation-duration: var(--transition-time);
+}
+
+/* FullCalendar, in this app's colors.
+ *
+ * Its defaults are hard-coded light-mode values — `#ddd` grid lines, a `#fff`
+ * page background, a yellow today tint — and they are *values*, not tokens
+ * pointing at anything, so a dark theme leaves them exactly where they were. In
+ * `dim` that meant near-white gridlines ruling a near-black page (the harshest
+ * thing on the screen by some distance) and a white header strip carrying pale
+ * blue text, which was simply illegible.
+ *
+ * Set through FullCalendar's own custom properties rather than by overriding its
+ * rules: the variables are the documented seam, they apply everywhere the value
+ * is used rather than everywhere we remembered to look, and they need none of
+ * the `!important` the rest of this file carries — a variable set on an ancestor
+ * beats one set on `.fc` by the library, whatever the specificity of the rule
+ * that reads it.
+ *
+ * Everything derives from daisyUI's theme tokens, so light and dark both follow
+ * and neither needs its own block. */
+.review-calendar .fc {
+  /* The header strip and any sticky section behind it. */
+  --fc-page-bg-color: var(--color-base-100);
+  /* Lines that structure the grid without being read as content. */
+  --fc-border-color: color-mix(in oklab, var(--color-base-content) 20%, transparent);
+  --fc-neutral-bg-color: color-mix(in oklab, var(--color-base-content) 8%, transparent);
+  --fc-neutral-text-color: color-mix(in oklab, var(--color-base-content) 65%, transparent);
+  /* Today, marked but not shouted. The default is a warm yellow that suits the
+   * light theme and turns to olive mud on a dark one. */
+  --fc-today-bg-color: color-mix(in oklab, var(--color-base-content) 11%, transparent);
+  --fc-more-link-bg-color: var(--color-base-200);
+  --fc-more-link-text-color: var(--color-base-content);
+}
+
+/* Switching cycles slides the grid out and the next one in.
+ *
+ * A cross-fade between two weeks is very nearly invisible: same columns, same
+ * hours, same shapes, only the dates and a few events differ — so blending them
+ * looks like nothing happened, which is exactly what it was reported as. A slide
+ * says which direction you went, and the direction is the whole content of that
+ * control.
+ *
+ * ## Plain CSS, not a view transition, and it has to be
+ *
+ * A view transition needs the DOM to hold still for its whole duration, and this
+ * interaction is defined by a second thing arriving from the network partway
+ * through: switching the period refetches the review covering it, and re-seeding
+ * the selection can unmount the entire "this week" section and the ~50 pills in
+ * it. Every one of those carries a `view-transition-name`, and a browser
+ * abandons a transition when named elements vanish underneath it — measured at
+ * 76ms into a 450ms animation, over by 85ms. See `useCycleSlide`.
+ *
+ * These run on the live element instead, so nothing happening elsewhere on the
+ * page can interrupt them. The two halves can't overlap — it's one element, not
+ * two snapshots — so they're sequential, each taking half of `--transition-time`
+ * so the whole gesture still lasts as long as everything else that moves here.
+ * `useCycleSlide` swaps the period at the halfway point, while the grid is off
+ * screen. */
+@keyframes grid-out-left {
+  to {
+    opacity: 0;
+    transform: translateX(-2rem);
+  }
+}
+
+@keyframes grid-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(2rem);
+  }
+}
+
+@keyframes grid-out-right {
+  to {
+    opacity: 0;
+    transform: translateX(2rem);
+  }
+}
+
+@keyframes grid-in-left {
+  from {
+    opacity: 0;
+    transform: translateX(-2rem);
+  }
+}
+
+.review-calendar-frame {
+  &.cycle-out-forward {
+    animation: grid-out-left calc(var(--transition-time) / 2) ease-in both;
+  }
+
+  &.cycle-in-forward {
+    animation: grid-in-right calc(var(--transition-time) / 2) ease-out both;
+  }
+
+  &.cycle-out-back {
+    animation: grid-out-right calc(var(--transition-time) / 2) ease-in both;
+  }
+
+  &.cycle-in-back {
+    animation: grid-in-left calc(var(--transition-time) / 2) ease-out both;
+  }
+}
+
+/* Events arrive, rather than landing in one jump.
+ *
+ * The grid is drawn immediately and the events turn up several seconds later
+ * (see the spinner above), so without this the week's contents simply appear —
+ * the one moment on the page where something moved at no speed at all, next to
+ * pills and toggles that all move at `--transition-time`.
+ *
+ * An animation rather than a transition because there is nothing to transition
+ * *from*: these elements don't exist until the events arrive, and a transition
+ * on a freshly-inserted element doesn't run.
+ *
+ * ## Only under `.is-arriving`, which is the whole trick
+ *
+ * FullCalendar rebuilds its event elements whenever the array it's handed
+ * changes — not just for the events that changed. Unscoped, this animation
+ * therefore re-fired on every interaction: folding the fake events away flashed
+ * every real event on the grid, and deciding about one flashed all the undecided
+ * ones. Things that had not moved appeared to blink.
+ *
+ * `useArrival` puts the class on for exactly one transition's length after a
+ * load finishes, so the fade belongs to arrival and to nothing else.
+ *
+ * ## It moves as well as fading
+ *
+ * A pure opacity fade reads as finished around halfway through — next to a pill
+ * traveling for the same 450ms it looked like a much quicker animation, which
+ * is precisely the mismatch this file exists to avoid. A few pixels of settle
+ * gives the eye something to follow for the whole duration. Small enough not to
+ * read as the event changing size, which is a complaint this feature has already
+ * had once. */
+@keyframes cal-event-in {
+  from {
+    opacity: 0;
+    transform: translateY(-0.35rem);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.review-calendar.is-arriving .fc-timegrid-event-harness,
+.review-calendar.is-arriving .fc-daygrid-event-harness {
+  animation: cal-event-in var(--transition-time) ease-out both;
+}
+
+/* The pills' transition is skipped outright in this case rather than shortened
+ * (see `canViewTransition`); there's no equivalent hook for a CSS animation, so
+ * it's turned off here. */
+@media (prefers-reduced-motion: reduce) {
+  .review-calendar.is-arriving .fc-timegrid-event-harness,
+  .review-calendar.is-arriving .fc-daygrid-event-harness {
+    animation: none;
+  }
+}
+
+/* …and out again, when a decision takes an event off the grid.
+ *
+ * The class is put on by `leaveThenUpdate`, which then waits exactly this long
+ * before making the change that removes the element — CSS alone can't animate a
+ * node that is about to stop existing. `pointer-events` goes with it so a second
+ * click can't land on an event whose fate is already decided.
+ *
+ * More specific than `.cal-event-hide`'s own `opacity: 0.75`, so it wins without
+ * `!important`. Reduced motion is handled in `leaveThenUpdate`, which skips the
+ * wait entirely rather than fading at zero duration. */
+.review-calendar .is-leaving {
+  opacity: 0;
+  /* The mirror of the arrival's settle, so leaving is the same gesture run
+   * backwards and takes the same 450ms to read. */
+  transform: translateY(-0.35rem);
+  pointer-events: none;
+  transition: opacity var(--transition-time) ease-in,
+    transform var(--transition-time) ease-in;
+}
+
+/* Sunset: a line across the day, not a block.
+ *
+ * It's a one-minute background event (see `toSunsetEvents`) squashed to a
+ * hairline, because FullCalendar has no notion of "draw a line here" and its own
+ * now-indicator is the only built-in of that shape.
+ *
+ * Dashed, to say "this is information about the day rather than an appointment
+ * in it" — but not faint. The first version was a 1px hairline at 0.55 opacity
+ * with the label inheriting FullCalendar's muted background-event color, and it
+ * read as a rendering artefact. The distinction it needs to carry is against
+ * *events*, and the dashes already carry that; dimness on top only made it hard
+ * to find. */
+.cal-sunset {
+  background: none !important;
+  border-top: 2px dashed var(--color-base-content) !important;
+  opacity: 1 !important;
+}
+
+/* `!important` throughout, as everywhere else in this file: FullCalendar v6
+ * injects its stylesheet at runtime, so it lands *after* this one and wins every
+ * tie on specificity. Its `.fc-bg-event` is `opacity: 0.3`, which is what left
+ * the label a grey smudge while the border — already `!important` — came through
+ * fine. */
+.cal-sunset .fc-event-title {
+  color: var(--color-base-content) !important;
+  font-style: italic !important;
+  font-size: 0.85em !important;
+  padding-left: 0.3rem !important;
+  opacity: 1 !important;
+}
+
+/* The three states have to be unmistakable at a glance, because clicking to
+ * cycle them is the entire interaction of this page.
+ *
+ * The first version distinguished them by opacity alone — 0.75 for undecided,
+ * 1 for kept — which is to say barely at all, since 1 is just the default. The
+ * only other cue was a dashed border, and FullCalendar draws an event's border
+ * in the same color as its background, so that was invisible too. You could
+ * click through every event on the page and see nothing change but a counter.
+ *
+ * So: filled versus hollow, which reads instantly, plus a glyph, so the states
+ * survive being greyscale, low-contrast, or looked at by someone who doesn't
+ * separate colors. Never color alone.
+ *
+ * The three states are `unset`, `show` and `hide` in the data and in these
+ * class names, because that's what the server stores. The UI calls them
+ * "undecided", "real" and "fake" — an event you've decided is fake is one that
+ * is on the calendar but isn't a claim on you.
+ *
+ * `hide` is styled at all — rather than simply not rendered — because this is
+ * where decisions get made, and you cannot change your mind about something you
+ * cannot see. It's off by default all the same: a week's worth of struck-through
+ * things you already dismissed is most of what you'd be looking at, which is the
+ * opposite of seeing what the week actually is. The legend's checkbox brings
+ * them back. The daily page never shows them; that's the reading surface. */
+
+.fc-event {
+  cursor: pointer;
+}
+
+/* …except where clicking one does nothing.
+ *
+ * The daily grid is a reading surface: decisions are made on the review page, so
+ * it's handed no `onCycle`. FullCalendar doesn't know that — it gives every
+ * event a pointer cursor and paints `--fc-event-selected-overlay-color` over one
+ * that's been pressed, so the events read as controls and appeared to respond to
+ * a click that did nothing at all. The overlay is turned off through
+ * FullCalendar's own variable rather than by chasing the `::after` that draws
+ * it. */
+.review-calendar.is-readonly {
+  --fc-event-selected-overlay-color: transparent;
+
+  .fc-event {
+    cursor: default;
+  }
+}
+
+/* FullCalendar colors the time and the title separately, and its default for
+ * the time is a near-white tuned for a filled event. Setting `color` on the
+ * event container alone left "9:00 - 10:00" white-on-cream and unreadable on
+ * both hollow states — legible only on the one state that happens to be filled.
+ * So every state names both. */
+.cal-event-unset .fc-event-time,
+.cal-event-unset .fc-event-title,
+.cal-event-hide .fc-event-time,
+.cal-event-hide .fc-event-title {
+  color: var(--color-base-content);
+}
+
+.cal-event-show .fc-event-time,
+.cal-event-show .fc-event-title {
+  color: var(--color-base-100);
+}
+
+/* Undecided: hollow and dashed. Unfinished without reading as wrong — "you
+ * haven't looked at this yet" is not a warning. */
+.cal-event-unset {
+  background-color: transparent !important;
+  border: 2px dashed var(--color-base-content) !important;
+}
+
+.cal-event-unset .fc-event-title::before {
+  content: "? ";
+  font-weight: bold;
+}
+
+/* Kept: solid, the only filled state on the grid. */
+.cal-event-show {
+  background-color: var(--color-success) !important;
+  border: 2px solid var(--color-success) !important;
+}
+
+.cal-event-show .fc-event-title::before {
+  content: "✓ ";
+  font-weight: bold;
+}
+
+/* Dropped: set aside but still readable.
+ *
+ * This was `opacity: 0.45` on the whole event, which made it a pale smear —
+ * present enough to clutter the grid, too faint to read or to click with any
+ * confidence. Since the point of keeping ignored events on this page is that
+ * you can change your mind about them, they have to stay legible. Muted via a
+ * lighter border and a strikethrough instead. */
+.cal-event-hide {
+  background-color: transparent !important;
+  border: 1px solid var(--color-base-content) !important;
+  opacity: 0.75;
+}
+
+.cal-event-hide .fc-event-title {
+  text-decoration: line-through;
+}
+
+/* The glyph gets struck through along with the title — text-decoration
+ * propagates to descendants and cannot be turned off from inside. It still reads
+ * clearly, so it stays as one struck-through phrase rather than growing an extra
+ * wrapper element to escape the line. */
+.cal-event-hide .fc-event-title::before {
+  content: "✕ ";
+  font-weight: bold;
+}
+

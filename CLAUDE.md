@@ -28,19 +28,26 @@ License: AGPL v3.
     `components/FormControls.tsx` (`Field`, `Input`, `Select`, `Checkbox`, `CheckboxInput`,
     `Toggle` — daisyUI's controls with the app's square corners and full-strength border),
     `components/DrawerHeader.tsx`, `components/DisclosureToggle.tsx`, `components/auth/Auth.tsx`,
-    and `(main)/todo/components/TaskSection.tsx` (`TaskGrid`, `TaskSection`,
-    `TaskSectionHeading`, `TaskList`).
+    `(main)/todo/components/TaskSection.tsx` (`TaskGrid`, `TaskSection`,
+    `TaskSectionHeading`, `TaskList`), and `(main)/review/components/ReviewParts.tsx` (the
+    review pages' column, sections, project groups, notes and put-back arrow).
   - **Two custom variants**, both in `screen.css`: `dim:` for the dark theme, where a daisyUI
     color token alone can't say it, and `touch:` for `(hover: none) and (pointer: coarse)`, which
     is how a control revealed on hover stays put on a phone.
   - **A class name with no CSS behind it is a hook, not a leftover.** `task-section`,
     `tasks-container`, `group-section`, `tasks-list`, `completed`, `worked-on` and the
     `layout-<slug>` names are read by browser specs, unit tests, or the `[.layout-done_&]:`
-    variants. Renaming one breaks tests, not styling.
+    variants; so are the review pages' `review-section`, `review-pick-list` and `is-selected`,
+    and `review-calendar`, `review-calendar-frame`, `is-arriving`, `is-leaving` and the
+    `cal-*` event classes are what `review-calendar.css` hangs on. Renaming one breaks tests,
+    not styling.
   - **What stays CSS on purpose:** `task-grid.css` (how many columns a view gets — it depends on
     which children actually rendered, which only `:has()` can ask), third-party DOM
-    (`page-review.css`'s FullCalendar overrides, `SlateEditor.css`, `rich-text.css`) and
-    `print.css`.
+    (`review-calendar.css` for FullCalendar's colors, event states and animations;
+    `SlateEditor.css`, `rich-text.css`) and `print.css`.
+  - **Don't butt a bracketed class against `${` in a template literal.** Tailwind's scanner
+    misses `` `text-[0.85rem]${x}` `` and silently generates nothing (a plain `mb-4` in the same spot
+    is fine). Put the arbitrary class first, or a space after it.
   - **Deleting a sheet needs `rm -rf .next/dev` and a dev-server restart.** Turbopack keeps
     serving the old CSS otherwise, which looks exactly like a change that didn't work.
 - Editor: TipTap 3 (`@tiptap/*` all `^3.27.1`) + `@strapi/blocks-react-renderer`.

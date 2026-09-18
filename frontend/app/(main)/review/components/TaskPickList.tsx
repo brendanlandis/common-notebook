@@ -1,6 +1,7 @@
 "use client";
 
 import type { Task } from "@/app/types/index";
+import { PickProject, ReviewNote } from "./ReviewParts";
 
 /**
  * A list of tasks you pick from — the selection primitive both the review and
@@ -40,6 +41,17 @@ interface TaskPickListProps {
   showProject?: boolean;
 }
 
+/*
+ * Filled means "yes, this one" — the same thing it means on the calendar. Color
+ * is not carrying it alone: a picked pill is the only filled shape in the list,
+ * the way a kept event is the only filled block on the grid. `is-selected` stays
+ * on as a name because a unit test reads it.
+ */
+const PILL = [
+  "group inline-flex cursor-pointer items-baseline gap-[0.4rem] rounded-full border border-base-content px-[0.7rem] py-1 text-left text-base-content",
+  "aria-pressed:border-success aria-pressed:bg-success aria-pressed:text-base-100",
+].join(" ");
+
 export default function TaskPickList({
   tasks,
   selected,
@@ -49,18 +61,18 @@ export default function TaskPickList({
   showProject = true,
 }: TaskPickListProps) {
   if (tasks.length === 0) {
-    return emptyMessage ? <p className="review-empty">{emptyMessage}</p> : null;
+    return emptyMessage ? <ReviewNote>{emptyMessage}</ReviewNote> : null;
   }
 
   if (readOnly) {
     return (
-      <ul className="review-task-list">
+      <ul>
         {tasks.map((task) => (
-          <li key={task.documentId}>
+          <li key={task.documentId} className="flex items-baseline gap-2 py-[0.2rem]">
             <span>
               {task.title}
               {showProject && task.project?.title && (
-                <span className="review-pick-project">{task.project.title}</span>
+                <PickProject>{task.project.title}</PickProject>
               )}
             </span>
           </li>
@@ -70,14 +82,14 @@ export default function TaskPickList({
   }
 
   return (
-    <ul className="review-pick-list">
+    <ul className="review-pick-list my-2 flex flex-wrap gap-[0.4rem]">
       {tasks.map((task) => {
         const isSelected = selected.has(task.documentId);
         return (
           <li key={task.documentId}>
             <button
               type="button"
-              className={`review-pill${isSelected ? " is-selected" : ""}`}
+              className={`${PILL}${isSelected ? " is-selected" : ""}`}
               aria-pressed={isSelected}
               /* Names this pill for the view transition that runs when picking
                  moves it between the two lists, so the browser tweens it from
@@ -101,7 +113,7 @@ export default function TaskPickList({
                 {/* The project, only where it isn't already implied by the
                     heading above the list. Context, not status. */}
                 {showProject && task.project?.title && (
-                  <span className="review-pick-project">{task.project.title}</span>
+                  <PickProject>{task.project.title}</PickProject>
                 )}
               </span>
             </button>

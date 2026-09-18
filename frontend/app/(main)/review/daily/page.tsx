@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { CheckboxInput } from "@/app/components/FormControls";
 import { flushSync } from "react-dom";
-import { ArrowDownIcon, MetronomeIcon } from "@phosphor-icons/react";
+import { MetronomeIcon } from "@phosphor-icons/react";
 import { useDateTimeSettings } from "@/app/contexts/DateTimeSettingsContext";
 import { useLocation } from "@/app/hooks/useLocation";
 import { getToday, shiftISODate, toISODate, wallClockNow } from "@/app/lib/dateUtils";
@@ -18,8 +18,18 @@ import { useDailyPick } from "../hooks/useDailyPick";
 import { useCompleteTask } from "../hooks/useCompleteTask";
 import { useArrival } from "../hooks/useArrival";
 import { useCalendarEvents } from "../hooks/useCalendarEvents";
-import TaskPickList from "../components/TaskPickList";
 import WeekCalendar from "../components/WeekCalendar";
+import {
+  CALENDAR_FRAME,
+  CalendarLoading,
+  PickProject,
+  PRACTICE_SECTION,
+  ProjectGroupList,
+  ReviewNote,
+  ReviewPage,
+  ReviewSection,
+  UnpickButton,
+} from "../components/ReviewParts";
 
 /**
  * What's on your plate today.
@@ -37,6 +47,19 @@ import WeekCalendar from "../components/WeekCalendar";
  * list empty and every task sitting in the pool below — which is a legible state
  * ("I haven't chosen yet"), not a broken one.
  */
+/*
+ * A row of today's column: the thing, then its put-back arrow at the far edge.
+ * Practice rows and task rows share both, so the two halves of the column line
+ * up exactly.
+ *
+ * The item is `inline-flex`, shrink-wrapped, and padded to a pill's height,
+ * because it carries the view-transition name: against a full-width box the
+ * browser scaled the pill up to meet it, and the task read as growing across
+ * the column rather than moving into place.
+ */
+const DAILY_ROW = "flex w-full items-center gap-2";
+const DAILY_ITEM = "inline-flex items-center gap-2 py-1";
+
 export default function DailyReviewPage() {
   const { timeZoneSettings } = useDateTimeSettings();
   const today = toISODate(getToday(timeZoneSettings), timeZoneSettings);
@@ -260,30 +283,36 @@ export default function DailyReviewPage() {
     };
   }, [todaysEvents, sunsets]);
 
-  if (reviewLoading || pickLoading) return <div className="review-page">loading...</div>;
+  if (reviewLoading || pickLoading) return <ReviewPage>loading...</ReviewPage>;
 
   if (!review) {
     return (
-      <div className="review-page">
+      <ReviewPage>
         <h1>today</h1>
         <p>no review covers today yet.</p>
-      </div>
+      </ReviewPage>
     );
   }
 
   return (
-    <div className="review-page">
+    <ReviewPage>
       <h1>today</h1>
 
-      <div className="daily-layout">
+      {/* The day's list beside the day's shape. One column on a narrow screen,
+          list first: on a phone the thing you're doing matters more than the
+          grid, and the alignment below is meaningless at that width anyway. */}
+      <div className="my-4 grid grid-cols-1 gap-4 min-[60rem]:grid-cols-[minmax(12rem,1fr)_2fr] min-[60rem]:items-start">
         {/* Pushed down to meet the now-indicator, so "what I'm doing" starts
             level with "where the day has got to". Falls back to the top of the
             column when there's no line to meet.
             Handed over as a custom property rather than as padding, because
-            whether to apply it at all is a question about the layout — see
-            `.daily-chosen`, which uses it only in the two-column form. */}
+            whether to apply it at all is a question about the layout: only in
+            the two-column form, since stacked, the list sits *above* the grid
+            and padding to meet a line further down is a screenful of nothing.
+            The transition slides the list as the day passes rather than
+            jumping each minute. */}
         <div
-          className="daily-chosen"
+          className="transition-[padding-top] duration-(--transition-time) ease-[ease] min-[60rem]:pt-(--now-offset)"
           style={{ "--now-offset": `${nowOffset ?? 0}px` } as CSSProperties}
         >
           {/* Today's practice, in the same column as the tasks — it is part of
@@ -291,13 +320,13 @@ export default function DailyReviewPage() {
               leads the column: practice is what gets skipped when it comes
               after a list of things that can be ticked off, which is the same
               reason it leads on the periodic review.
-              Inside `daily-chosen`, so it sits under the same now-offset as the
+              Inside the chosen column, so it sits under the same now-offset as the
               tasks and the whole column starts level with the current hour. */}
           {practice.picked.length > 0 && (
-            <section className="daily-practice">
-              <ul>
+            <section>
+              <ul className="flex flex-col items-start gap-[0.35rem]">
                 {practice.picked.map((task) => (
-                  <li key={task.documentId}>
+                  <li key={task.documentId} className={DAILY_ROW}>
                     {/* An icon, not a checkbox. A checkbox beside a task means done
                         everywhere else in this app, and practice is measured in
                         minutes spent, not in being finished — so it borrows no
@@ -308,7 +337,7 @@ export default function DailyReviewPage() {
                         tweens up out of the pool below, exactly as a task does. */}
                     <button
                       type="button"
-                      className="daily-practice-item"
+                      className={`${DAILY_ITEM} cursor-pointer text-left`}
                       style={{ viewTransitionName: `pill-${task.documentId}` }}
                       onClick={() => openFor(task)}
                     >
@@ -319,18 +348,11 @@ export default function DailyReviewPage() {
                       <span>
                         {task.title}
                         {task.project?.title && (
-                          <span className="review-pick-project">{task.project.title}</span>
+                          <PickProject>{task.project.title}</PickProject>
                         )}
                       </span>
                     </button>
-                    <button
-                      type="button"
-                      className="daily-unpick"
-                      aria-label={`put ${task.title} back`}
-                      onClick={() => toggle(task.documentId)}
-                    >
-                      <ArrowDownIcon aria-hidden="true" />
-                    </button>
+                    <UnpickButton title={task.title} onClick={() => toggle(task.documentId)} />
                   </li>
                 ))}
               </ul>
@@ -338,11 +360,11 @@ export default function DailyReviewPage() {
           )}
 
           {picked.length === 0 ? (
-            <p className="review-empty">nothing chosen yet</p>
+            <ReviewNote>nothing chosen yet</ReviewNote>
           ) : (
-            <ul className="daily-todo">
+            <ul>
               {picked.map((task) => (
-                <li key={task.documentId}>
+                <li key={task.documentId} className={DAILY_ROW}>
                   {/* The same name the pill carries in the pool below, so
                       choosing a task tweens the one into the other rather than
                       blinking one out and the other in. A task is in exactly one
@@ -356,7 +378,7 @@ export default function DailyReviewPage() {
                       traveling. The label is shrink-wrapped to about a pill's
                       width. */}
                   <label
-                    className={task.completed ? "is-done" : undefined}
+                    className={`${DAILY_ITEM} cursor-pointer`}
                     style={{ viewTransitionName: `pill-${task.documentId}` }}
                   >
                     <CheckboxInput
@@ -368,7 +390,11 @@ export default function DailyReviewPage() {
                         })
                       }
                     />
-                    <span>{task.title}</span>
+                    {/* Struck through rather than removed: a day's list you
+                        can see you finished is the point of writing it down. */}
+                    <span className={task.completed ? "line-through opacity-55" : undefined}>
+                      {task.title}
+                    </span>
                   </label>
                   {/* Back to the pool.
                       A separate control because the row already has one, and it
@@ -380,14 +406,7 @@ export default function DailyReviewPage() {
                       line up in a column the way the checkboxes do; a control
                       that lands in a different place on every row reads as
                       clutter even when it's the same control. */}
-                  <button
-                    type="button"
-                    className="daily-unpick"
-                    aria-label={`put ${task.title} back`}
-                    onClick={() => toggle(task.documentId)}
-                  >
-                    <ArrowDownIcon aria-hidden="true" />
-                  </button>
+                  <UnpickButton title={task.title} onClick={() => toggle(task.documentId)} />
                 </li>
               ))}
             </ul>
@@ -400,7 +419,7 @@ export default function DailyReviewPage() {
             than one that fills a block already there. It matters more here,
             since the list beside it is positioned against the grid's
             now-indicator and would otherwise be aligned to nothing. */}
-        <div className="daily-calendar review-calendar-frame" ref={calendarRef}>
+        <div className={CALENDAR_FRAME} ref={calendarRef}>
           <WeekCalendar
             events={todaysEvents}
             periodStart={today}
@@ -411,12 +430,7 @@ export default function DailyReviewPage() {
             arriving={arriving}
             showNow
           />
-          {calendarLoading && (
-            <div className="review-calendar-loading" role="status">
-              <span className="loading loading-spinner" aria-hidden="true" />
-              <span className="sr-only">fetching your calendars</span>
-            </div>
-          )}
+          {calendarLoading && <CalendarLoading />}
         </div>
       </div>
 
@@ -425,47 +439,41 @@ export default function DailyReviewPage() {
           question, asked first. Below the tasks it is the section you have
           already scrolled past by the time you reach it. */}
       {practice.remaining.length > 0 && (
-        <section className="review-section review-practice">
+        <ReviewSection className={PRACTICE_SECTION}>
           <h2>could practice</h2>
           {practice.remaining.map((group) => (
-            <div key={group.key} className="review-group">
-              <h3>{group.projectTitle ?? "incidentals"}</h3>
-              <TaskPickList
-                tasks={group.tasks}
-                selected={selected}
-                onToggle={toggle}
-                showProject={false}
-              />
-            </div>
+            <ProjectGroupList
+              key={group.key}
+              group={group}
+              selected={selected}
+              onToggle={toggle}
+            />
           ))}
-        </section>
+        </ReviewSection>
       )}
 
       {/* The pool, same as the review page's: pick one and it lifts out, up into
           the list above. */}
       {remaining.length > 0 && (
-        <section className="review-section">
+        <ReviewSection>
           {/* What's left of what you committed to this cycle, minus whatever
               you've already lifted out of it into today. Phrased as an
               invitation rather than a promise: "not yet but soon" said when,
               which is exactly what this feature refuses to say. */}
           <h2>could work on</h2>
           {remaining.map((group) => (
-            <div key={group.key} className="review-group">
-              <h3>{group.projectTitle ?? "incidentals"}</h3>
-              <TaskPickList
-                tasks={group.tasks}
-                selected={selected}
-                onToggle={toggle}
-                showProject={false}
-              />
-            </div>
+            <ProjectGroupList
+              key={group.key}
+              group={group}
+              selected={selected}
+              onToggle={toggle}
+            />
           ))}
-        </section>
+        </ReviewSection>
       )}
 
       {reviewTasks.length === 0 && (
-        <p className="review-empty">this review didn&apos;t commit to anything</p>
+        <ReviewNote>this review didn&apos;t commit to anything</ReviewNote>
       )}
 
       {/* The list moves on click and the save follows it, so a rejected write
@@ -474,6 +482,6 @@ export default function DailyReviewPage() {
       {saveError && (
         <p className="error">couldn&apos;t save that — {saveError.message}</p>
       )}
-    </div>
+    </ReviewPage>
   );
 }

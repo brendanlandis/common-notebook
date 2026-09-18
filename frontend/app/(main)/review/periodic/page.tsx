@@ -12,7 +12,7 @@ import {
   type ReviewPeriodMode,
 } from "@/app/lib/reviewCycle";
 import { cadenceIsUsable, cycleNoun } from "@/app/lib/reviewCadence";
-import { buildReviewLists, partitionSelected, type ProjectGroup } from "@/app/lib/reviewLists";
+import { buildReviewLists, partitionSelected } from "@/app/lib/reviewLists";
 import { getToday, wallClockNow } from "@/app/lib/dateUtils";
 import { canViewTransition } from "@/app/lib/viewTransition";
 import { leaveThenUpdate } from "../leaveThenUpdate";
@@ -23,36 +23,15 @@ import { useCalendarEvents, useSetDecision } from "../hooks/useCalendarEvents";
 import { isFullyDecided, undecided, type ResolvedInstance } from "@/app/lib/ics/resolveDecisions";
 import TaskPickList from "../components/TaskPickList";
 import WeekCalendar from "../components/WeekCalendar";
-
-/**
- * One project's worth of pills, under its name.
- *
- * The heading carries the project, so the pills don't repeat it — that muted
- * second label on every pill was a good part of what made the ungrouped list
- * dense. Tasks with no project sit under "incidentals", which is what this app
- * has always called them.
- */
-function ProjectGroupList({
-  group,
-  selected,
-  onToggle,
-}: {
-  group: ProjectGroup;
-  selected: Set<string>;
-  onToggle: (documentId: string) => void;
-}) {
-  return (
-    <div className="review-group">
-      <h3>{group.projectTitle ?? "incidentals"}</h3>
-      <TaskPickList
-        tasks={group.tasks}
-        selected={selected}
-        onToggle={onToggle}
-        showProject={false}
-      />
-    </div>
-  );
-}
+import {
+  CALENDAR_FRAME,
+  CalendarLoading,
+  PRACTICE_SECTION,
+  ProjectGroupList,
+  ReviewNote,
+  ReviewPage,
+  ReviewSection,
+} from "../components/ReviewParts";
 
 /**
  * The review itself: look at what's on your plate and pick a few things.
@@ -63,6 +42,13 @@ function ProjectGroupList({
  * each review opens on the same blank slate, which is what keeps it a planning
  * ritual rather than a report card.
  */
+/*
+ * The legend: without it, three glyphs on a grid are a puzzle rather than a key.
+ * Each swatch is drawn the way its events are, so it reads without the words.
+ */
+const LEGEND_KEY = "inline-flex items-center gap-[0.35rem]";
+const SWATCH = "inline-block size-[1.1rem] rounded-[2px]";
+
 export default function PeriodicReviewPage() {
   const { timeZoneSettings } = useDateTimeSettings();
   const { tasks, loading: tasksLoading } = useTasks();
@@ -326,17 +312,17 @@ export default function PeriodicReviewPage() {
     persist([...next]);
   };
 
-  if (cadenceLoading || tasksLoading) return <div className="review-page">loading...</div>;
+  if (cadenceLoading || tasksLoading) return <ReviewPage>loading...</ReviewPage>;
 
   if (!cadence || !cadenceIsUsable(cadence)) {
     return (
-      <div className="review-page">
+      <ReviewPage>
         <h1>periodic review</h1>
         <p>
           your review cadence needs a little more detail before it can work out a
           period — have a look in settings.
         </p>
-      </div>
+      </ReviewPage>
     );
   }
 
@@ -344,7 +330,7 @@ export default function PeriodicReviewPage() {
   const noun = cycleNoun(cadence);
 
   return (
-    <div className="review-page">
+    <ReviewPage>
       <h1>periodic review</h1>
 
       {/* The period used to be spelled out here as a date range. The calendar
@@ -363,18 +349,23 @@ export default function PeriodicReviewPage() {
           order: this cycle, then the next. `name` is what the e2e spec locates
           it by, since the labels are cadence-dependent and a test matching their
           text would break the moment the account changed its review schedule. */}
-      <div className="review-controls">
-        <label className="review-mode">
-          <span className={mode === "remainder" ? "is-current" : undefined}>
+      <div className="mt-4 mb-2 flex flex-wrap items-center justify-between gap-4">
+        <label className="inline-flex cursor-pointer items-center gap-2">
+          <span className={mode === "remainder" ? undefined : "opacity-30"}>
             this {noun}
           </span>
+          {/* Pinned to one color. daisyUI fades the switch between a
+              half-transparent off and an opaque on, which competed with the
+              labels for the job of saying which side you're on; this way the
+              knob's position is the only thing that moves. */}
           <Toggle
+            className="[--input-color:var(--color-base-content)]"
             role="switch"
             name="review-mode"
             checked={mode === "upcoming"}
             onChange={(event) => setMode(event.target.checked ? "upcoming" : "remainder")}
           />
-          <span className={mode === "upcoming" ? "is-current" : undefined}>
+          <span className={mode === "upcoming" ? undefined : "opacity-30"}>
             next {noun}
           </span>
         </label>
@@ -384,29 +375,29 @@ export default function PeriodicReviewPage() {
             real event and there is nothing left to explain — so the key goes and
             only the reveal remains. */}
         {events.length > 0 && (needsLegend || ignoredCount > 0) && (
-          <div className="review-legend">
+          <div className="ml-auto flex flex-wrap items-center gap-4 text-[0.85em] opacity-80">
             {needsLegend && stillUnset.length > 0 && (
-              <span>
-                <i className="swatch swatch-unset" aria-hidden="true" />? undecided
+              <span className={LEGEND_KEY}>
+                <i className={`${SWATCH} border-2 border-dashed border-base-content`} aria-hidden="true" />? undecided
               </span>
             )}
             {needsLegend && (
-              <span>
-                <i className="swatch swatch-show" aria-hidden="true" />✓ real
+              <span className={LEGEND_KEY}>
+                <i className={`${SWATCH} border-2 border-success bg-success`} aria-hidden="true" />✓ real
               </span>
             )}
             {/* Only while they're on screen — a key to a symbol you can't see is
                 just more to read. */}
             {needsLegend && showIgnored && (
-              <span>
-                <i className="swatch swatch-hide" aria-hidden="true" />✕ fake
+              <span className={LEGEND_KEY}>
+                <i className={`${SWATCH} border border-base-content opacity-75`} aria-hidden="true" />✕ fake
               </span>
             )}
             {/* Only offered when there's something to reveal — an empty checkbox
                 promising nothing is just another control to read past. Last in
                 the row so it doesn't move as the keys beside it come and go. */}
             {ignoredCount > 0 && (
-              <label className="review-legend-toggle">
+              <label className={`${LEGEND_KEY} ml-auto cursor-pointer`}>
                 <CheckboxInput
                   checked={showIgnored}
                   onChange={(event) => revealIgnored(event.target.checked)}
@@ -433,11 +424,11 @@ export default function PeriodicReviewPage() {
           showing nothing. `calendars` is only known once the query answers,
           hence the `calendarLoading ||`. */}
       {period && (calendarLoading || calendars.length > 0) && (
-        <section className="review-section review-calendar-section">
+        <ReviewSection className="mt-0">
           {/* No heading. It's a labeled seven-day grid — anything written over
               it is a caption on a photograph of itself. The key and the controls
               sit in the row above, outside this section. */}
-          <div className={`review-calendar-frame${cycle.phase ? ` ${cycle.phase}` : ""}`}>
+          <div className={`${CALENDAR_FRAME}${cycle.phase ? ` ${cycle.phase}` : ""}`}>
             <WeekCalendar
               events={shownEvents}
               periodStart={period.periodStart}
@@ -446,19 +437,14 @@ export default function PeriodicReviewPage() {
               arriving={arriving}
               onCycle={cycleEvent}
             />
-            {calendarLoading && (
-              <div className="review-calendar-loading" role="status">
-                <span className="loading loading-spinner" aria-hidden="true" />
-                <span className="sr-only">fetching your calendars</span>
-              </div>
-            )}
+            {calendarLoading && <CalendarLoading />}
           </div>
           {/* How much is left, while there is any left. Finishing says itself:
               the count stops, the key above disappears, and every block on the
               grid is a real event — a line announcing that you're done is a
               congratulation nobody asked for. */}
           {stillUnset.length > 0 && (
-            <p className="review-hint">{stillUnset.length} still undecided</p>
+            <ReviewNote>{stillUnset.length} still undecided</ReviewNote>
           )}
           {calendars.some((c) => c.unreachable) && (
             <p className="error">
@@ -466,7 +452,7 @@ export default function PeriodicReviewPage() {
               {calendars.filter((c) => c.unreachable).map((c) => c.name).join(", ")}
             </p>
           )}
-        </section>
+        </ReviewSection>
       )}
 
       {/* What you've picked, lifted clear of everything else.
@@ -490,7 +476,7 @@ export default function PeriodicReviewPage() {
           order and the heading separate the two, which is all the separation the
           attention budget needed. */}
       {(practice.picked.length > 0 || practice.remaining.length > 0) && (
-        <section className="review-section review-practice">
+        <ReviewSection className={PRACTICE_SECTION}>
           {/* Named for the world, not for the activity. "practicing this week"
               read as a verb phrase about one of the things in it, and half of
               what is in it is study rather than practice. */}
@@ -511,7 +497,7 @@ export default function PeriodicReviewPage() {
               onToggle={toggle}
             />
           ))}
-        </section>
+        </ReviewSection>
       )}
 
       {/* The other lane, in the same shape as the practice one above: one
@@ -530,7 +516,7 @@ export default function PeriodicReviewPage() {
           practice heading does and what the cycle switch above already says
           twice. */}
       {(picked.length > 0 || remaining.length > 0) && (
-        <section className="review-section">
+        <ReviewSection>
           <h2>projects and chores</h2>
           {picked.length > 0 && (
             <TaskPickList
@@ -548,12 +534,11 @@ export default function PeriodicReviewPage() {
               onToggle={toggle}
             />
           ))}
-        </section>
+        </ReviewSection>
       )}
 
-
       {lists.groups.length === 0 && lists.practiceGroups.length === 0 && (
-        <p className="review-empty">nothing on your plate — enjoy it</p>
+        <ReviewNote>nothing on your plate — enjoy it</ReviewNote>
       )}
 
       {/* No commit button and no confirmation: a pick saves itself, and the
@@ -567,6 +552,6 @@ export default function PeriodicReviewPage() {
       {error && (
         <p className="error">couldn&apos;t save that — {error.message}</p>
       )}
-    </div>
+    </ReviewPage>
   );
 }
