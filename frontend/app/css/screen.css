@@ -33,6 +33,34 @@
   --text-tiny: 0.75rem;
 }
 
+/* The spacing scale: five steps, each double the last, and nothing in between.
+ *
+ *   4 · 8 · 16 · 32 · 64px   Tailwind's 1 · 2 · 4 · 8 · 16
+ *
+ * A kind of gap that recurs across the app is a role, as `gap-rows`,
+ * `mb-heading` and so on, so moving it to another step moves it everywhere at
+ * once. A one-off takes a step directly (`mb-4`).
+ *
+ *   icons     4px   icons side by side: a task's edit and delete
+ *   rows      8px   one row of a list and the next
+ *   heading   8px   a heading and what it heads
+ *   lists    16px   one labeled list and the next in a column: months, days
+ *   title    16px   a page's title and the page under it
+ *   columns  32px   columns side by side
+ *   blocks   64px   blocks stacked: one row of columns and the next, groups
+ *
+ * The header's own 12px gaps are off the scale: they were set by eye before it
+ * existed. */
+@theme {
+  --spacing-icons: 0.25rem;
+  --spacing-rows: 0.5rem;
+  --spacing-heading: 0.5rem;
+  --spacing-lists: 1rem;
+  --spacing-title: 1rem;
+  --spacing-columns: 2rem;
+  --spacing-blocks: 4rem;
+}
+
 /* The drawers' slide and their overlay's fade, as `animate-drawer-in` …
    `animate-fade-out`, keyed on Radix's `data-state`. Timings are daisyUI's own
    drawer's, which these replaced. Radix waits for the out animations to end

@@ -12,7 +12,7 @@ import type { ReactNode } from "react";
  * address columns by it.
  */
 const SECTION = [
-  "task-section grid grid-cols-1 content-start items-start [&_*]:break-words",
+  "task-section grid grid-cols-1 content-start items-start gap-heading [&_*]:break-words",
   "row-span-2 [grid-template-rows:subgrid]",
   "[.layout-everything_&]:row-auto [.layout-everything_&]:[grid-template-rows:none]",
   "[.layout-recurring_&]:row-auto [.layout-recurring_&]:[grid-template-rows:none]",
@@ -29,7 +29,7 @@ export function TaskGrid({
   children: ReactNode;
 }) {
   return (
-    <div className={`tasks-container grid text-left ${className}`}>
+    <div className={`tasks-container grid gap-x-columns gap-y-blocks text-left ${className}`}>
       {children}
     </div>
   );
@@ -53,7 +53,7 @@ export default function TaskSection({
  */
 export function TaskSectionHeading({ children }: { children: ReactNode }) {
   return (
-    <h2 className="group/heading mb-0 text-left [&_button]:align-middle [&_button]:opacity-0 [&_button]:group-hover/heading:opacity-100 touch:[&_button]:opacity-100">
+    <h2 className="group/heading mb-0 text-left [&_button]:ml-2 [&_button]:align-middle [&_button]:opacity-0 [&_button]:group-hover/heading:opacity-100 touch:[&_button]:opacity-100">
       {children}
     </h2>
   );
@@ -67,5 +67,37 @@ export function TaskList({
   className?: string;
   children: ReactNode;
 }) {
-  return <ul className={`tasks-list flex flex-col ${className}`}>{children}</ul>;
+  return <ul className={`tasks-list flex flex-col gap-rows ${className}`}>{children}</ul>;
+}
+
+/**
+ * Labeled lists stacked in one column: the done view's months and upcoming
+ * days, the recurring review's projects.
+ */
+export function TaskSubsections({
+  className = "",
+  children,
+}: {
+  className?: string;
+  children: ReactNode;
+}) {
+  return <div className={`flex flex-col gap-lists ${className}`}>{children}</div>;
+}
+
+/** One of them: a label and what it labels. */
+export function TaskSubsection({
+  title,
+  className = "",
+  children,
+}: {
+  title: ReactNode;
+  className?: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className={`flex flex-col gap-heading ${className}`}>
+      <h3>{title}</h3>
+      {children}
+    </div>
+  );
 }

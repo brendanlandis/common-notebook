@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import TaskSection, { TaskGrid, TaskList } from "../TaskSection";
+import TaskSection, { TaskGrid, TaskList, TaskSubsections, TaskSubsection } from "../TaskSection";
 import TaskItem from "../TaskItem";
 import type { LayoutRendererProps } from "./types";
 import type { Task } from "@/app/types/index";
@@ -48,26 +48,27 @@ export default function ChronologicalLayout({
     <TaskGrid>
       {recentStatsSection}
       <TaskSection>
-        {groupedByMonth.map(([key, { date, tasks: monthTasks }]) => (
-          <div key={key}>
-            <h3>{formatInTimezone(date, "MMMM yyyy", timeZoneSettings)}</h3>
-            <TaskList>
-              {monthTasks.map((task) => (
-                <TaskItem
-                  key={task.documentId}
-                  task={task}
-                  onComplete={onComplete}
-                  onEdit={onEdit}
-                  onDelete={onDelete}
-                  onWorkSession={onWorkSession}
-                  onRemoveWorkSession={onRemoveWorkSession}
-                  onSkipRecurring={onSkipRecurring}
-                  showProjectName={true}
-                />
-              ))}
-            </TaskList>
-          </div>
-        ))}
+        <TaskSubsections>
+          {groupedByMonth.map(([key, { date, tasks: monthTasks }]) => (
+            <TaskSubsection key={key} title={formatInTimezone(date, "MMMM yyyy", timeZoneSettings)}>
+              <TaskList>
+                {monthTasks.map((task) => (
+                  <TaskItem
+                    key={task.documentId}
+                    task={task}
+                    onComplete={onComplete}
+                    onEdit={onEdit}
+                    onDelete={onDelete}
+                    onWorkSession={onWorkSession}
+                    onRemoveWorkSession={onRemoveWorkSession}
+                    onSkipRecurring={onSkipRecurring}
+                    showProjectName={true}
+                  />
+                ))}
+              </TaskList>
+            </TaskSubsection>
+          ))}
+        </TaskSubsections>
       </TaskSection>
     </TaskGrid>
   );

@@ -1,6 +1,6 @@
 "use client";
 
-import TaskSection, { TaskSectionHeading } from "./TaskSection";
+import TaskSection, { TaskSectionHeading, TaskSubsections } from "./TaskSection";
 import { useMemo } from "react";
 import LayoutRenderer from "./LayoutRenderer";
 import RecentStats from "./RecentStats";
@@ -123,6 +123,8 @@ export default function TaskViewContent({ slug }: { slug: string }) {
     <>
       <FaviconManager type="broom" />
       <div id="container-task" className={`text-center ${layoutClass}`} suppressHydrationWarning>
+        {/* Every page opens with its title; a view's is its name. */}
+        {ruleset.name && <h1 className="mb-title text-left">{ruleset.name}</h1>}
         {!hasAnyTasks && !hasRecurringTasks && !hasCompletedTasks ? (
           <p>nothin' to do, nowhere to be</p>
         ) : (
@@ -142,7 +144,7 @@ export default function TaskViewContent({ slug }: { slug: string }) {
               (recentStats.length > 0 || recentStats30Days.length > 0) ? (
                 <TaskSection className="w-full max-w-[600px] min-[900px]:max-w-[800px]">
                   <TaskSectionHeading>recently</TaskSectionHeading>
-                  <div>
+                  <TaskSubsections>
                     <RecentStats
                       stats={recentStats}
                       loading={statsLoading}
@@ -155,7 +157,7 @@ export default function TaskViewContent({ slug }: { slug: string }) {
                       title="last 30 days"
                       noWrapper
                     />
-                  </div>
+                  </TaskSubsections>
                 </TaskSection>
               ) : undefined
             }

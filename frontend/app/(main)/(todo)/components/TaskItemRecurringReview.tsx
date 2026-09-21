@@ -49,7 +49,7 @@ export default function TaskItemRecurringReview({
           )}
         </div>
         {/* Always out: this view is a review, so every row is being acted on. */}
-        <span className="flex flex-1 justify-start justify-self-start">
+        <span className="flex flex-1 justify-start gap-icons touch:gap-4 justify-self-start">
           {task.trackingUrl && (
             <a
               href={task.trackingUrl}
@@ -82,7 +82,7 @@ export default function TaskItemRecurringReview({
       </div>
 
       {hasDescription && (
-        <div className="mr-0 border border-dashed border-base-content bg-base-200 px-[0.7rem] py-2">
+        <div className="mt-rows mr-0 ml-8 border border-dashed border-base-content bg-base-200 px-[0.7rem] py-2">
           {/* A note reads one step below its task. */}
           <RichTextDisplay content={task.description} className="text-small" />
         </div>

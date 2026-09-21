@@ -1,6 +1,12 @@
 "use client";
 
-import TaskSection, { TaskGrid, TaskSectionHeading, TaskList } from "../TaskSection";
+import TaskSection, {
+  TaskGrid,
+  TaskSectionHeading,
+  TaskList,
+  TaskSubsections,
+  TaskSubsection,
+} from "../TaskSection";
 import TaskItemRecurringReview from "../TaskItemRecurringReview";
 import type { LayoutRendererProps } from "./types";
 import type { RecurrenceType, Project } from "@/app/types/index";
@@ -90,18 +96,38 @@ export default function RecurringReviewLayout({
         return (
           <TaskSection key={recurrenceType}>
             <TaskSectionHeading>{label}</TaskSectionHeading>
-            
-            {/* Render projects and categories */}
-            {sections && sections.map((section, index) => {
-              const isProject = "documentId" in section;
-              const sectionTitle = isProject ? (section as Project).title : section.title;
-              const tasks = isProject ? (section as Project).tasks || [] : section.tasks;
-              
-              return (
-                <div key={isProject ? (section as Project).documentId : index}>
-                  <h3>{sectionTitle}</h3>
+
+            <TaskSubsections>
+              {/* Render projects and categories */}
+              {sections && sections.map((section, index) => {
+                const isProject = "documentId" in section;
+                const sectionTitle = isProject ? (section as Project).title : section.title;
+                const tasks = isProject ? (section as Project).tasks || [] : section.tasks;
+
+                return (
+                  <TaskSubsection
+                    key={isProject ? (section as Project).documentId : index}
+                    title={sectionTitle}
+                  >
+                    <TaskList>
+                      {tasks.map((task) => (
+                        <TaskItemRecurringReview
+                          key={task.documentId}
+                          task={task}
+                          onEdit={onEdit}
+                          onDelete={onDelete}
+                        />
+                      ))}
+                    </TaskList>
+                  </TaskSubsection>
+                );
+              })}
+
+              {/* Render incidentals */}
+              {incidentals && incidentals.length > 0 && (
+                <TaskSubsection title="incidentals">
                   <TaskList>
-                    {tasks.map((task) => (
+                    {incidentals.map((task) => (
                       <TaskItemRecurringReview
                         key={task.documentId}
                         task={task}
@@ -110,26 +136,9 @@ export default function RecurringReviewLayout({
                       />
                     ))}
                   </TaskList>
-                </div>
-              );
-            })}
-            
-            {/* Render incidentals */}
-            {incidentals && incidentals.length > 0 && (
-              <div>
-                <h3>incidentals</h3>
-                <TaskList>
-                  {incidentals.map((task) => (
-                    <TaskItemRecurringReview
-                      key={task.documentId}
-                      task={task}
-                      onEdit={onEdit}
-                      onDelete={onDelete}
-                    />
-                  ))}
-                </TaskList>
-              </div>
-            )}
+                </TaskSubsection>
+              )}
+            </TaskSubsections>
           </TaskSection>
         );
       })}

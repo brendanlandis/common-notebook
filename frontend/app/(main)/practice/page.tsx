@@ -69,6 +69,7 @@ export default function PracticePage() {
     <>
       <FaviconManager type="metronome" />
       <main id="container-practice">
+        <h1 className="mb-title">practice</h1>
         <PracticeCharts />
 
         {completedLogs.length > 0 && (

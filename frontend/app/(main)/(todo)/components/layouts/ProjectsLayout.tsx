@@ -29,11 +29,11 @@ export default function ProjectsLayout({
     <>
       {groups.map((group, i) => (
         <Fragment key={group.name ?? i}>
-          {i > 0 && <hr />}
+          {i > 0 && <hr className="my-blocks" />}
           {/* `group-section` stays as a name: a browser spec addresses a group by it. */}
           <div className="group-section text-left">
             {group.name && (
-              <h2 className="mt-0 text-left">
+              <h2 className="mt-0 mb-4 text-left">
                 {group.name}
               </h2>
             )}

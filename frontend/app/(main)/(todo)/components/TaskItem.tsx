@@ -244,7 +244,7 @@ export default function TaskItem({
           })() && <span> (${task.price})</span>}
         </label>
         <span
-          className={`flex flex-1 justify-start justify-self-start group-hover/item:opacity-100 touch:opacity-100 ${
+          className={`flex flex-1 justify-start gap-icons touch:gap-4 justify-self-start group-hover/item:opacity-100 touch:opacity-100 ${
             inline ? "opacity-100" : "opacity-0"
           }`}
         >
@@ -284,7 +284,7 @@ export default function TaskItem({
       </div>
 
       {hasDescription && (
-        <div className="mr-0 border border-dashed border-base-content bg-base-200 px-[0.7rem] py-2 [.layout-done_&]:hidden">
+        <div className="mt-rows mr-0 ml-8 border border-dashed border-base-content bg-base-200 px-[0.7rem] py-2 [.layout-done_&]:hidden">
           {/* A note reads one step below its task. */}
           <RichTextDisplay content={task.description} className="text-small" />
         </div>

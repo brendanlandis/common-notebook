@@ -95,7 +95,7 @@ export default function ProjectPage() {
     <>
       <FaviconManager type="broom" />
       <div id="container-task" className="text-center layout-project-view" suppressHydrationWarning>
-        <div className="project-view-header">
+        <div className="project-view-header mb-title text-left">
           <h1>
             {project.title}
             <button
@@ -108,7 +108,10 @@ export default function ProjectPage() {
             </button>
           </h1>
           {project.world && (
-            <Link href={`/world/${encodeURIComponent(project.world.slug)}`}>
+            <Link
+              href={`/world/${encodeURIComponent(project.world.slug)}`}
+              className="mt-heading inline-block"
+            >
               {project.world.title}
             </Link>
           )}

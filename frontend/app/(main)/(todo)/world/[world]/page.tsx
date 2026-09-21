@@ -87,7 +87,7 @@ export default function WorldPage() {
     <>
       <FaviconManager type="broom" />
       <div id="container-task" className="text-center layout-world-view" suppressHydrationWarning>
-        <h1>{world?.title ?? slug}</h1>
+        <h1 className="mb-title text-left">{world?.title ?? slug}</h1>
         {hasTasks ? (
           <LayoutRenderer
             transformedData={transformedData}

@@ -53,7 +53,7 @@ export default async function MainLayout({
                 whatever page is open. That it cannot be navigated away from is
                 the feature. */}
             <PracticeSessionModal />
-            <header className="grid grid-cols-1 items-start p-4">
+            <header className="grid grid-cols-1 items-start px-4 pt-4">
               {/* Wraps, because on a phone this row is wider than the
                   screen. Revealing the manage cluster adds three buttons
                   to a row that already fills a 393px viewport; without
@@ -65,7 +65,7 @@ export default async function MainLayout({
               </div>
             </header>
             <main
-              className="w-full max-w-screen overflow-hidden px-4 min-[1600px]:max-w-[1600px]"
+              className="w-full max-w-screen overflow-hidden px-4 pt-8 min-[1600px]:max-w-[1600px]"
               id="main-container"
             >
               <BetaGuard>{children}</BetaGuard>

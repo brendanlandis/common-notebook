@@ -24,7 +24,8 @@ License: AGPL v3.
     class string for a `data-tip` tooltip in each theme's colors),
     `components/ui/DrawerHeader.tsx`, `components/ui/DisclosureToggle.tsx`, `components/auth/Auth.tsx`,
     `(main)/(todo)/components/TaskSection.tsx` (`TaskGrid`, `TaskSection`,
-    `TaskSectionHeading`, `TaskList`), and `(main)/review/components/ReviewParts.tsx` (the
+    `TaskSectionHeading`, `TaskList`, and `TaskSubsections`/`TaskSubsection` for labeled lists
+    stacked in one column), and `(main)/review/components/ReviewParts.tsx` (the
     review pages' column, sections, project groups, notes and put-back arrow).
   - **Anything that opens over the page is Radix Dialog** (`@radix-ui/react-dialog`), styled by us:
     `components/ui/Drawer.tsx` for the main menu (`chrome/MainMenu`) and the task actions drawer
@@ -44,7 +45,12 @@ License: AGPL v3.
     (`.slate-editor-editable`, `.rich-text-content`) are skipped and keep their own headings.
     Inputs, selects and buttons are body size, never smaller: iOS Safari zooms the page on focus
     below 16px. `text-sm`/`text-base`/`text-xs` and arbitrary sizes are off the scale; add a role
-    rather than a one-off.
+    rather than a one-off. **Every page opens with an `<h1>`**; a task view's is the view's name.
+  - **Spacing is five steps, 4 · 8 · 16 · 32 · 64px** (Tailwind's 1, 2, 4, 8, 16), and nothing
+    between. A kind of gap that recurs is a role token in `screen.css`, listed there with what it
+    separates: `gap-icons`, `gap-rows`, `mb-heading`, `gap-lists`, `mb-title`, `gap-x-columns`,
+    `gap-y-blocks`. Moving a role to another step moves it everywhere at once. A one-off takes a step
+    directly. The header's 12px gaps predate the scale, as does padding inside boxes.
   - **Sweetheart's metrics are overridden so a line's box is its letters**: cap height to the
     lowercase descenders (`declarations` on the font in `app/layout.tsx`). Its size is therefore the
     height of its letters. Titles and sections space lines at `--heading-leading` (1.175, so G/Y tails

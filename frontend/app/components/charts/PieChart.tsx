@@ -56,7 +56,7 @@ function PieTooltip({
 // so each chip renders the slice's color.
 function PieLegend({ data }: { data: PreparedSlice[] }) {
   return (
-    <ul className="flex flex-wrap items-center justify-center text-tiny">
+    <ul className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 pt-2 text-tiny">
       {data.map((slice) => (
         <li key={slice.name} className="flex items-center gap-1.5">
           <span className="inline-block size-2.5 shrink-0 rounded-[3px]" style={{ background: slice.color }} />
