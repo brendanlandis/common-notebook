@@ -126,6 +126,14 @@ describe('ready state', () => {
     expect(ui.dismiss).toHaveBeenCalled();
   });
 
+  it('closes on Escape, since nothing is running yet', () => {
+    readyMaterial.current = material;
+    renderModal();
+
+    fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' });
+    expect(ui.dismiss).toHaveBeenCalled();
+  });
+
   it('stays on screen while the start is in flight', () => {
     // The regression: pressing play used to `dismiss()` synchronously, clearing
     // the offer while the POST was still going. For the length of the round trip
@@ -167,6 +175,13 @@ describe('running', () => {
     renderModal();
     const buttons = screen.getAllByRole('button').map((b) => b.getAttribute('aria-label'));
     expect(buttons).toEqual(['pause', 'stop']);
+  });
+
+  it('ignores Escape', () => {
+    renderModal();
+    fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' });
+    expect(screen.getByRole('dialog', { name: 'practicing' })).toBeDefined();
+    expect(ui.dismiss).not.toHaveBeenCalled();
   });
 
   it('does not offer to correct a session that has just started', () => {

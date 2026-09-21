@@ -1,6 +1,6 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
-import MainMenuPanel from "./MainMenuPanel";
+import MainMenu from "./MainMenu";
 
 // Isolate the panel-switch logic: the real children pull in query hooks and a
 // network fetch, none of which this test cares about. Stubs expose just the
@@ -13,29 +13,21 @@ vi.mock("./MenuItems", () => ({
 vi.mock("./SettingsPanel", () => ({
   default: () => <div>settings-panel</div>,
 }));
+vi.mock("./HeaderIcon", () => ({ default: () => null }));
 
-describe("MainMenuPanel", () => {
-  beforeEach(() => {
-    // MainMenuPanel listens to this drawer checkbox to reset on close.
-    const cb = document.createElement("input");
-    cb.type = "checkbox";
-    cb.id = "mainMenu";
-    cb.checked = true;
-    document.body.appendChild(cb);
-  });
+const openMenu = () => fireEvent.click(screen.getByLabelText("open menu"));
 
-  afterEach(() => {
-    document.getElementById("mainMenu")?.remove();
-  });
-
+describe("MainMenu", () => {
   it("starts on the menu", () => {
-    render(<MainMenuPanel />);
+    render(<MainMenu />);
+    openMenu();
     expect(screen.getByText("open-settings")).toBeInTheDocument();
     expect(screen.queryByText("settings-panel")).not.toBeInTheDocument();
   });
 
   it("pushes the settings panel when the gear is clicked, and back returns", () => {
-    render(<MainMenuPanel />);
+    render(<MainMenu />);
+    openMenu();
 
     fireEvent.click(screen.getByText("open-settings"));
     expect(screen.getByText("settings-panel")).toBeInTheDocument();
@@ -46,16 +38,15 @@ describe("MainMenuPanel", () => {
     expect(screen.queryByText("settings-panel")).not.toBeInTheDocument();
   });
 
-  it("resets to the menu when the drawer closes", () => {
-    render(<MainMenuPanel />);
+  it("reopens on the menu after closing on settings", () => {
+    render(<MainMenu />);
+    openMenu();
     fireEvent.click(screen.getByText("open-settings"));
-    expect(screen.getByText("settings-panel")).toBeInTheDocument();
 
-    const cb = document.getElementById("mainMenu") as HTMLInputElement;
-    cb.checked = false;
-    fireEvent.change(cb);
-
-    expect(screen.getByText("open-settings")).toBeInTheDocument();
+    fireEvent.keyDown(document.activeElement ?? document.body, { key: "Escape" });
     expect(screen.queryByText("settings-panel")).not.toBeInTheDocument();
+
+    openMenu();
+    expect(screen.getByText("open-settings")).toBeInTheDocument();
   });
 });

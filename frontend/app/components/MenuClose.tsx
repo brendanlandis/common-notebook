@@ -1,21 +1,16 @@
 'use client';
 import { XIcon } from "@phosphor-icons/react";
+import { DrawerClose } from "./Drawer";
 
 export default function MenuClose() {
-  const closeDrawer = () => {
-    const drawerCheckbox = document.getElementById(
-      'mainMenu'
-    ) as HTMLInputElement;
-    if (drawerCheckbox) drawerCheckbox.checked = false;
-  };
   // Sits in the menu's <li>, so daisyUI's menu would give it a hover background.
   return (
-    <button
+    <DrawerClose
       id="closeMenu"
-      onClick={closeDrawer}
+      aria-label="close menu"
       className="hover:bg-transparent focus:bg-transparent active:bg-transparent"
     >
       <XIcon size={40} weight="regular" />
-    </button>
+    </DrawerClose>
   );
 }

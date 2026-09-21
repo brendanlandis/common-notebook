@@ -1,26 +1,30 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { usePathname } from "next/navigation";
-import { createPortal } from "react-dom";
+import { XIcon } from "@phosphor-icons/react";
 import TaskForm from "./TaskForm";
 import ProjectForm from "./ProjectForm";
 import WorldsManager from "@/app/components/WorldsManager";
 import ViewsManager from "@/app/components/ViewsManager";
 import ProjectsManager from "@/app/components/ProjectsManager";
+import Drawer, { DrawerClose } from "@/app/components/Drawer";
+import DrawerHeader from "@/app/components/DrawerHeader";
 import { useTaskActions } from "@/app/contexts/TaskActionsContext";
 import { useTaskData } from "../contexts/TaskDataContext";
 
-// Renders the add/edit task & project forms into the shared drawer
-// (#drawer-form-container, hosted app-wide by TaskActionsDrawer). Mounted once
-// per /todo route group via the layout, so create/edit is available on every
-// task page without each page re-wiring the portals.
+const TITLES = {
+  task: "task",
+  project: "project",
+  projects: "manage projects",
+  worlds: "manage worlds",
+  views: "manage views",
+} as const;
+
+// The task actions drawer: the add/edit task and project forms and the three
+// managers, opened from the task header. Mounted once per task route by
+// TaskShell, so create/edit is available on every task page.
 export default function TaskForms() {
-  const [drawerContainer, setDrawerContainer] = useState<HTMLElement | null>(
-    null
-  );
-  const pathname = usePathname();
-  const { drawerContent } = useTaskActions();
+  const { drawerContent, isOpen, closeDrawer, onDrawerExited } =
+    useTaskActions();
   const {
     editingTask,
     editingProject,
@@ -30,48 +34,44 @@ export default function TaskForms() {
     onCancelProjectForm,
   } = useTaskData();
 
-  useEffect(() => {
-    // Re-resolve the drawer container after mount, on route changes, and each
-    // time the drawer opens. It lives in the app-wide drawer (a different
-    // layout level) and is (re)rendered per task route, so a one-time capture
-    // on mount can race the DOM commit — leaving the first open blank until the
-    // portal target is resolved. Re-resolving on open makes it deterministic.
-    setDrawerContainer(document.getElementById("drawer-form-container"));
-  }, [pathname, drawerContent]);
-
-  if (!drawerContainer) return null;
-
   return (
-    <>
-      {drawerContent === "task" &&
-        createPortal(
+    <Drawer
+      open={isOpen}
+      onOpenChange={(open) => !open && closeDrawer()}
+      title={drawerContent ? TITLES[drawerContent] : "task actions"}
+      onExited={onDrawerExited}
+    >
+      <div className="actions-drawer min-h-full w-screen bg-base-300 p-4 text-base-content min-[500px]:w-[500px]">
+        <DrawerHeader>
+          <DrawerClose aria-label="close">
+            <XIcon size={40} weight="regular" />
+          </DrawerClose>
+        </DrawerHeader>
+
+        {drawerContent === "task" && (
           <TaskForm
             key={editingTask?.documentId || "new"}
             task={editingTask || undefined}
             onSubmit={onSubmitTask}
             onCancel={onCancelTaskForm}
-          />,
-          drawerContainer
+          />
         )}
 
-      {drawerContent === "project" &&
-        createPortal(
+        {drawerContent === "project" && (
           <ProjectForm
             key={editingProject?.documentId || "new"}
             project={editingProject || undefined}
             onSubmit={onSubmitProject}
             onCancel={onCancelProjectForm}
-          />,
-          drawerContainer
+          />
         )}
 
-      {/* The managers own their data through useWorlds/useViews/useManageProjects,
-          so unlike the forms above they need no props from TaskDataContext. */}
-      {drawerContent === "worlds" && createPortal(<WorldsManager />, drawerContainer)}
-
-      {drawerContent === "views" && createPortal(<ViewsManager />, drawerContainer)}
-
-      {drawerContent === "projects" && createPortal(<ProjectsManager />, drawerContainer)}
-    </>
+        {/* The managers own their data through useWorlds/useViews/useManageProjects,
+            so unlike the forms above they need no props from TaskDataContext. */}
+        {drawerContent === "worlds" && <WorldsManager />}
+        {drawerContent === "views" && <ViewsManager />}
+        {drawerContent === "projects" && <ProjectsManager />}
+      </div>
+    </Drawer>
   );
 }

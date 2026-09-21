@@ -1,14 +1,11 @@
-import MainMenuPanel from "../components/MainMenuPanel";
+import MainMenu from "../components/MainMenu";
 import HeaderContent from "../components/HeaderContent";
-import TaskActionsDrawer from "../components/TaskActionsDrawer";
 import { PracticeSessionProvider } from "../contexts/PracticeSessionContext";
 import PracticeSessionModal from "../components/PracticeSessionModal";
 import { TaskActionsProvider } from "../contexts/TaskActionsContext";
 import { DateTimeSettingsProvider } from "../contexts/DateTimeSettingsContext";
 import { StuffProjectsProvider } from "../contexts/StuffProjectsContext";
 import QueryProvider from "../providers/QueryProvider";
-import HeaderIcon from "../components/HeaderIcon";
-import EscapeKeyHandler from "../components/EscapeKeyHandler";
 import SessionGuard from "../components/SessionGuard";
 import BetaGuard from "../components/BetaGuard";
 import { getAccessTokenServer } from "@/app/lib/strapiAuth";
@@ -51,55 +48,29 @@ export default async function MainLayout({
             <PracticeSessionProvider>
             <TaskActionsProvider>
             <SessionGuard />
-            <EscapeKeyHandler />
-            {/* Outside the drawers and last in the tree, so a running session
-                covers the header, the menu and whatever page is open. That it
-                cannot be navigated away from is the feature. */}
+            {/* Last-rendered dialog wins, and this one sits above the drawers
+                too, so a running session covers the header, the menu and
+                whatever page is open. That it cannot be navigated away from is
+                the feature. */}
             <PracticeSessionModal />
-            <div className="drawer">
-            <input
-              id="taskActionsDrawer"
-              type="checkbox"
-              className="drawer-toggle"
-            />
-            <div className="drawer-content">
-              <div className="drawer">
-                <input
-                  id="mainMenu"
-                  type="checkbox"
-                  className="drawer-toggle"
-                />
-                <div className="drawer-content">
-                  <header className="mb-4 grid grid-cols-1 items-start p-4">
-                    {/* Wraps, because on a phone this row is wider than the
-                        screen. Revealing the manage cluster adds three buttons
-                        to a row that already fills a 393px viewport; without
-                        wrapping they extended past the right edge, present in
-                        the DOM and impossible to touch. */}
-                    <div className="flex flex-wrap items-center gap-4 justify-self-start">
-                      <label
-                        htmlFor="mainMenu"
-                        aria-label="open menu"
-                        className="cursor-pointer text-success dim:text-primary"
-                      >
-                        <HeaderIcon />
-                      </label>
-                      <HeaderContent />
-                    </div>
-                  </header>
-                  <main
-                    className="mx-auto w-full max-w-screen overflow-hidden p-4 min-[1600px]:max-w-[1600px]"
-                    id="main-container"
-                  >
-                    <BetaGuard>{children}</BetaGuard>
-                  </main>
-                  <footer></footer>
-                </div>
-                <MainMenuPanel />
+            <header className="mb-4 grid grid-cols-1 items-start p-4">
+              {/* Wraps, because on a phone this row is wider than the
+                  screen. Revealing the manage cluster adds three buttons
+                  to a row that already fills a 393px viewport; without
+                  wrapping they extended past the right edge, present in
+                  the DOM and impossible to touch. */}
+              <div className="flex flex-wrap items-center gap-4 justify-self-start">
+                <MainMenu />
+                <HeaderContent />
               </div>
-            </div>
-            <TaskActionsDrawer />
-          </div>
+            </header>
+            <main
+              className="mx-auto w-full max-w-screen overflow-hidden p-4 min-[1600px]:max-w-[1600px]"
+              id="main-container"
+            >
+              <BetaGuard>{children}</BetaGuard>
+            </main>
+            <footer></footer>
             </TaskActionsProvider>
             </PracticeSessionProvider>
         </StuffProjectsProvider>

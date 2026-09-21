@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, type ReactNode } from 'react';
+import * as Dialog from '@radix-ui/react-dialog';
 import { PlayIcon, PauseIcon, StopIcon, MetronomeIcon, XIcon } from '@phosphor-icons/react';
 import { useActiveSession } from '@/app/hooks/usePracticeSession';
 import { usePracticeSessionUI } from '@/app/contexts/PracticeSessionContext';
@@ -85,7 +86,7 @@ export default function PracticeSessionModal() {
   // project — the subject — without a second fetch.
   if (!session && readyMaterial) {
     return (
-      <PracticeModal label="start practicing">
+      <PracticeModal label="start practicing" onEscape={dismiss}>
           <button
             type="button"
             // Top right, and only in the ready state — the running panel
@@ -189,19 +190,42 @@ export default function PracticeSessionModal() {
  * entirely as well was a step past that: it stopped reading as a modal and
  * started reading as a navigation, with no visible edge to say otherwise.
  */
-function PracticeModal({ label, children }: { label: string; children: ReactNode }) {
+function PracticeModal({
+  label,
+  onEscape,
+  children,
+}: {
+  label: string;
+  /** Escape closes only the ready panel; while a session runs it does nothing. */
+  onEscape?: () => void;
+  children: ReactNode;
+}) {
+  // Radix Dialog keeps Tab inside the panel and the page behind from scrolling,
+  // which a plain overlay did not: the backdrop ate clicks, but Tab still walked
+  // into the app behind it. Clicking the backdrop never closes it.
   return (
-    // Literal black rather than a theme token: this is a shadow over the page,
-    // and it has to read as one against a light theme and a dark one alike.
-    <div
-      className="fixed inset-0 z-60 grid place-items-center bg-black/55 p-4"
-      role="dialog"
-      aria-label={label}
-    >
-      <div className="relative flex w-full max-w-104 flex-col items-center gap-8 rounded-2xl bg-base-100 px-8 py-10 text-center shadow-[0_1.5rem_3rem_rgb(0_0_0/0.35)]">
-        {children}
-      </div>
-    </div>
+    <Dialog.Root open>
+      <Dialog.Portal>
+        {/* Literal black rather than a theme token: this is a shadow over the
+            page, and it has to read as one against a light theme and a dark
+            one alike. */}
+        <Dialog.Overlay className="fixed inset-0 z-60 grid place-items-center overflow-y-auto bg-black/55 p-4">
+          <Dialog.Content
+            aria-describedby={undefined}
+            onEscapeKeyDown={(event) => {
+              event.preventDefault();
+              onEscape?.();
+            }}
+            onPointerDownOutside={(event) => event.preventDefault()}
+            onInteractOutside={(event) => event.preventDefault()}
+            className="relative flex w-full max-w-104 flex-col items-center gap-8 rounded-2xl bg-base-100 px-8 py-10 text-center shadow-[0_1.5rem_3rem_rgb(0_0_0/0.35)]"
+          >
+            <Dialog.Title className="sr-only">{label}</Dialog.Title>
+            {children}
+          </Dialog.Content>
+        </Dialog.Overlay>
+      </Dialog.Portal>
+    </Dialog.Root>
   );
 }
 

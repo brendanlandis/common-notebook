@@ -17,6 +17,30 @@
   --text-h4--line-height: 0.8rem;
 }
 
+/* The drawers' slide and their overlay's fade, as `animate-drawer-in` …
+   `animate-fade-out`, keyed on Radix's `data-state`. Timings are daisyUI's own
+   drawer's, which these replaced. Radix waits for the out animations to end
+   before it unmounts, so closing slides instead of vanishing. */
+@theme {
+  --animate-drawer-in: drawer-in 0.3s ease-out;
+  --animate-drawer-out: drawer-out 0.3s ease-out;
+  --animate-fade-in: fade-in 0.2s ease-out;
+  --animate-fade-out: fade-out 0.2s ease-out;
+
+  @keyframes drawer-in {
+    from { translate: -100%; }
+  }
+  @keyframes drawer-out {
+    to { translate: -100%; }
+  }
+  @keyframes fade-in {
+    from { opacity: 0; }
+  }
+  @keyframes fade-out {
+    to { opacity: 0; }
+  }
+}
+
 /* dim: styles for the dark theme only, where a daisyUI color token alone
    doesn't cover the difference between the two themes. */
 @custom-variant dim (&:where([data-theme="dim"], [data-theme="dim"] *));

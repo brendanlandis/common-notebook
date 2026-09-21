@@ -26,6 +26,12 @@ License: AGPL v3.
     `(main)/todo/components/TaskSection.tsx` (`TaskGrid`, `TaskSection`,
     `TaskSectionHeading`, `TaskList`), and `(main)/review/components/ReviewParts.tsx` (the
     review pages' column, sections, project groups, notes and put-back arrow).
+  - **Anything that opens over the page is Radix Dialog** (`@radix-ui/react-dialog`), styled by us:
+    `components/Drawer.tsx` for the main menu (`MainMenu`) and the task actions drawer
+    (`todo/components/TaskForms.tsx`), and `PracticeSessionModal`. Radix gives Escape, focus
+    kept inside and returned, scroll lock, and exit animations (`animate-drawer-*`/`animate-fade-*`
+    in `screen.css`, keyed on `data-state`). No other Radix primitives until one is needed; daisyUI's
+    checkbox drawers are gone.
   - **Colors are daisyUI's tokens, by their own names** (`base-content` for ink, `base-100` for
     paper, `success` for "yes, this one"). Where the two themes need different tokens, say so with
     `dim:` (or `light-dark()` in a string handed to a chart).
@@ -114,7 +120,7 @@ License: AGPL v3.
   Each feature colocates its own `components/`, `hooks/`, `utils/`. `todo/components/layouts/` holds
   the per-layout components + `types.ts`; `review/` holds `periodic/` and `daily/` pages plus
   `WeekCalendar`/`TaskPickList` and the `useReview`/`useDailyPick`/`useCalendarEvents` hooks.
-  Settings is a **drawer**, not a page (`components/SettingsPanel.tsx`).
+  Settings is a panel inside the menu drawer, not a page (`components/SettingsPanel.tsx`).
   `PracticeSessionModal` is **not** under `practice/` — it lives in `components/` and is mounted in the
   authed layout, because it covers every page.
 - `api/` — Next.js route handlers acting as a BFF/proxy to Strapi (`tasks/`, `projects/`, `views/`,
