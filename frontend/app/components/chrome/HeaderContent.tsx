@@ -13,7 +13,6 @@ import {
   FoldersIcon,
   PlanetIcon,
   SquaresFourIcon,
-  CaretLeftIcon,
   CaretRightIcon,
 } from "@phosphor-icons/react";
 import MoonPhaseIcon from "@/app/components/chrome/MoonPhaseIcon";
@@ -23,6 +22,10 @@ import { TASKS_ROOT } from "@/app/(main)/(todo)/hooks/useTasks";
 import { TOOLTIP } from "@/app/components/ui/tooltip";
 import { CONTROL_ICON, CARET_ICON, MOON_ICON } from "@/app/components/chrome/iconSizes";
 import { isTodoPath } from "@/app/lib/pages";
+import { prefersReducedMotion } from "@/app/lib/viewTransition";
+
+/** How the manage cluster slides and its caret turns: at the site's one speed. */
+const MOTION = "duration-(--transition-time) ease-[ease] motion-reduce:transition-none";
 
 /**
  * Can the pointing device on this machine hover?
@@ -52,6 +55,19 @@ export default function HeaderContent() {
   // task, add project, declutter) uncluttered — revealed on hover where there is
   // a hover, and by pressing the caret everywhere.
   const [showManage, setShowManage] = useState(false);
+
+  // They slide out from behind the caret, clipped while they move. Once they're
+  // all the way out the clip comes off, or it would cut off their tooltips too.
+  const [slidOut, setSlidOut] = useState(false);
+  const openManage = () => {
+    setShowManage(true);
+    // Reduced motion means no slide, so no transitionend to wait for.
+    if (prefersReducedMotion()) setSlidOut(true);
+  };
+  const closeManage = () => {
+    setShowManage(false);
+    setSlidOut(false);
+  };
 
   // Resetting the moon phase changes which tasks are due, so the lists have to be
   // re-read. This header sits outside TaskDataProvider and so had no way to call
@@ -132,12 +148,12 @@ export default function HeaderContent() {
             the same path as everyone else. Revealing on focus additionally meant
             the focus opened it and the resulting click closed it again. */}
         <div
-          className="flex items-center gap-3"
+          className="flex items-center"
           onPointerEnter={() => {
-            if (canHover()) setShowManage(true);
+            if (canHover()) openManage();
           }}
           onPointerLeave={() => {
-            if (canHover()) setShowManage(false);
+            if (canHover()) closeManage();
           }}
         >
           <button
@@ -145,46 +161,63 @@ export default function HeaderContent() {
             className="flex cursor-pointer items-center"
             aria-label="more buttons"
             aria-expanded={showManage}
-            onClick={() => setShowManage((open) => !open)}
+            onClick={() => (showManage ? closeManage() : openManage())}
           >
-            {showManage ? (
-              <CaretLeftIcon size={CARET_ICON} weight="regular" />
-            ) : (
-              <CaretRightIcon size={CARET_ICON} weight="regular" />
-            )}
+            {/* One caret that turns to point back, rather than two that swap. */}
+            <CaretRightIcon
+              size={CARET_ICON}
+              weight="regular"
+              className={`transition-[rotate] ${MOTION} ${showManage ? "rotate-180" : ""}`}
+            />
           </button>
-          {showManage && (
-            <div className="flex items-center gap-3">
-              {/* aria-label as well as data-tip: these are icon-only buttons, so
-                  the tooltip is the only thing naming them and it is presentation
-                  — a screen reader announced three unlabeled buttons, and no
-                  locator could address them by name either. */}
-              <button
-                onClick={openManageProjects}
-                className={TOOLTIP}
-                data-tip="manage projects"
-                aria-label="manage projects"
-              >
-                <FoldersIcon size={CONTROL_ICON} />
-              </button>
-              <button
-                onClick={openWorlds}
-                className={TOOLTIP}
-                data-tip="manage worlds"
-                aria-label="manage worlds"
-              >
-                <PlanetIcon size={CONTROL_ICON} />
-              </button>
-              <button
-                onClick={openViews}
-                className={TOOLTIP}
-                data-tip="manage views"
-                aria-label="manage views"
-              >
-                <SquaresFourIcon size={CONTROL_ICON} />
-              </button>
+          {/* Always mounted, so it can slide shut as well as open. A grid column
+              going from 0fr to 1fr is how a width animates to fit its content;
+              the buttons sit at its right edge, so they come out from behind
+              the caret. The gap is outside the clip, so an icon half-way out
+              doesn't touch the caret. Closed, it's inert: the hidden buttons
+              can't be tabbed to or read out. */}
+          <div
+            className={`ml-3 grid transition-[grid-template-columns] ${MOTION} ${
+              showManage ? "grid-cols-[1fr]" : "grid-cols-[0fr]"
+            }`}
+            inert={!showManage}
+            onTransitionEnd={(e) => {
+              if (e.target === e.currentTarget && showManage) setSlidOut(true);
+            }}
+          >
+            <div className={`flex min-w-0 justify-end ${slidOut ? "" : "overflow-hidden"}`}>
+              <div className="flex shrink-0 items-center gap-3">
+                {/* aria-label as well as data-tip: these are icon-only buttons, so
+                    the tooltip is the only thing naming them and it is presentation
+                    — a screen reader announced three unlabeled buttons, and no
+                    locator could address them by name either. */}
+                <button
+                  onClick={openManageProjects}
+                  className={TOOLTIP}
+                  data-tip="manage projects"
+                  aria-label="manage projects"
+                >
+                  <FoldersIcon size={CONTROL_ICON} />
+                </button>
+                <button
+                  onClick={openWorlds}
+                  className={TOOLTIP}
+                  data-tip="manage worlds"
+                  aria-label="manage worlds"
+                >
+                  <PlanetIcon size={CONTROL_ICON} />
+                </button>
+                <button
+                  onClick={openViews}
+                  className={TOOLTIP}
+                  data-tip="manage views"
+                  aria-label="manage views"
+                >
+                  <SquaresFourIcon size={CONTROL_ICON} />
+                </button>
+              </div>
             </div>
-          )}
+          </div>
         </div>
       </>
     );

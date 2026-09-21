@@ -34,7 +34,6 @@ vi.mock("@phosphor-icons/react", () => ({
   FoldersIcon: () => null,
   PlanetIcon: () => null,
   SquaresFourIcon: () => null,
-  CaretLeftIcon: () => null,
   CaretRightIcon: () => null,
 }));
 
@@ -91,30 +90,34 @@ describe("HeaderContent manage-buttons disclosure", () => {
     vi.unstubAllGlobals();
   });
 
+  /** The cluster stays mounted so it can slide shut: closed means inert, not gone. */
+  const reachable = (container: HTMLElement, tip: string) => {
+    const button = container.querySelector(`[data-tip="${tip}"]`);
+    return button !== null && button.closest("[inert]") === null;
+  };
+
   it("hides the manage cluster (worlds/views/manage projects) until asked for", () => {
     const { container } = renderHeader();
     // Everyday actions are always present…
     expect(container.querySelector('[data-tip="add task"]')).toBeTruthy();
     expect(container.querySelector('[data-tip="declutter"]')).toBeTruthy();
-    // …but the config cluster is hidden until the caret is hovered or pressed.
-    // The caret has no tooltip (data-tip); it's the cluster's only child
-    // when collapsed.
-    expect(container.querySelector('[data-tip="manage projects"]')).toBeNull();
-    expect(container.querySelector('[data-tip="manage worlds"]')).toBeNull();
+    // …but the config cluster is out of reach until the caret is hovered or
+    // pressed. The caret has no tooltip (data-tip).
+    expect(reachable(container, "manage projects")).toBe(false);
+    expect(reachable(container, "manage worlds")).toBe(false);
     expect(container.querySelector('[aria-label="more buttons"]')).toBeTruthy();
   });
 
   it("reveals and wires the manage-projects button on hover", () => {
     const { container } = renderHeader();
     fireEvent.pointerEnter(container.querySelector('[aria-label="more buttons"]')!.parentElement!);
-    const manageBtn = container.querySelector('[data-tip="manage projects"]');
-    expect(manageBtn).toBeTruthy();
-    expect(container.querySelector('[data-tip="manage worlds"]')).toBeTruthy();
-    fireEvent.click(manageBtn!);
+    expect(reachable(container, "manage projects")).toBe(true);
+    expect(reachable(container, "manage worlds")).toBe(true);
+    fireEvent.click(container.querySelector('[data-tip="manage projects"]')!);
     expect(openManageProjects).toHaveBeenCalledTimes(1);
     // Leaving collapses it again.
     fireEvent.pointerLeave(container.querySelector('[aria-label="more buttons"]')!.parentElement!);
-    expect(container.querySelector('[data-tip="manage projects"]')).toBeNull();
+    expect(reachable(container, "manage projects")).toBe(false);
   });
 
   it("opens on a press, which is how a phone and a keyboard both get in", () => {
@@ -126,7 +129,7 @@ describe("HeaderContent manage-buttons disclosure", () => {
     fireEvent.click(caret);
 
     expect(caret.getAttribute("aria-expanded")).toBe("true");
-    expect(container.querySelector('[data-tip="manage views"]')).toBeTruthy();
+    expect(reachable(container, "manage views")).toBe(true);
   });
 
   it("closes again on a second press", () => {
@@ -138,7 +141,7 @@ describe("HeaderContent manage-buttons disclosure", () => {
     fireEvent.click(caret);
 
     expect(caret.getAttribute("aria-expanded")).toBe("false");
-    expect(container.querySelector('[data-tip="manage views"]')).toBeNull();
+    expect(reachable(container, "manage views")).toBe(false);
   });
 
   it("ignores hover entirely on a device that cannot hover", () => {
@@ -151,13 +154,13 @@ describe("HeaderContent manage-buttons disclosure", () => {
     const cluster = container.querySelector('[aria-label="more buttons"]')!.parentElement!;
 
     fireEvent.pointerEnter(cluster);
-    expect(container.querySelector('[data-tip="manage views"]')).toBeNull();
+    expect(reachable(container, "manage views")).toBe(false);
 
     fireEvent.click(container.querySelector('[aria-label="more buttons"]')!);
-    expect(container.querySelector('[data-tip="manage views"]')).toBeTruthy();
+    expect(reachable(container, "manage views")).toBe(true);
 
     // And a stray pointerleave must not snatch it away again.
     fireEvent.pointerLeave(cluster);
-    expect(container.querySelector('[data-tip="manage views"]')).toBeTruthy();
+    expect(reachable(container, "manage views")).toBe(true);
   });
 });
