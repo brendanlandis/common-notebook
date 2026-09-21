@@ -9,6 +9,10 @@ import PageIcon from "@/app/components/chrome/PageIcon";
 import { useBetaAccess } from "@/app/hooks/useBetaAccess";
 import { TOOLTIP } from "@/app/components/ui/tooltip";
 
+/** The menu row's secondary buttons: a 40px square, like the close button, around a smaller icon. */
+export const MENU_BUTTON = "flex size-10 items-center justify-center";
+export const MENU_ICON = 28;
+
 export default function MenuItems({
   onOpenSettings,
 }: {
@@ -20,18 +24,20 @@ export default function MenuItems({
     <>
       {/* The close button lands exactly on the header's open button (both at the
           drawer's and the header's 1rem padding, both 40px), so the menu opens
-          and closes from one spot. The other buttons match its size, on the right. */}
+          and closes from one spot. The other buttons are 40px squares too, with
+          smaller icons centered in them: centered on the close button, and the
+          rightmost icon's right margin equals its top margin. */}
       <div className="mb-4 flex items-center justify-between">
         <MenuClose />
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-1">
           <button
             type="button"
             onClick={onOpenSettings}
-            className={TOOLTIP}
+            className={`${TOOLTIP} ${MENU_BUTTON}`}
             data-tip="settings"
             aria-label="settings"
           >
-            <GearIcon size={40} weight="regular" />
+            <GearIcon size={MENU_ICON} weight="regular" />
           </button>
           <ThemeToggle />
         </div>

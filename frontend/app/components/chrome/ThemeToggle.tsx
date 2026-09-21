@@ -8,6 +8,7 @@ import {
 } from "@phosphor-icons/react";
 import { useEffect, useState } from "react";
 import { TOOLTIP } from "@/app/components/ui/tooltip";
+import { MENU_BUTTON, MENU_ICON } from "@/app/components/chrome/MenuItems";
 
 // Icon shown for each choice. System uses CircleHalfIcon (a half-lit orb) so it
 // sits in the same celestial family as the Sun/Moon icons and reads as "auto."
@@ -30,9 +31,7 @@ export default function ThemeToggle() {
   if (!mounted) {
     // Placeholder with the same footprint to avoid layout shift.
     return (
-      <button id="themeToggle">
-        <div style={{ width: 40, height: 40 }} />
-      </button>
+      <button id="themeToggle" className={MENU_BUTTON} />
     );
   }
 
@@ -47,10 +46,10 @@ export default function ThemeToggle() {
       // bubble. --tt-trans is daisyUI's tooltip X-translate (default -50%); this
       // lines the bubble's right edge up with the icon's. daisyUI shares it with
       // the tail, so the after: transform puts the tail back under the icon.
-      className={`${TOOLTIP} [--tt-trans:calc(-100%_+_1.25rem)] after:[transform:translateX(-50%)_translateY(var(--tt-pos,-0.25rem))_rotate(180deg)]`}
+      className={`${TOOLTIP} ${MENU_BUTTON} [--tt-trans:calc(-100%_+_1.25rem)] after:[transform:translateX(-50%)_translateY(var(--tt-pos,-0.25rem))_rotate(180deg)]`}
       data-tip={`${choice} theme`}
     >
-      <CurrentIcon size={40} weight="regular" />
+      <CurrentIcon size={MENU_ICON} weight="regular" />
     </button>
   );
 }
