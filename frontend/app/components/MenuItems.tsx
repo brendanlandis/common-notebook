@@ -4,7 +4,6 @@ import { GearIcon } from "@phosphor-icons/react/dist/ssr";
 import MenuClose from "./MenuClose";
 import DrawerHeader from "./DrawerHeader";
 import ThemeToggle from "./ThemeToggle";
-import LogoutButton from "./LogoutButton";
 import { visiblePages } from "@/app/lib/pages";
 import PageIcon from "./PageIcon";
 import { useBetaAccess } from "@/app/hooks/useBetaAccess";
@@ -27,7 +26,6 @@ export default function MenuItems({
     <>
       <DrawerHeader as="li">
         <div className="flex flex-nowrap items-center gap-4 p-0 hover:cursor-default hover:bg-transparent">
-          <LogoutButton />
           <button
             type="button"
             onClick={onOpenSettings}

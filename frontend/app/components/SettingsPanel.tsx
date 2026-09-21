@@ -15,6 +15,7 @@ import { useLocation } from "@/app/hooks/useLocation";
 import RecurrencePicker from "@/app/components/RecurrencePicker";
 import { cadenceIsUsable } from "@/app/lib/reviewCadence";
 import CalendarsManager from "@/app/components/CalendarsManager";
+import LogoutButton from "@/app/components/LogoutButton";
 import { CheckboxInput, Field, Input, Select } from "@/app/components/FormControls";
 
 export default function SettingsPanel() {
@@ -265,6 +266,10 @@ export default function SettingsPanel() {
           </SettingsSection>
         </>
       )}
+
+      <SettingsSection title="account">
+        <LogoutButton />
+      </SettingsSection>
     </div>
   );
 }

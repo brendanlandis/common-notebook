@@ -29,6 +29,7 @@ vi.mock("@/app/hooks/useReviewCadence", () => ({
 
 // Unrelated to the cadence and each pulls its own server state.
 vi.mock("@/app/components/TimezoneManager", () => ({ default: () => null }));
+vi.mock("@/app/components/LogoutButton", () => ({ default: () => null }));
 vi.mock("@/app/lib/autoDeclutterConfig", () => ({
   fetchAutoDeclutterFromStrapi: async () => true,
   saveAutoDeclutterToStrapi: async () => true,
