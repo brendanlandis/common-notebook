@@ -141,7 +141,7 @@ export default function ProjectsManager() {
       {/* 2 ── Importance ──────────────────────────────────────────────────── */}
       <ManagerSection title="importance">
         <div className="flex flex-col gap-1.5">
-          <h4 className="mt-1 mb-0 text-sm leading-(--heading-leading) opacity-75">top of mind</h4>
+          <h3 className="mt-1 mb-0">top of mind</h3>
           {topOfMind ? (
             <ProjectRow title={worldPrefixed(topOfMind)}>
               <button
@@ -167,7 +167,7 @@ export default function ProjectsManager() {
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <h4 className="mt-1 mb-0 text-sm leading-(--heading-leading) opacity-75">later</h4>
+          <h3 className="mt-1 mb-0">later</h3>
           {laterProjects.length === 0 ? (
             <Muted>none</Muted>
           ) : (
@@ -251,7 +251,7 @@ export default function ProjectsManager() {
                     ))}
                   </ul>
                   {!search3Lower && matched.length > shown.length && (
-                    <button type="button" className="mt-2 self-start text-sm" onClick={() => loadMore(group.key)}>
+                    <button type="button" className="mt-2 self-start text-small" onClick={() => loadMore(group.key)}>
                       load more
                     </button>
                   )}
@@ -294,7 +294,7 @@ export default function ProjectsManager() {
         {manage.hasMoreCompleted && (
           <button
             type="button"
-            className="self-start text-sm"
+            className="self-start text-small"
             onClick={() => manage.fetchMoreCompleted()}
             disabled={manage.fetchingMoreCompleted}
           >
@@ -305,7 +305,7 @@ export default function ProjectsManager() {
 
       {/* ── stuff projects (moved here from /settings) ─────────────────────── */}
       <ManagerSection title="stuff projects">
-        <p className="m-0 text-sm opacity-75">
+        <p className="m-0 text-small opacity-75">
           show the &quot;stuff&quot; world (shopping, errands, wishlist, and &quot;in the
           mail&quot; projects) and its view? turning this off hides them without deleting
           anything.
@@ -323,7 +323,7 @@ export default function ProjectsManager() {
 function ManagerSection({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section className="flex flex-col gap-2">
-      <h3 className="m-0 text-h3">{title}</h3>
+      <h3 className="m-0">{title}</h3>
       {children}
     </section>
   );
@@ -348,5 +348,5 @@ function ProjectRow({
 }
 
 function Muted({ children }: { children: ReactNode }) {
-  return <p className="m-0 text-sm opacity-60">{children}</p>;
+  return <p className="m-0 text-small opacity-60">{children}</p>;
 }

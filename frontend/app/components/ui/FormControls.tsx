@@ -7,7 +7,9 @@ import type { ComponentProps, ReactNode } from "react";
  * the ref reaches the element.
  */
 
-const FIELD = "rounded-none border-base-content";
+// Body size, not daisyUI's 12–14px: on the type scale, and at 16px or more so
+// Safari on an iPhone doesn't zoom the page when a field is tapped.
+const FIELD = "rounded-none border-base-content text-body";
 
 /** Full width by default; `fullWidth={false}` sizes a control to its content. */
 type Sizing = { fullWidth?: boolean };
@@ -37,12 +39,12 @@ export function Field({
     <div className={`relative ${className}`}>
       <label
         htmlFor={htmlFor}
-        className={hideLabel ? "sr-only" : "mb-1 block text-sm"}
+        className={hideLabel ? "sr-only" : "mb-1 block text-small"}
       >
         {label}
       </label>
       {children}
-      {error && <span className="mt-1 block text-sm italic">{error}</span>}
+      {error && <span className="mt-1 block text-small italic">{error}</span>}
     </div>
   );
 }

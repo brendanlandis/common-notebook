@@ -49,7 +49,7 @@ export default function UpcomingSection({
 
           return (
             <div key={dayGroup.title} className="upcoming-day">
-              <h4 className="my-4 text-h4">{dayGroup.title}</h4>
+              <h3 className="my-4">{dayGroup.title}</h3>
               <TaskList>
                 {dayGroup.tasks.map((task) => (
                   <TaskItem

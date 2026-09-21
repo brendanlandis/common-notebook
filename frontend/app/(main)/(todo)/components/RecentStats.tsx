@@ -47,7 +47,7 @@ export default function RecentStats({ stats, loading, title = "recently", noWrap
 
   const chartContent = (
     <>
-      <h4 className="my-4 text-center text-h4">{title}</h4>
+      <h3 className="my-4 text-center">{title}</h3>
       <div className="min-h-[235px]">
         <PieChart data={chartData} />
       </div>

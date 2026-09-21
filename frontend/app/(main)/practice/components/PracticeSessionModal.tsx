@@ -124,7 +124,7 @@ export default function PracticeSessionModal() {
         // Paused: a small button, top right, over everything. Still visible
         // from every page, because a paused session you cannot see is a session
         // you will forget.
-        className="fixed top-3 right-3 z-60 flex cursor-pointer items-center gap-2 rounded-full border border-current bg-base-100 px-3 py-1.5 [&_[role=timer]]:text-base"
+        className="fixed top-3 right-3 z-60 flex cursor-pointer items-center gap-2 rounded-full border border-current bg-base-100 px-3 py-1.5 [&_[role=timer]]:text-body"
         aria-label={`resume practicing ${material?.title ?? 'your session'}`}
         disabled={isToggling}
         onClick={resume}
@@ -233,7 +233,7 @@ function PracticeModal({
 function PracticeSubject({ title, subject }: { title?: string; subject?: string }) {
   return (
     <div>
-      <h2 className="m-0 text-3xl leading-(--heading-leading)">{title ?? 'practice'}</h2>
+      <h2 className="m-0">{title ?? 'practice'}</h2>
       {/* Muted because you know what instrument you are holding — it is there to
           disambiguate two pieces with similar names, not to be read every
           time. */}

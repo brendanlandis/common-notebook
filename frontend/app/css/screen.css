@@ -3,18 +3,34 @@
   themes: retro --default, dim --prefersdark;
 }
 
-/* The headings' sizes, as `text-h1` … `text-h4` on the markup. The two faces
-   stay in type.css, and so does the line spacing every heading shares; these
-   are placeholders until the app gets a real type scale. */
+/* The type scale, one step per role, as `text-title` … `text-tiny`.
+ *
+ * Body is 17px, and the heading steps are ratios of it: title four steps up,
+ * section two. They're fluid between a phone (393px wide; ratio 1.2) and a
+ * desktop (1440px; ratio 1.333), linear in between and fixed outside it.
+ * Label, small and tiny are fixed. Sweetheart's size is the height of its
+ * letters (see app/layout.tsx), so a heading's number is what it looks like.
+ *
+ *   title    35.25 → 53.66px   <h1>, Sweetheart
+ *   section  24.48 → 30.21px   <h2>, Sweetheart
+ *   label    14px              <h3>, Lato bold caps (type.css)
+ *   body     17px              Lato
+ *   small    15px              notes, field labels
+ *   tiny     12px              calendar and chart text only
+ *
+ * Headings take their role from the element (type.css), so markup rarely needs
+ * these classes; they're here for text that isn't a heading. Everything is in
+ * rem so the whole scale follows the reader's browser font size. */
 @theme {
-  --text-h1: 4rem;
-  --text-h1--line-height: var(--heading-leading);
-  --text-h2: 3rem;
-  --text-h2--line-height: var(--heading-leading);
-  --text-h3: 2rem;
-  --text-h3--line-height: var(--heading-leading);
-  --text-h4: 1rem;
-  --text-h4--line-height: var(--heading-leading);
+  --text-title: clamp(2.2031rem, 1.7713rem + 1.7584vw, 3.3538rem);
+  --text-title--line-height: var(--heading-leading);
+  --text-section: clamp(1.53rem, 1.3956rem + 0.5473vw, 1.888rem);
+  --text-section--line-height: var(--heading-leading);
+  --text-label: 0.875rem;
+  --text-label--line-height: 1.2;
+  --text-body: 1.0625rem;
+  --text-small: 0.9375rem;
+  --text-tiny: 0.75rem;
 }
 
 /* The drawers' slide and their overlay's fade, as `animate-drawer-in` …

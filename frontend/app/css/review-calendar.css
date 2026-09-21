@@ -224,7 +224,6 @@
 .cal-sunset .fc-event-title {
   color: var(--color-base-content) !important;
   font-style: italic !important;
-  font-size: 0.85em !important;
   padding-left: 0.3rem !important;
   opacity: 1 !important;
 }
@@ -341,3 +340,9 @@
   font-weight: bold;
 }
 
+/* Every piece of event text on the type scale's tiny step, which the calendar
+ * container sets (`text-tiny` in WeekCalendar). FullCalendar shrinks event text
+ * by 0.85em, and event times by 0.85em again, which put them at 10 and 9px. */
+.review-calendar :is(.fc-event, .fc-event-main, .fc-event-time, .fc-event-title, .fc-timegrid-event, .fc-daygrid-event) {
+  font-size: inherit !important;
+}

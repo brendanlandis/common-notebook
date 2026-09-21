@@ -35,17 +35,23 @@ License: AGPL v3.
   - **Colors are daisyUI's tokens, by their own names** (`base-content` for ink, `base-100` for
     paper, `success` for "yes, this one"). Where the two themes need different tokens, say so with
     `dim:` (or `light-dark()` in a string handed to a chart).
-  - **Headings carry their own size** as `text-h1` … `text-h4` (theme tokens in `screen.css`) and
-    their own margins (`my-4` where nothing else is set). `type.css` sets the two faces
-    (Sweetheart for headings, Lato for body, as in Slow Names' new design), so a bare `<h2>` renders at body size.
+  - **The type scale is six roles, and a heading's element is its role.** Tokens in `screen.css`,
+    all in rem: `text-title` and `text-section` (Sweetheart, fluid between 393px and 1440px wide),
+    `text-label` (Lato bold caps), `text-body` (17px), `text-small` (15px), `text-tiny` (12px, the
+    calendar and charts only). `type.css` gives `<h1>` the title, `<h2>` the section, and `<h3>`
+    (and below) the label, so headings need no size class, only margins. Same size means same
+    element: pick the element by role, never for its look. Rich-text notes
+    (`.slate-editor-editable`, `.rich-text-content`) are skipped and keep their own headings.
+    Inputs, selects and buttons are body size, never smaller: iOS Safari zooms the page on focus
+    below 16px. `text-sm`/`text-base`/`text-xs` and arbitrary sizes are off the scale; add a role
+    rather than a one-off.
   - **Sweetheart's metrics are overridden so a line's box is its letters**: cap height to the
-    lowercase descenders (`declarations` on the font in `app/layout.tsx`). Headings space lines at
-    `--heading-leading` (1.175, so G/Y tails clear the next line) and trim that back off their top
-    and bottom with `::before`/`::after` margins in `type.css`. So a heading's edges sit on its
-    letters, wrapped or not. A heading that sets its own line-height must use
-    `leading-(--heading-leading)`. One in another face turns the trim off
-    (`before:hidden after:hidden`). A flex heading breaks the trim, since the pseudo-elements
-    become flex items.
+    lowercase descenders (`declarations` on the font in `app/layout.tsx`). Its size is therefore the
+    height of its letters. Titles and sections space lines at `--heading-leading` (1.175, so G/Y tails
+    clear the next line) and trim that back off their top and bottom with `::before`/`::after`
+    margins in `type.css`. So a heading's edges sit on its letters, wrapped or not. One that sets
+    its own line-height must use `leading-(--heading-leading)`. A flex heading breaks the trim,
+    since the pseudo-elements become flex items.
   - **`screen.css` also holds** the `--transition-time` every animation uses (450ms), and two custom
     variants: `dim:` for the dark theme, and `touch:` for `(hover: none) and (pointer: coarse)`,
     which is how a control revealed on hover stays put on a phone.

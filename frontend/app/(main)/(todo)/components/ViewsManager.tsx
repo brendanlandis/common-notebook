@@ -192,7 +192,7 @@ export default function ViewsManager() {
                     <DisclosureToggle
                       expanded={expanded.has(view.documentId)}
                       onToggle={() => toggleExpanded(view.documentId)}
-                      className="text-sm opacity-75"
+                      className="text-small opacity-75"
                     >
                       {view.sections.length} section{view.sections.length === 1 ? "" : "s"}
                     </DisclosureToggle>
@@ -321,7 +321,7 @@ export default function ViewsManager() {
 function InlineField({ label, children }: { label: string; children: ReactNode }) {
   return (
     <label className="grid gap-1 sm:grid-cols-[6.5rem_1fr] sm:items-center sm:gap-2">
-      <span className="text-sm opacity-75">{label}</span>
+      <span className="text-small opacity-75">{label}</span>
       {children}
     </label>
   );

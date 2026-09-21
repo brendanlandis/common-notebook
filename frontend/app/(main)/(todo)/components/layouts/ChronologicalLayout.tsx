@@ -50,7 +50,7 @@ export default function ChronologicalLayout({
       <TaskSection>
         {groupedByMonth.map(([key, { date, tasks: monthTasks }]) => (
           <div key={key}>
-            <h4 className="my-4 text-h4">{formatInTimezone(date, "MMMM yyyy", timeZoneSettings)}</h4>
+            <h3 className="my-4">{formatInTimezone(date, "MMMM yyyy", timeZoneSettings)}</h3>
             <TaskList>
               {monthTasks.map((task) => (
                 <TaskItem

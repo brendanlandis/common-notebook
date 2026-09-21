@@ -66,7 +66,7 @@ export function ProjectGroupList({
 }) {
   return (
     <div className="my-5 [.review-section>&:first-of-type]:mt-2">
-      <h3 className="m-0 mb-[0.35rem] [font-family:inherit] text-[1.15rem] leading-[1.3] font-semibold opacity-80 before:hidden after:hidden">
+      <h3 className="m-0 mb-[0.35rem]">
         {group.projectTitle ?? "incidentals"}
       </h3>
       <TaskPickList
@@ -93,7 +93,7 @@ export function ReviewNote({ children }: { children: ReactNode }) {
  */
 export function PickProject({ children }: { children: ReactNode }) {
   return (
-    <span className="ml-[0.4rem] text-[0.85em] opacity-50 group-aria-pressed:opacity-80">
+    <span className="ml-[0.4rem] text-small opacity-50 group-aria-pressed:opacity-80">
       {children}
     </span>
   );

@@ -75,7 +75,7 @@ async function createCompleted(request: APIRequestContext, title: string, comple
 
 /** The Done-page section heading a task's row sits under. */
 async function sectionHeadingOf(page: import('@playwright/test').Page, documentId: string) {
-  return page.locator(`.task-section:has(#task-${documentId}) h3`).first().innerText();
+  return page.locator(`.task-section:has(#task-${documentId}) h2`).first().innerText();
 }
 
 test.describe('Done page day-boundary bucketing', () => {
@@ -184,8 +184,8 @@ test.describe('Done page upcoming panel (R1/R2)', () => {
       await expect(page.locator(`.upcoming-day:has(#task-${t2})`)).toHaveCount(1);
 
       // The nearest day is labeled "tomorrow"; the +3 day is a different, later label (R1).
-      const h1 = await page.locator(`.upcoming-day:has(#task-${t1}) h4`).innerText();
-      const h2 = await page.locator(`.upcoming-day:has(#task-${t2}) h4`).innerText();
+      const h1 = await page.locator(`.upcoming-day:has(#task-${t1}) h3`).innerText();
+      const h2 = await page.locator(`.upcoming-day:has(#task-${t2}) h3`).innerText();
       expect(h1.toLowerCase()).toBe('tomorrow');
       expect(h2.toLowerCase()).not.toBe('tomorrow');
     } finally {

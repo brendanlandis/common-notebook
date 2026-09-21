@@ -30,7 +30,7 @@ export default function PracticeClock({ segments }: { segments: PracticeSegment[
   // resume, and `setTick` exists only to schedule the re-render.
   return (
     <div
-      className="text-[2.5rem] leading-none tabular-nums sm:text-[3.5rem]"
+      className="text-title leading-none tabular-nums"
       role="timer"
       aria-live="off"
     >

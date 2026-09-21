@@ -1,5 +1,10 @@
+/* Each role in the type scale (screen.css) belongs to one element, so a heading's
+ * size says what it is: <h1> is the page title, <h2> a section, <h3> a label.
+ * Rich-text notes (the editor and its display) keep their own headings, so these
+ * rules skip them. */
 body {
   font-family: var(--font-body);
+  font-size: var(--text-body);
 }
 
 /* Sweetheart's metrics are overridden (see app/layout.tsx) so that one line's
@@ -10,36 +15,48 @@ body {
  * letters whether it wraps or not.
  *
  * A heading that sets its own line-height must use --heading-leading
- * (`leading-(--heading-leading)`), or the trim is wrong for it. One that isn't
- * in Sweetheart turns the trim off with `before:hidden after:hidden`.
- * (`text-box-trim` does this natively, but Firefox doesn't support it yet.)
- *
- * Sizes and margins are on each heading's markup (`text-h1` … `text-h4`, see
- * screen.css). */
+ * (`leading-(--heading-leading)`), or the trim is wrong for it. A flex heading
+ * breaks the trim, because the pseudo-elements become flex items.
+ * (`text-box-trim` does this natively, but Firefox doesn't support it yet.) */
 :root {
   --heading-leading: 1.175;
 }
 
-h1,
-h2,
-h3,
-h4,
-h5,
-h6 {
+:where(h1, h2):not(:where(.slate-editor-editable, .rich-text-content) *) {
   font-family: var(--font-sweetheart);
+  font-weight: 400;
   line-height: var(--heading-leading);
 }
 
-:is(h1, h2, h3, h4, h5, h6)::before,
-:is(h1, h2, h3, h4, h5, h6)::after {
+:where(h1):not(:where(.slate-editor-editable, .rich-text-content) *) {
+  font-size: var(--text-title);
+}
+
+:where(h2):not(:where(.slate-editor-editable, .rich-text-content) *) {
+  font-size: var(--text-section);
+}
+
+:where(h1, h2):not(:where(.slate-editor-editable, .rich-text-content) *)::before,
+:where(h1, h2):not(:where(.slate-editor-editable, .rich-text-content) *)::after {
   content: "";
   display: table;
 }
 
-:is(h1, h2, h3, h4, h5, h6)::before {
+:where(h1, h2):not(:where(.slate-editor-editable, .rich-text-content) *)::before {
   margin-bottom: calc((1 - var(--heading-leading)) / 2 * 1em);
 }
 
-:is(h1, h2, h3, h4, h5, h6)::after {
+:where(h1, h2):not(:where(.slate-editor-editable, .rich-text-content) *)::after {
   margin-top: calc((1 - var(--heading-leading)) / 2 * 1em);
+}
+
+/* The label: what the things under it are, rather than a smaller heading. */
+:where(h3, h4, h5, h6):not(:where(.slate-editor-editable, .rich-text-content) *) {
+  font-family: var(--font-body);
+  font-size: var(--text-label);
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.8;
 }

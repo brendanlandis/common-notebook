@@ -53,9 +53,9 @@ export default function TaskSection({
  */
 export function TaskSectionHeading({ children }: { children: ReactNode }) {
   return (
-    <h3 className="group/heading mt-4 mb-0 text-left text-h3 [&_button]:ml-2 [&_button]:align-middle [&_button]:opacity-0 [&_button]:group-hover/heading:opacity-100 touch:[&_button]:opacity-100">
+    <h2 className="group/heading mt-4 mb-0 text-left [&_button]:ml-2 [&_button]:align-middle [&_button]:opacity-0 [&_button]:group-hover/heading:opacity-100 touch:[&_button]:opacity-100">
       {children}
-    </h3>
+    </h2>
   );
 }
 

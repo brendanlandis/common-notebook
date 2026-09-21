@@ -47,7 +47,7 @@ export function AuthField({
         {...input}
       />
       {error && (
-        <div className={quietError ? "sr-only" : "mt-1 text-sm italic"}>
+        <div className={quietError ? "sr-only" : "mt-1 text-small italic"}>
           {error}
         </div>
       )}

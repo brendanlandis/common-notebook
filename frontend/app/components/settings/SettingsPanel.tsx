@@ -203,7 +203,7 @@ export default function SettingsPanel() {
                   Without the anchor the cadence yields no period at all, so say so
                   here rather than let it look saved and then quietly do nothing. */}
               {!cadenceIsUsable(cadence) && (
-                <p className="text-sm italic">
+                <p className="text-small italic">
                   pick a start date — without one, &quot;every other&quot; doesn&apos;t say
                   which week
                 </p>
@@ -286,8 +286,8 @@ function SettingsSection({
 }) {
   return (
     <section className="border-t border-base-content/15 py-6 first:border-t-0 first:pt-0">
-      <h2 className="mt-0 mb-2 text-3xl leading-(--heading-leading)">{title}</h2>
-      {description && <p className="mb-3 text-sm opacity-75">{description}</p>}
+      <h3 className="mt-0 mb-2">{title}</h3>
+      {description && <p className="mb-3 text-small opacity-75">{description}</p>}
       {children}
     </section>
   );

@@ -49,7 +49,7 @@ function topOfMindSection(page: Page) {
 /** The pencil in a given project's column header. */
 function editProjectButton(page: Page, projectTitle: string) {
   return page
-    .locator('h3')
+    .locator('h2')
     .filter({ hasText: projectTitle })
     .getByLabel('edit project');
 }

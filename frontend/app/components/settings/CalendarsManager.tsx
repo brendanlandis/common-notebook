@@ -73,7 +73,7 @@ export default function CalendarsManager() {
               <span className="min-w-0 truncate">
                 {calendar.name}
                 {!calendar.hasUrl && (
-                  <span className="ml-2 text-sm italic">no url</span>
+                  <span className="ml-2 text-small italic">no url</span>
                 )}
               </span>
               <Button
@@ -88,7 +88,7 @@ export default function CalendarsManager() {
             </li>
           ))}
           {calendars.length === 0 && (
-            <li className="py-2 text-sm italic">no calendars yet</li>
+            <li className="py-2 text-small italic">no calendars yet</li>
           )}
         </ul>
       )}
@@ -119,7 +119,7 @@ export default function CalendarsManager() {
       </Button>
       {/* Shown rather than logged: a rejected URL that looks accepted would
           leave a calendar silently missing from every future review. */}
-      {add.error && <p className="text-sm italic">{add.error.message}</p>}
+      {add.error && <p className="text-small italic">{add.error.message}</p>}
     </div>
   );
 }

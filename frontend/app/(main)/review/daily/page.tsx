@@ -288,7 +288,7 @@ export default function DailyReviewPage() {
   if (!review) {
     return (
       <ReviewPage>
-        <h1 className="my-4 text-h1">today</h1>
+        <h1 className="my-4">today</h1>
         <p>no review covers today yet.</p>
       </ReviewPage>
     );
@@ -296,7 +296,7 @@ export default function DailyReviewPage() {
 
   return (
     <ReviewPage>
-      <h1 className="my-4 text-h1">today</h1>
+      <h1 className="my-4">today</h1>
 
       {/* The day's list beside the day's shape. One column on a narrow screen,
           list first: on a phone the thing you're doing matters more than the
@@ -440,7 +440,7 @@ export default function DailyReviewPage() {
           already scrolled past by the time you reach it. */}
       {practice.remaining.length > 0 && (
         <ReviewSection className={PRACTICE_SECTION}>
-          <h2 className="my-4 text-h2">could practice</h2>
+          <h2 className="my-4">could practice</h2>
           {practice.remaining.map((group) => (
             <ProjectGroupList
               key={group.key}
@@ -460,7 +460,7 @@ export default function DailyReviewPage() {
               you've already lifted out of it into today. Phrased as an
               invitation rather than a promise: "not yet but soon" said when,
               which is exactly what this feature refuses to say. */}
-          <h2 className="my-4 text-h2">could work on</h2>
+          <h2 className="my-4">could work on</h2>
           {remaining.map((group) => (
             <ProjectGroupList
               key={group.key}

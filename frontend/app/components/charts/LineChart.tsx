@@ -56,7 +56,7 @@ function makeLineTooltip(series: LineSeries[]) {
     if (rows.length === 0) return null;
 
     return (
-      <div className="grid min-w-32 gap-1.5 rounded-lg border border-base-content/25 bg-base-100 px-2.5 py-2 text-xs text-base-content">
+      <div className="grid min-w-32 gap-1.5 rounded-lg border border-base-content/25 bg-base-100 px-2.5 py-2 text-tiny text-base-content">
         <div className="text-left font-semibold">{label}</div>
         {rows.map((entry) => {
           const key = String(entry.dataKey);
@@ -75,7 +75,7 @@ function makeLineTooltip(series: LineSeries[]) {
 
 function LineLegend({ series }: { series: LineSeries[] }) {
   return (
-    <ul className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 pt-3 text-[0.775rem]">
+    <ul className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 pt-3 text-tiny">
       {series.map((s) => (
         <li key={s.key} className="flex items-center gap-1.5">
           <span className="inline-block size-2.5 shrink-0 rounded-[3px]" style={{ background: s.color }} />
