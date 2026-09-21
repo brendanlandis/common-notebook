@@ -1,7 +1,7 @@
 /**
- * Icon sizes for the app's chrome, set by the header's view selector: a small
- * daisyUI select (`select-sm`) is 2rem tall, and header icons, and every
- * drawer's close or back button, match it.
+ * Icon sizes for the app's chrome: header icons, and every drawer's close or
+ * back button. They were set against a 2rem view selector; the selector has
+ * since dropped to 1.75rem and the icons stayed.
  *
  * A few icons don't *look* 32px at 32px, so they have their own sizes, set by
  * eye on 2026-09-21 until all read as the same height: the moon and caret here,

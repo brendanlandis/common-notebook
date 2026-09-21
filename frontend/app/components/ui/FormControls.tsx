@@ -60,9 +60,9 @@ export function Input({
 }
 
 /**
- * `small` is for a select in the header, where it sets the height every header
- * icon matches: daisyUI's small size (2rem) with text a step below body. It is
- * never used in a form, because below 16px iOS Safari zooms the page on focus.
+ * `small` is for a select in the header: 1.75rem tall (a notch under daisyUI's
+ * small size) with text a step below body. It is never used in a form, because
+ * below 16px iOS Safari zooms the page on focus.
  */
 export function Select({
   className = "",
@@ -70,7 +70,7 @@ export function Select({
   small = false,
   ...props
 }: ComponentProps<"select"> & Sizing & { small?: boolean }) {
-  const size = small ? "select-sm text-small" : "text-body";
+  const size = small ? "select-sm [--size:1.75rem] text-small" : "text-body";
   return (
     <select className={`select ${FIELD} ${size} ${width(fullWidth)} ${className}`} {...props} />
   );
