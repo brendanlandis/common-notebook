@@ -66,7 +66,7 @@ export function ProjectGroupList({
 }) {
   return (
     <div className="my-5 [.review-section>&:first-of-type]:mt-2">
-      <h3 className="m-0 mb-[0.35rem] [font-family:inherit] text-[1.15rem] leading-[1.3] font-semibold opacity-80 [font-variation-settings:normal]">
+      <h3 className="m-0 mb-[0.35rem] [font-family:inherit] text-[1.15rem] leading-[1.3] font-semibold opacity-80">
         {group.projectTitle ?? "incidentals"}
       </h3>
       <TaskPickList
