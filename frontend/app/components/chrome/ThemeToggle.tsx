@@ -43,10 +43,14 @@ export default function ThemeToggle() {
       onClick={cycleTheme}
       id="themeToggle"
       aria-label={`${choice} theme`}
-      className={TOOLTIP}
+      // The rightmost button in the menu drawer, whose edge would clip a centered
+      // bubble. --tt-trans is daisyUI's tooltip X-translate (default -50%); this
+      // lines the bubble's right edge up with the icon's. daisyUI shares it with
+      // the tail, so the after: transform puts the tail back under the icon.
+      className={`${TOOLTIP} [--tt-trans:calc(-100%_+_1.25rem)] after:[transform:translateX(-50%)_translateY(var(--tt-pos,-0.25rem))_rotate(180deg)]`}
       data-tip={`${choice} theme`}
     >
-      <CurrentIcon size={25} weight="regular" />
+      <CurrentIcon size={40} weight="regular" />
     </button>
   );
 }

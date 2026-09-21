@@ -18,9 +18,9 @@ export default function MainMenuPanel() {
   const [panel, setPanel] = useState<"menu" | "settings">("menu");
 
   return panel === "menu" ? (
-    <ul className="menu relative min-h-full w-auto min-w-80 bg-base-300 p-4 text-base-content">
+    <div className="min-h-full w-auto min-w-80 bg-base-300 p-4 text-base-content">
       <MenuItems onOpenSettings={() => setPanel("settings")} />
-    </ul>
+    </div>
   ) : (
     <div className="bg-base-200 text-base-content min-h-full w-96 max-w-[90vw] p-4">
       <DrawerHeader>
