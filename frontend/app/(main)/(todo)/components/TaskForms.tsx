@@ -8,6 +8,7 @@ import ViewsManager from "@/app/(main)/(todo)/components/ViewsManager";
 import ProjectsManager from "@/app/(main)/(todo)/components/ProjectsManager";
 import Drawer, { DrawerClose, DRAWER_PANEL } from "@/app/components/ui/Drawer";
 import DrawerHeader from "@/app/components/ui/DrawerHeader";
+import { CONTROL_ICON } from "@/app/components/chrome/iconSizes";
 import { useTaskActions } from "@/app/(main)/(todo)/contexts/TaskActionsContext";
 import { useTaskData } from "../contexts/TaskDataContext";
 
@@ -46,7 +47,7 @@ export default function TaskForms() {
       <div className={`actions-drawer ${DRAWER_PANEL}`}>
         <DrawerHeader title={title}>
           <DrawerClose aria-label="close">
-            <XIcon size={40} weight="regular" />
+            <XIcon size={CONTROL_ICON} weight="regular" />
           </DrawerClose>
         </DrawerHeader>
 

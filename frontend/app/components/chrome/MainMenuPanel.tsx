@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { ArrowLeftIcon } from "@phosphor-icons/react/dist/ssr";
 import MenuItems from "@/app/components/chrome/MenuItems";
+import { CONTROL_ICON } from "@/app/components/chrome/iconSizes";
 import DrawerHeader from "@/app/components/ui/DrawerHeader";
 import { DRAWER_PANEL } from "@/app/components/ui/Drawer";
 import SettingsPanel from "@/app/components/settings/SettingsPanel";
@@ -30,7 +31,7 @@ export default function MainMenuPanel() {
           onClick={() => setPanel("menu")}
           aria-label="back"
         >
-          <ArrowLeftIcon size={40} weight="regular" />
+          <ArrowLeftIcon size={CONTROL_ICON} weight="regular" />
         </button>
       </DrawerHeader>
       <SettingsPanel />

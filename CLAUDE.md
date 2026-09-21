@@ -55,10 +55,11 @@ License: AGPL v3.
   - **`screen.css` also holds** the `--transition-time` every animation uses (450ms), and two custom
     variants: `dim:` for the dark theme, and `touch:` for `(hover: none) and (pointer: coarse)`,
     which is how a control revealed on hover stays put on a phone.
-  - **The sheets, and why each is a sheet:** `task-grid.css` (how many columns a view gets depends
-    on which children actually rendered, which only `:has()` can ask), `review-calendar.css`
+  - **The sheets, and why each is a sheet:** `review-calendar.css`
     (FullCalendar's DOM, event states, keyframes and view-transition rules), `SlateEditor.css` and
-    `rich-text.css` (editor and rendered rich text), `print.css`, and `type.css`.
+    `rich-text.css` (editor and rendered rich text), `print.css`, and `type.css`. Task views' columns
+    are on the markup (`TaskGrid`): the count depends on window width only, so columns keep one width
+    and pack from the left.
   - **They sit in `@layer utilities.legacy`**, declared in `screen.css`: above daisyUI's own
     sublayers, below Tailwind's utility classes. So a utility on an element beats them — which is
     why a default a utility would override (the task grid's single column) lives in the sheet

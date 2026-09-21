@@ -9,7 +9,7 @@ import type { ComponentProps, ReactNode } from "react";
 
 // Body size, not daisyUI's 12–14px: on the type scale, and at 16px or more so
 // Safari on an iPhone doesn't zoom the page when a field is tapped.
-const FIELD = "rounded-none border-base-content text-body";
+const FIELD = "rounded-none border-base-content";
 
 /** Full width by default; `fullWidth={false}` sizes a control to its content. */
 type Sizing = { fullWidth?: boolean };
@@ -55,17 +55,24 @@ export function Input({
   ...props
 }: ComponentProps<"input"> & Sizing) {
   return (
-    <input className={`input ${FIELD} ${width(fullWidth)} ${className}`} {...props} />
+    <input className={`input ${FIELD} text-body ${width(fullWidth)} ${className}`} {...props} />
   );
 }
 
+/**
+ * `small` is for a select in the header, where it sets the height every header
+ * icon matches: daisyUI's small size (2rem) with text a step below body. It is
+ * never used in a form, because below 16px iOS Safari zooms the page on focus.
+ */
 export function Select({
   className = "",
   fullWidth = true,
+  small = false,
   ...props
-}: ComponentProps<"select"> & Sizing) {
+}: ComponentProps<"select"> & Sizing & { small?: boolean }) {
+  const size = small ? "select-sm text-small" : "text-body";
   return (
-    <select className={`select ${FIELD} ${width(fullWidth)} ${className}`} {...props} />
+    <select className={`select ${FIELD} ${size} ${width(fullWidth)} ${className}`} {...props} />
   );
 }
 

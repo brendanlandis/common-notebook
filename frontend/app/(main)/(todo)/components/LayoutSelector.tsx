@@ -55,6 +55,7 @@ export default function LayoutSelector({ value }: LayoutSelectorProps) {
   return (
     <Select
       fullWidth={false}
+      small
       className="min-w-48"
       value={value}
       onChange={(e) => handleChange(e.target.value)}

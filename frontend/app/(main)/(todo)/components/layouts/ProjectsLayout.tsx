@@ -33,10 +33,7 @@ export default function ProjectsLayout({
           {/* `group-section` stays as a name: a browser spec addresses a group by it. */}
           <div className="group-section text-left">
             {group.name && (
-              /* The heading is a dashed tab, open on the left so it reads as
-                 hanging off the page's edge — closed once the page stops
-                 growing at 1600px. */
-              <h2 className="mt-0 inline-block rounded-r-2xl border-y border-r border-dashed border-base-content bg-base-300 py-4 pr-16 pl-2 text-left min-[1601px]:border-l min-[1601px]:pl-4">
+              <h2 className="mt-0 text-left">
                 {group.name}
               </h2>
             )}

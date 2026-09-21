@@ -20,7 +20,12 @@ const SECTION = [
   "[.layout-data-chores_&]:row-auto [.layout-data-chores_&]:[grid-template-rows:none]",
 ].join(" ");
 
-/** The grid a view's columns sit in; the column counts live in task-grid.css. */
+/**
+ * The grid a view's columns sit in. The column count depends only on the
+ * window's width, never on how many sections a view has, so columns keep one
+ * width and a view with fewer sections leaves the space on the right empty.
+ * Breakpoints are rem, like `sm:`: Tailwind can't order px against rem.
+ */
 export function TaskGrid({
   className = "",
   children,
@@ -29,7 +34,7 @@ export function TaskGrid({
   children: ReactNode;
 }) {
   return (
-    <div className={`tasks-container grid text-left ${className}`}>
+    <div className={`tasks-container grid grid-cols-1 text-left sm:grid-cols-2 min-[56.25rem]:grid-cols-3 min-[68.75rem]:grid-cols-4 ${className}`}>
       {children}
     </div>
   );

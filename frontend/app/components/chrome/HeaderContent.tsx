@@ -21,6 +21,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiSend, swallow } from "@/app/lib/apiFetch";
 import { TASKS_ROOT } from "@/app/(main)/(todo)/hooks/useTasks";
 import { TOOLTIP } from "@/app/components/ui/tooltip";
+import { CONTROL_ICON } from "@/app/components/chrome/iconSizes";
 import { isTodoPath } from "@/app/lib/pages";
 
 /**
@@ -92,21 +93,21 @@ export default function HeaderContent() {
           className={TOOLTIP}
           data-tip="add task"
         >
-          <PlusCircleIcon size={25} />
+          <PlusCircleIcon size={CONTROL_ICON} />
         </button>
         <button
           onClick={openProjectForm}
           className={TOOLTIP}
           data-tip="add project"
         >
-          <FolderSimplePlusIcon size={25} />
+          <FolderSimplePlusIcon size={CONTROL_ICON} />
         </button>
         <button
           className={`${TOOLTIP} [&_svg]:rounded-full [&_svg]:bg-base-content [&_svg]:text-base-100 dim:[&_svg]:bg-transparent dim:[&_svg]:text-base-content`}
           data-tip="declutter"
           onClick={handleResetMoonPhase}
         >
-          <MoonPhaseIcon size={25} />
+          <MoonPhaseIcon size={CONTROL_ICON} />
         </button>
         {/* Hover to reveal on a mouse; press the caret anywhere else.
 
@@ -147,9 +148,9 @@ export default function HeaderContent() {
             onClick={() => setShowManage((open) => !open)}
           >
             {showManage ? (
-              <CaretLeftIcon size={16} weight="bold" />
+              <CaretLeftIcon size={CONTROL_ICON} weight="regular" />
             ) : (
-              <CaretRightIcon size={16} weight="bold" />
+              <CaretRightIcon size={CONTROL_ICON} weight="regular" />
             )}
           </button>
           {showManage && (
@@ -164,7 +165,7 @@ export default function HeaderContent() {
                 data-tip="manage projects"
                 aria-label="manage projects"
               >
-                <FoldersIcon size={25} />
+                <FoldersIcon size={CONTROL_ICON} />
               </button>
               <button
                 onClick={openWorlds}
@@ -172,7 +173,7 @@ export default function HeaderContent() {
                 data-tip="manage worlds"
                 aria-label="manage worlds"
               >
-                <PlanetIcon size={25} />
+                <PlanetIcon size={CONTROL_ICON} />
               </button>
               <button
                 onClick={openViews}
@@ -180,7 +181,7 @@ export default function HeaderContent() {
                 data-tip="manage views"
                 aria-label="manage views"
               >
-                <SquaresFourIcon size={25} />
+                <SquaresFourIcon size={CONTROL_ICON} />
               </button>
             </div>
           )}

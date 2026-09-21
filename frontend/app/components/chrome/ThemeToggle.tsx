@@ -8,7 +8,7 @@ import {
 } from "@phosphor-icons/react";
 import { useEffect, useState } from "react";
 import { TOOLTIP } from "@/app/components/ui/tooltip";
-import { MENU_BUTTON, MENU_ICON } from "@/app/components/chrome/MenuItems";
+import { MENU_BUTTON, MENU_ICON } from "@/app/components/chrome/iconSizes";
 
 // Icon shown for each choice. System uses CircleHalfIcon (a half-lit orb) so it
 // sits in the same celestial family as the Sun/Moon icons and reads as "auto."
