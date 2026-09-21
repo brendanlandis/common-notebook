@@ -37,7 +37,7 @@ License: AGPL v3.
     `dim:` (or `light-dark()` in a string handed to a chart).
   - **Headings carry their own size** as `text-h1` … `text-h4` (theme tokens in `screen.css`) and
     their own margins (`my-4` where nothing else is set). `type.css` sets the two faces
-    (Sweetheart for headings, IBM Plex Serif for body), so a bare `<h2>` renders at body size.
+    (Sweetheart for headings, Lato for body, as in Slow Names' new design), so a bare `<h2>` renders at body size.
   - **Sweetheart's metrics are overridden so a line's box is its letters**: cap height to the
     lowercase descenders (`declarations` on the font in `app/layout.tsx`). Headings space lines at
     `--heading-leading` (1.175, so G/Y tails clear the next line) and trim that back off their top

@@ -1,5 +1,5 @@
 body {
-  font-family: var(--font-plex-serif);
+  font-family: var(--font-body);
 }
 
 /* Sweetheart's metrics are overridden (see app/layout.tsx) so that one line's

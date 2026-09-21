@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
-import { IBM_Plex_Serif } from "next/font/google";
+import { Lato } from "next/font/google";
 import "./css/screen.css";
 
 export const metadata: Metadata = {
@@ -28,11 +28,13 @@ const fontSweetheart = localFont({
   ],
 });
 
-const fontPlexSerif = IBM_Plex_Serif({
+// The body face, shared with Slow Names' new design. Lato has no 600, so
+// `font-semibold` renders at 700.
+const fontBody = Lato({
   subsets: ["latin"],
-  weight: ["100", "200", "300", "400", "500", "600", "700"],
+  weight: ["400", "700"],
   style: ["normal", "italic"],
-  variable: "--font-plex-serif",
+  variable: "--font-body",
 });
 
 export default function RootLayout({
@@ -105,7 +107,7 @@ export default function RootLayout({
         className={`
           grid min-h-screen w-screen content-start
           ${fontSweetheart.variable}
-          ${fontPlexSerif.variable}
+          ${fontBody.variable}
         `}
       >
         {children}
