@@ -4,6 +4,7 @@ import { useState } from "react";
 import { ArrowLeftIcon } from "@phosphor-icons/react/dist/ssr";
 import MenuItems from "@/app/components/chrome/MenuItems";
 import DrawerHeader from "@/app/components/ui/DrawerHeader";
+import { DRAWER_PANEL } from "@/app/components/ui/Drawer";
 import SettingsPanel from "@/app/components/settings/SettingsPanel";
 
 /**
@@ -22,7 +23,7 @@ export default function MainMenuPanel() {
       <MenuItems onOpenSettings={() => setPanel("settings")} />
     </div>
   ) : (
-    <div className="bg-base-200 text-base-content min-h-full w-96 max-w-[90vw] p-4">
+    <div className={DRAWER_PANEL}>
       <DrawerHeader>
         <button
           type="button"

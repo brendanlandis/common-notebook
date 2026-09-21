@@ -6,7 +6,7 @@ import ProjectForm from "./ProjectForm";
 import WorldsManager from "@/app/(main)/(todo)/components/WorldsManager";
 import ViewsManager from "@/app/(main)/(todo)/components/ViewsManager";
 import ProjectsManager from "@/app/(main)/(todo)/components/ProjectsManager";
-import Drawer, { DrawerClose } from "@/app/components/ui/Drawer";
+import Drawer, { DrawerClose, DRAWER_PANEL } from "@/app/components/ui/Drawer";
 import DrawerHeader from "@/app/components/ui/DrawerHeader";
 import { useTaskActions } from "@/app/(main)/(todo)/contexts/TaskActionsContext";
 import { useTaskData } from "../contexts/TaskDataContext";
@@ -41,7 +41,7 @@ export default function TaskForms() {
       title={drawerContent ? TITLES[drawerContent] : "task actions"}
       onExited={onDrawerExited}
     >
-      <div className="actions-drawer min-h-full w-screen bg-base-300 p-4 text-base-content min-[500px]:w-[500px]">
+      <div className={`actions-drawer ${DRAWER_PANEL}`}>
         <DrawerHeader>
           <DrawerClose aria-label="close">
             <XIcon size={40} weight="regular" />

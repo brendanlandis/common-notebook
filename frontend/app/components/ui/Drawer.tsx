@@ -85,5 +85,13 @@ function ExitSignal({
   return null;
 }
 
+/**
+ * The panel of a drawer that holds a form or a list to work through: settings,
+ * add and manage. One width and one background for all of them; full width on
+ * a phone. The main menu is its own, narrower kind.
+ */
+export const DRAWER_PANEL =
+  "min-h-full w-screen bg-base-300 p-4 text-base-content min-[500px]:w-[500px]";
+
 /** Closes the drawer it sits in. */
 export const DrawerClose = Dialog.Close;
