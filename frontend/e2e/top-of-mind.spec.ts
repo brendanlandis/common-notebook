@@ -60,7 +60,7 @@ function editProjectButton(page: Page, projectTitle: string) {
  */
 async function promoteViaForm(page: Page, projectTitle: string) {
   await editProjectButton(page, projectTitle).click();
-  await expect(page.locator('form').filter({ has: page.getByRole('heading', { name: /^(edit|new) project$/ }) })).toBeVisible();
+  await expect(page.getByRole('dialog').filter({ has: page.getByRole('heading', { name: /^(edit|new) project$/ }) }).locator('form')).toBeVisible();
 
   const saved = page.waitForResponse(
     (res) => /\/api\/projects\/[^/]+$/.test(res.url()) && res.request().method() === 'PUT'

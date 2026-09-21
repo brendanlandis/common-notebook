@@ -120,8 +120,6 @@ export default function ProjectForm({
       className="flex flex-col gap-4 text-left"
       onSubmit={handleSubmit(handleFormSubmit)}
     >
-      <h2 className="my-4 text-h2">{project ? "edit project" : "new project"}</h2>
-
       <Field label="title" htmlFor="title" hideLabel error={errors.title?.message}>
         <Input
           id="title"

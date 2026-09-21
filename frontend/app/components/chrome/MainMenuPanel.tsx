@@ -24,7 +24,7 @@ export default function MainMenuPanel() {
     </div>
   ) : (
     <div className={DRAWER_PANEL}>
-      <DrawerHeader>
+      <DrawerHeader title="settings">
         <button
           type="button"
           onClick={() => setPanel("menu")}

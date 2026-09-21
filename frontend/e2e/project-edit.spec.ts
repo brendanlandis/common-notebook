@@ -11,7 +11,7 @@ import { createProject, deleteProject, gotoProject } from './helpers';
 
 async function openProjectForm(page: import('@playwright/test').Page) {
   await page.getByLabel('edit project').click();
-  await expect(page.locator('form').filter({ has: page.getByRole('heading', { name: /^(edit|new) project$/ }) })).toBeVisible();
+  await expect(page.getByRole('dialog').filter({ has: page.getByRole('heading', { name: /^(edit|new) project$/ }) }).locator('form')).toBeVisible();
 }
 
 // Submitting is fire-and-forget: handleProjectFormSubmit closes the drawer before
