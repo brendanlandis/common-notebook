@@ -28,8 +28,8 @@ vi.mock("@/app/hooks/useReviewCadence", () => ({
 }));
 
 // Unrelated to the cadence and each pulls its own server state.
-vi.mock("@/app/components/TimezoneManager", () => ({ default: () => null }));
-vi.mock("@/app/components/LogoutButton", () => ({ default: () => null }));
+vi.mock("@/app/components/settings/TimezoneManager", () => ({ default: () => null }));
+vi.mock("@/app/components/settings/LogoutButton", () => ({ default: () => null }));
 vi.mock("@/app/lib/autoDeclutterConfig", () => ({
   fetchAutoDeclutterFromStrapi: async () => true,
   saveAutoDeclutterToStrapi: async () => true,
@@ -50,7 +50,7 @@ vi.mock("@/app/contexts/DateTimeSettingsContext", () => ({
   }),
 }));
 
-import SettingsPanel from "./SettingsPanel";
+import SettingsPanel from "@/app/components/settings/SettingsPanel";
 
 function renderPanel() {
   // Per-test client with retry off — the app default of 1 would make any

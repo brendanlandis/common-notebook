@@ -1,5 +1,5 @@
 "use client";
-import { useTheme, type ThemeChoice } from "../hooks/useTheme";
+import { useTheme, type ThemeChoice } from "@/app/hooks/useTheme";
 import {
   MoonStarsIcon,
   SunHorizonIcon,
@@ -7,7 +7,7 @@ import {
   type Icon,
 } from "@phosphor-icons/react";
 import { useEffect, useState } from "react";
-import { TOOLTIP } from "@/app/components/tooltip";
+import { TOOLTIP } from "@/app/components/ui/tooltip";
 
 // Icon shown for each choice. System uses CircleHalfIcon (a half-lit orb) so it
 // sits in the same celestial family as the Sun/Moon icons and reads as "auto."

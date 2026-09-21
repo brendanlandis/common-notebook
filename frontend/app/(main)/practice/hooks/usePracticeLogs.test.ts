@@ -7,7 +7,7 @@ import { usePracticeLogs, usePracticeStats } from './usePracticeLogs';
 
 /**
  * The practice *history*. Starting, pausing and stopping moved out to
- * `app/hooks/usePracticeSession.ts` when the practice screen became a modal, so
+ * `usePracticeSession.ts` when the practice screen became a modal, so
  * the tests for those live with the intent routes and the modal.
  *
  * Two things this file used to assert and deliberately no longer does:

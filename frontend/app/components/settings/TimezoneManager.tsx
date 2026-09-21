@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Select } from "@/app/components/FormControls";
+import { Select } from "@/app/components/ui/FormControls";
 import { MapPinIcon } from "@phosphor-icons/react";
 import { saveSystemSetting } from "@/app/lib/systemSettingsClient";
 import { useDateTimeSettings } from "@/app/contexts/DateTimeSettingsContext";

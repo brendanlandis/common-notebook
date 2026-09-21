@@ -3,15 +3,15 @@
 import { useState, type ReactNode } from "react";
 import type { Project, ProjectImportance } from "@/app/types/index";
 import { useTasks } from "@/app/(main)/todo/hooks/useTasks";
-import { useWorlds } from "@/app/hooks/useWorlds";
-import { useManageProjects } from "@/app/hooks/useManageProjects";
-import { useStuffProjects } from "@/app/contexts/StuffProjectsContext";
+import { useWorlds } from "@/app/(main)/todo/hooks/useWorlds";
+import { useManageProjects } from "@/app/(main)/todo/hooks/useManageProjects";
+import { useStuffProjects } from "@/app/(main)/todo/contexts/StuffProjectsContext";
 import { saveStuffProjectsEnabledToStrapi } from "@/app/lib/stuffProjectsConfig";
 import { doneCandidates, orderDoneCandidates, groupProjectsByWorld } from "@/app/lib/manageProjects";
 import { swallow } from "@/app/lib/apiFetch";
 import ProjectForm from "@/app/(main)/todo/components/ProjectForm";
-import { Checkbox, Input, Select } from "./FormControls";
-import DisclosureToggle from "./DisclosureToggle";
+import { Checkbox, Input, Select } from "@/app/components/ui/FormControls";
+import DisclosureToggle from "@/app/components/ui/DisclosureToggle";
 
 const PER_WORLD = 10; // section 3: rows shown per world before "load more"
 

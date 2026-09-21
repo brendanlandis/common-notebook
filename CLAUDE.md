@@ -18,16 +18,16 @@ License: AGPL v3.
   `retro`, and `dim` for dark). No CSS modules. **Styling goes on the markup**, through the shared
   components below where a look repeats; `app/css/` holds only what markup can't carry.
   - **Shared components carry the app's look**, rather than a repeated string of utilities:
-    `components/FormControls.tsx` (`Field`, `Input`, `Select`, `Checkbox`, `CheckboxInput`,
+    `components/ui/FormControls.tsx` (`Field`, `Input`, `Select`, `Checkbox`, `CheckboxInput`,
     `Toggle` — daisyUI's controls with the app's square corners and full-strength border),
-    `components/Button.tsx` (the outlined text button), `components/tooltip.ts` (`TOOLTIP`, the
+    `components/ui/Button.tsx` (the outlined text button), `components/ui/tooltip.ts` (`TOOLTIP`, the
     class string for a `data-tip` tooltip in each theme's colors),
-    `components/DrawerHeader.tsx`, `components/DisclosureToggle.tsx`, `components/auth/Auth.tsx`,
+    `components/ui/DrawerHeader.tsx`, `components/ui/DisclosureToggle.tsx`, `components/auth/Auth.tsx`,
     `(main)/todo/components/TaskSection.tsx` (`TaskGrid`, `TaskSection`,
     `TaskSectionHeading`, `TaskList`), and `(main)/review/components/ReviewParts.tsx` (the
     review pages' column, sections, project groups, notes and put-back arrow).
   - **Anything that opens over the page is Radix Dialog** (`@radix-ui/react-dialog`), styled by us:
-    `components/Drawer.tsx` for the main menu (`MainMenu`) and the task actions drawer
+    `components/ui/Drawer.tsx` for the main menu (`chrome/MainMenu`) and the task actions drawer
     (`todo/components/TaskForms.tsx`), and `PracticeSessionModal`. Radix gives Escape, focus
     kept inside and returned, scroll lock, and exit animations (`animate-drawer-*`/`animate-fade-*`
     in `screen.css`, keyed on `data-state`). No other Radix primitives until one is needed; daisyUI's
@@ -115,14 +115,21 @@ License: AGPL v3.
 ## Layout (`frontend/app/`)
 - `(main)/` — authed route group (`layout.tsx`). Features: `todo/`, `review/`, `practice/`. Home (`/`) is the to-do list's default view, wrapped in
   `todo/components/TaskShell` like every `/todo` route; bare `/todo` redirects there. `app/lib/pages.ts`'s
-  `isTodoPath` is the one test for "on a to-do route"; `components/PageIcon.tsx` gives each page the icon its
+  `isTodoPath` is the one test for "on a to-do route"; `components/chrome/PageIcon.tsx` gives each page the icon its
   menu link and the header's upper-left icon share.
-  Each feature colocates its own `components/`, `hooks/`, `utils/`. `todo/components/layouts/` holds
+  **Where a file lives says who uses it.** Each feature colocates its own `components/`, `hooks/`,
+  `contexts/`, `utils/`, including pieces other places mount or import: the header's to-do controls
+  import from `todo/`, and the layout mounts `practice/components/PracticeSessionModal` because it
+  covers every page. Only what two or more features share goes in the top-level folders:
+  `components/ui/` (building blocks: `Button`, `FormControls`, `Drawer`, the rich-text editor,
+  `RecurrencePicker`, …), `components/chrome/` (header, menu, guards, theme toggle),
+  `components/settings/` (the settings panel and its parts), `components/auth/`, `components/charts/`,
+  and `hooks/`, `contexts/` for the cross-feature ones (date/time settings, the practice session's
+  open/dismiss state, beta access, projects, location, review cadence, theme).
+  `todo/components/layouts/` holds
   the per-layout components + `types.ts`; `review/` holds `periodic/` and `daily/` pages plus
   `WeekCalendar`/`TaskPickList` and the `useReview`/`useDailyPick`/`useCalendarEvents` hooks.
-  Settings is a panel inside the menu drawer, not a page (`components/SettingsPanel.tsx`).
-  `PracticeSessionModal` is **not** under `practice/` — it lives in `components/` and is mounted in the
-  authed layout, because it covers every page.
+  Settings is a panel inside the menu drawer, not a page (`components/settings/SettingsPanel.tsx`).
 - `api/` — Next.js route handlers acting as a BFF/proxy to Strapi (`tasks/`, `projects/`, `views/`,
   `worlds/`, `reviews/`, `daily-picks/`, `calendars/`, `practice-logs/`, `system-settings/`, `auth/`, …).
 - `lib/` — pure, unit-tested business logic. Core files: `layoutTransformers.ts` (the task-grouping
@@ -440,8 +447,8 @@ is server state via `useActiveSession`, which polls every 30s **only while somet
   pass `initial` so the provider doesn't fetch (see `app/(main)/todo/hooks/useTasks.test.ts`).
   Query-backed hooks need a `QueryClientProvider` wrapper with a **per-test client** and
   **`retry: false`** — the app default of 1 makes every failure case sit through a backoff before the
-  assertion runs (see `app/hooks/useWorlds.test.ts`). Component tests that only care about a hook's
-  *output* should `vi.mock` the hook instead (see `app/components/HeaderContent.test.tsx`); there is
+  assertion runs (see `app/(main)/todo/hooks/useWorlds.test.ts`). Component tests that only care about a hook's
+  *output* should `vi.mock` the hook instead (see `app/components/chrome/HeaderContent.test.tsx`); there is
   no global fetch mock, so an unmocked query in a component test hits a real relative URL.
   **A cache write is not visible to `result.current` when `act()` returns.** TanStack notifies observers
   on a microtask, so `act(() => result.current.addTask(t))` followed by a bare `expect` reads the *old*

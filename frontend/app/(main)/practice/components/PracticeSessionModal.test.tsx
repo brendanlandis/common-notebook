@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import PracticeSessionModal from './PracticeSessionModal';
+import PracticeSessionModal from '@/app/(main)/practice/components/PracticeSessionModal';
 import { PracticeSessionProvider } from '@/app/contexts/PracticeSessionContext';
 import { DateTimeSettingsProvider } from '@/app/contexts/DateTimeSettingsContext';
 import type { Task } from '@/app/types/index';
@@ -30,7 +30,7 @@ const session = vi.hoisted(() => ({
   },
 }));
 
-vi.mock('@/app/hooks/usePracticeSession', () => ({
+vi.mock('@/app/(main)/practice/hooks/usePracticeSession', () => ({
   useActiveSession: () => session.current,
 }));
 

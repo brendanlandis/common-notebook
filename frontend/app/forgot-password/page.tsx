@@ -5,7 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useState } from "react";
 import { AuthPage, AuthForm, AuthField } from "@/app/components/auth/Auth";
-import Button from "@/app/components/Button";
+import Button from "@/app/components/ui/Button";
 
 const schema = z.object({
   email: z.email("enter a valid email"),

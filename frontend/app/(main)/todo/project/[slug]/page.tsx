@@ -8,10 +8,10 @@ import type { LayoutRuleset, Project, Task } from "@/app/types/index";
 import { transformLayout } from "@/app/lib/layoutTransformers";
 import { useDateTimeSettings } from "@/app/contexts/DateTimeSettingsContext";
 import TaskSections from "../../components/TaskSections";
-import FaviconManager from "@/app/components/FaviconManager";
+import FaviconManager from "@/app/components/ui/FaviconManager";
 import { useTaskData } from "../../contexts/TaskDataContext";
 import { buildRawTaskData } from "../../utils/buildRawTaskData";
-import { TOOLTIP } from "@/app/components/tooltip";
+import { TOOLTIP } from "@/app/components/ui/tooltip";
 
 export default function ProjectPage() {
   const { timeZoneSettings } = useDateTimeSettings();

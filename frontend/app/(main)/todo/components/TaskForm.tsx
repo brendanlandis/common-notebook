@@ -15,13 +15,13 @@ import type {
 } from "@/app/types/index";
 import { getTaskProjectType } from "@/app/lib/taskProjectType";
 import { calculateNextRecurrence, hasEventDate } from "@/app/lib/recurrence";
-import { Checkbox, Field, Input } from "@/app/components/FormControls";
-import RecurrencePicker from "@/app/components/RecurrencePicker";
+import { Checkbox, Field, Input } from "@/app/components/ui/FormControls";
+import RecurrencePicker from "@/app/components/ui/RecurrencePicker";
 import { useDateTimeSettings } from "@/app/contexts/DateTimeSettingsContext";
 import { useTasks } from "../hooks/useTasks";
 import { useProjects } from "@/app/hooks/useProjects";
 import { isPracticeWorld } from "@/app/lib/worlds";
-import RichTextEditor from "@/app/components/RichTextEditor";
+import RichTextEditor from "@/app/components/ui/RichTextEditor";
 import {
   showTrackingUrl,
   showPurchaseUrl,
@@ -32,7 +32,7 @@ import {
   showDateFields,
   allowsRecurring,
 } from "../utils/formFieldVisibility";
-import Button from "@/app/components/Button";
+import Button from "@/app/components/ui/Button";
 
 const schema = z.object({
   title: z.string().min(1, "Title is required"),

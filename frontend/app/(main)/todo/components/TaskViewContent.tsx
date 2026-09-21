@@ -15,11 +15,11 @@ import {
   DEFAULT_VIEW_SLUG,
 } from "@/app/lib/views";
 import type { LayoutRuleset } from "@/app/types/index";
-import { useStuffProjects } from "@/app/contexts/StuffProjectsContext";
+import { useStuffProjects } from "@/app/(main)/todo/contexts/StuffProjectsContext";
 import { useDateTimeSettings } from "@/app/contexts/DateTimeSettingsContext";
-import { useWorlds } from "@/app/hooks/useWorlds";
-import { useViews } from "@/app/hooks/useViews";
-import FaviconManager from "@/app/components/FaviconManager";
+import { useWorlds } from "@/app/(main)/todo/hooks/useWorlds";
+import { useViews } from "@/app/(main)/todo/hooks/useViews";
+import FaviconManager from "@/app/components/ui/FaviconManager";
 import { useTaskData } from "../contexts/TaskDataContext";
 
 const EMPTY_RULESET: LayoutRuleset = { slug: "", name: "", layout: "projects", sections: [] };

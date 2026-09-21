@@ -3,12 +3,12 @@
 import { XIcon } from "@phosphor-icons/react";
 import TaskForm from "./TaskForm";
 import ProjectForm from "./ProjectForm";
-import WorldsManager from "@/app/components/WorldsManager";
-import ViewsManager from "@/app/components/ViewsManager";
-import ProjectsManager from "@/app/components/ProjectsManager";
-import Drawer, { DrawerClose } from "@/app/components/Drawer";
-import DrawerHeader from "@/app/components/DrawerHeader";
-import { useTaskActions } from "@/app/contexts/TaskActionsContext";
+import WorldsManager from "@/app/(main)/todo/components/WorldsManager";
+import ViewsManager from "@/app/(main)/todo/components/ViewsManager";
+import ProjectsManager from "@/app/(main)/todo/components/ProjectsManager";
+import Drawer, { DrawerClose } from "@/app/components/ui/Drawer";
+import DrawerHeader from "@/app/components/ui/DrawerHeader";
+import { useTaskActions } from "@/app/(main)/todo/contexts/TaskActionsContext";
 import { useTaskData } from "../contexts/TaskDataContext";
 
 const TITLES = {

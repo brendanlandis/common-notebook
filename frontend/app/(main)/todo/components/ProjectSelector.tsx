@@ -1,10 +1,10 @@
 "use client";
 
 import type { Project, ProjectType } from "@/app/types/index";
-import { useStuffProjects } from "@/app/contexts/StuffProjectsContext";
-import { useWorlds } from "@/app/hooks/useWorlds";
+import { useStuffProjects } from "@/app/(main)/todo/contexts/StuffProjectsContext";
+import { useWorlds } from "@/app/(main)/todo/hooks/useWorlds";
 import { useProjects } from "@/app/hooks/useProjects";
-import { Select } from "@/app/components/FormControls";
+import { Select } from "@/app/components/ui/FormControls";
 
 interface ProjectSelectorProps {
   id?: string;

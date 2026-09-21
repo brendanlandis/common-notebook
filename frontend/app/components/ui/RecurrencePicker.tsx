@@ -2,7 +2,7 @@
 
 import type { RecurrenceType, RecurrenceRule } from "@/app/types/index";
 import { hasEventDate } from "@/app/lib/recurrence";
-import { Field, Input, Select } from "@/app/components/FormControls";
+import { Field, Input, Select } from "@/app/components/ui/FormControls";
 
 /**
  * The recurrence pattern editor, as a controlled component.

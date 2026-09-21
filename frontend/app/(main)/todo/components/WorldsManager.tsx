@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from "react";
 import type { Project, World } from "@/app/types/index";
-import { useWorlds } from "@/app/hooks/useWorlds";
-import { Input } from "./FormControls";
-import { SortableProvider, SortableGroup, SortableRow, reorderIds } from "./SortableList";
+import { useWorlds } from "@/app/(main)/todo/hooks/useWorlds";
+import { Input } from "@/app/components/ui/FormControls";
+import { SortableProvider, SortableGroup, SortableRow, reorderIds } from "@/app/components/ui/SortableList";
 
 // Create / rename / reorder / delete the user's worlds. Deletion is blocked
 // while any project still references the world (a count is shown instead); the

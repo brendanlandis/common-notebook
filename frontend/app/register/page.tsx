@@ -6,7 +6,7 @@ import { z } from "zod";
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AuthPage, AuthForm, AuthField } from "@/app/components/auth/Auth";
-import Button from "@/app/components/Button";
+import Button from "@/app/components/ui/Button";
 
 const schema = z
   .object({

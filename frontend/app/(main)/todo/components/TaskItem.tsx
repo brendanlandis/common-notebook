@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { CheckboxInput } from "@/app/components/FormControls";
+import { CheckboxInput } from "@/app/components/ui/FormControls";
 import type { Task } from "@/app/types/index";
 import { getTaskProjectType } from "@/app/lib/taskProjectType";
 import {
@@ -17,7 +17,7 @@ import { isPracticeMaterial } from "@/app/lib/reviewLists";
 import { usePracticeSessionUI } from "@/app/contexts/PracticeSessionContext";
 import { parseDate, formatInTimezone, toISODate, shiftISODate, isoDayDiff } from "@/app/lib/dateUtils";
 import { useDateTimeSettings } from "@/app/contexts/DateTimeSettingsContext";
-import RichTextDisplay from "@/app/components/RichTextDisplay";
+import RichTextDisplay from "@/app/components/ui/RichTextDisplay";
 
 interface TaskItemProps {
   task: Task;

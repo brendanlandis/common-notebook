@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
-import { CheckboxInput } from "@/app/components/FormControls";
+import { CheckboxInput } from "@/app/components/ui/FormControls";
 import { flushSync } from "react-dom";
 import { MetronomeIcon } from "@phosphor-icons/react";
 import { useDateTimeSettings } from "@/app/contexts/DateTimeSettingsContext";

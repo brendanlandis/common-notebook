@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, type ReactNode } from "react";
-import TimezoneManager from "@/app/components/TimezoneManager";
+import TimezoneManager from "@/app/components/settings/TimezoneManager";
 import { saveVisibilityMinutesToStrapi } from "@/app/lib/completedTaskVisibilityConfig";
 import {
   fetchAutoDeclutterFromStrapi,
@@ -12,11 +12,11 @@ import { useDateTimeSettings } from "@/app/contexts/DateTimeSettingsContext";
 import { useBetaAccess } from "@/app/hooks/useBetaAccess";
 import { useReviewCadence } from "@/app/hooks/useReviewCadence";
 import { useLocation } from "@/app/hooks/useLocation";
-import RecurrencePicker from "@/app/components/RecurrencePicker";
+import RecurrencePicker from "@/app/components/ui/RecurrencePicker";
 import { cadenceIsUsable } from "@/app/lib/reviewCadence";
-import CalendarsManager from "@/app/components/CalendarsManager";
-import LogoutButton from "@/app/components/LogoutButton";
-import { CheckboxInput, Field, Input, Select } from "@/app/components/FormControls";
+import CalendarsManager from "@/app/components/settings/CalendarsManager";
+import LogoutButton from "@/app/components/settings/LogoutButton";
+import { CheckboxInput, Field, Input, Select } from "@/app/components/ui/FormControls";
 
 export default function SettingsPanel() {
   const [autoDeclutter, setAutoDeclutter] = useState<boolean>(true); // Default on

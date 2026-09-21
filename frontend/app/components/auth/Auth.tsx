@@ -1,5 +1,5 @@
 import type { ComponentProps, ReactNode } from "react";
-import { Input } from "@/app/components/FormControls";
+import { Input } from "@/app/components/ui/FormControls";
 
 /**
  * The logged-out pages (login, register, forgot and reset password) share one

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import type { RecurrenceRule } from "@/app/types/index";
-import RecurrencePicker from "./RecurrencePicker";
+import RecurrencePicker from "@/app/components/ui/RecurrencePicker";
 
 /**
  * The picker's own contract, independent of any form.

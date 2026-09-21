@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 import type { PracticeLog, StrapiBlock } from '@/app/types/index';
-import RichTextEditor from '@/app/components/RichTextEditor';
-import Button from "@/app/components/Button";
+import RichTextEditor from '@/app/components/ui/RichTextEditor';
+import Button from "@/app/components/ui/Button";
 
 interface PracticeFormProps {
   practiceLog?: PracticeLog;

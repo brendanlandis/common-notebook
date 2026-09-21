@@ -8,8 +8,8 @@ import {
   findViewBySlug,
   findCodePreset,
 } from "@/app/lib/views";
-import { useStuffProjects } from "@/app/contexts/StuffProjectsContext";
-import { useViews } from "@/app/hooks/useViews";
+import { useStuffProjects } from "@/app/(main)/todo/contexts/StuffProjectsContext";
+import { useViews } from "@/app/(main)/todo/hooks/useViews";
 
 // Per-view route. The default view canonicalizes to home, so its own path
 // (and any unknown/unavailable slug) forwards there.

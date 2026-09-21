@@ -9,7 +9,7 @@ import { apiFetch, apiSend } from '@/app/lib/apiFetch';
  * The practice history: past sessions, and the 30-day chart.
  *
  * Read-only apart from editing and deleting a finished session. Starting,
- * pausing and stopping live in `app/hooks/usePracticeSession.ts`, because they
+ * pausing and stopping live in `usePracticeSession.ts` beside this file, because they
  * belong to the modal, which is mounted for the whole app rather than for this
  * page. This hook used to own all of it, back when /practice *was* the practice
  * screen.

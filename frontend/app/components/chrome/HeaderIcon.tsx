@@ -1,7 +1,7 @@
 'use client';
 
 import { usePathname } from 'next/navigation';
-import PageIcon from './PageIcon';
+import PageIcon from '@/app/components/chrome/PageIcon';
 
 // Matches the current page's menu icon.
 export default function HeaderIcon() {

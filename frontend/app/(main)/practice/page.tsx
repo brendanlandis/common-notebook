@@ -13,7 +13,7 @@ import {
 import type { TimeZoneSettings } from "@/app/lib/timeZoneSettings";
 import { useDateTimeSettings } from "@/app/contexts/DateTimeSettingsContext";
 import { usePracticeLogs } from "./hooks/usePracticeLogs";
-import FaviconManager from "@/app/components/FaviconManager";
+import FaviconManager from "@/app/components/ui/FaviconManager";
 
 /**
  * What you have practiced — a record, not a place you practice.

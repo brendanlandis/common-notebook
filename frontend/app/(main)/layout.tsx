@@ -1,13 +1,13 @@
-import MainMenu from "../components/MainMenu";
-import HeaderContent from "../components/HeaderContent";
+import MainMenu from "@/app/components/chrome/MainMenu";
+import HeaderContent from "@/app/components/chrome/HeaderContent";
 import { PracticeSessionProvider } from "../contexts/PracticeSessionContext";
-import PracticeSessionModal from "../components/PracticeSessionModal";
-import { TaskActionsProvider } from "../contexts/TaskActionsContext";
+import PracticeSessionModal from "@/app/(main)/practice/components/PracticeSessionModal";
+import { TaskActionsProvider } from "@/app/(main)/todo/contexts/TaskActionsContext";
 import { DateTimeSettingsProvider } from "../contexts/DateTimeSettingsContext";
-import { StuffProjectsProvider } from "../contexts/StuffProjectsContext";
+import { StuffProjectsProvider } from "@/app/(main)/todo/contexts/StuffProjectsContext";
 import QueryProvider from "../providers/QueryProvider";
-import SessionGuard from "../components/SessionGuard";
-import BetaGuard from "../components/BetaGuard";
+import SessionGuard from "@/app/components/chrome/SessionGuard";
+import BetaGuard from "@/app/components/chrome/BetaGuard";
 import { getAccessTokenServer } from "@/app/lib/strapiAuth";
 import {
   getCompletedTaskVisibilityMinutes,

@@ -5,12 +5,12 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useState } from "react";
 import type { Project, StrapiBlock } from "@/app/types/index";
-import { Checkbox, Field, Input, Select } from "@/app/components/FormControls";
-import RichTextEditor from "@/app/components/RichTextEditor";
+import { Checkbox, Field, Input, Select } from "@/app/components/ui/FormControls";
+import RichTextEditor from "@/app/components/ui/RichTextEditor";
 import { slugify } from "@/app/lib/slugify";
-import { useWorlds } from "@/app/hooks/useWorlds";
+import { useWorlds } from "@/app/(main)/todo/hooks/useWorlds";
 import { isPracticeWorld } from "@/app/lib/worlds";
-import Button from "@/app/components/Button";
+import Button from "@/app/components/ui/Button";
 
 const schema = z.object({
   title: z.string().min(1, "Title is required"),

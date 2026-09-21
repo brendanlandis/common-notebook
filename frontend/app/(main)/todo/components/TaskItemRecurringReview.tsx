@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import type { Task } from "@/app/types/index";
 import { getTaskProjectType } from "@/app/lib/taskProjectType";
 import { PencilIcon, TrashIcon, MapPinIcon, LinkIcon } from "@phosphor-icons/react";
-import RichTextDisplay from "@/app/components/RichTextDisplay";
+import RichTextDisplay from "@/app/components/ui/RichTextDisplay";
 import { getRecurrencePrefix } from "@/app/lib/recurrenceLabels";
 
 interface TaskItemRecurringReviewProps {

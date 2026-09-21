@@ -13,7 +13,7 @@ vi.mock("@/app/contexts/PracticeSessionContext", () => ({
 import type { Task } from "@/app/types/index";
 
 // Mock RichTextDisplay
-vi.mock("@/app/components/RichTextDisplay", () => ({
+vi.mock("@/app/components/ui/RichTextDisplay", () => ({
   default: ({ content }: { content: any }) => (
     <div data-testid="rich-text-display">{JSON.stringify(content)}</div>
   ),

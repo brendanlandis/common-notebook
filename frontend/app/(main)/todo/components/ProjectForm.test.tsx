@@ -18,8 +18,8 @@ const worlds: World[] = [
   } as World,
 ];
 
-vi.mock("@/app/hooks/useWorlds", () => ({ useWorlds: () => ({ worlds }) }));
-vi.mock("@/app/components/RichTextEditor", () => ({ default: () => null }));
+vi.mock("@/app/(main)/todo/hooks/useWorlds", () => ({ useWorlds: () => ({ worlds }) }));
+vi.mock("@/app/components/ui/RichTextEditor", () => ({ default: () => null }));
 
 import ProjectForm from "./ProjectForm";
 

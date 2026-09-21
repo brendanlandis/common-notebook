@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import Drawer from "./Drawer";
-import HeaderIcon from "./HeaderIcon";
-import MainMenuPanel from "./MainMenuPanel";
+import Drawer from "@/app/components/ui/Drawer";
+import HeaderIcon from "@/app/components/chrome/HeaderIcon";
+import MainMenuPanel from "@/app/components/chrome/MainMenuPanel";
 
 /** The header's page icon, and the menu drawer it opens. */
 export default function MainMenu() {

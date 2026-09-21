@@ -1,7 +1,7 @@
 'use client';
 
 import type { BlocksContent } from '@strapi/blocks-react-renderer';
-import SlateEditor from '@/app/components/SlateEditor';
+import SlateEditor from '@/app/components/ui/SlateEditor';
 
 interface RichTextEditorProps {
   value: BlocksContent;

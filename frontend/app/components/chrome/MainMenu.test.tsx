@@ -1,19 +1,19 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
-import MainMenu from "./MainMenu";
+import MainMenu from "@/app/components/chrome/MainMenu";
 
 // Isolate the panel-switch logic: the real children pull in query hooks and a
 // network fetch, none of which this test cares about. Stubs expose just the
 // interaction points (the gear's onOpenSettings, and a settings marker).
-vi.mock("./MenuItems", () => ({
+vi.mock("@/app/components/chrome/MenuItems", () => ({
   default: ({ onOpenSettings }: { onOpenSettings: () => void }) => (
     <button onClick={onOpenSettings}>open-settings</button>
   ),
 }));
-vi.mock("./SettingsPanel", () => ({
+vi.mock("@/app/components/settings/SettingsPanel", () => ({
   default: () => <div>settings-panel</div>,
 }));
-vi.mock("./HeaderIcon", () => ({ default: () => null }));
+vi.mock("@/app/components/chrome/HeaderIcon", () => ({ default: () => null }));
 
 const openMenu = () => fireEvent.click(screen.getByLabelText("open menu"));
 

@@ -44,7 +44,7 @@ vi.mock("@/app/hooks/useProjects", () => ({ useProjects: () => ({ projects: [] }
 // payload. A null project keeps `selectedProjectType` null, which is what makes
 // the recurring checkbox visible.
 vi.mock("./ProjectSelector", () => ({ default: () => null }));
-vi.mock("@/app/components/RichTextEditor", () => ({ default: () => null }));
+vi.mock("@/app/components/ui/RichTextEditor", () => ({ default: () => null }));
 
 import TaskForm from "./TaskForm";
 

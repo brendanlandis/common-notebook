@@ -2,7 +2,7 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 import { renderHook, act, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createElement, type ReactNode } from "react";
-import { useManageProjects } from "./useManageProjects";
+import { useManageProjects } from "@/app/(main)/todo/hooks/useManageProjects";
 
 // Per-test client, retry:false so failure paths don't sit through a backoff.
 function setup(search = "") {

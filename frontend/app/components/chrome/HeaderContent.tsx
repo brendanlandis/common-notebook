@@ -2,11 +2,11 @@
 
 import { useState } from "react";
 import { usePathname } from "next/navigation";
-import LayoutSelector from "../(main)/todo/components/LayoutSelector";
-import { getDefaultViewSlug } from "../lib/views";
-import { useViews } from "../hooks/useViews";
-import { useStuffProjects } from "../contexts/StuffProjectsContext";
-import { useTaskActions } from "../contexts/TaskActionsContext";
+import LayoutSelector from "@/app/(main)/todo/components/LayoutSelector";
+import { getDefaultViewSlug } from "@/app/lib/views";
+import { useViews } from "@/app/(main)/todo/hooks/useViews";
+import { useStuffProjects } from "@/app/(main)/todo/contexts/StuffProjectsContext";
+import { useTaskActions } from "@/app/(main)/todo/contexts/TaskActionsContext";
 import {
   PlusCircleIcon,
   FolderSimplePlusIcon,
@@ -16,11 +16,11 @@ import {
   CaretLeftIcon,
   CaretRightIcon,
 } from "@phosphor-icons/react";
-import MoonPhaseIcon from "./MoonPhaseIcon";
+import MoonPhaseIcon from "@/app/components/chrome/MoonPhaseIcon";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiSend, swallow } from "../lib/apiFetch";
-import { TASKS_ROOT } from "../(main)/todo/hooks/useTasks";
-import { TOOLTIP } from "@/app/components/tooltip";
+import { apiSend, swallow } from "@/app/lib/apiFetch";
+import { TASKS_ROOT } from "@/app/(main)/todo/hooks/useTasks";
+import { TOOLTIP } from "@/app/components/ui/tooltip";
 import { isTodoPath } from "@/app/lib/pages";
 
 /**

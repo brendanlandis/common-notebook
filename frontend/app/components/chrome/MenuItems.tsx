@@ -1,14 +1,14 @@
 "use client";
 import Link from "next/link";
 import { GearIcon } from "@phosphor-icons/react/dist/ssr";
-import MenuClose from "./MenuClose";
-import { DrawerClose } from "./Drawer";
-import DrawerHeader from "./DrawerHeader";
-import ThemeToggle from "./ThemeToggle";
+import MenuClose from "@/app/components/chrome/MenuClose";
+import { DrawerClose } from "@/app/components/ui/Drawer";
+import DrawerHeader from "@/app/components/ui/DrawerHeader";
+import ThemeToggle from "@/app/components/chrome/ThemeToggle";
 import { visiblePages } from "@/app/lib/pages";
-import PageIcon from "./PageIcon";
+import PageIcon from "@/app/components/chrome/PageIcon";
 import { useBetaAccess } from "@/app/hooks/useBetaAccess";
-import { TOOLTIP } from "@/app/components/tooltip";
+import { TOOLTIP } from "@/app/components/ui/tooltip";
 
 export default function MenuItems({
   onOpenSettings,

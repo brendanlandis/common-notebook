@@ -11,13 +11,13 @@ const openViews = vi.fn();
 vi.mock("next/navigation", () => ({
   usePathname: () => "/todo",
 }));
-vi.mock("@/app/hooks/useViews", () => ({
+vi.mock("@/app/(main)/todo/hooks/useViews", () => ({
   useViews: () => ({ views: [{ slug: "good-morning" }], loading: false }),
 }));
-vi.mock("@/app/contexts/StuffProjectsContext", () => ({
+vi.mock("@/app/(main)/todo/contexts/StuffProjectsContext", () => ({
   useStuffProjects: () => ({ stuffProjectsEnabled: false }),
 }));
-vi.mock("@/app/contexts/TaskActionsContext", () => ({
+vi.mock("@/app/(main)/todo/contexts/TaskActionsContext", () => ({
   useTaskActions: () => ({
     openTaskForm: vi.fn(),
     openProjectForm: vi.fn(),
@@ -27,7 +27,7 @@ vi.mock("@/app/contexts/TaskActionsContext", () => ({
   }),
 }));
 vi.mock("@/app/(main)/todo/components/LayoutSelector", () => ({ default: () => null }));
-vi.mock("@/app/components/MoonPhaseIcon", () => ({ default: () => null }));
+vi.mock("@/app/components/chrome/MoonPhaseIcon", () => ({ default: () => null }));
 vi.mock("@phosphor-icons/react", () => ({
   PlusCircleIcon: () => null,
   FolderSimplePlusIcon: () => null,
@@ -38,7 +38,7 @@ vi.mock("@phosphor-icons/react", () => ({
   CaretRightIcon: () => null,
 }));
 
-import HeaderContent from "./HeaderContent";
+import HeaderContent from "@/app/components/chrome/HeaderContent";
 
 // The moon-phase reset is a mutation now (it used to be a raw fetch plus a
 // CustomEvent), so the component calls useQueryClient and needs a provider even

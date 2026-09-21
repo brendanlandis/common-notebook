@@ -2,8 +2,8 @@
 
 import { useState, type ReactNode } from "react";
 import type { View, ViewSectionInput, ViewLayout, WorldMode } from "@/app/types/index";
-import { useViews } from "@/app/hooks/useViews";
-import { useWorlds } from "@/app/hooks/useWorlds";
+import { useViews } from "@/app/(main)/todo/hooks/useViews";
+import { useWorlds } from "@/app/(main)/todo/hooks/useWorlds";
 import {
   sortViewsByPosition,
   LAYOUT_OPTIONS,
@@ -12,9 +12,9 @@ import {
   PROJECT_TYPE_OPTIONS,
   RECURRENCE_OPTIONS,
 } from "@/app/lib/views";
-import { Checkbox, Input, Select } from "./FormControls";
-import DisclosureToggle from "./DisclosureToggle";
-import { SortableProvider, SortableGroup, SortableRow, reorderIds } from "./SortableList";
+import { Checkbox, Input, Select } from "@/app/components/ui/FormControls";
+import DisclosureToggle from "@/app/components/ui/DisclosureToggle";
+import { SortableProvider, SortableGroup, SortableRow, reorderIds } from "@/app/components/ui/SortableList";
 import { defaultSection, sectionToInput, viewSections } from "@/app/lib/viewSectionInput";
 
 // Create / rename / reorder / delete the user's task-list views, and compose

@@ -3,12 +3,12 @@
 import { useEffect, useMemo, type ReactNode } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { PlayIcon, PauseIcon, StopIcon, MetronomeIcon, XIcon } from '@phosphor-icons/react';
-import { useActiveSession } from '@/app/hooks/usePracticeSession';
+import { useActiveSession } from '@/app/(main)/practice/hooks/usePracticeSession';
 import { usePracticeSessionUI } from '@/app/contexts/PracticeSessionContext';
 import { useDateTimeSettings } from '@/app/contexts/DateTimeSettingsContext';
 import { isStale } from '@/app/lib/practiceSession';
-import PracticeClock from './PracticeClock';
-import Button from "@/app/components/Button";
+import PracticeClock from '@/app/(main)/practice/components/PracticeClock';
+import Button from "@/app/components/ui/Button";
 
 /**
  * Practicing, over whatever you were looking at.

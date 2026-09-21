@@ -2,8 +2,8 @@
 
 import TaskViewContent from "./TaskViewContent";
 import { getDefaultViewSlug } from "@/app/lib/views";
-import { useStuffProjects } from "@/app/contexts/StuffProjectsContext";
-import { useViews } from "@/app/hooks/useViews";
+import { useStuffProjects } from "@/app/(main)/todo/contexts/StuffProjectsContext";
+import { useViews } from "@/app/(main)/todo/hooks/useViews";
 
 // Home renders the default view — the first view in the user's ordering.
 // Every other view lives at /todo/view/<slug>.

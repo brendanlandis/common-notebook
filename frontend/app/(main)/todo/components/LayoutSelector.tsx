@@ -1,8 +1,8 @@
 import { useRouter } from "next/navigation";
-import { Select } from "@/app/components/FormControls";
-import { useStuffProjects } from "@/app/contexts/StuffProjectsContext";
-import { useWorlds } from "@/app/hooks/useWorlds";
-import { useViews } from "@/app/hooks/useViews";
+import { Select } from "@/app/components/ui/FormControls";
+import { useStuffProjects } from "@/app/(main)/todo/contexts/StuffProjectsContext";
+import { useWorlds } from "@/app/(main)/todo/hooks/useWorlds";
+import { useViews } from "@/app/(main)/todo/hooks/useViews";
 import { sortViewsByPosition, getDefaultViewSlug, CODE_PRESETS } from "@/app/lib/views";
 
 interface LayoutSelectorProps {

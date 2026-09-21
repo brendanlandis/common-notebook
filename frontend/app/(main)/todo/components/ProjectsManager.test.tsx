@@ -33,10 +33,10 @@ const tasks = [{ documentId: "t1", completed: false, project: { documentId: "p-b
 vi.mock("@/app/(main)/todo/hooks/useTasks", () => ({
   useTasks: () => ({ grouped: { projects }, tasks, loading: false }),
 }));
-vi.mock("@/app/hooks/useWorlds", () => ({
+vi.mock("@/app/(main)/todo/hooks/useWorlds", () => ({
   useWorlds: () => ({ worlds: [wa, wStuff] }),
 }));
-vi.mock("@/app/contexts/StuffProjectsContext", () => ({
+vi.mock("@/app/(main)/todo/contexts/StuffProjectsContext", () => ({
   useStuffProjects: () => ({ stuffProjectsEnabled: true, setStuffProjectsEnabled: vi.fn() }),
 }));
 
@@ -45,7 +45,7 @@ const reviveProject = vi.fn().mockResolvedValue(undefined);
 const setImportance = vi.fn().mockResolvedValue(undefined);
 const saveProject = vi.fn().mockResolvedValue(undefined);
 
-vi.mock("@/app/hooks/useManageProjects", () => ({
+vi.mock("@/app/(main)/todo/hooks/useManageProjects", () => ({
   useManageProjects: () => ({
     completedProjects: [proj({ documentId: "c1", title: "Old Proj", complete: true })],
     recentlyCompletedTasks: [],
@@ -68,7 +68,7 @@ vi.mock("@/app/(main)/todo/components/ProjectForm", () => ({
   ),
 }));
 
-import ProjectsManager from "./ProjectsManager";
+import ProjectsManager from "@/app/(main)/todo/components/ProjectsManager";
 
 beforeEach(() => {
   completeProject.mockClear();

@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { getMoonPhaseIconName, type MoonPhaseIconName } from '../lib/moonPhase';
-import { useDateTimeSettings } from '../contexts/DateTimeSettingsContext';
+import { getMoonPhaseIconName, type MoonPhaseIconName } from '@/app/lib/moonPhase';
+import { useDateTimeSettings } from '@/app/contexts/DateTimeSettingsContext';
 import {
   MoonNew,
   MoonWaxingCrescent1,
@@ -32,7 +32,7 @@ import {
   MoonWaningCrescent4,
   MoonWaningCrescent5,
   MoonWaningCrescent6,
-} from './MoonPhaseIcons';
+} from '@/app/components/chrome/MoonPhaseIcons';
 
 interface MoonPhaseIconProps {
   size?: number;

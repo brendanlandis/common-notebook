@@ -6,7 +6,7 @@ import type { PracticeLog } from "@/app/types/index";
 import { formatInTimezone } from "@/app/lib/dateUtils";
 import { useDateTimeSettings } from "@/app/contexts/DateTimeSettingsContext";
 import PracticeForm from "./PracticeForm";
-import RichTextDisplay from "@/app/components/RichTextDisplay";
+import RichTextDisplay from "@/app/components/ui/RichTextDisplay";
 
 interface PracticeSessionItemProps {
   practiceLog: PracticeLog;

@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import { ArrowLeftIcon } from "@phosphor-icons/react/dist/ssr";
-import MenuItems from "./MenuItems";
-import DrawerHeader from "./DrawerHeader";
-import SettingsPanel from "./SettingsPanel";
+import MenuItems from "@/app/components/chrome/MenuItems";
+import DrawerHeader from "@/app/components/ui/DrawerHeader";
+import SettingsPanel from "@/app/components/settings/SettingsPanel";
 
 /**
  * The main menu drawer's content. A master/detail panel: the menu list, or a

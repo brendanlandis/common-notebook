@@ -1,6 +1,6 @@
 import { describe, it, expect, afterEach, vi } from 'vitest';
 import { render, screen, act } from '@testing-library/react';
-import PracticeClock, { formatElapsed } from './PracticeClock';
+import PracticeClock, { formatElapsed } from '@/app/(main)/practice/components/PracticeClock';
 import type { PracticeSegment } from '@/app/lib/practiceSession';
 
 afterEach(() => {
