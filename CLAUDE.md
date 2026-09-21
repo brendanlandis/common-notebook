@@ -47,9 +47,10 @@ License: AGPL v3.
     below 16px. `text-sm`/`text-base`/`text-xs` and arbitrary sizes are off the scale; add a role
     rather than a one-off. **A page opens on its highest heading, never a lower one.** One title
     is an `<h1>`, as on a project or review page. Where a page opens on several peers (a view's
-    columns, the done view's days, the everything view's months), they're `<h2>`s and there's no
-    `<h1>`. Columns under a group's name (home's "recurring") are a level down, `<h3>` labels. A
-    title never repeats the header's view selector, which already names the view or world.
+    columns, the done view's days), they're `<h2>`s and there's no `<h1>`. Columns under a group's
+    name (home's "recurring") are a level down, `<h3>` labels, and so are the everything view's
+    months, which are all it has. A title never repeats the header's view selector, which already
+    names the view or world.
   - **Spacing is five steps, 4 · 8 · 16 · 32 · 64px** (Tailwind's 1, 2, 4, 8, 16), and nothing
     between. A kind of gap that recurs is a role token in `screen.css`, listed there with what it
     separates: `gap-icons`, `gap-rows`, `mb-heading`, `gap-controls`, `gap-lists`, `mb-title`,

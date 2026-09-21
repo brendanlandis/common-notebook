@@ -101,24 +101,19 @@ export function TaskSubsections({
   return <div className={`flex flex-col gap-lists ${className}`}>{children}</div>;
 }
 
-/**
- * One of them: a label and what it labels. Where they're a page's top headings
- * they're sections, `heading="h2"`, since a page never opens on a label.
- */
+/** One of them: a label and what it labels. */
 export function TaskSubsection({
   title,
-  heading: Heading = "h3",
   className = "",
   children,
 }: {
   title: ReactNode;
-  heading?: "h2" | "h3";
   className?: string;
   children: ReactNode;
 }) {
   return (
     <div className={`flex flex-col gap-heading ${className}`}>
-      <Heading>{title}</Heading>
+      <h3>{title}</h3>
       {children}
     </div>
   );
