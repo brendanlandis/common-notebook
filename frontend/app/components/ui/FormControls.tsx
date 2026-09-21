@@ -70,7 +70,9 @@ export function Select({
   small = false,
   ...props
 }: ComponentProps<"select"> & Sizing & { small?: boolean }) {
-  const size = small ? "select-sm [--size:1.75rem] text-small" : "text-body";
+  // The 2px of bottom padding lifts the text 1px: centered by the box, mostly
+  // lowercase text with descenders reads low.
+  const size = small ? "select-sm [--size:1.75rem] pb-[2px] text-small" : "text-body";
   return (
     <select className={`select ${FIELD} ${size} ${width(fullWidth)} ${className}`} {...props} />
   );

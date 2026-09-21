@@ -59,7 +59,7 @@ export default function RecentStats({ stats, loading, title = "recently", noWrap
   }
 
   return (
-    <TaskSection className="mx-auto w-full max-w-[600px] min-[900px]:max-w-[800px]">
+    <TaskSection className="w-full max-w-[600px] min-[900px]:max-w-[800px]">
       {chartContent}
     </TaskSection>
   );

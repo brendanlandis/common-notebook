@@ -140,7 +140,7 @@ export default function TaskViewContent({ slug }: { slug: string }) {
             recentStatsSection={
               isDone &&
               (recentStats.length > 0 || recentStats30Days.length > 0) ? (
-                <TaskSection className="mx-auto w-full max-w-[600px] min-[900px]:max-w-[800px]">
+                <TaskSection className="w-full max-w-[600px] min-[900px]:max-w-[800px]">
                   <TaskSectionHeading>recently</TaskSectionHeading>
                   <div>
                     <RecentStats
