@@ -45,7 +45,11 @@ License: AGPL v3.
     (`.slate-editor-editable`, `.rich-text-content`) are skipped and keep their own headings.
     Inputs, selects and buttons are body size, never smaller: iOS Safari zooms the page on focus
     below 16px. `text-sm`/`text-base`/`text-xs` and arbitrary sizes are off the scale; add a role
-    rather than a one-off. **Every page opens with an `<h1>`**; a task view's is the view's name.
+    rather than a one-off. **A page opens on its highest heading, never a lower one.** One title
+    is an `<h1>`, as on a project or review page. Where a page opens on several peers (a view's
+    columns, the done view's days, the everything view's months), they're `<h2>`s and there's no
+    `<h1>`. A title never repeats the header's view selector, which already names the view or
+    world.
   - **Spacing is five steps, 4 · 8 · 16 · 32 · 64px** (Tailwind's 1, 2, 4, 8, 16), and nothing
     between. A kind of gap that recurs is a role token in `screen.css`, listed there with what it
     separates: `gap-icons`, `gap-rows`, `mb-heading`, `gap-lists`, `mb-title`, `gap-x-columns`,

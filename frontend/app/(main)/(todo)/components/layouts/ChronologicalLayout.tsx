@@ -50,7 +50,11 @@ export default function ChronologicalLayout({
       <TaskSection>
         <TaskSubsections>
           {groupedByMonth.map(([key, { date, tasks: monthTasks }]) => (
-            <TaskSubsection key={key} title={formatInTimezone(date, "MMMM yyyy", timeZoneSettings)}>
+            <TaskSubsection
+              key={key}
+              heading="h2"
+              title={formatInTimezone(date, "MMMM yyyy", timeZoneSettings).toLowerCase()}
+            >
               <TaskList>
                 {monthTasks.map((task) => (
                   <TaskItem

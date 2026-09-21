@@ -123,8 +123,6 @@ export default function TaskViewContent({ slug }: { slug: string }) {
     <>
       <FaviconManager type="broom" />
       <div id="container-task" className={`text-center ${layoutClass}`} suppressHydrationWarning>
-        {/* Every page opens with its title; a view's is its name. */}
-        {ruleset.name && <h1 className="mb-title text-left">{ruleset.name}</h1>}
         {!hasAnyTasks && !hasRecurringTasks && !hasCompletedTasks ? (
           <p>nothin' to do, nowhere to be</p>
         ) : (
