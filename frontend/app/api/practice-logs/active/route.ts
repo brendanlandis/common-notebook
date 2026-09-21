@@ -6,7 +6,7 @@ import { fetchOpenSession } from '@/app/lib/practiceSessionServer';
  * "Is anything running?" — the question the practice modal asks from every page.
  *
  * It needs a route of its own because the session list is filtered by material,
- * and on /todo or /review there is no material in scope: "the open log among
+ * and on the to-do list or /review there is no material in scope: "the open log among
  * this material's logs" is not a question that can be asked there. The old
  * per-type query had the same shape and the same limitation, which is also why
  * two sessions on different types could both be open at once.

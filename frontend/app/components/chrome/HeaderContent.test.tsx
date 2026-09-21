@@ -9,15 +9,15 @@ const openViews = vi.fn();
 // HeaderContent depends on navigation + three contexts; stub them so the test
 // stays focused on the header's own markup (the add-item tooltip copy).
 vi.mock("next/navigation", () => ({
-  usePathname: () => "/todo",
+  usePathname: () => "/",
 }));
-vi.mock("@/app/(main)/todo/hooks/useViews", () => ({
+vi.mock("@/app/(main)/(todo)/hooks/useViews", () => ({
   useViews: () => ({ views: [{ slug: "good-morning" }], loading: false }),
 }));
-vi.mock("@/app/(main)/todo/contexts/StuffProjectsContext", () => ({
+vi.mock("@/app/(main)/(todo)/contexts/StuffProjectsContext", () => ({
   useStuffProjects: () => ({ stuffProjectsEnabled: false }),
 }));
-vi.mock("@/app/(main)/todo/contexts/TaskActionsContext", () => ({
+vi.mock("@/app/(main)/(todo)/contexts/TaskActionsContext", () => ({
   useTaskActions: () => ({
     openTaskForm: vi.fn(),
     openProjectForm: vi.fn(),
@@ -26,7 +26,7 @@ vi.mock("@/app/(main)/todo/contexts/TaskActionsContext", () => ({
     openViews,
   }),
 }));
-vi.mock("@/app/(main)/todo/components/LayoutSelector", () => ({ default: () => null }));
+vi.mock("@/app/(main)/(todo)/components/LayoutSelector", () => ({ default: () => null }));
 vi.mock("@/app/components/chrome/MoonPhaseIcon", () => ({ default: () => null }));
 vi.mock("@phosphor-icons/react", () => ({
   PlusCircleIcon: () => null,
@@ -55,7 +55,7 @@ const renderHeader = () => {
 };
 
 describe("HeaderContent copy (todo→task rename)", () => {
-  it('labels the add-item button tooltip "add task" on the /todo route', () => {
+  it('labels the add-item button tooltip "add task" on a to-do route', () => {
     const { container } = renderHeader();
     // The tooltip copy lives in `data-tip` (a daisyUI attribute, not the a11y name).
     expect(container.querySelector('[data-tip="add task"]')).toBeTruthy();

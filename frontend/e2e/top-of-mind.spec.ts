@@ -88,7 +88,7 @@ test.describe('top of mind', () => {
     });
 
     try {
-      await gotoTodo(page, '/todo/view/good-morning');
+      await gotoTodo(page, '/view/good-morning');
       const section = topOfMindSection(page);
 
       // Precondition: the incumbent is in the section because it is top of mind.
@@ -129,7 +129,7 @@ test.describe('top of mind', () => {
     });
 
     try {
-      await gotoTodo(page, '/todo/view/good-morning');
+      await gotoTodo(page, '/view/good-morning');
       await expect(
         topOfMindSection(page).locator(`li:has(#task-${incumbentTask.documentId})`)
       ).toBeVisible();
@@ -140,7 +140,7 @@ test.describe('top of mind', () => {
       ).toBeHidden();
 
       // Re-read from the server.
-      await gotoTodo(page, '/todo/view/good-morning');
+      await gotoTodo(page, '/view/good-morning');
       await expect(
         topOfMindSection(page).locator(`li:has(#task-${challengerTask.documentId})`)
       ).toBeVisible();
@@ -169,7 +169,7 @@ test.describe('top of mind', () => {
     });
 
     try {
-      await gotoTodo(page, '/todo/view/good-morning');
+      await gotoTodo(page, '/view/good-morning');
       await promoteViaForm(page, challenger.title);
 
       const res = await request.get('/api/projects');

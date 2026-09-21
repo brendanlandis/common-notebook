@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { CheckboxInput, Toggle } from "@/app/components/ui/FormControls";
 import { flushSync } from "react-dom";
-import { useTasks } from "@/app/(main)/todo/hooks/useTasks";
+import { useTasks } from "@/app/(main)/(todo)/hooks/useTasks";
 import { useDateTimeSettings } from "@/app/contexts/DateTimeSettingsContext";
 import { useReviewCadence } from "@/app/hooks/useReviewCadence";
 import {

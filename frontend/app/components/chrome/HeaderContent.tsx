@@ -2,11 +2,11 @@
 
 import { useState } from "react";
 import { usePathname } from "next/navigation";
-import LayoutSelector from "@/app/(main)/todo/components/LayoutSelector";
+import LayoutSelector from "@/app/(main)/(todo)/components/LayoutSelector";
 import { getDefaultViewSlug } from "@/app/lib/views";
-import { useViews } from "@/app/(main)/todo/hooks/useViews";
-import { useStuffProjects } from "@/app/(main)/todo/contexts/StuffProjectsContext";
-import { useTaskActions } from "@/app/(main)/todo/contexts/TaskActionsContext";
+import { useViews } from "@/app/(main)/(todo)/hooks/useViews";
+import { useStuffProjects } from "@/app/(main)/(todo)/contexts/StuffProjectsContext";
+import { useTaskActions } from "@/app/(main)/(todo)/contexts/TaskActionsContext";
 import {
   PlusCircleIcon,
   FolderSimplePlusIcon,
@@ -19,7 +19,7 @@ import {
 import MoonPhaseIcon from "@/app/components/chrome/MoonPhaseIcon";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiSend, swallow } from "@/app/lib/apiFetch";
-import { TASKS_ROOT } from "@/app/(main)/todo/hooks/useTasks";
+import { TASKS_ROOT } from "@/app/(main)/(todo)/hooks/useTasks";
 import { TOOLTIP } from "@/app/components/ui/tooltip";
 import { isTodoPath } from "@/app/lib/pages";
 
@@ -71,11 +71,11 @@ export default function HeaderContent() {
   // buttons work everywhere.
   if (isTodoPath(pathname)) {
     // Keep the picker in sync with the route: home shows the default view;
-    // /todo/view/<slug> shows that view; /todo/world/<slug> shows that world's
+    // /view/<slug> shows that view; /world/<slug> shows that world's
     // option; a per-project route has no matching option, so it falls back to
     // the blank row. LayoutSelector navigates on change.
-    const viewMatch = pathname.match(/^\/todo\/view\/(.+)$/);
-    const worldMatch = pathname.match(/^\/todo\/world\/(.+)$/);
+    const viewMatch = pathname.match(/^\/view\/(.+)$/);
+    const worldMatch = pathname.match(/^\/world\/(.+)$/);
     const selectorValue =
       pathname === "/"
         ? getDefaultViewSlug(views, stuffProjectsEnabled)

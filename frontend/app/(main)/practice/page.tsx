@@ -25,7 +25,7 @@ import FaviconManager from "@/app/components/ui/FaviconManager";
  *
  * Read-only apart from editing a session's notes or deleting one outright. There
  * is deliberately no way to start a session from here: the thing you press play
- * on is a piece of material, and material lives on /todo and the review pages.
+ * on is a piece of material, and material lives on the to-do list and the review pages.
  */
 export default function PracticePage() {
   const { timeZoneSettings } = useDateTimeSettings();

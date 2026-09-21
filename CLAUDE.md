@@ -23,12 +23,12 @@ License: AGPL v3.
     `components/ui/Button.tsx` (the outlined text button), `components/ui/tooltip.ts` (`TOOLTIP`, the
     class string for a `data-tip` tooltip in each theme's colors),
     `components/ui/DrawerHeader.tsx`, `components/ui/DisclosureToggle.tsx`, `components/auth/Auth.tsx`,
-    `(main)/todo/components/TaskSection.tsx` (`TaskGrid`, `TaskSection`,
+    `(main)/(todo)/components/TaskSection.tsx` (`TaskGrid`, `TaskSection`,
     `TaskSectionHeading`, `TaskList`), and `(main)/review/components/ReviewParts.tsx` (the
     review pages' column, sections, project groups, notes and put-back arrow).
   - **Anything that opens over the page is Radix Dialog** (`@radix-ui/react-dialog`), styled by us:
     `components/ui/Drawer.tsx` for the main menu (`chrome/MainMenu`) and the task actions drawer
-    (`todo/components/TaskForms.tsx`), and `PracticeSessionModal`. Radix gives Escape, focus
+    (`(todo)/components/TaskForms.tsx`), and `PracticeSessionModal`. Radix gives Escape, focus
     kept inside and returned, scroll lock, and exit animations (`animate-drawer-*`/`animate-fade-*`
     in `screen.css`, keyed on `data-state`). No other Radix primitives until one is needed; daisyUI's
     checkbox drawers are gone.
@@ -65,7 +65,7 @@ License: AGPL v3.
 - Editor: TipTap 3 (`@tiptap/*` all `^3.27.1`) + `@strapi/blocks-react-renderer`.
 - Forms: react-hook-form 7 + zod 4. Charts: recharts 3. Icons: `@phosphor-icons/react`.
 - Calendar: **FullCalendar 6** (`@fullcalendar/{core,react,timegrid,daygrid}`) renders the review grid;
-  **`ical.js` 2** parses subscribed ICS feeds. Both are review-only — nothing in `todo/` touches them.
+  **`ical.js` 2** parses subscribed ICS feeds. Both are review-only — nothing in `(todo)/` touches them.
 - Dates: **`temporal-polyfill`** (the TC39 Temporal API; Node/browsers don't ship it natively yet) — all
   zone- and calendar-aware date logic goes through it. `date-fns`/`date-fns-tz` were removed. Also
   `astronomy-engine` (moon-phase / solstice recurrence, and sunset in `lib/sunset.ts`).
@@ -74,9 +74,9 @@ License: AGPL v3.
   would otherwise leave the wrong thing on screen. Context is for **UI state only** (drawer,
   selection) and for values the server hands down as props (`DateTimeSettingsProvider`).
   *Migration in progress:* `useViews`/`useWorlds`/`useBetaAccess`, `practice/hooks/usePracticeLogs`,
-  `hooks/useProjects`, `todo/hooks/useTasks` and `todo/hooks/useTaskLists` are query-backed; all of
-  `todo/`'s reads and mutations now go through the cache. What remains is shrinking
-  `todo/contexts/TaskDataContext.tsx` to `editingTask`/`editingProject` and pointing its five consumers
+  `hooks/useProjects`, `(todo)/hooks/useTasks` and `(todo)/hooks/useTaskLists` are query-backed; all of
+  `(todo)/`'s reads and mutations now go through the cache. What remains is shrinking
+  `(todo)/contexts/TaskDataContext.tsx` to `editingTask`/`editingProject` and pointing its five consumers
   at the hooks. New server state goes in the cache — don't add a fetching Context.
 - **Related keys share a prefix so one invalidate covers them.** `['practice-logs','list',<type>]` and
   `['practice-logs','stats']` both sit under `['practice-logs']`, so stopping a session refreshes the
@@ -113,20 +113,22 @@ License: AGPL v3.
   fixtures. See `e2e/helpers.ts` for the shared setup and the waits.
 
 ## Layout (`frontend/app/`)
-- `(main)/` — authed route group (`layout.tsx`). Features: `todo/`, `review/`, `practice/`. Home (`/`) is the to-do list's default view, wrapped in
-  `todo/components/TaskShell` like every `/todo` route; bare `/todo` redirects there. `app/lib/pages.ts`'s
+- `(main)/` — authed route group (`layout.tsx`). Features: `(todo)/`, `review/`, `practice/`. `(todo)/` is a route group, so its
+  layout (task data plus the task actions drawer) covers home (`/`, the default view), `/view/<slug>`,
+  `/world/<slug>` and `/project/<slug>` with no "todo" in the address; `next.config.ts` redirects
+  the old `/todo/...` addresses. `app/lib/pages.ts`'s
   `isTodoPath` is the one test for "on a to-do route"; `components/chrome/PageIcon.tsx` gives each page the icon its
   menu link and the header's upper-left icon share.
   **Where a file lives says who uses it.** Each feature colocates its own `components/`, `hooks/`,
   `contexts/`, `utils/`, including pieces other places mount or import: the header's to-do controls
-  import from `todo/`, and the layout mounts `practice/components/PracticeSessionModal` because it
+  import from `(todo)/`, and the layout mounts `practice/components/PracticeSessionModal` because it
   covers every page. Only what two or more features share goes in the top-level folders:
   `components/ui/` (building blocks: `Button`, `FormControls`, `Drawer`, the rich-text editor,
   `RecurrencePicker`, …), `components/chrome/` (header, menu, guards, theme toggle),
   `components/settings/` (the settings panel and its parts), `components/auth/`, `components/charts/`,
   and `hooks/`, `contexts/` for the cross-feature ones (date/time settings, the practice session's
   open/dismiss state, beta access, projects, location, review cadence, theme).
-  `todo/components/layouts/` holds
+  `(todo)/components/layouts/` holds
   the per-layout components + `types.ts`; `review/` holds `periodic/` and `daily/` pages plus
   `WeekCalendar`/`TaskPickList` and the `useReview`/`useDailyPick`/`useCalendarEvents` hooks.
   Settings is a panel inside the menu drawer, not a page (`components/settings/SettingsPanel.tsx`).
@@ -198,7 +200,7 @@ runs on save and leaves the DB and the schema disagreeing.
 - **View / ruleset** — a view is a **per-user row** of `api::view.view` (`LAYOUT_PRESETS` is gone),
   composed from a fixed menu of layout engines (`projects` | `chronological` | `roulette`) plus ordered
   `sections`, each a filter set (`worldMode`/`worlds`/`importance`/`projectType`/`recurrence`/`longOnly`).
-  Routed as `/` (the default view), `/todo/view/<slug>` and `/todo/world/<slug>`; `viewToRuleset` (`app/lib/views.ts`) reduces a
+  Routed as `/` (the default view), `/view/<slug>` and `/world/<slug>`; `viewToRuleset` (`app/lib/views.ts`) reduces a
   View to the runtime `LayoutRuleset` consumed by `transformLayout` (`app/lib/layoutTransformers.ts`) →
   `LayoutRenderer` → a per-layout component. Two `CODE_PRESETS` (`done`, `recurring`) take a bespoke
   branch via `codePreset`.
@@ -259,7 +261,7 @@ world  "practice and study"   (systemKey: practice)
 ```
 
 The `PRACTICE_SYSTEM_KEY` (`app/lib/worlds.ts`) is load-bearing twice over: it keeps material out of
-everyday /todo views (`resolveVisibleWorldIds` excludes any system world from `all`/`except`, so
+everyday to-do views (`resolveVisibleWorldIds` excludes any system world from `all`/`except`, so
 material is reachable only through a view that names the world), and it is how `isPracticeMaterial`
 (`app/lib/reviewLists.ts`) tells the two review lanes apart. **Match on the world, never on
 `projectType` or a flag** — moving a project into practice-and-study brings its material with it.
@@ -320,7 +322,7 @@ dangling. **Pause is the only way out of full screen**; there is deliberately no
 and `PracticeSessionModal.test.tsx` asserts the absence.
 
 `/practice` is now the read-only *record* — the 30-day chart plus sessions grouped by day. Nothing starts
-a session from there: you press play on a piece of material, which lives on /todo and the review pages.
+a session from there: you press play on a piece of material, which lives on the to-do list and the review pages.
 `PracticeSessionContext` holds only which material the modal is *offering* (UI state); the session itself
 is server state via `useActiveSession`, which polls every 30s **only while something is running**.
 
@@ -328,7 +330,7 @@ is server state via `useActiveSession`, which polls every 30s **only while somet
 
 - **Feature-colocation:** feature code under its route folder; shared code in top-level
   `app/{components,lib,hooks,contexts}`.
-- **Custom hooks own data domains** — e.g. `todo/hooks/useTasks.ts` owns active tasks (flat array +
+- **Custom hooks own data domains** — e.g. `(todo)/hooks/useTasks.ts` owns active tasks (flat array +
   manual-project overlay + memoized groupings) and centralizes all mutations
   (`addTask/updateTask/updateProject/refetch/…`).
 - **Configurable task views** are data-driven by `LayoutRuleset` (`groupBy`/`sortBy`/`visibleWorlds`/
@@ -355,7 +357,7 @@ is server state via `useActiveSession`, which polls every 30s **only while somet
   **Never add a module-level cache for a setting.** Two modules each caching `dayBoundaryHour` with
   different defaults is why the server computed every date in EST at midnight regardless of the user's
   setting, and why completing a recurring task wrote a date the form never predicted. The same shape
-  hid just-completed tasks on the first load of /todo until you visited /settings. A cache also cannot
+  hid just-completed tasks on the first load of the to-do list until you visited /settings. A cache also cannot
   be primed on the server (no localStorage, no mount effect) and, if it were, would leak one user's
   settings to the next request. There are no `NEXT_PUBLIC_*` overrides for these: settings are
   per-user rows, so a build-time env var would override every user at once. Keep date logic pure and
@@ -444,10 +446,10 @@ is server state via `useActiveSession`, which polls every 30s **only while somet
   `app/lib/dateArchitecture.test.ts` is the CI-gated guard that keeps the stubs and `toZonedTime` from
   creeping back.
   Components/hooks reading `useDateTimeSettings()` need a `DateTimeSettingsProvider` wrapper in tests;
-  pass `initial` so the provider doesn't fetch (see `app/(main)/todo/hooks/useTasks.test.ts`).
+  pass `initial` so the provider doesn't fetch (see `app/(main)/(todo)/hooks/useTasks.test.ts`).
   Query-backed hooks need a `QueryClientProvider` wrapper with a **per-test client** and
   **`retry: false`** — the app default of 1 makes every failure case sit through a backoff before the
-  assertion runs (see `app/(main)/todo/hooks/useWorlds.test.ts`). Component tests that only care about a hook's
+  assertion runs (see `app/(main)/(todo)/hooks/useWorlds.test.ts`). Component tests that only care about a hook's
   *output* should `vi.mock` the hook instead (see `app/components/chrome/HeaderContent.test.tsx`); there is
   no global fetch mock, so an unmocked query in a component test hits a real relative URL.
   **A cache write is not visible to `result.current` when `act()` returns.** TanStack notifies observers

@@ -154,7 +154,7 @@ describe('buildReviewLists', () => {
   });
 
   it('leaves out tasks that are neither soon, recurring, nor top of mind', () => {
-    // The review is a narrowing, not the whole list — /todo is where everything
+    // The review is a narrowing, not the whole list — the to-do list is where everything
     // lives.
     const lists = buildReviewLists([task({ documentId: 'ignored', project: project() })]);
 
@@ -384,7 +384,7 @@ describe('buildReviewLists — showing today', () => {
 
   it('keeps one whose date has already gone by', () => {
     // A chore that came round last Tuesday and never got done is still on your
-    // plate, as it is on /todo.
+    // plate, as it is on the to-do list.
     const { groups } = buildReviewLists(
       [recurring('2026-08-03', 'last week'), recurring('2019-01-01', 'long ago')],
       TODAY

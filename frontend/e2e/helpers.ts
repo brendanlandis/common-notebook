@@ -95,7 +95,7 @@ export async function gotoTodo(page: Page, path = '/') {
   await expect(ready).toBeVisible({ timeout: 30_000 });
 }
 
-// Tests anchor on a project's own view rather than /todo. The default view is
+// Tests anchor on a project's own view rather than home. The default view is
 // whatever the account has at position 0 (a filtered `projects` layout for
 // brendan), so a freshly created task may legitimately not appear there — but a
 // project view always lists its own tasks, whatever the view config.
@@ -104,7 +104,7 @@ export async function gotoTodo(page: Page, path = '/') {
 // project form rewrites the slug from the title (the #slug field is read-only and
 // derived), which would strand a slug-based URL mid-test.
 export async function gotoProject(page: Page, documentId: string) {
-  await page.goto(`/todo/project/${documentId}`);
+  await page.goto(`/project/${documentId}`);
   await expect(page.locator('.project-view-header h1')).toBeVisible({ timeout: 30_000 });
 }
 

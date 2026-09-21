@@ -15,7 +15,7 @@ import { isRunning, parseSegments } from '@/app/lib/practiceSession';
  * session has to move all three.
  *
  * Deliberately **not** scoped to a material. The modal asks "is anything
- * running?" from /todo and /review, where no material is in scope, so the old
+ * running?" from the to-do list and /review, where no material is in scope, so the old
  * per-type query could not answer it — which is also why two sessions on
  * different types used to be able to run at once.
  */

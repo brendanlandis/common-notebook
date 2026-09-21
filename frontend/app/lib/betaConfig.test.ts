@@ -16,7 +16,7 @@ describe('isBetaPath', () => {
 
   it('does not match non-beta paths', () => {
     expect(isBetaPath('/')).toBe(false);
-    expect(isBetaPath('/todo')).toBe(false);
+    expect(isBetaPath('/view/done')).toBe(false);
     expect(isBetaPath('/settings')).toBe(false);
   });
 

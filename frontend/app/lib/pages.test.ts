@@ -18,23 +18,23 @@ describe('visiblePages', () => {
     expect(visiblePages(false)).toEqual(['/']);
   });
 
-  it('lists only real destinations, not chrome or the /todo forward', () => {
+  it('lists only real destinations, not chrome', () => {
     expect(MAIN_PAGES).not.toContain('/settings');
-    expect(MAIN_PAGES).not.toContain('/todo');
   });
 });
 
 describe('isTodoPath', () => {
-  it('covers home and every /todo route', () => {
+  it('covers home and every view, world and project', () => {
     expect(isTodoPath('/')).toBe(true);
-    expect(isTodoPath('/todo')).toBe(true);
-    expect(isTodoPath('/todo/view/done')).toBe(true);
-    expect(isTodoPath('/todo/project/abc')).toBe(true);
+    expect(isTodoPath('/world/music')).toBe(true);
+    expect(isTodoPath('/view/done')).toBe(true);
+    expect(isTodoPath('/project/abc')).toBe(true);
   });
 
   it('leaves other pages out', () => {
     expect(isTodoPath('/practice')).toBe(false);
     expect(isTodoPath('/review/daily')).toBe(false);
-    expect(isTodoPath('/todos')).toBe(false);
+    expect(isTodoPath('/viewer')).toBe(false);
+    expect(isTodoPath('/todo')).toBe(false);
   });
 });

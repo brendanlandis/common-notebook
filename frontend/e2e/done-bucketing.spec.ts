@@ -99,7 +99,7 @@ test.describe('Done page day-boundary bucketing', () => {
       b = await createCompleted(request, titleB, nyInstant(base, '14:00')); // 2pm base → effective base
       c = await createCompleted(request, titleC, nyInstant(prev, '20:00')); // 8pm prev → effective prev
 
-      await gotoTodo(page, '/todo/view/done');
+      await gotoTodo(page, '/view/done');
       await expect(page.locator(`#task-${a}`)).toBeVisible({ timeout: 30_000 });
 
       const [ha, hb, hc] = await Promise.all([
@@ -131,7 +131,7 @@ test.describe('Done page day-boundary bucketing', () => {
       c = await createCompleted(request, titleC, nyInstant(prev, '20:00'));
 
       // Under 3am: A groups with C (previous day), apart from B.
-      await gotoTodo(page, '/todo/view/done');
+      await gotoTodo(page, '/view/done');
       await expect(page.locator(`#task-${a}`)).toBeVisible({ timeout: 30_000 });
       expect(await sectionHeadingOf(page, a)).toBe(await sectionHeadingOf(page, c));
       expect(await sectionHeadingOf(page, a)).not.toBe(await sectionHeadingOf(page, b));
@@ -148,7 +148,7 @@ test.describe('Done page day-boundary bucketing', () => {
       await boundarySelect.selectOption('0');
 
       // Under midnight: 1am now belongs to `base`, grouping with the 2pm, apart from C.
-      await gotoTodo(page, '/todo/view/done');
+      await gotoTodo(page, '/view/done');
       await expect(page.locator(`#task-${a}`)).toBeVisible({ timeout: 30_000 });
       expect(await sectionHeadingOf(page, a)).toBe(await sectionHeadingOf(page, b));
       expect(await sectionHeadingOf(page, a)).not.toBe(await sectionHeadingOf(page, c));
@@ -176,7 +176,7 @@ test.describe('Done page upcoming panel (R1/R2)', () => {
       t1 = (await createTask(request, { title: titleTom, displayDate: tomorrow })).documentId;
       t2 = (await createTask(request, { title: titleThree, displayDate: threeOut })).documentId;
 
-      await gotoTodo(page, '/todo/view/done');
+      await gotoTodo(page, '/view/done');
       await expect(page.locator(`#task-${t1}`)).toBeVisible({ timeout: 30_000 });
 
       // Each task sits in exactly one upcoming-day bucket (no duplication — R2).

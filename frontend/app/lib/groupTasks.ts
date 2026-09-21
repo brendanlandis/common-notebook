@@ -23,7 +23,7 @@ export interface GroupedTasks {
  * The one rule every task list uses for recurring work: it appears once its
  * `displayDate` has arrived, and a task with no date is never held back. The
  * review pages read it too, so a chore you just completed or skipped — whose
- * next copy is dated later — leaves them the same way it leaves /todo.
+ * next copy is dated later — leaves them the same way it leaves the to-do list.
  */
 export function isRecurringVisibleToday(
   task: Task,
@@ -38,7 +38,7 @@ export function isRecurringVisibleToday(
 // `tasks` is assumed to already be visibility-filtered and phase-enriched.
 // `projects` is the user's full project list (from /api/projects) and seeds the
 // `projects` bucket, so a project with no tasks is still present — with an empty
-// `tasks` array. That is what lets `/todo/project/<slug>` resolve a project you
+// `tasks` array. That is what lets `/project/<slug>` resolve a project you
 // just made, and it replaces the `manualProjects` overlay that used to splice
 // new projects in and lose them on the next refetch.
 // `today` is used to filter recurring tasks by displayDate (unfiltered set is

@@ -59,7 +59,7 @@ function createTask(overrides: Partial<Task>): Task {
   };
 }
 
-// The real ruleset the /todo/view/done route resolves, rather than a hand-built literal.
+// The real ruleset the /view/done route resolves, rather than a hand-built literal.
 const DONE_RULESET = findCodePreset('done')!;
 
 function doneSectionsFor(completedTasks: Task[], settings: TimeZoneSettings) {

@@ -1,0 +1,133 @@
+"use client";
+
+import { useMemo } from "react";
+import { useParams } from "next/navigation";
+import Link from "next/link";
+import { PencilIcon } from "@phosphor-icons/react";
+import type { LayoutRuleset, Project, Task } from "@/app/types/index";
+import { transformLayout } from "@/app/lib/layoutTransformers";
+import { useDateTimeSettings } from "@/app/contexts/DateTimeSettingsContext";
+import TaskSections from "../../components/TaskSections";
+import FaviconManager from "@/app/components/ui/FaviconManager";
+import { useTaskData } from "../../contexts/TaskDataContext";
+import { buildRawTaskData } from "../../utils/buildRawTaskData";
+import { TOOLTIP } from "@/app/components/ui/tooltip";
+
+export default function ProjectPage() {
+  const { timeZoneSettings } = useDateTimeSettings();
+  const params = useParams<{ slug: string }>();
+  const slugOrId = params.slug;
+
+  const {
+    grouped,
+    loading,
+    error,
+    onComplete,
+    onEdit,
+    onDelete,
+    onWorkSession,
+    onRemoveWorkSession,
+    onSkipRecurring,
+    onEditProject,
+  } = useTaskData();
+
+  // Resolve the project by slug first, falling back to documentId so any older
+  // documentId-based links keep working. `grouped.projects` is the user's whole
+  // project list, so a project with no tasks resolves too — it used not to, and
+  // opening one showed "project not found".
+  const project: Project | null = useMemo(
+    () =>
+      grouped.projects.find((p) => p.slug === slugOrId || p.documentId === slugOrId) ??
+      null,
+    [grouped.projects, slugOrId]
+  );
+
+  const documentId = project?.documentId;
+
+  // Reuse the engine to filter/sort just this project's tasks (recurring +
+  // non-recurring merged), honoring the same visibility rules as everywhere.
+  const projectTasks: Task[] = useMemo(() => {
+    if (!documentId) return [];
+    const ruleset: LayoutRuleset = {
+      slug: "project-view",
+      name: project?.title || "project",
+      layout: "projects",
+      // project-scoped; the world filter is skipped when visibleProjects is set.
+      visibleProjects: [documentId],
+      sections: [
+        { worldMode: "all", worldIds: [], importance: "any", projectType: "any", recurrence: "both", longOnly: false },
+      ],
+    };
+    const transformed = transformLayout(buildRawTaskData(grouped), ruleset, timeZoneSettings, []);
+    const column = (transformed.projectGroups?.[0]?.columns ?? []).find(
+      (s) => "documentId" in s && s.documentId === documentId
+    );
+    return column && "documentId" in column ? column.tasks || [] : [];
+  }, [grouped, documentId, project?.title]);
+
+  if (loading) {
+    return (
+      <div id="container-task" className="text-center layout-project-view" suppressHydrationWarning>
+        <p>loading...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div id="container-task" className="text-center layout-project-view" suppressHydrationWarning>
+        <p>error: {error}</p>
+      </div>
+    );
+  }
+
+  if (!project) {
+    return (
+      <div id="container-task" className="text-center layout-project-view" suppressHydrationWarning>
+        <p>
+          project not found. <Link href="/">back to to do</Link>
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <FaviconManager type="broom" />
+      <div id="container-task" className="text-center layout-project-view" suppressHydrationWarning>
+        <div className="project-view-header">
+          <h1 className="my-4 text-h1">
+            {project.title}
+            <button
+              onClick={() => onEditProject(project)}
+              className={TOOLTIP}
+              data-tip="edit project"
+              aria-label="edit project"
+            >
+              <PencilIcon size={20} />
+            </button>
+          </h1>
+          {project.world && (
+            <Link href={`/world/${encodeURIComponent(project.world.slug)}`}>
+              {project.world.title}
+            </Link>
+          )}
+        </div>
+
+        {projectTasks.length > 0 ? (
+          <TaskSections
+            sections={[{ title: "all tasks", tasks: projectTasks }]}
+            onComplete={onComplete}
+            onEdit={onEdit}
+            onDelete={onDelete}
+            onWorkSession={onWorkSession}
+            onRemoveWorkSession={onRemoveWorkSession}
+            onSkipRecurring={onSkipRecurring}
+          />
+        ) : (
+          <p>nothin' to do in this project</p>
+        )}
+      </div>
+    </>
+  );
+}

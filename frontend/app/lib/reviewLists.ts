@@ -139,7 +139,7 @@ function frequencyRank(task: Task): number {
  *
  * A task qualifies if it belongs to the top-of-mind project, is flagged `soon`,
  * or recurs — and it appears **once**, however many of those are true of it.
- * Everything else is left out: the review is a narrowing, and /todo is where the
+ * Everything else is left out: the review is a narrowing, and the to-do list is where the
  * whole list lives.
  *
  * Order within the pool is top-of-mind project first (its `soon` tasks leading),
@@ -172,7 +172,7 @@ export function isPracticeMaterial(task: Task): boolean {
  * - **`soon` gates it**, exactly as it gates the one-off tasks. That is the
  *   first of the three narrowings — shelf → rotation → this cycle → today — and
  *   it is what keeps the step readable when a subject has forty pieces of
- *   material under it. You put things *into rotation* on /todo; you choose from
+ *   material under it. You put things *into rotation* on the to-do list; you choose from
  *   the rotation here.
  * - **No recurrence test.** Practice material doesn't recur — you press play on
  *   the same Bach until you're satisfied or bored, which is a state, not a

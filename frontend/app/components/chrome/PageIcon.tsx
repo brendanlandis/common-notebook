@@ -8,7 +8,7 @@ import type { IconProps } from "@phosphor-icons/react";
 
 /**
  * A page's icon, shared by its menu link and the header's upper-left icon so the
- * two can't drift apart. Home and every /todo route get the broom.
+ * two can't drift apart. Home and every to-do route get the broom.
  */
 export default function PageIcon({
   path,
