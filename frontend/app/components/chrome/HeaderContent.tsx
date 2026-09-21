@@ -21,7 +21,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiSend, swallow } from "@/app/lib/apiFetch";
 import { TASKS_ROOT } from "@/app/(main)/(todo)/hooks/useTasks";
 import { TOOLTIP } from "@/app/components/ui/tooltip";
-import { CONTROL_ICON, CARET_ICON } from "@/app/components/chrome/iconSizes";
+import { CONTROL_ICON, CARET_ICON, MOON_ICON } from "@/app/components/chrome/iconSizes";
 import { isTodoPath } from "@/app/lib/pages";
 
 /**
@@ -107,7 +107,7 @@ export default function HeaderContent() {
           data-tip="declutter"
           onClick={handleResetMoonPhase}
         >
-          <MoonPhaseIcon size={CONTROL_ICON} />
+          <MoonPhaseIcon size={MOON_ICON} />
         </button>
         {/* Hover to reveal on a mouse; press the caret anywhere else.
 
