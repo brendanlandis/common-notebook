@@ -131,7 +131,7 @@ export default function HeaderContent() {
             the same path as everyone else. Revealing on focus additionally meant
             the focus opened it and the resulting click closed it again. */}
         <div
-          className="flex items-center gap-4"
+          className="flex items-center"
           onPointerEnter={() => {
             if (canHover()) setShowManage(true);
           }}
@@ -153,7 +153,7 @@ export default function HeaderContent() {
             )}
           </button>
           {showManage && (
-            <div className="flex items-center gap-4">
+            <div className="flex items-center">
               {/* aria-label as well as data-tip: these are icon-only buttons, so
                   the tooltip is the only thing naming them and it is presentation
                   — a screen reader announced three unlabeled buttons, and no

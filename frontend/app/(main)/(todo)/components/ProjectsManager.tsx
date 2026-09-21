@@ -116,13 +116,13 @@ export default function ProjectsManager() {
   const search3Lower = search3.trim().toLowerCase();
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col">
       {/* 1 ── Are these done yet? ─────────────────────────────────────────── */}
       <ManagerSection title="are these done yet?">
         {candidates.length === 0 ? (
           <Muted>nothing to review</Muted>
         ) : (
-          <ul className="flex flex-col gap-2">
+          <ul className="flex flex-col">
             {candidates.map((p) => (
               <ProjectRow key={p.documentId} as="li" title={worldPrefixed(p)}>
                 <button
@@ -140,8 +140,8 @@ export default function ProjectsManager() {
 
       {/* 2 ── Importance ──────────────────────────────────────────────────── */}
       <ManagerSection title="importance">
-        <div className="flex flex-col gap-1.5">
-          <h3 className="mt-1 mb-0">top of mind</h3>
+        <div className="flex flex-col">
+          <h3 className="mb-0">top of mind</h3>
           {topOfMind ? (
             <ProjectRow title={worldPrefixed(topOfMind)}>
               <button
@@ -166,12 +166,12 @@ export default function ProjectsManager() {
           </Select>
         </div>
 
-        <div className="flex flex-col gap-1.5">
-          <h3 className="mt-1 mb-0">later</h3>
+        <div className="flex flex-col">
+          <h3 className="mb-0">later</h3>
           {laterProjects.length === 0 ? (
             <Muted>none</Muted>
           ) : (
-            <ul className="flex flex-col gap-2">
+            <ul className="flex flex-col">
               {laterProjects.map((p) => (
                 <ProjectRow key={p.documentId} as="li" title={worldPrefixed(p)}>
                   <button
@@ -228,7 +228,7 @@ export default function ProjectsManager() {
               </DisclosureToggle>
               {worldOpen && (
                 <>
-                  <ul className="mt-2 flex flex-col gap-2">
+                  <ul className="flex flex-col">
                     {shown.map((p) => (
                       <li key={p.documentId}>
                         <DisclosureToggle
@@ -239,7 +239,7 @@ export default function ProjectsManager() {
                           {p.title}
                         </DisclosureToggle>
                         {expanded.has(p.documentId) && (
-                          <div className="mt-2">
+                          <div>
                             <ProjectForm
                               project={p}
                               onSubmit={(data) => handleSave(p, data)}
@@ -251,7 +251,7 @@ export default function ProjectsManager() {
                     ))}
                   </ul>
                   {!search3Lower && matched.length > shown.length && (
-                    <button type="button" className="mt-2 self-start text-small" onClick={() => loadMore(group.key)}>
+                    <button type="button" className="self-start text-small" onClick={() => loadMore(group.key)}>
                       load more
                     </button>
                   )}
@@ -277,7 +277,7 @@ export default function ProjectsManager() {
         ) : manage.completedProjects.length === 0 ? (
           <Muted>none</Muted>
         ) : (
-          <ul className="flex flex-col gap-2">
+          <ul className="flex flex-col">
             {manage.completedProjects.map((p) => (
               <ProjectRow key={p.documentId} as="li" title={p.title}>
                 <button
@@ -322,7 +322,7 @@ export default function ProjectsManager() {
 
 function ManagerSection({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section className="flex flex-col gap-2">
+    <section className="flex flex-col">
       <h3 className="m-0">{title}</h3>
       {children}
     </section>
@@ -340,7 +340,7 @@ function ProjectRow({
   children: ReactNode;
 }) {
   return (
-    <Tag className="flex items-center gap-2">
+    <Tag className="flex items-center">
       <span className="min-w-0 flex-auto truncate">{title}</span>
       {children}
     </Tag>

@@ -112,7 +112,7 @@ export default function SettingsPanel() {
   };
 
   return (
-    <div className="pb-8">
+    <div>
       <SettingsSection title="timezone">
         <TimezoneManager />
       </SettingsSection>
@@ -177,7 +177,7 @@ export default function SettingsPanel() {
             title="review"
             description="How often do you want to sit down and plan?"
           >
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col">
               <RecurrencePicker
                 showLabels
                 value={cadence}
@@ -221,7 +221,7 @@ export default function SettingsPanel() {
               title="where you are"
               description="Only used to work out when the sun goes down, which the daily page draws across the day."
             >
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2">
                 <Field label="latitude" htmlFor="latitude">
                   <Input
                     id="latitude"
@@ -285,9 +285,9 @@ function SettingsSection({
   children: ReactNode;
 }) {
   return (
-    <section className="border-t border-base-content/15 py-6 first:border-t-0 first:pt-0">
-      <h3 className="mt-0 mb-2">{title}</h3>
-      {description && <p className="mb-3 text-small opacity-75">{description}</p>}
+    <section className="border-t border-base-content/15 first:border-t-0">
+      <h3 className="mt-0">{title}</h3>
+      {description && <p className="text-small opacity-75">{description}</p>}
       {children}
     </section>
   );

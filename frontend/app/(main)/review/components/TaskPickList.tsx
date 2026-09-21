@@ -68,7 +68,7 @@ export default function TaskPickList({
     return (
       <ul>
         {tasks.map((task) => (
-          <li key={task.documentId} className="flex items-baseline gap-2 py-[0.2rem]">
+          <li key={task.documentId} className="flex items-baseline">
             <span>
               {task.title}
               {showProject && task.project?.title && (
@@ -82,7 +82,7 @@ export default function TaskPickList({
   }
 
   return (
-    <ul className="review-pick-list my-2 flex flex-wrap gap-[0.4rem]">
+    <ul className="review-pick-list flex flex-wrap">
       {tasks.map((task) => {
         const isSelected = selected.has(task.documentId);
         return (

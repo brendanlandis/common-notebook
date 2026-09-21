@@ -53,19 +53,19 @@ export default async function MainLayout({
                 whatever page is open. That it cannot be navigated away from is
                 the feature. */}
             <PracticeSessionModal />
-            <header className="mb-4 grid grid-cols-1 items-start p-4">
+            <header className="grid grid-cols-1 items-start p-4">
               {/* Wraps, because on a phone this row is wider than the
                   screen. Revealing the manage cluster adds three buttons
                   to a row that already fills a 393px viewport; without
                   wrapping they extended past the right edge, present in
                   the DOM and impossible to touch. */}
-              <div className="flex flex-wrap items-center gap-4 justify-self-start">
+              <div className="flex flex-wrap items-center justify-self-start">
                 <MainMenu />
                 <HeaderContent />
               </div>
             </header>
             <main
-              className="mx-auto w-full max-w-screen overflow-hidden p-4 min-[1600px]:max-w-[1600px]"
+              className="mx-auto w-full max-w-screen overflow-hidden min-[1600px]:max-w-[1600px]"
               id="main-container"
             >
               <BetaGuard>{children}</BetaGuard>

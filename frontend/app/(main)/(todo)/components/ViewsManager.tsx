@@ -143,22 +143,22 @@ export default function ViewsManager() {
   if (loading) return <p>loading views…</p>;
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col">
       <SortableProvider onDragEnd={handleDragEnd}>
         <SortableGroup groupKey="views" ids={ordered.map((v) => v.documentId)}>
-        <ul aria-label="views" className="flex flex-col gap-2">
+        <ul aria-label="views" className="flex flex-col">
           {ordered.map((view) => {
             const multiSection = view.layout === "projects";
             return (
               <SortableRow
                 key={view.documentId}
                 id={view.documentId}
-                className="grid grid-cols-[auto_1fr] items-start gap-2 rounded-lg border border-base-300 p-3"
+                className="grid grid-cols-[auto_1fr] items-start rounded-lg border border-base-300 p-3"
                 handleLabel={`reorder ${view.name}`}
                 disabled={busy}
               >
-                <div className="flex min-w-0 flex-col gap-3">
-                  <div className="flex flex-wrap items-center gap-2">
+                <div className="flex min-w-0 flex-col">
+                  <div className="flex flex-wrap items-center">
                     {/* The name has a row to itself; the layout and delete share the next. */}
                     <Input
                       type="text"
@@ -204,7 +204,7 @@ export default function ViewsManager() {
                       groupKey={`sections:${view.documentId}`}
                       ids={view.sections.map((_, si) => sectionId(view.documentId, si))}
                     >
-                      <ul aria-label={`sections of ${view.name}`} className="mt-2 flex flex-col gap-2">
+                      <ul aria-label={`sections of ${view.name}`} className="flex flex-col">
                       {view.sections.map((section, si) => {
                         const input = sectionToInput(section);
                         const showWorlds = input.worldMode !== "all";
@@ -212,11 +212,11 @@ export default function ViewsManager() {
                           <SortableRow
                             key={si}
                             id={sectionId(view.documentId, si)}
-                            className="grid grid-cols-[auto_1fr] items-start gap-2 rounded border-l-[3px] border-base-300 bg-base-200 p-2"
+                            className="grid grid-cols-[auto_1fr] items-start rounded border-l-[3px] border-base-300 bg-base-200 p-2"
                             handleLabel={`reorder section ${si + 1} of ${view.name}`}
                             disabled={busy || !multiSection || view.sections.length < 2}
                           >
-                            <div className="flex min-w-0 flex-col gap-2">
+                            <div className="flex min-w-0 flex-col">
                               {multiSection && (
                                 <InlineField label="label">
                                   {/* Keyed by its own value: the row is keyed by
@@ -243,7 +243,7 @@ export default function ViewsManager() {
                                 </Select>
                               </InlineField>
                               {showWorlds && (
-                                <div className="flex flex-wrap gap-x-4 gap-y-2 sm:pl-[6.5rem]">
+                                <div className="flex flex-wrap sm:pl-[6.5rem]">
                                   {worlds.map((w) => (
                                     <Checkbox
                                       key={w.documentId}
@@ -286,7 +286,7 @@ export default function ViewsManager() {
                     )}
 
                     {expanded.has(view.documentId) && multiSection && (
-                      <button type="button" className="mt-2" onClick={() => addSection(view)} disabled={busy}>add section</button>
+                      <button type="button" onClick={() => addSection(view)} disabled={busy}>add section</button>
                     )}
                   </div>
                 </div>
@@ -297,7 +297,7 @@ export default function ViewsManager() {
         </SortableGroup>
       </SortableProvider>
 
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center">
         <Input
           type="text"
           className="min-w-0 flex-[1_1_8rem]"

@@ -96,7 +96,7 @@ export default function ProjectPage() {
       <FaviconManager type="broom" />
       <div id="container-task" className="text-center layout-project-view" suppressHydrationWarning>
         <div className="project-view-header">
-          <h1 className="my-4">
+          <h1>
             {project.title}
             <button
               onClick={() => onEditProject(project)}

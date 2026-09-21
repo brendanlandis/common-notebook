@@ -371,7 +371,7 @@ export default function TaskForm({ task, onSubmit, onCancel }: TaskFormProps) {
 
   return (
     <form
-      className="flex flex-col gap-4 text-left"
+      className="flex flex-col text-left"
       onSubmit={handleSubmit(handleFormSubmit)}
     >
       <Field label="project" htmlFor="project" hideLabel>
@@ -472,7 +472,7 @@ export default function TaskForm({ task, onSubmit, onCancel }: TaskFormProps) {
         </>
       )}
 
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-3">
         {showRecurringCheckbox(selectedProjectType) && (
           <Checkbox
             checked={isRecurring}
@@ -501,7 +501,7 @@ export default function TaskForm({ task, onSubmit, onCancel }: TaskFormProps) {
       </div>
 
       {showDateFields(selectedProjectType, isRecurring) && (
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid sm:grid-cols-2">
           <Field
             label="display date"
             htmlFor="displayDate"

@@ -57,8 +57,8 @@ import {
  * browser scaled the pill up to meet it, and the task read as growing across
  * the column rather than moving into place.
  */
-const DAILY_ROW = "flex w-full items-center gap-2";
-const DAILY_ITEM = "inline-flex items-center gap-2 py-1";
+const DAILY_ROW = "flex w-full items-center";
+const DAILY_ITEM = "inline-flex items-center gap-2";
 
 export default function DailyReviewPage() {
   const { timeZoneSettings } = useDateTimeSettings();
@@ -288,7 +288,7 @@ export default function DailyReviewPage() {
   if (!review) {
     return (
       <ReviewPage>
-        <h1 className="my-4">today</h1>
+        <h1>today</h1>
         <p>no review covers today yet.</p>
       </ReviewPage>
     );
@@ -296,12 +296,12 @@ export default function DailyReviewPage() {
 
   return (
     <ReviewPage>
-      <h1 className="my-4">today</h1>
+      <h1>today</h1>
 
       {/* The day's list beside the day's shape. One column on a narrow screen,
           list first: on a phone the thing you're doing matters more than the
           grid, and the alignment below is meaningless at that width anyway. */}
-      <div className="my-4 grid grid-cols-1 gap-4 min-[60rem]:grid-cols-[minmax(12rem,1fr)_2fr] min-[60rem]:items-start">
+      <div className="grid grid-cols-1 min-[60rem]:grid-cols-[minmax(12rem,1fr)_2fr] min-[60rem]:items-start">
         {/* Pushed down to meet the now-indicator, so "what I'm doing" starts
             level with "where the day has got to". Falls back to the top of the
             column when there's no line to meet.
@@ -440,7 +440,7 @@ export default function DailyReviewPage() {
           already scrolled past by the time you reach it. */}
       {practice.remaining.length > 0 && (
         <ReviewSection className={PRACTICE_SECTION}>
-          <h2 className="my-4">could practice</h2>
+          <h2>could practice</h2>
           {practice.remaining.map((group) => (
             <ProjectGroupList
               key={group.key}
@@ -460,7 +460,7 @@ export default function DailyReviewPage() {
               you've already lifted out of it into today. Phrased as an
               invitation rather than a promise: "not yet but soon" said when,
               which is exactly what this feature refuses to say. */}
-          <h2 className="my-4">could work on</h2>
+          <h2>could work on</h2>
           {remaining.map((group) => (
             <ProjectGroupList
               key={group.key}

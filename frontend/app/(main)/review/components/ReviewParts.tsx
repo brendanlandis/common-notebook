@@ -17,7 +17,7 @@ import TaskPickList from "./TaskPickList";
 
 /** The page's column. */
 export function ReviewPage({ children }: { children: ReactNode }) {
-  return <div className="mx-auto max-w-[60rem] p-4">{children}</div>;
+  return <div className="mx-auto max-w-[60rem]">{children}</div>;
 }
 
 /**
@@ -33,7 +33,7 @@ export function ReviewSection({
   className?: string;
   children: ReactNode;
 }) {
-  return <section className={`review-section my-8 ${className}`}>{children}</section>;
+  return <section className={`review-section ${className}`}>{children}</section>;
 }
 
 /**
@@ -44,7 +44,7 @@ export function ReviewSection({
  * question, not a more important one, and anything louder would make it look
  * like the urgent thing.
  */
-export const PRACTICE_SECTION = "border-b border-current/15 pb-6";
+export const PRACTICE_SECTION = "border-b border-current/15";
 
 /**
  * A project, over its pills.
@@ -65,8 +65,8 @@ export function ProjectGroupList({
   onToggle: (documentId: string) => void;
 }) {
   return (
-    <div className="my-5 [.review-section>&:first-of-type]:mt-2">
-      <h3 className="m-0 mb-[0.35rem]">
+    <div>
+      <h3 className="m-0">
         {group.projectTitle ?? "incidentals"}
       </h3>
       <TaskPickList

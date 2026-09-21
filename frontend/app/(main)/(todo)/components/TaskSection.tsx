@@ -12,7 +12,7 @@ import type { ReactNode } from "react";
  * address columns by it.
  */
 const SECTION = [
-  "task-section grid grid-cols-1 content-start items-start gap-4 [&_*]:break-words",
+  "task-section grid grid-cols-1 content-start items-start [&_*]:break-words",
   "row-span-2 [grid-template-rows:subgrid]",
   "[.layout-everything_&]:row-auto [.layout-everything_&]:[grid-template-rows:none]",
   "[.layout-recurring_&]:row-auto [.layout-recurring_&]:[grid-template-rows:none]",
@@ -29,7 +29,7 @@ export function TaskGrid({
   children: ReactNode;
 }) {
   return (
-    <div className={`tasks-container grid gap-x-8 gap-y-16 text-left ${className}`}>
+    <div className={`tasks-container grid text-left ${className}`}>
       {children}
     </div>
   );
@@ -53,7 +53,7 @@ export default function TaskSection({
  */
 export function TaskSectionHeading({ children }: { children: ReactNode }) {
   return (
-    <h2 className="group/heading mt-4 mb-0 text-left [&_button]:ml-2 [&_button]:align-middle [&_button]:opacity-0 [&_button]:group-hover/heading:opacity-100 touch:[&_button]:opacity-100">
+    <h2 className="group/heading mb-0 text-left [&_button]:align-middle [&_button]:opacity-0 [&_button]:group-hover/heading:opacity-100 touch:[&_button]:opacity-100">
       {children}
     </h2>
   );
@@ -67,5 +67,5 @@ export function TaskList({
   className?: string;
   children: ReactNode;
 }) {
-  return <ul className={`tasks-list flex flex-col gap-2 ${className}`}>{children}</ul>;
+  return <ul className={`tasks-list flex flex-col ${className}`}>{children}</ul>;
 }

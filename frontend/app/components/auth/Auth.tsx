@@ -7,14 +7,14 @@ import { Input } from "@/app/components/ui/FormControls";
  */
 export function AuthPage({ children }: { children: ReactNode }) {
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center gap-4 text-center">
+    <main className="flex min-h-screen flex-col items-center justify-center text-center">
       {children}
     </main>
   );
 }
 
 export function AuthForm(props: ComponentProps<"form">) {
-  return <form className="flex flex-col items-center gap-4" {...props} />;
+  return <form className="flex flex-col items-center" {...props} />;
 }
 
 type AuthFieldProps = ComponentProps<"input"> & {

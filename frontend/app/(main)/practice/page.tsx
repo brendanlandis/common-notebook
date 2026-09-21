@@ -73,10 +73,10 @@ export default function PracticePage() {
 
         {completedLogs.length > 0 && (
           <div className="practice-sessions">
-            <h2 className="my-4">practice history</h2>
+            <h2>practice history</h2>
             {[...byDay.entries()].map(([date, sessions]) => (
               <section key={date} className="practice-day">
-                <h3 className="my-4">{dayLabel(date, todayString, timeZoneSettings)}</h3>
+                <h3>{dayLabel(date, todayString, timeZoneSettings)}</h3>
                 {sessions.map((log) => (
                   <PracticeSessionItem
                     key={log.documentId}

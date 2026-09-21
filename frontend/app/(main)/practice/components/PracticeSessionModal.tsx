@@ -140,7 +140,7 @@ export default function PracticeSessionModal() {
         <PracticeSubject title={material?.title} subject={material?.project?.title} />
         <PracticeClock segments={segments} />
 
-        <div className="flex gap-5 sm:gap-8">
+        <div className="flex">
           <button
             type="button"
             className="cursor-pointer transition-opacity [transition-duration:var(--transition-time)] disabled:cursor-default disabled:opacity-40"
@@ -167,9 +167,9 @@ export default function PracticeSessionModal() {
             segments cannot tell four hours of practice from four hours of the
             tab being open, and you can. */}
         {stale && (
-          <div className="flex flex-col items-center gap-3 opacity-85 [&_p]:m-0">
+          <div className="flex flex-col items-center opacity-85 [&_p]:m-0">
             <p>you left this running — call it</p>
-            <div className="flex flex-wrap justify-center gap-2">
+            <div className="flex flex-wrap justify-center">
               {[30, 60, 90, 120].map((minutes) => (
                 <Button key={minutes} onClick={() => correct(minutes)}>
                   {minutes} min
@@ -209,7 +209,7 @@ function PracticeModal({
         {/* Literal black rather than a theme token: this is a shadow over the
             page, and it has to read as one against a light theme and a dark
             one alike. */}
-        <Dialog.Overlay className="fixed inset-0 z-60 grid place-items-center overflow-y-auto bg-black/55 p-4">
+        <Dialog.Overlay className="fixed inset-0 z-60 grid place-items-center overflow-y-auto bg-black/55">
           <Dialog.Content
             aria-describedby={undefined}
             onEscapeKeyDown={(event) => {
@@ -218,7 +218,7 @@ function PracticeModal({
             }}
             onPointerDownOutside={(event) => event.preventDefault()}
             onInteractOutside={(event) => event.preventDefault()}
-            className="relative flex w-full max-w-104 flex-col items-center gap-8 rounded-2xl bg-base-100 px-8 py-10 text-center shadow-[0_1.5rem_3rem_rgb(0_0_0/0.35)]"
+            className="relative flex w-full max-w-104 flex-col items-center rounded-2xl bg-base-100 px-8 py-10 text-center shadow-[0_1.5rem_3rem_rgb(0_0_0/0.35)]"
           >
             <Dialog.Title className="sr-only">{label}</Dialog.Title>
             {children}
@@ -237,7 +237,7 @@ function PracticeSubject({ title, subject }: { title?: string; subject?: string 
       {/* Muted because you know what instrument you are holding — it is there to
           disambiguate two pieces with similar names, not to be read every
           time. */}
-      {subject && <p className="mt-1 mb-0 opacity-60">{subject}</p>}
+      {subject && <p className="mb-0 opacity-60">{subject}</p>}
     </div>
   );
 }

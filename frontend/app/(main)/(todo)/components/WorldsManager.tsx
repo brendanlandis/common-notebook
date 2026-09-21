@@ -80,10 +80,10 @@ export default function WorldsManager() {
   if (loading) return <p>loading worlds…</p>;
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col">
       <SortableProvider onDragEnd={handleDragEnd}>
         <SortableGroup ids={worlds.map((w) => w.documentId)}>
-        <ul aria-label="worlds" className="flex flex-col gap-2">
+        <ul aria-label="worlds" className="flex flex-col">
           {worlds.map((world) => {
             const count = projectCounts[world.documentId] ?? 0;
             const isStuff = world.systemKey === "stuff";
@@ -92,7 +92,7 @@ export default function WorldsManager() {
                 key={world.documentId}
                 id={world.documentId}
                 // handle | name | delete
-                className="grid grid-cols-[auto_1fr_auto] items-center gap-2"
+                className="grid grid-cols-[auto_1fr_auto] items-center"
                 handleLabel={`reorder ${world.title}`}
                 disabled={busy}
               >
@@ -125,7 +125,7 @@ export default function WorldsManager() {
         </SortableGroup>
       </SortableProvider>
 
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center">
         <Input
           type="text"
           className="min-w-0 flex-[1_1_8rem]"

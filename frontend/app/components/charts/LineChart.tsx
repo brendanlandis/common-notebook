@@ -75,7 +75,7 @@ function makeLineTooltip(series: LineSeries[]) {
 
 function LineLegend({ series }: { series: LineSeries[] }) {
   return (
-    <ul className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 pt-3 text-tiny">
+    <ul className="flex flex-wrap items-center justify-center text-tiny">
       {series.map((s) => (
         <li key={s.key} className="flex items-center gap-1.5">
           <span className="inline-block size-2.5 shrink-0 rounded-[3px]" style={{ background: s.color }} />
