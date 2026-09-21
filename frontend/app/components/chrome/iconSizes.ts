@@ -5,6 +5,9 @@
  */
 export const CONTROL_ICON = 32;
 
+/** The header's "more buttons" caret: a little smaller than the rest, still centered. */
+export const CARET_ICON = 20;
+
 /**
  * The main menu's secondary buttons: a square the size of the close button,
  * around a smaller icon, so they center on the close button and the rightmost

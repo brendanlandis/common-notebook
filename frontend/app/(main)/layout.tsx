@@ -59,13 +59,13 @@ export default async function MainLayout({
                   to a row that already fills a 393px viewport; without
                   wrapping they extended past the right edge, present in
                   the DOM and impossible to touch. */}
-              <div className="flex flex-wrap items-center justify-self-start">
+              <div className="flex flex-wrap items-center gap-3 justify-self-start">
                 <MainMenu />
                 <HeaderContent />
               </div>
             </header>
             <main
-              className="mx-auto w-full max-w-screen overflow-hidden min-[1600px]:max-w-[1600px]"
+              className="mx-auto w-full max-w-screen overflow-hidden px-4 min-[1600px]:max-w-[1600px]"
               id="main-container"
             >
               <BetaGuard>{children}</BetaGuard>

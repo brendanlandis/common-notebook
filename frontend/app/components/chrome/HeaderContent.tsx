@@ -21,7 +21,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiSend, swallow } from "@/app/lib/apiFetch";
 import { TASKS_ROOT } from "@/app/(main)/(todo)/hooks/useTasks";
 import { TOOLTIP } from "@/app/components/ui/tooltip";
-import { CONTROL_ICON } from "@/app/components/chrome/iconSizes";
+import { CONTROL_ICON, CARET_ICON } from "@/app/components/chrome/iconSizes";
 import { isTodoPath } from "@/app/lib/pages";
 
 /**
@@ -132,7 +132,7 @@ export default function HeaderContent() {
             the same path as everyone else. Revealing on focus additionally meant
             the focus opened it and the resulting click closed it again. */}
         <div
-          className="flex items-center"
+          className="flex items-center gap-3"
           onPointerEnter={() => {
             if (canHover()) setShowManage(true);
           }}
@@ -148,13 +148,13 @@ export default function HeaderContent() {
             onClick={() => setShowManage((open) => !open)}
           >
             {showManage ? (
-              <CaretLeftIcon size={CONTROL_ICON} weight="regular" />
+              <CaretLeftIcon size={CARET_ICON} weight="regular" />
             ) : (
-              <CaretRightIcon size={CONTROL_ICON} weight="regular" />
+              <CaretRightIcon size={CARET_ICON} weight="regular" />
             )}
           </button>
           {showManage && (
-            <div className="flex items-center">
+            <div className="flex items-center gap-3">
               {/* aria-label as well as data-tip: these are icon-only buttons, so
                   the tooltip is the only thing naming them and it is presentation
                   — a screen reader announced three unlabeled buttons, and no
