@@ -57,8 +57,8 @@ import {
  * browser scaled the pill up to meet it, and the task read as growing across
  * the column rather than moving into place.
  */
-const DAILY_ROW = "flex w-full items-center";
-const DAILY_ITEM = "inline-flex items-center gap-2";
+const DAILY_ROW = "flex w-full items-center gap-controls";
+const DAILY_ITEM = "inline-flex items-center gap-2 py-1";
 
 export default function DailyReviewPage() {
   const { timeZoneSettings } = useDateTimeSettings();
@@ -288,7 +288,7 @@ export default function DailyReviewPage() {
   if (!review) {
     return (
       <ReviewPage>
-        <h1>today</h1>
+        <h1 className="mb-title">today</h1>
         <p>no review covers today yet.</p>
       </ReviewPage>
     );
@@ -296,12 +296,12 @@ export default function DailyReviewPage() {
 
   return (
     <ReviewPage>
-      <h1>today</h1>
+      <h1 className="mb-title">today</h1>
 
       {/* The day's list beside the day's shape. One column on a narrow screen,
           list first: on a phone the thing you're doing matters more than the
           grid, and the alignment below is meaningless at that width anyway. */}
-      <div className="grid grid-cols-1 min-[60rem]:grid-cols-[minmax(12rem,1fr)_2fr] min-[60rem]:items-start">
+      <div className="grid grid-cols-1 gap-columns min-[60rem]:grid-cols-[minmax(12rem,1fr)_2fr] min-[60rem]:items-start">
         {/* Pushed down to meet the now-indicator, so "what I'm doing" starts
             level with "where the day has got to". Falls back to the top of the
             column when there's no line to meet.
@@ -312,7 +312,7 @@ export default function DailyReviewPage() {
             The transition slides the list as the day passes rather than
             jumping each minute. */}
         <div
-          className="transition-[padding-top] duration-(--transition-time) ease-[ease] min-[60rem]:pt-(--now-offset)"
+          className="flex flex-col gap-lists transition-[padding-top] duration-(--transition-time) ease-[ease] min-[60rem]:pt-(--now-offset)"
           style={{ "--now-offset": `${nowOffset ?? 0}px` } as CSSProperties}
         >
           {/* Today's practice, in the same column as the tasks — it is part of
@@ -324,7 +324,7 @@ export default function DailyReviewPage() {
               tasks and the whole column starts level with the current hour. */}
           {practice.picked.length > 0 && (
             <section>
-              <ul className="flex flex-col items-start gap-[0.35rem]">
+              <ul className="flex flex-col items-start">
                 {practice.picked.map((task) => (
                   <li key={task.documentId} className={DAILY_ROW}>
                     {/* An icon, not a checkbox. A checkbox beside a task means done

@@ -317,7 +317,7 @@ export default function PeriodicReviewPage() {
   if (!cadence || !cadenceIsUsable(cadence)) {
     return (
       <ReviewPage>
-        <h1>periodic review</h1>
+        <h1 className="mb-title">periodic review</h1>
         <p>
           your review cadence needs a little more detail before it can work out a
           period — have a look in settings.
@@ -331,7 +331,7 @@ export default function PeriodicReviewPage() {
 
   return (
     <ReviewPage>
-      <h1>periodic review</h1>
+      <h1 className="mb-title">periodic review</h1>
 
       {/* The period used to be spelled out here as a date range. The calendar
           below is a week of labeled day columns, so it was saying the same
@@ -349,7 +349,7 @@ export default function PeriodicReviewPage() {
           order: this cycle, then the next. `name` is what the e2e spec locates
           it by, since the labels are cadence-dependent and a test matching their
           text would break the moment the account changed its review schedule. */}
-      <div className="flex flex-wrap items-center justify-between">
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-4">
         <label className="inline-flex cursor-pointer items-center gap-2">
           <span className={mode === "remainder" ? undefined : "opacity-30"}>
             this {noun}
@@ -375,7 +375,7 @@ export default function PeriodicReviewPage() {
             real event and there is nothing left to explain — so the key goes and
             only the reveal remains. */}
         {events.length > 0 && (needsLegend || ignoredCount > 0) && (
-          <div className="ml-auto flex flex-wrap items-center text-small opacity-80">
+          <div className="ml-auto flex flex-wrap items-center gap-4 text-small opacity-80">
             {needsLegend && stillUnset.length > 0 && (
               <span className={LEGEND_KEY}>
                 <i className={`${SWATCH} border-2 border-dashed border-base-content`} aria-hidden="true" />? undecided
@@ -424,7 +424,7 @@ export default function PeriodicReviewPage() {
           showing nothing. `calendars` is only known once the query answers,
           hence the `calendarLoading ||`. */}
       {period && (calendarLoading || calendars.length > 0) && (
-        <ReviewSection className="mt-0">
+        <ReviewSection className="mt-0 gap-2">
           {/* No heading. It's a labeled seven-day grid — anything written over
               it is a caption on a photograph of itself. The key and the controls
               sit in the row above, outside this section. */}

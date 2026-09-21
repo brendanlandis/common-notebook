@@ -21,10 +21,12 @@ export function ReviewPage({ children }: { children: ReactNode }) {
 }
 
 /**
- * A block of the page under an h2.
+ * A block of the page under an h2: sections apart, the h2 a heading's gap above
+ * what it heads.
  *
  * `review-section` stays as a name because the review spec finds the picks by
- * `.review-section > .review-pick-list`.
+ * `.review-section > .review-pick-list`, which is also why the spacing is on the
+ * children rather than a wrapper around them.
  */
 export function ReviewSection({
   className = "",
@@ -33,7 +35,11 @@ export function ReviewSection({
   className?: string;
   children: ReactNode;
 }) {
-  return <section className={`review-section ${className}`}>{children}</section>;
+  return (
+    <section className={`review-section my-sections flex flex-col [&>h2]:mb-heading ${className}`}>
+      {children}
+    </section>
+  );
 }
 
 /**
@@ -44,7 +50,7 @@ export function ReviewSection({
  * question, not a more important one, and anything louder would make it look
  * like the urgent thing.
  */
-export const PRACTICE_SECTION = "border-b border-current/15";
+export const PRACTICE_SECTION = "border-b border-current/15 pb-sections";
 
 /**
  * A project, over its pills.
@@ -65,7 +71,7 @@ export function ProjectGroupList({
   onToggle: (documentId: string) => void;
 }) {
   return (
-    <div>
+    <div className="mt-lists flex flex-col gap-heading [h2+&]:mt-0">
       <h3 className="m-0">
         {group.projectTitle ?? "incidentals"}
       </h3>

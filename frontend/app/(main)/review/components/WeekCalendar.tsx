@@ -269,7 +269,7 @@ export default function WeekCalendar({
        looked like controls and appeared to respond to being pressed. Neither is
        true there. */
     <div
-      className={` text-tiny review-calendar${arriving ? " is-arriving" : ""}${
+      className={`text-tiny review-calendar${arriving ? " is-arriving" : ""}${
         onCycle ? "" : " is-readonly"
       }`}
     >

@@ -66,7 +66,7 @@ export default function TaskPickList({
 
   if (readOnly) {
     return (
-      <ul>
+      <ul className="flex flex-col gap-rows">
         {tasks.map((task) => (
           <li key={task.documentId} className="flex items-baseline">
             <span>
@@ -82,7 +82,7 @@ export default function TaskPickList({
   }
 
   return (
-    <ul className="review-pick-list flex flex-wrap">
+    <ul className="review-pick-list flex flex-wrap gap-controls">
       {tasks.map((task) => {
         const isSelected = selected.has(task.documentId);
         return (
