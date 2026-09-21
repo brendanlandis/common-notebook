@@ -60,7 +60,7 @@ export default function CalendarsManager() {
   });
 
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col gap-fields">
       {isPending ? (
         <p>loading...</p>
       ) : (
@@ -68,12 +68,12 @@ export default function CalendarsManager() {
           {calendars.map((calendar) => (
             <li
               key={calendar.documentId}
-              className="flex items-center justify-between"
+              className="flex items-center justify-between gap-controls py-2"
             >
               <span className="min-w-0 truncate">
                 {calendar.name}
                 {!calendar.hasUrl && (
-                  <span className="text-small italic">no url</span>
+                  <span className="ml-2 text-small italic">no url</span>
                 )}
               </span>
               <Button
@@ -88,7 +88,7 @@ export default function CalendarsManager() {
             </li>
           ))}
           {calendars.length === 0 && (
-            <li className="text-small italic">no calendars yet</li>
+            <li className="py-2 text-small italic">no calendars yet</li>
           )}
         </ul>
       )}

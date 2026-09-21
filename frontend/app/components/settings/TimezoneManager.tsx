@@ -214,7 +214,7 @@ export default function TimezoneManager() {
   };
 
   return (
-    <div className="flex items-center">
+    <div className="flex items-center gap-controls">
       <button
         type="button"
         onClick={handleDetectTimezone}

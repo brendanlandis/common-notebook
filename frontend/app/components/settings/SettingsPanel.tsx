@@ -177,7 +177,7 @@ export default function SettingsPanel() {
             title="review"
             description="How often do you want to sit down and plan?"
           >
-            <div className="flex flex-col">
+            <div className="flex flex-col gap-fields">
               <RecurrencePicker
                 showLabels
                 value={cadence}
@@ -221,7 +221,7 @@ export default function SettingsPanel() {
               title="where you are"
               description="Only used to work out when the sun goes down, which the daily page draws across the day."
             >
-              <div className="grid grid-cols-2">
+              <div className="grid grid-cols-2 gap-fields">
                 <Field label="latitude" htmlFor="latitude">
                   <Input
                     id="latitude"
@@ -285,7 +285,7 @@ function SettingsSection({
   children: ReactNode;
 }) {
   return (
-    <section className="border-t border-base-content/15 first:border-t-0">
+    <section className="flex flex-col gap-heading border-t border-base-content/15 py-[calc(var(--spacing-sections)/2)] first:border-t-0 first:pt-0">
       <h3 className="mt-0">{title}</h3>
       {description && <p className="text-small opacity-75">{description}</p>}
       {children}

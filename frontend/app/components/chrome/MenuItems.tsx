@@ -24,9 +24,9 @@ export default function MenuItems({
           and closes from one spot. The other buttons are squares that size too, with
           smaller icons centered in them: centered on the close button, and the
           rightmost icon's right margin equals its top margin. */}
-      <div className="flex items-center justify-between">
+      <div className="mb-title flex items-center justify-between">
         <MenuClose />
-        <div className="flex items-center">
+        <div className="flex items-center gap-icons">
           <ThemeToggle />
           <button
             type="button"
@@ -68,7 +68,7 @@ function MenuLink({ href, label }: { href: string; label: string }) {
       <DrawerClose asChild>
         <Link
           href={href}
-          className="flex flex-nowrap items-center justify-start gap-3 text-body no-underline hover:bg-transparent hover:text-inherit hover:underline focus:bg-transparent focus:text-inherit focus:underline active:bg-transparent active:text-inherit active:underline"
+          className="flex flex-nowrap items-center justify-start gap-3 py-2 pl-1 text-body no-underline hover:bg-transparent hover:text-inherit hover:underline focus:bg-transparent focus:text-inherit focus:underline active:bg-transparent active:text-inherit active:underline"
         >
           <PageIcon path={href} size={30} weight="thin" />
           <span>{label}</span>

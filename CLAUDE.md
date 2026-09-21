@@ -52,8 +52,9 @@ License: AGPL v3.
     world.
   - **Spacing is five steps, 4 · 8 · 16 · 32 · 64px** (Tailwind's 1, 2, 4, 8, 16), and nothing
     between. A kind of gap that recurs is a role token in `screen.css`, listed there with what it
-    separates: `gap-icons`, `gap-rows`, `mb-heading`, `gap-lists`, `mb-title`, `gap-x-columns`,
-    `gap-y-blocks`. Moving a role to another step moves it everywhere at once. A one-off takes a step
+    separates: `gap-icons`, `gap-rows`, `mb-heading`, `gap-controls`, `gap-lists`, `mb-title`,
+    `gap-fields`, `gap-x-columns`, `gap-sections`, `gap-y-blocks`. Moving a role to another step
+    moves it everywhere at once. A one-off takes a step
     directly. The header's 12px gaps predate the scale, as does padding inside boxes.
   - **Sweetheart's metrics are overridden so a line's box is its letters**: cap height to the
     lowercase descenders (`declarations` on the font in `app/layout.tsx`). Its size is therefore the

@@ -14,7 +14,7 @@ export default function DrawerHeader({
   children: ReactNode;
 }) {
   return (
-    <div className="flex flex-row flex-nowrap items-center justify-between">
+    <div className="mb-title flex flex-row flex-nowrap items-center justify-between gap-4">
       {children}
       {title && <h2 className="m-0 mr-[calc((2rem-1em)/2)] text-right">{title}</h2>}
     </div>

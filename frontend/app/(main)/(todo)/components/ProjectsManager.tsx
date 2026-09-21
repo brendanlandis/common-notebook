@@ -116,13 +116,13 @@ export default function ProjectsManager() {
   const search3Lower = search3.trim().toLowerCase();
 
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col gap-sections">
       {/* 1 ── Are these done yet? ─────────────────────────────────────────── */}
       <ManagerSection title="are these done yet?">
         {candidates.length === 0 ? (
           <Muted>nothing to review</Muted>
         ) : (
-          <ul className="flex flex-col">
+          <ul className="flex flex-col gap-rows">
             {candidates.map((p) => (
               <ProjectRow key={p.documentId} as="li" title={worldPrefixed(p)}>
                 <button
@@ -140,60 +140,62 @@ export default function ProjectsManager() {
 
       {/* 2 ── Importance ──────────────────────────────────────────────────── */}
       <ManagerSection title="importance">
-        <div className="flex flex-col">
-          <h3 className="mb-0">top of mind</h3>
-          {topOfMind ? (
-            <ProjectRow title={worldPrefixed(topOfMind)}>
-              <button
-                type="button"
-                onClick={() => setImportance(topOfMind.documentId, "normal")}
-                disabled={manage.busy}
-              >
-                → normal
-              </button>
-            </ProjectRow>
-          ) : (
-            <Muted>none</Muted>
-          )}
-          <Select
-            aria-label="set top of mind"
-            value=""
-            disabled={manage.busy}
-            onChange={(e) => e.target.value && setImportance(e.target.value, "top of mind")}
-          >
-            <option value="">set top of mind…</option>
-            {groupedOptions(projects.filter((p) => p.importance !== "top of mind"))}
-          </Select>
-        </div>
+        <div className="flex flex-col gap-lists">
+          <div className="flex flex-col gap-heading">
+            <h3 className="mb-0">top of mind</h3>
+            {topOfMind ? (
+              <ProjectRow title={worldPrefixed(topOfMind)}>
+                <button
+                  type="button"
+                  onClick={() => setImportance(topOfMind.documentId, "normal")}
+                  disabled={manage.busy}
+                >
+                  → normal
+                </button>
+              </ProjectRow>
+            ) : (
+              <Muted>none</Muted>
+            )}
+            <Select
+              aria-label="set top of mind"
+              value=""
+              disabled={manage.busy}
+              onChange={(e) => e.target.value && setImportance(e.target.value, "top of mind")}
+            >
+              <option value="">set top of mind…</option>
+              {groupedOptions(projects.filter((p) => p.importance !== "top of mind"))}
+            </Select>
+          </div>
 
-        <div className="flex flex-col">
-          <h3 className="mb-0">later</h3>
-          {laterProjects.length === 0 ? (
-            <Muted>none</Muted>
-          ) : (
-            <ul className="flex flex-col">
-              {laterProjects.map((p) => (
-                <ProjectRow key={p.documentId} as="li" title={worldPrefixed(p)}>
-                  <button
-                    type="button"
-                    onClick={() => setImportance(p.documentId, "normal")}
-                    disabled={manage.busy}
-                  >
-                    → normal
-                  </button>
-                </ProjectRow>
-              ))}
-            </ul>
-          )}
-          <Select
-            aria-label="add to later"
-            value=""
-            disabled={manage.busy}
-            onChange={(e) => e.target.value && setImportance(e.target.value, "later")}
-          >
-            <option value="">add to later…</option>
-            {groupedOptions(projects.filter((p) => p.importance !== "later"))}
-          </Select>
+          <div className="flex flex-col gap-heading">
+            <h3 className="mb-0">later</h3>
+            {laterProjects.length === 0 ? (
+              <Muted>none</Muted>
+            ) : (
+              <ul className="flex flex-col gap-rows">
+                {laterProjects.map((p) => (
+                  <ProjectRow key={p.documentId} as="li" title={worldPrefixed(p)}>
+                    <button
+                      type="button"
+                      onClick={() => setImportance(p.documentId, "normal")}
+                      disabled={manage.busy}
+                    >
+                      → normal
+                    </button>
+                  </ProjectRow>
+                ))}
+              </ul>
+            )}
+            <Select
+              aria-label="add to later"
+              value=""
+              disabled={manage.busy}
+              onChange={(e) => e.target.value && setImportance(e.target.value, "later")}
+            >
+              <option value="">add to later…</option>
+              {groupedOptions(projects.filter((p) => p.importance !== "later"))}
+            </Select>
+          </div>
         </div>
       </ManagerSection>
 
@@ -218,7 +220,7 @@ export default function ProjectsManager() {
           // otherwise the world respects its own collapse state (collapsed default).
           const worldOpen = !!search3Lower || expandedWorlds.has(group.key);
           return (
-            <div key={group.key}>
+            <div key={group.key} className="flex flex-col gap-rows">
               <DisclosureToggle
                 expanded={worldOpen}
                 onToggle={() => toggleWorld(group.key)}
@@ -228,9 +230,9 @@ export default function ProjectsManager() {
               </DisclosureToggle>
               {worldOpen && (
                 <>
-                  <ul className="flex flex-col">
+                  <ul className="flex flex-col gap-rows">
                     {shown.map((p) => (
-                      <li key={p.documentId}>
+                      <li key={p.documentId} className="flex flex-col gap-rows">
                         <DisclosureToggle
                           expanded={expanded.has(p.documentId)}
                           onToggle={() => toggleExpand(p.documentId)}
@@ -277,7 +279,7 @@ export default function ProjectsManager() {
         ) : manage.completedProjects.length === 0 ? (
           <Muted>none</Muted>
         ) : (
-          <ul className="flex flex-col">
+          <ul className="flex flex-col gap-rows">
             {manage.completedProjects.map((p) => (
               <ProjectRow key={p.documentId} as="li" title={p.title}>
                 <button
@@ -322,9 +324,9 @@ export default function ProjectsManager() {
 
 function ManagerSection({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section className="flex flex-col">
+    <section className="flex flex-col gap-heading">
       <h3 className="m-0">{title}</h3>
-      {children}
+      <div className="flex flex-col gap-rows">{children}</div>
     </section>
   );
 }
@@ -340,7 +342,7 @@ function ProjectRow({
   children: ReactNode;
 }) {
   return (
-    <Tag className="flex items-center">
+    <Tag className="flex items-center gap-controls">
       <span className="min-w-0 flex-auto truncate">{title}</span>
       {children}
     </Tag>

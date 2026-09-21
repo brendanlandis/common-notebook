@@ -143,22 +143,22 @@ export default function ViewsManager() {
   if (loading) return <p>loading views…</p>;
 
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col gap-sections">
       <SortableProvider onDragEnd={handleDragEnd}>
         <SortableGroup groupKey="views" ids={ordered.map((v) => v.documentId)}>
-        <ul aria-label="views" className="flex flex-col">
+        <ul aria-label="views" className="flex flex-col gap-rows">
           {ordered.map((view) => {
             const multiSection = view.layout === "projects";
             return (
               <SortableRow
                 key={view.documentId}
                 id={view.documentId}
-                className="grid grid-cols-[auto_1fr] items-start rounded-lg border border-base-300 p-3"
+                className="grid grid-cols-[auto_1fr] items-start gap-controls rounded-lg border border-base-300 p-3"
                 handleLabel={`reorder ${view.name}`}
                 disabled={busy}
               >
-                <div className="flex min-w-0 flex-col">
-                  <div className="flex flex-wrap items-center">
+                <div className="flex min-w-0 flex-col gap-rows">
+                  <div className="flex flex-wrap items-center gap-controls">
                     {/* The name has a row to itself; the layout and delete share the next. */}
                     <Input
                       type="text"
@@ -188,11 +188,11 @@ export default function ViewsManager() {
                       keyboard reordering fail outright, because
                       sortableKeyboardCoordinates can't move a row that dwarfs its
                       neighbor. Compact rows keep both usable. */}
-                  <div>
+                  <div className="flex flex-col gap-rows">
                     <DisclosureToggle
                       expanded={expanded.has(view.documentId)}
                       onToggle={() => toggleExpanded(view.documentId)}
-                      className="text-small opacity-75"
+                      className="self-start text-small opacity-75"
                     >
                       {view.sections.length} section{view.sections.length === 1 ? "" : "s"}
                     </DisclosureToggle>
@@ -204,7 +204,7 @@ export default function ViewsManager() {
                       groupKey={`sections:${view.documentId}`}
                       ids={view.sections.map((_, si) => sectionId(view.documentId, si))}
                     >
-                      <ul aria-label={`sections of ${view.name}`} className="flex flex-col">
+                      <ul aria-label={`sections of ${view.name}`} className="flex flex-col gap-rows">
                       {view.sections.map((section, si) => {
                         const input = sectionToInput(section);
                         const showWorlds = input.worldMode !== "all";
@@ -212,11 +212,11 @@ export default function ViewsManager() {
                           <SortableRow
                             key={si}
                             id={sectionId(view.documentId, si)}
-                            className="grid grid-cols-[auto_1fr] items-start rounded border-l-[3px] border-base-300 bg-base-200 p-2"
+                            className="grid grid-cols-[auto_1fr] items-start gap-controls rounded border-l-[3px] border-base-300 bg-base-200 p-2"
                             handleLabel={`reorder section ${si + 1} of ${view.name}`}
                             disabled={busy || !multiSection || view.sections.length < 2}
                           >
-                            <div className="flex min-w-0 flex-col">
+                            <div className="flex min-w-0 flex-col gap-rows">
                               {multiSection && (
                                 <InlineField label="label">
                                   {/* Keyed by its own value: the row is keyed by
@@ -243,7 +243,7 @@ export default function ViewsManager() {
                                 </Select>
                               </InlineField>
                               {showWorlds && (
-                                <div className="flex flex-wrap sm:pl-[6.5rem]">
+                                <div className="flex flex-wrap gap-x-4 gap-y-2 sm:pl-[6.5rem]">
                                   {worlds.map((w) => (
                                     <Checkbox
                                       key={w.documentId}
@@ -286,7 +286,7 @@ export default function ViewsManager() {
                     )}
 
                     {expanded.has(view.documentId) && multiSection && (
-                      <button type="button" onClick={() => addSection(view)} disabled={busy}>add section</button>
+                      <button type="button" className="self-start" onClick={() => addSection(view)} disabled={busy}>add section</button>
                     )}
                   </div>
                 </div>
@@ -297,7 +297,7 @@ export default function ViewsManager() {
         </SortableGroup>
       </SortableProvider>
 
-      <div className="flex flex-wrap items-center">
+      <div className="flex flex-wrap items-center gap-controls">
         <Input
           type="text"
           className="min-w-0 flex-[1_1_8rem]"

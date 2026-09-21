@@ -117,7 +117,7 @@ export default function ProjectForm({
 
   return (
     <form
-      className="flex flex-col text-left"
+      className="flex flex-col gap-fields text-left"
       onSubmit={handleSubmit(handleFormSubmit)}
     >
       <Field label="title" htmlFor="title" hideLabel error={errors.title?.message}>

@@ -27,7 +27,7 @@ export default function LogoutButton() {
   };
 
   return (
-    <Button onClick={handleLogout} id="logout-button">
+    <Button onClick={handleLogout} id="logout-button" className="self-start">
       log out
     </Button>
   );

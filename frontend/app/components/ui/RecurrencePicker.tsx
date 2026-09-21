@@ -237,7 +237,7 @@ export default function RecurrencePicker({
       )}
 
       {type === "monthly day" && (
-        <div className="grid sm:grid-cols-[1fr_1.5fr]">
+        <div className="grid gap-fields sm:grid-cols-[1fr_1.5fr]">
           <Field
             label="week of month"
             htmlFor="recurrenceWeekOfMonth"
@@ -280,7 +280,7 @@ export default function RecurrencePicker({
       )}
 
       {type === "annually" && (
-        <div className="grid sm:grid-cols-2">
+        <div className="grid gap-fields sm:grid-cols-2">
           <Field
             label="month"
             htmlFor="recurrenceMonth"

@@ -41,13 +41,16 @@
  * `mb-heading` and so on, so moving it to another step moves it everywhere at
  * once. A one-off takes a step directly (`mb-4`).
  *
- *   icons     4px   icons side by side: a task's edit and delete
- *   rows      8px   one row of a list and the next
- *   heading   8px   a heading and what it heads
- *   lists    16px   one labeled list and the next in a column: months, days
- *   title    16px   a page's title and the page under it
- *   columns  32px   columns side by side
- *   blocks   64px   blocks stacked: one row of columns and the next, groups
+ *   icons      4px   icons side by side: a task's edit and delete
+ *   rows       8px   one row of a list and the next
+ *   heading    8px   a heading and what it heads
+ *   controls   8px   controls side by side in a row: a name, its select, its delete
+ *   lists     16px   one labeled list and the next in a column: months, days
+ *   title     16px   a page's or drawer's title and what's under it
+ *   fields    16px   one field of a form and the next, stacked or side by side
+ *   columns   32px   columns side by side
+ *   sections  32px   one section of a drawer and the next
+ *   blocks    64px   blocks stacked: one row of columns and the next, groups
  *
  * The header's own 12px gaps are off the scale: they were set by eye before it
  * existed. */
@@ -55,9 +58,12 @@
   --spacing-icons: 0.25rem;
   --spacing-rows: 0.5rem;
   --spacing-heading: 0.5rem;
+  --spacing-controls: 0.5rem;
   --spacing-lists: 1rem;
   --spacing-title: 1rem;
+  --spacing-fields: 1rem;
   --spacing-columns: 2rem;
+  --spacing-sections: 2rem;
   --spacing-blocks: 4rem;
 }
 
