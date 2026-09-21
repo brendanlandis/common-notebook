@@ -26,6 +26,8 @@ interface TaskSectionsProps {
   onEditProject?: (project: Project) => void;
   upcomingSection?: React.ReactNode;
   recentStatsSection?: React.ReactNode;
+  /** h3 when the columns sit under a group's name, so they read a level below it. */
+  headingLevel?: "h2" | "h3";
 }
 
 export default function TaskSections({
@@ -41,6 +43,7 @@ export default function TaskSections({
   onEditProject,
   upcomingSection,
   recentStatsSection,
+  headingLevel = "h2",
 }: TaskSectionsProps) {
   // The upcoming panel and the stats chart count: on the done view they can be
   // the only things there, and bailing out on empty `sections` alone meant an
@@ -77,7 +80,7 @@ export default function TaskSections({
         return (
           <TaskSection key={key}>
             {title !== "all tasks" && (
-              <TaskSectionHeading>
+              <TaskSectionHeading as={headingLevel}>
                 {"documentId" in section ? (
                   <Link href={`/project/${section.slug || section.documentId}`}>
                     {title}
@@ -116,7 +119,7 @@ export default function TaskSections({
 
       {incidentals && incidentals.length > 0 && (
         <TaskSection>
-          <TaskSectionHeading>incidentals</TaskSectionHeading>
+          <TaskSectionHeading as={headingLevel}>incidentals</TaskSectionHeading>
           <TaskList>
             {incidentals.map((task) => (
               <TaskItem

@@ -46,10 +46,10 @@ function topOfMindSection(page: Page) {
   });
 }
 
-/** The pencil in a given project's column header. */
+/** The pencil in a given project's column header: an h3 under a group's name, else an h2. */
 function editProjectButton(page: Page, projectTitle: string) {
   return page
-    .locator('h2')
+    .locator('.task-section :is(h2, h3)')
     .filter({ hasText: projectTitle })
     .getByLabel('edit project');
 }

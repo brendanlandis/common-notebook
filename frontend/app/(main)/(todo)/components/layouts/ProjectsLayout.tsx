@@ -29,7 +29,8 @@ export default function ProjectsLayout({
     <>
       {groups.map((group, i) => (
         <Fragment key={group.name ?? i}>
-          {i > 0 && <hr className="my-blocks" />}
+          {/* Only below: the columns above already end with a block's margin. */}
+          {i > 0 && <hr className="mb-blocks" />}
           {/* `group-section` stays as a name: a browser spec addresses a group by it. */}
           <div className="group-section text-left">
             {group.name && (
@@ -47,6 +48,7 @@ export default function ProjectsLayout({
               onRemoveWorkSession={onRemoveWorkSession}
               onSkipRecurring={onSkipRecurring}
               onEditProject={onEditProject}
+              headingLevel={group.name ? "h3" : "h2"}
             />
           </div>
         </Fragment>

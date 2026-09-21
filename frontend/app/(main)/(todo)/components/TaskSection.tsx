@@ -12,7 +12,7 @@ import type { ReactNode } from "react";
  * address columns by it.
  */
 const SECTION = [
-  "task-section grid grid-cols-1 content-start items-start gap-heading [&_*]:break-words",
+  "task-section mb-blocks grid grid-cols-1 content-start items-start gap-heading [&_*]:break-words",
   "row-span-2 [grid-template-rows:subgrid]",
   "[.layout-everything_&]:row-auto [.layout-everything_&]:[grid-template-rows:none]",
   "[.layout-recurring_&]:row-auto [.layout-recurring_&]:[grid-template-rows:none]",
@@ -20,7 +20,15 @@ const SECTION = [
   "[.layout-data-chores_&]:row-auto [.layout-data-chores_&]:[grid-template-rows:none]",
 ].join(" ");
 
-/** The grid a view's columns sit in; the column counts live in task-grid.css. */
+/**
+ * The grid a view's columns sit in; the column counts live in task-grid.css.
+ *
+ * No row gap: the space between one row of columns and the next is each
+ * column's bottom margin. A column's rows are a subgrid of these, and a subgrid
+ * whose own gap (a heading's 8px) is smaller than its parent's makes up the
+ * difference with negative margins, which can't shrink a short heading's row
+ * below nothing: a label or a phone-sized heading got 17px under it instead.
+ */
 export function TaskGrid({
   className = "",
   children,
@@ -29,7 +37,7 @@ export function TaskGrid({
   children: ReactNode;
 }) {
   return (
-    <div className={`tasks-container grid gap-x-columns gap-y-blocks text-left ${className}`}>
+    <div className={`tasks-container grid gap-x-columns text-left ${className}`}>
       {children}
     </div>
   );
@@ -50,12 +58,21 @@ export default function TaskSection({
  * screen. The button sits inline after the title rather than in a flex row,
  * because a flex row would turn the heading trim's ::before/::after (type.css)
  * into flex items.
+ *
+ * Columns under a group's name (home's "recurring") are a level below it, so
+ * their headings are labels, `as="h3"`.
  */
-export function TaskSectionHeading({ children }: { children: ReactNode }) {
+export function TaskSectionHeading({
+  as: Heading = "h2",
+  children,
+}: {
+  as?: "h2" | "h3";
+  children: ReactNode;
+}) {
   return (
-    <h2 className="group/heading mb-0 text-left [&_button]:ml-2 [&_button]:align-middle [&_button]:opacity-0 [&_button]:group-hover/heading:opacity-100 touch:[&_button]:opacity-100">
+    <Heading className="group/heading mb-0 text-left [&_button]:ml-2 [&_button]:align-middle [&_button]:opacity-0 [&_button]:group-hover/heading:opacity-100 touch:[&_button]:opacity-100">
       {children}
-    </h2>
+    </Heading>
   );
 }
 

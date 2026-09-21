@@ -48,14 +48,14 @@ License: AGPL v3.
     rather than a one-off. **A page opens on its highest heading, never a lower one.** One title
     is an `<h1>`, as on a project or review page. Where a page opens on several peers (a view's
     columns, the done view's days, the everything view's months), they're `<h2>`s and there's no
-    `<h1>`. A title never repeats the header's view selector, which already names the view or
-    world.
+    `<h1>`. Columns under a group's name (home's "recurring") are a level down, `<h3>` labels. A
+    title never repeats the header's view selector, which already names the view or world.
   - **Spacing is five steps, 4 · 8 · 16 · 32 · 64px** (Tailwind's 1, 2, 4, 8, 16), and nothing
     between. A kind of gap that recurs is a role token in `screen.css`, listed there with what it
     separates: `gap-icons`, `gap-rows`, `mb-heading`, `gap-controls`, `gap-lists`, `mb-title`,
-    `gap-fields`, `gap-x-columns`, `gap-sections`, `gap-y-blocks`. Moving a role to another step
-    moves it everywhere at once. A one-off takes a step
-    directly. The header's 12px gaps predate the scale, as does padding inside boxes.
+    `gap-fields`, `gap-x-columns`, `gap-sections`, `mb-blocks`. Moving a role to another step
+    moves it everywhere at once. A one-off takes a step directly. The header's 12px gaps predate
+    the scale, as does padding inside boxes.
   - **Sweetheart's metrics are overridden so a line's box is its letters**: cap height to the
     lowercase descenders (`declarations` on the font in `app/layout.tsx`). Its size is therefore the
     height of its letters. Titles and sections space lines at `--heading-leading` (1.175, so G/Y tails
