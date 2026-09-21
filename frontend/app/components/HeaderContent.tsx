@@ -21,6 +21,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiSend, swallow } from "../lib/apiFetch";
 import { TASKS_ROOT } from "../(main)/todo/hooks/useTasks";
 import { TOOLTIP } from "@/app/components/tooltip";
+import { isTodoPath } from "@/app/lib/pages";
 
 /**
  * Can the pointing device on this machine hover?
@@ -65,18 +66,18 @@ export default function HeaderContent() {
   const handleResetMoonPhase = () =>
     swallow("reset moon phase", resetMoonPhaseMutation.mutateAsync());
 
-  // Task pages (index + per-world / per-project routes) share one header. The
-  // shared TaskForms drawer is mounted for the whole /todo route group, so the
-  // add buttons work everywhere.
-  if (pathname.startsWith("/todo")) {
-    // Keep the picker in sync with the route: /todo shows the default view;
+  // Task pages (home + per-view / per-world / per-project routes) share one
+  // header. The shared TaskForms drawer is mounted on all of them, so the add
+  // buttons work everywhere.
+  if (isTodoPath(pathname)) {
+    // Keep the picker in sync with the route: home shows the default view;
     // /todo/view/<slug> shows that view; /todo/world/<slug> shows that world's
     // option; a per-project route has no matching option, so it falls back to
     // the blank row. LayoutSelector navigates on change.
     const viewMatch = pathname.match(/^\/todo\/view\/(.+)$/);
     const worldMatch = pathname.match(/^\/todo\/world\/(.+)$/);
     const selectorValue =
-      pathname === "/todo"
+      pathname === "/"
         ? getDefaultViewSlug(views, stuffProjectsEnabled)
         : viewMatch
           ? decodeURIComponent(viewMatch[1])

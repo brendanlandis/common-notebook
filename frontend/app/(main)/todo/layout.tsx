@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
-import { TaskDataProvider } from "./contexts/TaskDataContext";
-import TaskForms from "./components/TaskForms";
+import TaskShell from "./components/TaskShell";
 
 export const metadata: Metadata = {
   title: "to do",
@@ -12,11 +11,5 @@ export default function TaskLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return (
-    <TaskDataProvider>
-      {children}
-      <TaskForms />
-    </TaskDataProvider>
-  );
+  return <TaskShell>{children}</TaskShell>;
 }
-

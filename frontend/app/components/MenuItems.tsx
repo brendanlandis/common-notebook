@@ -1,19 +1,12 @@
 "use client";
 import Link from "next/link";
-import {
-  BirdIcon,
-  BroomIcon,
-  MetronomeIcon,
-  GearIcon,
-  SunIcon,
-  CompassIcon,
-} from "@phosphor-icons/react/dist/ssr";
-import type { Icon } from "@phosphor-icons/react";
+import { GearIcon } from "@phosphor-icons/react/dist/ssr";
 import MenuClose from "./MenuClose";
 import DrawerHeader from "./DrawerHeader";
 import ThemeToggle from "./ThemeToggle";
 import LogoutButton from "./LogoutButton";
-import { soleDestination, visiblePages } from "@/app/lib/pages";
+import { visiblePages } from "@/app/lib/pages";
+import PageIcon from "./PageIcon";
 import { useBetaAccess } from "@/app/hooks/useBetaAccess";
 import { TOOLTIP } from "@/app/components/tooltip";
 
@@ -24,8 +17,6 @@ export default function MenuItems({
 }) {
   const { betaAccess } = useBetaAccess();
   const pages = visiblePages(betaAccess);
-  // Home redirects to the sole destination, so a link to it would be a dead entry.
-  const showHome = soleDestination(betaAccess) === null;
   const closeDrawer = () => {
     const drawerCheckbox = document.getElementById(
       "mainMenu"
@@ -50,32 +41,14 @@ export default function MenuItems({
         </div>
         <MenuClose />
       </DrawerHeader>
-      {showHome && (
-        <MenuLink href="/" icon={BirdIcon} label="home" onClick={closeDrawer} />
-      )}
-      <MenuLink href="/todo" icon={BroomIcon} label="to do" onClick={closeDrawer} />
+      <MenuLink href="/" label="home" onClick={closeDrawer} />
       {pages.includes("/practice") && (
-        <MenuLink
-          href="/practice"
-          icon={MetronomeIcon}
-          label="practice"
-          onClick={closeDrawer}
-        />
+        <MenuLink href="/practice" label="practice" onClick={closeDrawer} />
       )}
       {pages.includes("/review/daily") && (
         <>
-          <MenuLink
-            href="/review/daily"
-            icon={SunIcon}
-            label="today"
-            onClick={closeDrawer}
-          />
-          <MenuLink
-            href="/review/periodic"
-            icon={CompassIcon}
-            label="review"
-            onClick={closeDrawer}
-          />
+          <MenuLink href="/review/daily" label="today" onClick={closeDrawer} />
+          <MenuLink href="/review/periodic" label="review" onClick={closeDrawer} />
         </>
       )}
     </>
@@ -84,12 +57,10 @@ export default function MenuItems({
 
 function MenuLink({
   href,
-  icon: Icon,
   label,
   onClick,
 }: {
   href: string;
-  icon: Icon;
   label: string;
   onClick: () => void;
 }) {
@@ -102,7 +73,7 @@ function MenuLink({
         onClick={onClick}
         className="flex flex-nowrap items-center justify-start gap-3 py-3 pl-1 text-xl no-underline hover:bg-transparent hover:text-inherit hover:underline focus:bg-transparent focus:text-inherit focus:underline active:bg-transparent active:text-inherit active:underline"
       >
-        <Icon size={30} weight="thin" />
+        <PageIcon path={href} size={30} weight="thin" />
         <span>{label}</span>
       </Link>
     </li>

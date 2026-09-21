@@ -1,9 +1,9 @@
-import { describe, it, expect, vi } from 'vitest';
-import { MAIN_PAGES, visiblePages, soleDestination } from './pages';
+import { describe, it, expect } from 'vitest';
+import { MAIN_PAGES, visiblePages, isTodoPath } from './pages';
 
 describe('visiblePages', () => {
   it('shows every page to a beta user', () => {
-    expect(visiblePages(true)).toEqual(['/todo', '/practice', '/review/daily']);
+    expect(visiblePages(true)).toEqual(['/', '/practice', '/review/daily']);
   });
 
   it('lists the daily review, not the review ritual', () => {
@@ -15,41 +15,26 @@ describe('visiblePages', () => {
   });
 
   it('hides beta pages from a non-beta user', () => {
-    expect(visiblePages(false)).toEqual(['/todo']);
+    expect(visiblePages(false)).toEqual(['/']);
   });
 
-  it('lists only real destinations, not chrome', () => {
-    expect(MAIN_PAGES).not.toContain('/');
+  it('lists only real destinations, not chrome or the /todo forward', () => {
     expect(MAIN_PAGES).not.toContain('/settings');
+    expect(MAIN_PAGES).not.toContain('/todo');
   });
 });
 
-describe('soleDestination', () => {
-  it('returns /todo when it is a non-beta user’s only page', () => {
-    expect(soleDestination(false)).toBe('/todo');
+describe('isTodoPath', () => {
+  it('covers home and every /todo route', () => {
+    expect(isTodoPath('/')).toBe(true);
+    expect(isTodoPath('/todo')).toBe(true);
+    expect(isTodoPath('/todo/view/done')).toBe(true);
+    expect(isTodoPath('/todo/project/abc')).toBe(true);
   });
 
-  it('returns null when the user has a choice of pages', () => {
-    expect(soleDestination(true)).toBeNull();
-  });
-
-  it('never returns / — redirecting to the result cannot loop', () => {
-    expect(soleDestination(true)).not.toBe('/');
-    expect(soleDestination(false)).not.toBe('/');
-  });
-
-  it('returns null rather than a destination when no pages are visible', async () => {
-    // The empty case is unreachable with today's constants (/todo is never beta),
-    // so force it: with every page beta, a non-beta user can see nothing at all.
-    // `length === 1` must not quietly become a stand-in for "not empty".
-    vi.resetModules();
-    vi.doMock('./betaConfig', () => ({ isBetaPath: () => true }));
-    const pages = await import('./pages');
-
-    expect(pages.visiblePages(false)).toEqual([]);
-    expect(pages.soleDestination(false)).toBeNull();
-
-    vi.doUnmock('./betaConfig');
-    vi.resetModules();
+  it('leaves other pages out', () => {
+    expect(isTodoPath('/practice')).toBe(false);
+    expect(isTodoPath('/review/daily')).toBe(false);
+    expect(isTodoPath('/todos')).toBe(false);
   });
 });

@@ -11,7 +11,7 @@ import {
 import { useStuffProjects } from "@/app/contexts/StuffProjectsContext";
 import { useViews } from "@/app/hooks/useViews";
 
-// Per-view route. The default view canonicalizes to bare /todo, so its own path
+// Per-view route. The default view canonicalizes to home, so its own path
 // (and any unknown/unavailable slug) forwards there.
 export default function ViewPage() {
   const params = useParams<{ view: string }>();
@@ -27,7 +27,7 @@ export default function ViewPage() {
   const shouldRedirect = !loading && (slug === defaultSlug || !isAvailable);
 
   useEffect(() => {
-    if (shouldRedirect) router.replace("/todo");
+    if (shouldRedirect) router.replace("/");
   }, [shouldRedirect, router]);
 
   if (loading || shouldRedirect) {

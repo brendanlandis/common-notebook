@@ -29,7 +29,7 @@ export function findViewBySlug(slug: string, views: View[]): View | undefined {
 }
 
 /**
- * The default view — the one that renders at bare `/todo`. It's simply the first
+ * The default view — the one that renders at home (`/`). It's simply the first
  * view in the user's own ordering (`position`), the same order ViewsManager's
  * ↑/↓ controls. The `stuff` view is skipped while stuff projects are disabled so
  * the default never lands on a hidden view. Falls back to DEFAULT_VIEW_SLUG when

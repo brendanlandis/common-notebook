@@ -82,12 +82,12 @@ export async function deleteTasksByTitle(request: APIRequestContext, title: stri
   for (const t of matches) await deleteTask(request, t.documentId);
 }
 
-// /todo renders `<p>loading...</p>` from two sequential gates (views, then tasks),
+// Home renders `<p>loading...</p>` from two sequential gates (views, then tasks),
 // so waiting for that text to detach can pass in the gap between them. Wait for a
 // positive signal instead.
 // A view can render more than one `.tasks-container`, so this narrows to the first
 // match — an unnarrowed locator trips Playwright's strict mode instead of waiting.
-export async function gotoTodo(page: Page, path = '/todo') {
+export async function gotoTodo(page: Page, path = '/') {
   await page.goto(path);
   const ready = page
     .locator('.tasks-container, p:has-text("nothin\' to do, nowhere to be")')

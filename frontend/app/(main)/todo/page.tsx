@@ -1,24 +1,6 @@
-"use client";
+import { redirect } from "next/navigation";
 
-import TaskViewContent from "./components/TaskViewContent";
-import { getDefaultViewSlug } from "@/app/lib/views";
-import { useStuffProjects } from "@/app/contexts/StuffProjectsContext";
-import { useViews } from "@/app/hooks/useViews";
-
-// Bare /todo renders the default view — the first view in the user's ordering.
-// Every other view lives at /todo/view/<slug>.
-export default function TaskPage() {
-  const { stuffProjectsEnabled } = useStuffProjects();
-  const { views, loading } = useViews();
-
-  if (loading) {
-    return (
-      <div id="container-task" className="text-center" suppressHydrationWarning>
-        <p>loading...</p>
-      </div>
-    );
-  }
-
-  const slug = getDefaultViewSlug(views, stuffProjectsEnabled);
-  return <TaskViewContent slug={slug} />;
+// The default view lives at home now; bare /todo is kept for old links.
+export default function TodoPage() {
+  redirect("/");
 }

@@ -133,13 +133,13 @@ export function TaskDataProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const queryClient = useQueryClient();
 
-  // The active view slug, derived from the route: /todo shows the default view,
+  // The active view slug, derived from the route: home shows the default view,
   // /todo/view/<slug> shows that one. Only the "done" preset needs the secondary
   // completed/upcoming/stats lists, which is what gates the queries below.
   const viewMatch = pathname.match(/^\/todo\/view\/(.+)$/);
   const activeViewSlug = viewMatch
     ? decodeURIComponent(viewMatch[1])
-    : pathname === "/todo"
+    : pathname === "/"
       ? getDefaultViewSlug(views, stuffProjectsEnabled)
       : null;
 

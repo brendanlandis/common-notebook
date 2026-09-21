@@ -41,9 +41,9 @@ export default function LayoutSelector({ value }: LayoutSelectorProps) {
       return;
     }
     // A view/preset lives at /todo/view/<slug>, except the default view, which
-    // canonicalizes to bare /todo.
+    // canonicalizes to home.
     if (v === getDefaultViewSlug(views, stuffProjectsEnabled)) {
-      router.push("/todo");
+      router.push("/");
     } else {
       router.push(`/todo/view/${v}`);
     }

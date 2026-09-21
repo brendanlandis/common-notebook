@@ -1,6 +1,7 @@
 'use client';
 
 import { usePathname } from 'next/navigation';
+import { isTodoPath } from '@/app/lib/pages';
 import { XIcon } from '@phosphor-icons/react';
 import DrawerHeader from "./DrawerHeader";
 import { useTaskActions } from '../contexts/TaskActionsContext';
@@ -10,7 +11,7 @@ export default function TaskActionsDrawer() {
   const { closeDrawer } = useTaskActions();
   
   // Show content on task pages, but drawer-side must always be in DOM
-  const showContent = pathname.startsWith('/todo');
+  const showContent = isTodoPath(pathname);
 
   return (
     <div className="drawer-side z-5">

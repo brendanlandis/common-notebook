@@ -107,7 +107,10 @@ License: AGPL v3.
   fixtures. See `e2e/helpers.ts` for the shared setup and the waits.
 
 ## Layout (`frontend/app/`)
-- `(main)/` — authed route group (`layout.tsx`). Features: `todo/`, `review/`, `practice/`, home.
+- `(main)/` — authed route group (`layout.tsx`). Features: `todo/`, `review/`, `practice/`. Home (`/`) is the to-do list's default view, wrapped in
+  `todo/components/TaskShell` like every `/todo` route; bare `/todo` redirects there. `app/lib/pages.ts`'s
+  `isTodoPath` is the one test for "on a to-do route"; `components/PageIcon.tsx` gives each page the icon its
+  menu link and the header's upper-left icon share.
   Each feature colocates its own `components/`, `hooks/`, `utils/`. `todo/components/layouts/` holds
   the per-layout components + `types.ts`; `review/` holds `periodic/` and `daily/` pages plus
   `WeekCalendar`/`TaskPickList` and the `useReview`/`useDailyPick`/`useCalendarEvents` hooks.
@@ -182,7 +185,7 @@ runs on save and leaves the DB and the schema disagreeing.
 - **View / ruleset** — a view is a **per-user row** of `api::view.view` (`LAYOUT_PRESETS` is gone),
   composed from a fixed menu of layout engines (`projects` | `chronological` | `roulette`) plus ordered
   `sections`, each a filter set (`worldMode`/`worlds`/`importance`/`projectType`/`recurrence`/`longOnly`).
-  Routed as `/todo/view/<slug>` and `/todo/world/<slug>`; `viewToRuleset` (`app/lib/views.ts`) reduces a
+  Routed as `/` (the default view), `/todo/view/<slug>` and `/todo/world/<slug>`; `viewToRuleset` (`app/lib/views.ts`) reduces a
   View to the runtime `LayoutRuleset` consumed by `transformLayout` (`app/lib/layoutTransformers.ts`) →
   `LayoutRenderer` → a per-layout component. Two `CODE_PRESETS` (`done`, `recurring`) take a bespoke
   branch via `codePreset`.

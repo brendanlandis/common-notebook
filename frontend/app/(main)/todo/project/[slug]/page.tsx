@@ -85,7 +85,7 @@ export default function ProjectPage() {
     return (
       <div id="container-task" className="text-center layout-project-view" suppressHydrationWarning>
         <p>
-          project not found. <Link href="/todo">back to to do</Link>
+          project not found. <Link href="/">back to to do</Link>
         </p>
       </div>
     );
