@@ -141,7 +141,7 @@ export default function ProjectsManager() {
       {/* 2 ── Importance ──────────────────────────────────────────────────── */}
       <ManagerSection title="importance">
         <div className="flex flex-col gap-1.5">
-          <h4 className="mt-1 mb-0 text-sm opacity-75">top of mind</h4>
+          <h4 className="mt-1 mb-0 text-sm leading-(--heading-leading) opacity-75">top of mind</h4>
           {topOfMind ? (
             <ProjectRow title={worldPrefixed(topOfMind)}>
               <button
@@ -167,7 +167,7 @@ export default function ProjectsManager() {
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <h4 className="mt-1 mb-0 text-sm opacity-75">later</h4>
+          <h4 className="mt-1 mb-0 text-sm leading-(--heading-leading) opacity-75">later</h4>
           {laterProjects.length === 0 ? (
             <Muted>none</Muted>
           ) : (

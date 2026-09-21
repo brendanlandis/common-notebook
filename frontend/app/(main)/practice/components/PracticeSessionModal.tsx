@@ -233,7 +233,7 @@ function PracticeModal({
 function PracticeSubject({ title, subject }: { title?: string; subject?: string }) {
   return (
     <div>
-      <h2 className="m-0 text-3xl leading-tight">{title ?? 'practice'}</h2>
+      <h2 className="m-0 text-3xl leading-(--heading-leading)">{title ?? 'practice'}</h2>
       {/* Muted because you know what instrument you are holding — it is there to
           disambiguate two pieces with similar names, not to be read every
           time. */}

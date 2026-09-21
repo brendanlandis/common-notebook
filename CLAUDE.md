@@ -36,8 +36,16 @@ License: AGPL v3.
     paper, `success` for "yes, this one"). Where the two themes need different tokens, say so with
     `dim:` (or `light-dark()` in a string handed to a chart).
   - **Headings carry their own size** as `text-h1` … `text-h4` (theme tokens in `screen.css`) and
-    their own margins (`my-4` where nothing else is set). `type.css` sets only the two faces —
-    Sweetheart for headings, IBM Plex Serif for body — so a bare `<h2>` renders at body size.
+    their own margins (`my-4` where nothing else is set). `type.css` sets the two faces
+    (Sweetheart for headings, IBM Plex Serif for body), so a bare `<h2>` renders at body size.
+  - **Sweetheart's metrics are overridden so a line's box is its letters**: cap height to the
+    lowercase descenders (`declarations` on the font in `app/layout.tsx`). Headings space lines at
+    `--heading-leading` (1.175, so G/Y tails clear the next line) and trim that back off their top
+    and bottom with `::before`/`::after` margins in `type.css`. So a heading's edges sit on its
+    letters, wrapped or not. A heading that sets its own line-height must use
+    `leading-(--heading-leading)`. One in another face turns the trim off
+    (`before:hidden after:hidden`). A flex heading breaks the trim, since the pseudo-elements
+    become flex items.
   - **`screen.css` also holds** the `--transition-time` every animation uses (450ms), and two custom
     variants: `dim:` for the dark theme, and `touch:` for `(hover: none) and (pointer: coarse)`,
     which is how a control revealed on hover stays put on a phone.

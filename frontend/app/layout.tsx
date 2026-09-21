@@ -8,9 +8,24 @@ export const metadata: Metadata = {
   description: "minimal, no-brand personal utilities",
 };
 
+/*
+ * Sweetheart's own metrics claim 1.122em of height, but its letters run from
+ * cap height (677 of 1000 units) to the lowercase descenders (-204), 0.881em.
+ * These overrides make the em that span, so at line-height 1 a line's box sits
+ * exactly on its letters. G and Y tails (-358) hang below it by design; the
+ * headings' line spacing keeps them off the next line (see type.css).
+ * Firefox multiplies the overrides by size-adjust, so they are the raw metrics.
+ * Measured 2026-09-21 with fontTools and checked against Firefox's rendering.
+ */
 const fontSweetheart = localFont({
   src: "./fonts/Sweetheart.woff2",
   variable: "--font-sweetheart",
+  declarations: [
+    { prop: "size-adjust", value: "113.56%" },
+    { prop: "ascent-override", value: "67.7%" },
+    { prop: "descent-override", value: "20.4%" },
+    { prop: "line-gap-override", value: "0%" },
+  ],
 });
 
 const fontPlexSerif = IBM_Plex_Serif({

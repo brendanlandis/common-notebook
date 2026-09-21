@@ -2,8 +2,24 @@ body {
   font-family: var(--font-plex-serif);
 }
 
-/* Sizes and margins are on each heading's markup (`text-h1` … `text-h4`, see
- * screen.css); only the display face is set here. */
+/* Sweetheart's metrics are overridden (see app/layout.tsx) so that one line's
+ * box is exactly the height of its letters. Headings space their lines at
+ * --heading-leading, which keeps a wrapped line's G and Y tails off the line
+ * below, and the ::before/::after margins trim that extra spacing back off the
+ * first line's top and the last line's bottom. So a heading's edges sit on its
+ * letters whether it wraps or not.
+ *
+ * A heading that sets its own line-height must use --heading-leading
+ * (`leading-(--heading-leading)`), or the trim is wrong for it. One that isn't
+ * in Sweetheart turns the trim off with `before:hidden after:hidden`.
+ * (`text-box-trim` does this natively, but Firefox doesn't support it yet.)
+ *
+ * Sizes and margins are on each heading's markup (`text-h1` … `text-h4`, see
+ * screen.css). */
+:root {
+  --heading-leading: 1.175;
+}
+
 h1,
 h2,
 h3,
@@ -11,4 +27,19 @@ h4,
 h5,
 h6 {
   font-family: var(--font-sweetheart);
+  line-height: var(--heading-leading);
+}
+
+:is(h1, h2, h3, h4, h5, h6)::before,
+:is(h1, h2, h3, h4, h5, h6)::after {
+  content: "";
+  display: table;
+}
+
+:is(h1, h2, h3, h4, h5, h6)::before {
+  margin-bottom: calc((1 - var(--heading-leading)) / 2 * 1em);
+}
+
+:is(h1, h2, h3, h4, h5, h6)::after {
+  margin-top: calc((1 - var(--heading-leading)) / 2 * 1em);
 }

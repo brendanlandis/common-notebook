@@ -45,10 +45,15 @@ export default function TaskSection({
   return <div className={`${SECTION} ${className}`}>{children}</div>;
 }
 
-/** A column's heading. Its edit button appears on hover, or always on a touch screen. */
+/**
+ * A column's heading. Its edit button appears on hover, or always on a touch
+ * screen. The button sits inline after the title rather than in a flex row,
+ * because a flex row would turn the heading trim's ::before/::after (type.css)
+ * into flex items.
+ */
 export function TaskSectionHeading({ children }: { children: ReactNode }) {
   return (
-    <h3 className="group/heading mt-4 mb-0 text-left text-h3 has-[button]:flex has-[button]:items-center has-[button]:gap-2 [&_button]:opacity-0 [&_button]:group-hover/heading:opacity-100 touch:[&_button]:opacity-100">
+    <h3 className="group/heading mt-4 mb-0 text-left text-h3 [&_button]:ml-2 [&_button]:align-middle [&_button]:opacity-0 [&_button]:group-hover/heading:opacity-100 touch:[&_button]:opacity-100">
       {children}
     </h3>
   );
