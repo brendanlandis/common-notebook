@@ -4,11 +4,12 @@ import { BlocksRenderer, type BlocksContent } from '@strapi/blocks-react-rendere
 
 interface RichTextDisplayProps {
   content: BlocksContent;
+  className?: string;
 }
 
-export default function RichTextDisplay({ content }: RichTextDisplayProps) {
+export default function RichTextDisplay({ content, className = "" }: RichTextDisplayProps) {
   return (
-    <div className="rich-text-content">
+    <div className={`rich-text-content ${className}`}>
       <BlocksRenderer
         content={content}
         blocks={{

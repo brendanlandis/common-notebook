@@ -83,7 +83,8 @@ export default function TaskItemRecurringReview({
 
       {hasDescription && (
         <div className="mt-2 mr-0 mb-2 ml-8 border border-dashed border-base-content bg-base-200 px-[0.7rem] py-2">
-          <RichTextDisplay content={task.description} />
+          {/* A note reads one step below its task. */}
+          <RichTextDisplay content={task.description} className="text-small" />
         </div>
       )}
     </li>
