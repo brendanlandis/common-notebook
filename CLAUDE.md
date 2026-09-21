@@ -115,8 +115,8 @@ License: AGPL v3.
 ## Layout (`frontend/app/`)
 - `(main)/` — authed route group (`layout.tsx`). Features: `(todo)/`, `review/`, `practice/`. `(todo)/` is a route group, so its
   layout (task data plus the task actions drawer) covers home (`/`, the default view), `/view/<slug>`,
-  `/world/<slug>` and `/project/<slug>` with no "todo" in the address; `next.config.ts` redirects
-  the old `/todo/...` addresses. `app/lib/pages.ts`'s
+  `/world/<slug>` and `/project/<slug>` with no "todo" in the address. The old `/todo/...` addresses
+  are gone, not redirected. `app/lib/pages.ts`'s
   `isTodoPath` is the one test for "on a to-do route"; `components/chrome/PageIcon.tsx` gives each page the icon its
   menu link and the header's upper-left icon share.
   **Where a file lives says who uses it.** Each feature colocates its own `components/`, `hooks/`,
