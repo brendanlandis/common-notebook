@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAccessToken, getUserIdFromAccessToken } from '@/app/lib/strapiAuth';
+import { getCaller } from '@/app/lib/strapiAuth';
 
 /**
  * Is the caller allowed to auto-create tasks from slownames band shows?
@@ -12,7 +12,9 @@ import { getAccessToken, getUserIdFromAccessToken } from '@/app/lib/strapiAuth';
  *
  * So the feature is gated on identity, and the check lives here rather than in the
  * browser because the client has no trustworthy notion of who it is. The user id
- * comes from the access token, which Strapi signed.
+ * comes from the access token, verified against `JWT_SECRET` by `getCaller`.
+ * Until 2026-09-23 it was only decoded, so a hand-made cookie carrying this id
+ * turned the feature on and got the show history.
  *
  * Fails closed: with SHOW_TASKS_USER_ID unset, nobody gets show tasks. That is the
  * right default for every deployment except the one where Brendan set it.
@@ -27,14 +29,13 @@ import { getAccessToken, getUserIdFromAccessToken } from '@/app/lib/strapiAuth';
  * (the caller's EST date) to include shows on or before that date.
  */
 export async function GET(req: NextRequest) {
-  const token = await getAccessToken(req);
-  if (!token) {
+  const caller = await getCaller(req);
+  if (!caller) {
     return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
   }
 
   const allowed = process.env.SHOW_TASKS_USER_ID;
-  const userId = getUserIdFromAccessToken(token);
-  const enabled = Boolean(allowed) && userId !== null && userId === allowed;
+  const enabled = Boolean(allowed) && caller.userId === allowed;
 
   const before = req.nextUrl.searchParams.get('before');
   let shows: unknown[] = [];

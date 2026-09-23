@@ -3,6 +3,12 @@ import { NextRequest } from 'next/server';
 import { POST as workSessionRoute } from './[documentId]/work-session/route';
 import type { Task } from '@/app/types/index';
 
+// These test the route, not auth: the auth_token cookie stands in for a verified
+// session (strapiAuth.test.ts covers verification).
+vi.mock('@/app/lib/strapiAuth', async (importOriginal) =>
+  (await import('@/app/lib/testTokens')).cookieSession(await importOriginal())
+);
+
 // Mock environment variables
 process.env.STRAPI_API_URL = 'http://localhost:1337';
 

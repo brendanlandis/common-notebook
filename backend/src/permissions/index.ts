@@ -44,7 +44,7 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
   ],
   authenticated: [
     ...OWNED_CONTENT_TYPES.flatMap((uid) => CRUD.map((action) => `${uid}.${action}`)),
-    // GET /api/users/me — frontend/proxy.ts calls this on every navigation.
+    // GET /api/users/me — the frontend's /api/me route calls it (beta access).
     'plugin::users-permissions.user.me',
     // POST /api/auth/logout — revokes the session row, which is the only thing
     // that makes logout mean anything. Requires a valid access token.

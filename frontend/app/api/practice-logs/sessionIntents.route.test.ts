@@ -6,6 +6,12 @@ import { POST as stopPOST } from './[documentId]/stop/route';
 import { POST as correctPOST } from './[documentId]/correct/route';
 import { POST as startPOST } from './route';
 
+// These test the route, not auth: the auth_token cookie stands in for a verified
+// session (strapiAuth.test.ts covers verification).
+vi.mock('@/app/lib/strapiAuth', async (importOriginal) =>
+  (await import('@/app/lib/testTokens')).cookieSession(await importOriginal())
+);
+
 process.env.STRAPI_API_URL = 'http://localhost:1337';
 
 /**

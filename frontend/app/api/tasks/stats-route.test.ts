@@ -2,6 +2,12 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { GET } from './stats/route';
 import { NextRequest } from 'next/server';
 
+// These test the route, not auth: the auth_token cookie stands in for a verified
+// session (strapiAuth.test.ts covers verification).
+vi.mock('@/app/lib/strapiAuth', async (importOriginal) =>
+  (await import('@/app/lib/testTokens')).cookieSession(await importOriginal())
+);
+
 // Real dateUtils runs here — do NOT mock it. The old wholesale mock replaced the
 // module with just getTodayForRecurrence + a lying UTC-slice toISODate: it both hid
 // the real timezone conversion and broke the moment the route reached parseDate /

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { setAuthCookies } from '@/app/lib/strapiAuth';
+import { issuedTokenVerifies, setAuthCookies } from '@/app/lib/strapiAuth';
 import { checkRateLimit, resetRateLimit } from '../rate-limiter';
 
 const STRAPI_API_URL = process.env.STRAPI_API_URL;
@@ -69,6 +69,16 @@ export async function POST(req: NextRequest) {
     // token expires.
     if (!data.refreshToken) {
       console.error('Login succeeded but Strapi returned no refreshToken. Is jwtManagement set to "refresh"?');
+      return NextResponse.json(
+        { success: false, error: 'Authentication misconfigured' },
+        { status: 500 }
+      );
+    }
+
+    // A token this server can't verify would be refused on the very next
+    // request: JWT_SECRET is unset here, or isn't the backend's. Say so rather
+    // than set a session that bounces straight back to /login.
+    if (!(await issuedTokenVerifies(data.jwt))) {
       return NextResponse.json(
         { success: false, error: 'Authentication misconfigured' },
         { status: 500 }

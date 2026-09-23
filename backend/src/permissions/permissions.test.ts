@@ -60,7 +60,7 @@ describe('ROLE_PERMISSIONS — the authorization surface, in git', () => {
     }
   });
 
-  it('grants /api/users/me — frontend/proxy.ts calls it on every navigation', () => {
+  it('grants /api/users/me — the frontend\'s /api/me route calls it', () => {
     expect(ROLE_PERMISSIONS.authenticated).toContain('plugin::users-permissions.user.me');
   });
 

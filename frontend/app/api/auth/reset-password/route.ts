@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { setAuthCookies } from '@/app/lib/strapiAuth';
+import { issuedTokenVerifies, setAuthCookies } from '@/app/lib/strapiAuth';
 import { checkRateLimit } from '../rate-limiter';
 
 const STRAPI_API_URL = process.env.STRAPI_API_URL;
@@ -58,6 +58,11 @@ export async function POST(req: NextRequest) {
     // In refresh mode Strapi returns both tokens; without the refresh token the
     // user would be logged out again in 30 minutes.
     if (data.jwt && data.refreshToken) {
+      // The password has changed either way; if this server can't verify the new
+      // token (JWT_SECRET misconfigured, logged there), send them to log in.
+      if (!(await issuedTokenVerifies(data.jwt))) {
+        return NextResponse.json({ success: true, requiresLogin: true });
+      }
       setAuthCookies(res, { access: data.jwt, refresh: data.refreshToken });
     } else {
       console.error('reset-password returned no refreshToken; is jwtManagement "refresh"?');

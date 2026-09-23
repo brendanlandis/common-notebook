@@ -6,6 +6,12 @@ import type { Task } from '@/app/types/index';
 import * as dateUtils from '@/app/lib/dateUtils';
 import type { TimeZoneSettings } from '@/app/lib/timeZoneSettings';
 
+// These test the route, not auth: the auth_token cookie stands in for a verified
+// session (strapiAuth.test.ts covers verification).
+vi.mock('@/app/lib/strapiAuth', async (importOriginal) =>
+  (await import('@/app/lib/testTokens')).cookieSession(await importOriginal())
+);
+
 // Mock environment variables
 process.env.STRAPI_API_URL = 'http://localhost:1337';
 

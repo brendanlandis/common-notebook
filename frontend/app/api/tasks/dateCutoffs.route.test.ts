@@ -4,6 +4,12 @@ import { GET as completedGET } from './completed/route';
 import { GET as upcomingGET } from './upcoming/route';
 import { GET as longWithSessionsGET } from './long-with-sessions/route';
 
+// These test the route, not auth: the auth_token cookie stands in for a verified
+// session (strapiAuth.test.ts covers verification).
+vi.mock('@/app/lib/strapiAuth', async (importOriginal) =>
+  (await import('@/app/lib/testTokens')).cookieSession(await importOriginal())
+);
+
 process.env.STRAPI_API_URL = 'http://localhost:1337';
 
 // Real dateUtils / getTimeZoneSettings. Settings resolve to the EST / 4am defaults

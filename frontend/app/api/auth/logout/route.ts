@@ -17,11 +17,16 @@ export async function POST(req: NextRequest) {
     // access token), which mints a child session. That is fine because
     // revokeSession uses scope:'all' and kills the whole chain. Revoking only the
     // token we happened to hold would leave its ancestors alive.
-    const access = await getAccessToken(req);
-    if (access && !(await revokeSession(access))) {
-      // Log it, but still clear the cookies: someone who clicked "log out" must
-      // never be left logged in on this device.
-      console.error('Failed to revoke Strapi session on logout');
+    //
+    // Log a failure, but still clear the cookies: someone who clicked "log out"
+    // must never be left logged in on this device.
+    try {
+      const access = await getAccessToken(req);
+      if (access && !(await revokeSession(access))) {
+        console.error('Failed to revoke Strapi session on logout');
+      }
+    } catch (err) {
+      console.error('Could not resolve the session to revoke on logout:', err);
     }
   }
 

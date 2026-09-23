@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAccessToken, getUserIdFromAccessToken } from '@/app/lib/strapiAuth';
+import { getAccessToken, getCaller } from '@/app/lib/strapiAuth';
 import { runMoonPhaseResetIfDue } from '@/app/lib/moonPhaseReset';
 import { fetchAllPages, getSystemSetting, strapiFetch, upsertSystemSetting } from '@/app/lib/strapiServer';
 
@@ -32,16 +32,16 @@ async function getVisibilityMinutes(token: string): Promise<number> {
 
 export async function GET(req: NextRequest) {
   try {
-    const token = await getAccessToken(req);
+    const caller = await getCaller(req);
 
-    if (!token) {
+    if (!caller) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
+    const { token } = caller;
 
     // A read that performs writes. Kept here so the list is never served stale,
     // but guarded: one reset per user at a time, and it never throws.
-    const userKey = getUserIdFromAccessToken(token) ?? token;
-    await runMoonPhaseResetIfDue(token, userKey);
+    await runMoonPhaseResetIfDue(token, caller.userId);
 
     // Exclude tasks belonging to a completed project, while KEEPING incidentals
     // (null project). A project can be marked complete while it still has

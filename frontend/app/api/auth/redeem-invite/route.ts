@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { setAuthCookies } from '@/app/lib/strapiAuth';
+import { issuedTokenVerifies, setAuthCookies } from '@/app/lib/strapiAuth';
 import { seedDefaultSettings, seedDefaultWorlds } from '@/app/lib/strapiServer';
 import { checkRateLimit, resetRateLimit } from '../rate-limiter';
 
@@ -233,6 +233,12 @@ export async function POST(req: NextRequest) {
       await seedDefaultWorlds(jwt);
 
       resetRateLimit(ip, 'redeem-invite');
+
+      // The account exists and the invite is spent; if there's no session this
+      // server can verify (JWT_SECRET misconfigured, logged there), they log in.
+      if (!jwt || !refreshToken || !(await issuedTokenVerifies(jwt))) {
+        return NextResponse.json({ success: true, requiresLogin: true });
+      }
 
       const res = NextResponse.json({ success: true, user: { username, email } });
       setAuthCookies(res, { access: jwt, refresh: refreshToken });
