@@ -21,6 +21,11 @@ export class ApiError extends Error {
   }
 }
 
+/** A 401 from our own API: the session is over, not just this request. */
+export function isUnauthorized(error: unknown): boolean {
+  return error instanceof ApiError && error.status === 401;
+}
+
 interface ApiBody {
   success?: boolean;
   error?: string;

@@ -1,7 +1,13 @@
 'use client';
 
 import { useState, type ReactNode } from 'react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { MutationCache, QueryCache, QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { isUnauthorized } from '@/app/lib/apiFetch';
+
+/** A hard navigation: a fresh heap, and proxy.ts checks the session again. */
+function goToLogin() {
+  if (window.location.pathname !== '/login') window.location.assign('/login');
+}
 
 /**
  * The TanStack Query client for the authed app.
@@ -18,9 +24,23 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
  * `(main)/page.tsx`, and it just redirects. Time settings reach the client as
  * plain props from the layout (`DateTimeSettingsProvider`), which is simpler than
  * prefetch-and-hydrate and costs nothing here.
+ *
+ * Any 401 from our API, from a query or a mutation, means the session is over,
+ * so the first one clears the cache (it's keyed by URL, not by user) and goes to
+ * /login, once. A 401 isn't retried: it won't change its answer.
  */
-function makeQueryClient() {
-  return new QueryClient({
+export function makeQueryClient({ onSessionEnded = goToLogin }: { onSessionEnded?: () => void } = {}) {
+  let ended = false;
+  const endSessionOn401 = (error: unknown) => {
+    if (ended || !isUnauthorized(error)) return;
+    ended = true;
+    client.clear();
+    onSessionEnded();
+  };
+
+  const client: QueryClient = new QueryClient({
+    queryCache: new QueryCache({ onError: endSessionOn401 }),
+    mutationCache: new MutationCache({ onError: endSessionOn401 }),
     defaultOptions: {
       queries: {
         // Long enough that remounting a component (the task drawer opens and
@@ -32,17 +52,18 @@ function makeQueryClient() {
         refetchOnReconnect: true,
         // One droplet, through our own BFF. The default of 3 turns a 500 into a
         // ~7-second hang with no UI signal; fail fast and visibly instead.
-        retry: 1,
+        retry: (failures, error) => !isUnauthorized(error) && failures < 1,
       },
       mutations: {
         retry: 0,
       },
     },
   });
+  return client;
 }
 
 export default function QueryProvider({ children }: { children: ReactNode }) {
-  const [queryClient] = useState(makeQueryClient);
+  const [queryClient] = useState(() => makeQueryClient());
 
   return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
 }

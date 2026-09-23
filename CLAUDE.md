@@ -184,13 +184,28 @@ API handlers return `{ success: boolean, ... }`.
 
 **Auth is session-based, not a bare JWT.** Strapi runs `jwtManagement: 'refresh'`, so there are two
 httpOnly cookies: `auth_token` (access, 30 min) and `refresh_token` (a year, backed by a row in
-`strapi_sessions`). Never read `auth_token` directly in a handler — call `getAccessToken(req)`, which
-refreshes proactively when the token is within 60s of expiry and re-sets both cookies. Logging out calls
-Strapi `/auth/logout` with `scope: 'all'`, which is what makes revocation real.
+`strapi_sessions`). Never read `auth_token` directly in a handler — call `getAccessToken(req)`, or
+`getCaller(req)` where the handler needs to know *who* is calling. Both verify the access token and
+refresh it proactively within 60s of expiry, re-setting both cookies. Logging out calls Strapi
+`/auth/logout` with `scope: 'all'`, which is what makes revocation real.
 
-`frontend/proxy.ts` gates page navigations on the *refresh* cookie's `exp`, decoded locally without
-verifying the signature. That is a **UX gate, not an authorization boundary** — a forged cookie renders an
-empty shell, because every data call is still authorized by Strapi and scoped by the ownership middleware.
+**Nothing trusts a cookie it hasn't verified.** Strapi signs both tokens HS256 with `JWT_SECRET`, and the
+frontend holds the *same* secret (`frontend/.env`), so it checks the access token's signature and expiry
+itself (`verifyAccessToken`, jose) with no Strapi call. When that fails, Strapi is asked to refresh, which
+checks the session row; a refusal ends the session and clears the cookies. Never decode a token's claims
+without verifying it — until 2026-09-23 `shows-tasks` did, and a hand-made cookie got the show history.
+- `frontend/proxy.ts` gates every page on a verified, live session: a good access token passes with no
+  network call; otherwise it refreshes, handing the new cookies to the browser *and* to the same
+  request's render; otherwise `/login` with both cookies cleared. At most one Strapi round-trip per browser
+  per 30 minutes, the one the first API call used to make — Brendan's requirement: auth must never cost
+  noticeable load time. A logout elsewhere reaches a browser when its access token next needs renewing.
+- Neither failure is a logout, so neither clears cookies or redirects: Strapi unreachable for a refresh
+  is a 503 (`SessionUnavailableError`), and a token the frontend can't verify at all — `JWT_SECRET` unset,
+  or not the backend's — is a 500 (`AuthConfigError`) with a log line saying which. A redirect there would
+  loop, since every login would fail the same way. Login, reset and invite redemption check the token
+  Strapi just issued (`issuedTokenVerifies`) before setting it.
+- On the client, any 401 from `app/api/*` ends the session: `QueryProvider` clears the cache and goes to
+  `/login`, once, and never retries a 401.
 
 # Backend
 
@@ -611,7 +626,7 @@ is server state via `useActiveSession`, which polls every 30s **only while somet
 - **`showsTaskCreator.ts` reads *one* hardcoded slownames username but writes tasks into whoever is logged
   in.** Harmless with one account; with tenants it hands every invited user Brendan's band chores (and his
   show history). Gated by `SHOW_TASKS_USER_ID` via `app/api/shows-tasks/route.ts`, checked server-side
-  against the user id in the signed access token, and **fails closed when unset** — so the feature is off
+  against the user id in the verified access token (`getCaller`), and **fails closed when unset** — so the feature is off
   unless deliberately switched on. A stopgap until slownames has per-user identities.
 - `backend/tsconfig.json`'s `include` is `"./"`, so it type-checks root files too. `vitest.config.ts` is
   explicitly excluded: it imports a devDependency that production installs omit, and Strapi type-checks on
