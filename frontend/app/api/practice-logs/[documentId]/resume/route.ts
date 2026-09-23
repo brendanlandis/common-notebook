@@ -8,6 +8,7 @@ import {
   withSessionLock,
   writeSession,
 } from '@/app/lib/practiceSessionServer';
+import { errorResponse } from '@/app/lib/errorResponse';
 
 /**
  * Open a new stretch. Idempotent: resuming a running session is a no-op.
@@ -59,10 +60,6 @@ export async function POST(
       return NextResponse.json({ success: true, data });
     });
   } catch (error) {
-    console.error('Error resuming practice session:', error);
-    return NextResponse.json(
-      { success: false, error: 'Internal server error' },
-      { status: 500 }
-    );
+    return errorResponse('Error resuming practice session:', error);
   }
 }

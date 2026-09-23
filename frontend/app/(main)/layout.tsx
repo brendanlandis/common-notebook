@@ -9,6 +9,7 @@ import QueryProvider from "../providers/QueryProvider";
 import SessionGuard from "@/app/components/chrome/SessionGuard";
 import BetaGuard from "@/app/components/chrome/BetaGuard";
 import { getAccessTokenServer } from "@/app/lib/strapiAuth";
+import { SessionEndedError } from "@/app/lib/authErrors";
 import {
   getCompletedTaskVisibilityMinutes,
   getTimeZoneSettings,
@@ -23,7 +24,9 @@ import {
  * A null token means `getAccessTokenServer()` could not tell (a stale token it
  * won't refresh from a Server Component — see `page.tsx`). Pass null through and
  * let the provider resolve it client-side rather than pinning the session to the
- * defaults.
+ * defaults. The same when Strapi refuses the token (a blocked or deleted user):
+ * the client's first request then gets the 401 that ends the session and clears
+ * the cookies, which a Server Component can't do.
  */
 export default async function MainLayout({
   children,
@@ -35,10 +38,15 @@ export default async function MainLayout({
     ? await Promise.all([
         getTimeZoneSettings(token),
         getCompletedTaskVisibilityMinutes(token),
-      ]).then(([timeZoneSettings, completedTaskVisibilityMinutes]) => ({
-        timeZoneSettings,
-        completedTaskVisibilityMinutes,
-      }))
+      ])
+        .then(([timeZoneSettings, completedTaskVisibilityMinutes]) => ({
+          timeZoneSettings,
+          completedTaskVisibilityMinutes,
+        }))
+        .catch((error) => {
+          if (error instanceof SessionEndedError) return null;
+          throw error;
+        })
     : null;
 
   return (

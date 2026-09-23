@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAccessToken } from '@/app/lib/strapiAuth';
 import { fetchAllPages, strapiFetch } from '@/app/lib/strapiServer';
 import { toClientCalendar, type CalendarRow } from '@/app/lib/ics/clientCalendar';
+import { errorResponse } from '@/app/lib/errorResponse';
 
 /**
  * Update or remove one calendar subscription.
@@ -54,11 +55,7 @@ export async function PUT(
     const updated = await response.json();
     return NextResponse.json({ success: true, data: toClientCalendar(updated.data) });
   } catch (error) {
-    console.error('Error updating calendar:', error);
-    return NextResponse.json(
-      { success: false, error: 'Internal server error' },
-      { status: 500 }
-    );
+    return errorResponse('Error updating calendar:', error);
   }
 }
 
@@ -100,11 +97,7 @@ export async function DELETE(
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error deleting calendar:', error);
-    return NextResponse.json(
-      { success: false, error: 'Internal server error' },
-      { status: 500 }
-    );
+    return errorResponse('Error deleting calendar:', error);
   }
 }
 

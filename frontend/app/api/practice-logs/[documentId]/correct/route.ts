@@ -9,6 +9,7 @@ import {
   withSessionLock,
   writeSession,
 } from '@/app/lib/practiceSessionServer';
+import { errorResponse } from '@/app/lib/errorResponse';
 
 /**
  * "I left this running — call it 45 minutes."
@@ -82,10 +83,6 @@ export async function POST(
       return NextResponse.json({ success: true, data });
     });
   } catch (error) {
-    console.error('Error correcting practice session:', error);
-    return NextResponse.json(
-      { success: false, error: 'Internal server error' },
-      { status: 500 }
-    );
+    return errorResponse('Error correcting practice session:', error);
   }
 }

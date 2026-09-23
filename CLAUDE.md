@@ -206,6 +206,12 @@ without verifying it — until 2026-09-23 `shows-tasks` did, and a hand-made coo
   Strapi just issued (`issuedTokenVerifies`) before setting it.
 - On the client, any 401 from `app/api/*` ends the session: `QueryProvider` clears the cache and goes to
   `/login`, once, and never retries a 401.
+- **Call Strapi as the user only through `strapiFetch`, and answer a handler's failure only through
+  `errorResponse`.** Strapi checks on every request that the user exists and isn't blocked, so it refuses a
+  token this server verified once the user is blocked or deleted. `strapiFetch` turns that 401 into
+  `SessionEndedError`, and `errorResponse` answers it 401 with both cookies cleared (anything else is a
+  500). A hand-built fetch or catch would show that user errors and empty lists instead;
+  `app/api/strapiCalls.test.ts` fails on either.
 - **A write to `app/api/*` must come from the app's own pages.** `proxy.ts` refuses a non-GET whose
   `Sec-Fetch-Site` (or, from an older browser, `Origin`) names another site (403), and a body typed as
   anything but JSON (415), which is what a forged form sends. A request with neither header isn't from a

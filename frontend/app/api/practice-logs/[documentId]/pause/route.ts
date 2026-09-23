@@ -7,6 +7,7 @@ import {
   withSessionLock,
   writeSession,
 } from '@/app/lib/practiceSessionServer';
+import { errorResponse } from '@/app/lib/errorResponse';
 
 /**
  * Pause the running stretch. Idempotent: pausing a paused session is a no-op.
@@ -58,10 +59,6 @@ export async function POST(
       return NextResponse.json({ success: true, data });
     });
   } catch (error) {
-    console.error('Error pausing practice session:', error);
-    return NextResponse.json(
-      { success: false, error: 'Internal server error' },
-      { status: 500 }
-    );
+    return errorResponse('Error pausing practice session:', error);
   }
 }

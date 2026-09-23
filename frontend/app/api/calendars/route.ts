@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAccessToken } from '@/app/lib/strapiAuth';
 import { fetchAllPages, strapiFetch } from '@/app/lib/strapiServer';
 import { toClientCalendar, type CalendarRow } from '@/app/lib/ics/clientCalendar';
+import { errorResponse } from '@/app/lib/errorResponse';
 
 /**
  * Calendar subscriptions.
@@ -33,11 +34,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ success: true, data: calendars.map(toClientCalendar) });
   } catch (error) {
-    console.error('Error fetching calendars:', error);
-    return NextResponse.json(
-      { success: false, error: 'Internal server error' },
-      { status: 500 }
-    );
+    return errorResponse('Error fetching calendars:', error);
   }
 }
 
@@ -92,10 +89,6 @@ export async function POST(req: NextRequest) {
     const created = await response.json();
     return NextResponse.json({ success: true, data: toClientCalendar(created.data) });
   } catch (error) {
-    console.error('Error creating calendar:', error);
-    return NextResponse.json(
-      { success: false, error: 'Internal server error' },
-      { status: 500 }
-    );
+    return errorResponse('Error creating calendar:', error);
   }
 }

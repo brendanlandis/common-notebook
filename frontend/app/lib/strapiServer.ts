@@ -12,6 +12,7 @@ import { DEFAULT_SETTINGS } from './defaultSettings';
 import { DEFAULT_WORLDS } from './defaultWorlds';
 import { DEFAULT_TIME_ZONE_SETTINGS, parseDayBoundaryHour, type TimeZoneSettings } from './timeZoneSettings';
 import { parseVisibilityMinutes } from './completedTaskVisibilityConfig';
+import { SessionEndedError } from './authErrors';
 
 const STRAPI_API_URL = process.env.STRAPI_API_URL;
 
@@ -32,12 +33,18 @@ function withQuery(path: string, params: string): string {
   return `${path}${path.includes('?') ? '&' : '?'}${params}`;
 }
 
+/**
+ * Call Strapi as the signed-in user. Every request carrying a user's token goes
+ * through here, so a refusal is handled in one place: the token was verified
+ * before it was sent, so a 401 means the user was blocked or deleted, and this
+ * throws `SessionEndedError` for the handler's `errorResponse` to answer.
+ */
 export async function strapiFetch(
   token: string,
   path: string,
   init: RequestInit = {}
 ): Promise<Response> {
-  return fetch(`${STRAPI_API_URL}${path}`, {
+  const response = await fetch(`${STRAPI_API_URL}${path}`, {
     ...init,
     headers: {
       ...(init.headers ?? {}),
@@ -45,6 +52,10 @@ export async function strapiFetch(
     },
     cache: 'no-store',
   });
+  if (response.status === 401) {
+    throw new SessionEndedError(`Strapi refused the session for ${path.split('?')[0]}`);
+  }
+  return response;
 }
 
 /**

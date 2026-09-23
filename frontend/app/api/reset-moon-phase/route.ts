@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAccessToken } from '@/app/lib/strapiAuth';
 import { performMoonPhaseReset, armDeclutter } from '@/app/lib/moonPhaseReset';
+import { errorResponse } from '@/app/lib/errorResponse';
 
 export async function POST(req: NextRequest) {
   try {
@@ -24,11 +25,7 @@ export async function POST(req: NextRequest) {
       projectsUpdated,
     });
   } catch (error) {
-    console.error('Error resetting moon phase:', error);
-    return NextResponse.json(
-      { success: false, error: 'Internal server error' },
-      { status: 500 }
-    );
+    return errorResponse('Error resetting moon phase:', error);
   }
 }
 

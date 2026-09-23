@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAccessToken } from '@/app/lib/strapiAuth';
 import type { Task } from '@/app/types/index';
-
-const STRAPI_API_URL = process.env.STRAPI_API_URL;
+import { errorResponse } from '@/app/lib/errorResponse';
+import { strapiFetch } from '@/app/lib/strapiServer';
 
 export async function DELETE(
   req: NextRequest,
@@ -20,14 +20,7 @@ export async function DELETE(
     }
 
     // Get the task
-    const getTaskResponse = await fetch(
-      `${STRAPI_API_URL}/api/tasks/${documentId}?populate=project`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
+    const getTaskResponse = await strapiFetch(token, `/api/tasks/${documentId}?populate=project`);
 
     if (!getTaskResponse.ok) {
       return NextResponse.json(
@@ -61,14 +54,12 @@ export async function DELETE(
     }
 
     // Update the task with the filtered workSessions
-    const updateResponse = await fetch(
-      `${STRAPI_API_URL}/api/tasks/${documentId}?populate=project`,
+    const updateResponse = await strapiFetch(
+      token,
+      `/api/tasks/${documentId}?populate=project`,
       {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           data: {
             workSessions: filteredSessions,
@@ -91,11 +82,7 @@ export async function DELETE(
       data: updatedTaskData.data,
     });
   } catch (error) {
-    console.error('Error removing work session:', error);
-    return NextResponse.json(
-      { success: false, error: 'Internal server error' },
-      { status: 500 }
-    );
+    return errorResponse('Error removing work session:', error);
   }
 }
 

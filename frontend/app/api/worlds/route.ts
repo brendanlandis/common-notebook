@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAccessToken } from '@/app/lib/strapiAuth';
 import { fetchAllPages, strapiFetch } from '@/app/lib/strapiServer';
+import { errorResponse } from '@/app/lib/errorResponse';
 
 // BFF for the user's worlds (the `api::world.world` collection). Mirrors
 // app/api/projects. Ownership is enforced by Strapi's middleware, so every call
@@ -16,8 +17,7 @@ export async function GET(req: NextRequest) {
     const worlds = await fetchAllPages(token, '/api/worlds');
     return NextResponse.json({ success: true, data: worlds });
   } catch (error) {
-    console.error('Error fetching worlds:', error);
-    return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });
+    return errorResponse('Error fetching worlds:', error);
   }
 }
 
@@ -47,7 +47,6 @@ export async function POST(req: NextRequest) {
     const data = await response.json();
     return NextResponse.json({ success: true, data: data.data });
   } catch (error) {
-    console.error('Error creating world:', error);
-    return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });
+    return errorResponse('Error creating world:', error);
   }
 }

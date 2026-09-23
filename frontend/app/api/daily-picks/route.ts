@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAccessToken } from '@/app/lib/strapiAuth';
 import { fetchAllPages, strapiFetch } from '@/app/lib/strapiServer';
+import { errorResponse } from '@/app/lib/errorResponse';
 
 /**
  * The day's narrowed selection: one row per date.
@@ -37,11 +38,7 @@ export async function GET(req: NextRequest) {
     // the caller from having to know that.
     return NextResponse.json({ success: true, data: picks[0] ?? null });
   } catch (error) {
-    console.error('Error fetching daily pick:', error);
-    return NextResponse.json(
-      { success: false, error: 'Internal server error' },
-      { status: 500 }
-    );
+    return errorResponse('Error fetching daily pick:', error);
   }
 }
 
@@ -105,10 +102,6 @@ export async function PUT(req: NextRequest) {
     const saved = await response.json();
     return NextResponse.json({ success: true, data: saved.data });
   } catch (error) {
-    console.error('Error saving daily pick:', error);
-    return NextResponse.json(
-      { success: false, error: 'Internal server error' },
-      { status: 500 }
-    );
+    return errorResponse('Error saving daily pick:', error);
   }
 }

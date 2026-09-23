@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAccessToken } from '@/app/lib/strapiAuth';
 import { getTodayForRecurrence, toISODate, shiftISODate } from '@/app/lib/dateUtils';
-import { getTimeZoneSettings } from '@/app/lib/strapiServer';
+import { getTimeZoneSettings, strapiFetch } from '@/app/lib/strapiServer';
 import { parseDays } from '@/app/lib/queryParams';
-
-const STRAPI_API_URL = process.env.STRAPI_API_URL;
+import { errorResponse } from '@/app/lib/errorResponse';
 
 export async function GET(req: NextRequest) {
   try {
@@ -33,15 +32,11 @@ export async function GET(req: NextRequest) {
     let hasMore = true;
 
     while (hasMore) {
-      const response = await fetch(
+      const response = await strapiFetch(
+        token,
         // $or keeps incidentals (null project) while excluding tasks whose
         // project is complete — see the note in app/api/tasks/route.ts.
-        `${STRAPI_API_URL}/api/tasks?filters[completed][$eq]=false&filters[long][$eq]=true&filters[$or][0][project][id][$null]=true&filters[$or][1][project][complete][$eq]=false&populate=project&pagination[pageSize]=100&pagination[page]=${page}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+        `/api/tasks?filters[completed][$eq]=false&filters[long][$eq]=true&filters[$or][0][project][id][$null]=true&filters[$or][1][project][complete][$eq]=false&populate=project&pagination[pageSize]=100&pagination[page]=${page}`
       );
 
       if (!response.ok) {
@@ -88,11 +83,7 @@ export async function GET(req: NextRequest) {
       data: tasksWithSessions,
     });
   } catch (error) {
-    console.error('Error fetching long tasks with sessions:', error);
-    return NextResponse.json(
-      { success: false, error: 'Internal server error' },
-      { status: 500 }
-    );
+    return errorResponse('Error fetching long tasks with sessions:', error);
   }
 }
 

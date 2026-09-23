@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAccessToken } from '@/app/lib/strapiAuth';
 import { fetchAllPages, strapiFetch } from '@/app/lib/strapiServer';
+import { errorResponse } from '@/app/lib/errorResponse';
 
 /**
  * Show/hide decisions for calendar events.
@@ -66,11 +67,7 @@ export async function GET(req: NextRequest) {
         })),
     });
   } catch (error) {
-    console.error('Error fetching calendar decisions:', error);
-    return NextResponse.json(
-      { success: false, error: 'Internal server error' },
-      { status: 500 }
-    );
+    return errorResponse('Error fetching calendar decisions:', error);
   }
 }
 
@@ -156,10 +153,6 @@ export async function PUT(req: NextRequest) {
     const saved = await response.json();
     return NextResponse.json({ success: true, data: saved.data });
   } catch (error) {
-    console.error('Error saving calendar decision:', error);
-    return NextResponse.json(
-      { success: false, error: 'Internal server error' },
-      { status: 500 }
-    );
+    return errorResponse('Error saving calendar decision:', error);
   }
 }

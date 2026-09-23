@@ -8,6 +8,7 @@ import {
   strapiFetch,
   upsertSystemSetting,
 } from './strapiServer';
+import { SessionEndedError } from './authErrors';
 
 /**
  * The declutter **watermark**: the day from which we watch for the next new moon.
@@ -153,6 +154,8 @@ export async function runMoonPhaseResetIfDue(token: string, userKey: string): Pr
       await performMoonPhaseReset(token);
       await armDeclutter(token);
     } catch (error) {
+      // An ended session is the handler's to answer, when its own call is refused.
+      if (error instanceof SessionEndedError) return;
       console.error('Moon-phase reset failed; will retry on the next request:', error);
     }
   })().finally(() => inFlight.delete(userKey));

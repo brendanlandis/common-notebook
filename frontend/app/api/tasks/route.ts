@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAccessToken, getCaller } from '@/app/lib/strapiAuth';
 import { runMoonPhaseResetIfDue } from '@/app/lib/moonPhaseReset';
 import { fetchAllPages, getSystemSetting, strapiFetch, upsertSystemSetting } from '@/app/lib/strapiServer';
+import { errorResponse } from '@/app/lib/errorResponse';
 
 const VISIBILITY_SETTING = 'completedTaskVisibilityMinutes';
 const DEFAULT_VISIBILITY_MINUTES = 15;
@@ -76,11 +77,7 @@ export async function GET(req: NextRequest) {
       data: [...incomplete, ...recentlyCompleted],
     });
   } catch (error) {
-    console.error('Error fetching tasks:', error);
-    return NextResponse.json(
-      { success: false, error: 'Internal server error' },
-      { status: 500 }
-    );
+    return errorResponse('Error fetching tasks:', error);
   }
 }
 
@@ -114,10 +111,6 @@ export async function POST(req: NextRequest) {
     const data = await response.json();
     return NextResponse.json({ success: true, data: data.data });
   } catch (error) {
-    console.error('Error creating task:', error);
-    return NextResponse.json(
-      { success: false, error: 'Internal server error' },
-      { status: 500 }
-    );
+    return errorResponse('Error creating task:', error);
   }
 }

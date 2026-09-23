@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAccessToken } from '@/app/lib/strapiAuth';
-
-const STRAPI_API_URL = process.env.STRAPI_API_URL;
+import { errorResponse } from '@/app/lib/errorResponse';
+import { strapiFetch } from '@/app/lib/strapiServer';
 
 export async function PUT(
   req: NextRequest,
@@ -20,14 +20,12 @@ export async function PUT(
 
     const body = await req.json();
 
-    const response = await fetch(
-      `${STRAPI_API_URL}/api/tasks/${documentId}?populate=project`,
+    const response = await strapiFetch(
+      token,
+      `/api/tasks/${documentId}?populate=project`,
       {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ data: body }),
       }
     );
@@ -43,11 +41,7 @@ export async function PUT(
     const data = await response.json();
     return NextResponse.json({ success: true, data: data.data });
   } catch (error) {
-    console.error('Error updating task:', error);
-    return NextResponse.json(
-      { success: false, error: 'Internal server error' },
-      { status: 500 }
-    );
+    return errorResponse('Error updating task:', error);
   }
 }
 
@@ -66,13 +60,11 @@ export async function DELETE(
       );
     }
 
-    const response = await fetch(
-      `${STRAPI_API_URL}/api/tasks/${documentId}`,
+    const response = await strapiFetch(
+      token,
+      `/api/tasks/${documentId}`,
       {
         method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
       }
     );
 
@@ -86,11 +78,7 @@ export async function DELETE(
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error deleting task:', error);
-    return NextResponse.json(
-      { success: false, error: 'Internal server error' },
-      { status: 500 }
-    );
+    return errorResponse('Error deleting task:', error);
   }
 }
 

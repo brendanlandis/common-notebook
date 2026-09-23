@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAccessToken } from '@/app/lib/strapiAuth';
 import { TOP_OF_MIND, demoteTopOfMindProjects } from '@/app/lib/projectImportance';
 import { normalizeProjectWorld, toStrapiProjectWrite } from '@/app/lib/worldNormalize';
-
-const STRAPI_API_URL = process.env.STRAPI_API_URL;
+import { errorResponse } from '@/app/lib/errorResponse';
+import { strapiFetch } from '@/app/lib/strapiServer';
 
 export async function PUT(
   req: NextRequest,
@@ -35,14 +35,12 @@ export async function PUT(
     const demoted =
       body.importance === TOP_OF_MIND ? await demoteTopOfMindProjects(token, documentId) : [];
 
-    const response = await fetch(
-      `${STRAPI_API_URL}/api/projects/${documentId}?populate=worldRef`,
+    const response = await strapiFetch(
+      token,
+      `/api/projects/${documentId}?populate=worldRef`,
       {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ data: toStrapiProjectWrite(write) }),
       }
     );
@@ -58,11 +56,7 @@ export async function PUT(
     const data = await response.json();
     return NextResponse.json({ success: true, data: normalizeProjectWorld(data.data), demoted });
   } catch (error) {
-    console.error('Error updating project:', error);
-    return NextResponse.json(
-      { success: false, error: 'Internal server error' },
-      { status: 500 }
-    );
+    return errorResponse('Error updating project:', error);
   }
 }
 
@@ -81,13 +75,11 @@ export async function DELETE(
       );
     }
 
-    const response = await fetch(
-      `${STRAPI_API_URL}/api/projects/${documentId}`,
+    const response = await strapiFetch(
+      token,
+      `/api/projects/${documentId}`,
       {
         method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
       }
     );
 
@@ -101,11 +93,7 @@ export async function DELETE(
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error deleting project:', error);
-    return NextResponse.json(
-      { success: false, error: 'Internal server error' },
-      { status: 500 }
-    );
+    return errorResponse('Error deleting project:', error);
   }
 }
 

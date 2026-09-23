@@ -21,3 +21,13 @@ export class AuthConfigError extends Error {
 export class SessionUnavailableError extends Error {
   name = 'SessionUnavailableError';
 }
+
+/**
+ * Strapi refused a token this server had verified. Strapi checks on every request
+ * that the user still exists and isn't blocked, so one of those changed after the
+ * token was issued. The session is over: `errorResponse` answers 401 and clears
+ * the cookies.
+ */
+export class SessionEndedError extends Error {
+  name = 'SessionEndedError';
+}

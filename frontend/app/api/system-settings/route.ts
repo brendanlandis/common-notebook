@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAccessToken } from '@/app/lib/strapiAuth';
-
-const STRAPI_API_URL = process.env.STRAPI_API_URL;
+import { errorResponse } from '@/app/lib/errorResponse';
+import { strapiFetch } from '@/app/lib/strapiServer';
 
 export async function GET(req: NextRequest) {
   try {
@@ -25,14 +25,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Fetch system setting by title
-    const response = await fetch(
-      `${STRAPI_API_URL}/api/system-settings?filters[title][$eq]=${encodeURIComponent(title)}`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
+    const response = await strapiFetch(token, `/api/system-settings?filters[title][$eq]=${encodeURIComponent(title)}`);
 
     if (!response.ok) {
       return NextResponse.json(
@@ -70,11 +63,7 @@ export async function GET(req: NextRequest) {
       value: rawValue,
     });
   } catch (error) {
-    console.error('Error fetching system setting:', error);
-    return NextResponse.json(
-      { success: false, error: 'Internal server error' },
-      { status: 500 }
-    );
+    return errorResponse('Error fetching system setting:', error);
   }
 }
 
@@ -100,14 +89,7 @@ export async function PUT(req: NextRequest) {
     }
 
     // First, check if an entry with this title exists
-    const getResponse = await fetch(
-      `${STRAPI_API_URL}/api/system-settings?filters[title][$eq]=${encodeURIComponent(title)}`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
+    const getResponse = await strapiFetch(token, `/api/system-settings?filters[title][$eq]=${encodeURIComponent(title)}`);
 
     if (!getResponse.ok) {
       return NextResponse.json(
@@ -124,14 +106,12 @@ export async function PUT(req: NextRequest) {
       const existingSetting = existingSettings[0];
       const documentId = existingSetting.documentId || existingSetting.id;
 
-      const updateResponse = await fetch(
-        `${STRAPI_API_URL}/api/system-settings/${documentId}`,
+      const updateResponse = await strapiFetch(
+        token,
+        `/api/system-settings/${documentId}`,
         {
           method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             data: {
               title,
@@ -156,12 +136,9 @@ export async function PUT(req: NextRequest) {
       });
     } else {
       // Create new entry
-      const createResponse = await fetch(`${STRAPI_API_URL}/api/system-settings`, {
+      const createResponse = await strapiFetch(token, `/api/system-settings`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           data: {
             title,
@@ -185,11 +162,7 @@ export async function PUT(req: NextRequest) {
       });
     }
   } catch (error) {
-    console.error('Error updating system setting:', error);
-    return NextResponse.json(
-      { success: false, error: 'Internal server error' },
-      { status: 500 }
-    );
+    return errorResponse('Error updating system setting:', error);
   }
 }
 

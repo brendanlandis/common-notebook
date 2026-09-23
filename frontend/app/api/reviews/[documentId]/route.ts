@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAccessToken } from '@/app/lib/strapiAuth';
 import { strapiFetch } from '@/app/lib/strapiServer';
+import { errorResponse } from '@/app/lib/errorResponse';
 
 /**
  * Update a review — in practice, its task selection.
@@ -50,11 +51,7 @@ export async function PUT(
     const updated = await response.json();
     return NextResponse.json({ success: true, data: updated.data });
   } catch (error) {
-    console.error('Error updating review:', error);
-    return NextResponse.json(
-      { success: false, error: 'Internal server error' },
-      { status: 500 }
-    );
+    return errorResponse('Error updating review:', error);
   }
 }
 
@@ -82,10 +79,6 @@ export async function DELETE(
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error deleting review:', error);
-    return NextResponse.json(
-      { success: false, error: 'Internal server error' },
-      { status: 500 }
-    );
+    return errorResponse('Error deleting review:', error);
   }
 }

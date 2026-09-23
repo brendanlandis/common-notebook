@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { issuedTokenVerifies, setAuthCookies } from '@/app/lib/strapiAuth';
 import { passwordProblem } from '@/app/lib/passwordRules';
 import { checkRateLimit, clientAddress } from '../rate-limiter';
+import { errorResponse } from '@/app/lib/errorResponse';
 
 const STRAPI_API_URL = process.env.STRAPI_API_URL;
 
@@ -74,10 +75,6 @@ export async function POST(req: NextRequest) {
 
     return res;
   } catch (error) {
-    console.error('Error resetting password:', error);
-    return NextResponse.json(
-      { success: false, error: 'Internal server error' },
-      { status: 500 }
-    );
+    return errorResponse('Error resetting password:', error);
   }
 }

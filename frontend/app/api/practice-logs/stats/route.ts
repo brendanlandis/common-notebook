@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAccessToken } from '@/app/lib/strapiAuth';
 import { fetchAllPages, getTimeZoneSettings } from '@/app/lib/strapiServer';
 import { getTodayForRecurrence, toISODate, shiftISODate } from '@/app/lib/dateUtils';
+import { errorResponse } from '@/app/lib/errorResponse';
 
 /**
  * Minutes practiced per day, per subject, over the last 30 days.
@@ -110,10 +111,6 @@ export async function GET(req: NextRequest) {
       data: statsBySubject,
     });
   } catch (error) {
-    console.error('Error fetching practice stats:', error);
-    return NextResponse.json(
-      { success: false, error: 'Internal server error' },
-      { status: 500 }
-    );
+    return errorResponse('Error fetching practice stats:', error);
   }
 }

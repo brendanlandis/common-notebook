@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAccessToken } from '@/app/lib/strapiAuth';
 import { normalizeProjectWorld } from '@/app/lib/worldNormalize';
+import { errorResponse } from '@/app/lib/errorResponse';
+import { strapiFetch } from '@/app/lib/strapiServer';
 
-const STRAPI_API_URL = process.env.STRAPI_API_URL;
 const PAGE_SIZE = 10;
 
 /**
@@ -32,10 +33,7 @@ export async function GET(req: NextRequest) {
     params.set('pagination[pageSize]', String(PAGE_SIZE));
     params.set('pagination[page]', String(page));
 
-    const response = await fetch(`${STRAPI_API_URL}/api/projects?${params.toString()}`, {
-      headers: { Authorization: `Bearer ${token}` },
-      cache: 'no-store',
-    });
+    const response = await strapiFetch(token, `/api/projects?${params.toString()}`);
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
@@ -55,7 +53,6 @@ export async function GET(req: NextRequest) {
       hasMore: page < pageCount,
     });
   } catch (error) {
-    console.error('Error fetching completed projects:', error);
-    return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });
+    return errorResponse('Error fetching completed projects:', error);
   }
 }

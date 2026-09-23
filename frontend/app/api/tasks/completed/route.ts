@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAccessToken } from '@/app/lib/strapiAuth';
 import { getTodayForRecurrence, toISODate, parseDate, shiftISODate } from '@/app/lib/dateUtils';
-import { getTimeZoneSettings } from '@/app/lib/strapiServer';
+import { getTimeZoneSettings, strapiFetch } from '@/app/lib/strapiServer';
 import { parseDays } from '@/app/lib/queryParams';
-
-const STRAPI_API_URL = process.env.STRAPI_API_URL;
+import { errorResponse } from '@/app/lib/errorResponse';
 
 export async function GET(req: NextRequest) {
   try {
@@ -35,14 +34,7 @@ export async function GET(req: NextRequest) {
     let hasMore = true;
 
     while (hasMore) {
-      const response = await fetch(
-        `${STRAPI_API_URL}/api/tasks?filters[completed][$eq]=true&filters[completedAt][$gte]=${cutoffTimestamp}&populate=project&pagination[pageSize]=100&pagination[page]=${page}&sort=completedAt:desc`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const response = await strapiFetch(token, `/api/tasks?filters[completed][$eq]=true&filters[completedAt][$gte]=${cutoffTimestamp}&populate=project&pagination[pageSize]=100&pagination[page]=${page}&sort=completedAt:desc`);
 
       if (!response.ok) {
         return NextResponse.json(
@@ -68,11 +60,7 @@ export async function GET(req: NextRequest) {
       data: allTasks,
     });
   } catch (error) {
-    console.error('Error fetching completed tasks:', error);
-    return NextResponse.json(
-      { success: false, error: 'Internal server error' },
-      { status: 500 }
-    );
+    return errorResponse('Error fetching completed tasks:', error);
   }
 }
 

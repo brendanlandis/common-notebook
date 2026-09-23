@@ -3,6 +3,7 @@ import { getAccessToken } from '@/app/lib/strapiAuth';
 import { fetchAllPages, getTimeZoneSettings } from '@/app/lib/strapiServer';
 import { expandIcs } from '@/app/lib/ics/expandIcs';
 import { toClientCalendar, type CalendarRow } from '@/app/lib/ics/clientCalendar';
+import { errorResponse } from '@/app/lib/errorResponse';
 
 /**
  * The week's events.
@@ -111,10 +112,6 @@ export async function GET(req: NextRequest) {
       })),
     });
   } catch (error) {
-    console.error('Error fetching calendar events:', error);
-    return NextResponse.json(
-      { success: false, error: 'Internal server error' },
-      { status: 500 }
-    );
+    return errorResponse('Error fetching calendar events:', error);
   }
 }

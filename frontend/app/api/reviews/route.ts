@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAccessToken } from '@/app/lib/strapiAuth';
 import { fetchAllPages, strapiFetch } from '@/app/lib/strapiServer';
+import { errorResponse } from '@/app/lib/errorResponse';
 
 /**
  * Reviews — the record of a planning session and what it committed to.
@@ -38,11 +39,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ success: true, data: reviews });
   } catch (error) {
-    console.error('Error fetching reviews:', error);
-    return NextResponse.json(
-      { success: false, error: 'Internal server error' },
-      { status: 500 }
-    );
+    return errorResponse('Error fetching reviews:', error);
   }
 }
 
@@ -91,10 +88,6 @@ export async function POST(req: NextRequest) {
     const created = await response.json();
     return NextResponse.json({ success: true, data: created.data });
   } catch (error) {
-    console.error('Error creating review:', error);
-    return NextResponse.json(
-      { success: false, error: 'Internal server error' },
-      { status: 500 }
-    );
+    return errorResponse('Error creating review:', error);
   }
 }

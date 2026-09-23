@@ -10,6 +10,7 @@ import {
   withSessionLock,
   writeSession,
 } from '@/app/lib/practiceSessionServer';
+import { errorResponse } from '@/app/lib/errorResponse';
 
 /**
  * Finish a session: close the open stretch, bank the duration, stamp `stop`.
@@ -77,10 +78,6 @@ export async function POST(
       return NextResponse.json({ success: true, data });
     });
   } catch (error) {
-    console.error('Error stopping practice session:', error);
-    return NextResponse.json(
-      { success: false, error: 'Internal server error' },
-      { status: 500 }
-    );
+    return errorResponse('Error stopping practice session:', error);
   }
 }

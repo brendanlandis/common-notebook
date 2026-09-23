@@ -3,6 +3,7 @@ import { issuedTokenVerifies, setAuthCookies } from '@/app/lib/strapiAuth';
 import { seedDefaultSettings, seedDefaultWorlds } from '@/app/lib/strapiServer';
 import { passwordProblem } from '@/app/lib/passwordRules';
 import { checkRateLimit, clientAddress, resetRateLimit } from '../rate-limiter';
+import { errorResponse } from '@/app/lib/errorResponse';
 
 const STRAPI_API_URL = process.env.STRAPI_API_URL;
 const STRAPI_INVITE_TOKEN = process.env.STRAPI_INVITE_TOKEN;
@@ -251,10 +252,6 @@ export async function POST(req: NextRequest) {
       redeeming.delete(trimmedCode);
     }
   } catch (error) {
-    console.error('Error redeeming invite:', error);
-    return NextResponse.json(
-      { success: false, error: 'Internal server error' },
-      { status: 500 }
-    );
+    return errorResponse('Error redeeming invite:', error);
   }
 }

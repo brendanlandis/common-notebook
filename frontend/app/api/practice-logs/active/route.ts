@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAccessToken } from '@/app/lib/strapiAuth';
 import { fetchOpenSession } from '@/app/lib/practiceSessionServer';
+import { errorResponse } from '@/app/lib/errorResponse';
 
 /**
  * "Is anything running?" — the question the practice modal asks from every page.
@@ -23,10 +24,6 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ success: true, data: await fetchOpenSession(token) });
   } catch (error) {
-    console.error('Error fetching the active practice session:', error);
-    return NextResponse.json(
-      { success: false, error: 'Internal server error' },
-      { status: 500 }
-    );
+    return errorResponse('Error fetching the active practice session:', error);
   }
 }

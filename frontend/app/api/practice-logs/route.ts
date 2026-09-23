@@ -3,6 +3,7 @@ import { getAccessToken } from '@/app/lib/strapiAuth';
 import { fetchAllPages, getTimeZoneSettings, strapiFetch } from '@/app/lib/strapiServer';
 import { getEffectiveDayForTimestamp } from '@/app/lib/dayBoundaryHelpers';
 import { fetchOpenSession } from '@/app/lib/practiceSessionServer';
+import { errorResponse } from '@/app/lib/errorResponse';
 
 /** Material and its subject, so a session can name what it is without a second fetch. */
 const POPULATE = 'populate[material][populate][0]=project';
@@ -42,11 +43,7 @@ export async function GET(req: NextRequest) {
       data: logs,
     });
   } catch (error) {
-    console.error('Error fetching practice logs:', error);
-    return NextResponse.json(
-      { success: false, error: 'Internal server error' },
-      { status: 500 }
-    );
+    return errorResponse('Error fetching practice logs:', error);
   }
 }
 
@@ -127,10 +124,6 @@ export async function POST(req: NextRequest) {
     const data = await response.json();
     return NextResponse.json({ success: true, data: data.data });
   } catch (error) {
-    console.error('Error starting practice session:', error);
-    return NextResponse.json(
-      { success: false, error: 'Internal server error' },
-      { status: 500 }
-    );
+    return errorResponse('Error starting practice session:', error);
   }
 }

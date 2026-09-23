@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAccessToken } from '@/app/lib/strapiAuth';
 import { fetchAllPages, strapiFetch } from '@/app/lib/strapiServer';
+import { errorResponse } from '@/app/lib/errorResponse';
 
 // BFF for the user's views (the `api::view.view` collection). Mirrors
 // app/api/worlds. Ownership is enforced by Strapi's middleware, so every call is
@@ -21,8 +22,7 @@ export async function GET(req: NextRequest) {
     const views = await fetchAllPages(token, `/api/views?${VIEWS_POPULATE}`);
     return NextResponse.json({ success: true, data: views });
   } catch (error) {
-    console.error('Error fetching views:', error);
-    return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });
+    return errorResponse('Error fetching views:', error);
   }
 }
 
@@ -52,7 +52,6 @@ export async function POST(req: NextRequest) {
     const data = await response.json();
     return NextResponse.json({ success: true, data: data.data });
   } catch (error) {
-    console.error('Error creating view:', error);
-    return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });
+    return errorResponse('Error creating view:', error);
   }
 }

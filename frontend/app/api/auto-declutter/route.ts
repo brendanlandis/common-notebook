@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAccessToken } from '@/app/lib/strapiAuth';
 import { setAutoDeclutter } from '@/app/lib/moonPhaseReset';
+import { errorResponse } from '@/app/lib/errorResponse';
 
 /**
  * Write the auto-declutter toggle.
@@ -37,7 +38,6 @@ export async function PUT(req: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error updating auto-declutter setting:', error);
-    return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });
+    return errorResponse('Error updating auto-declutter setting:', error);
   }
 }

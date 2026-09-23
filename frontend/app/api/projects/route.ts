@@ -3,6 +3,7 @@ import { getAccessToken } from '@/app/lib/strapiAuth';
 import { TOP_OF_MIND, demoteTopOfMindProjects } from '@/app/lib/projectImportance';
 import { fetchAllPages, strapiFetch } from '@/app/lib/strapiServer';
 import { normalizeProjectWorld, toStrapiProjectWrite } from '@/app/lib/worldNormalize';
+import { errorResponse } from '@/app/lib/errorResponse';
 
 export async function GET(req: NextRequest) {
   try {
@@ -28,11 +29,7 @@ export async function GET(req: NextRequest) {
     );
     return NextResponse.json({ success: true, data: projects.map(normalizeProjectWorld) });
   } catch (error) {
-    console.error('Error fetching projects:', error);
-    return NextResponse.json(
-      { success: false, error: 'Internal server error' },
-      { status: 500 }
-    );
+    return errorResponse('Error fetching projects:', error);
   }
 }
 
@@ -71,11 +68,7 @@ export async function POST(req: NextRequest) {
     const data = await response.json();
     return NextResponse.json({ success: true, data: normalizeProjectWorld(data.data), demoted });
   } catch (error) {
-    console.error('Error creating project:', error);
-    return NextResponse.json(
-      { success: false, error: 'Internal server error' },
-      { status: 500 }
-    );
+    return errorResponse('Error creating project:', error);
   }
 }
 

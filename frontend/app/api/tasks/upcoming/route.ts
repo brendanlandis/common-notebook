@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAccessToken } from '@/app/lib/strapiAuth';
 import { getToday, toISODate, shiftISODate } from '@/app/lib/dateUtils';
-import { getTimeZoneSettings } from '@/app/lib/strapiServer';
-
-const STRAPI_API_URL = process.env.STRAPI_API_URL;
+import { getTimeZoneSettings, strapiFetch } from '@/app/lib/strapiServer';
+import { errorResponse } from '@/app/lib/errorResponse';
 
 export async function GET(req: NextRequest) {
   try {
@@ -35,15 +34,11 @@ export async function GET(req: NextRequest) {
     let hasMore = true;
 
     while (hasMore) {
-      const response = await fetch(
+      const response = await strapiFetch(
+        token,
         // $or keeps incidentals (null project) while excluding tasks whose
         // project is complete — see the note in app/api/tasks/route.ts.
-        `${STRAPI_API_URL}/api/tasks?filters[completed][$eq]=false&filters[displayDate][$gte]=${tomorrowString}&filters[displayDate][$lte]=${fourDaysOutString}&filters[$or][0][project][id][$null]=true&filters[$or][1][project][complete][$eq]=false&populate=project&pagination[pageSize]=100&pagination[page]=${page}&sort=displayDate:asc`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+        `/api/tasks?filters[completed][$eq]=false&filters[displayDate][$gte]=${tomorrowString}&filters[displayDate][$lte]=${fourDaysOutString}&filters[$or][0][project][id][$null]=true&filters[$or][1][project][complete][$eq]=false&populate=project&pagination[pageSize]=100&pagination[page]=${page}&sort=displayDate:asc`
       );
 
       if (!response.ok) {
@@ -77,11 +72,7 @@ export async function GET(req: NextRequest) {
       }
     );
   } catch (error) {
-    console.error('Error fetching upcoming tasks:', error);
-    return NextResponse.json(
-      { success: false, error: 'Internal server error' },
-      { status: 500 }
-    );
+    return errorResponse('Error fetching upcoming tasks:', error);
   }
 }
 

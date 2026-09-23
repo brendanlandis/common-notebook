@@ -2,9 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAccessToken } from '@/app/lib/strapiAuth';
 import { calculateNextRecurrence } from '@/app/lib/recurrence';
 import type { Task } from '@/app/types/index';
-import { getTimeZoneSettings } from '@/app/lib/strapiServer';
-
-const STRAPI_API_URL = process.env.STRAPI_API_URL;
+import { getTimeZoneSettings, strapiFetch } from '@/app/lib/strapiServer';
+import { errorResponse } from '@/app/lib/errorResponse';
 
 export async function POST(
   req: NextRequest,
@@ -22,14 +21,7 @@ export async function POST(
     }
 
     // First, get the task to check if it's recurring
-    const getTaskResponse = await fetch(
-      `${STRAPI_API_URL}/api/tasks/${documentId}?populate=project`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
+    const getTaskResponse = await strapiFetch(token, `/api/tasks/${documentId}?populate=project`);
 
     if (!getTaskResponse.ok) {
       return NextResponse.json(
@@ -56,12 +48,9 @@ export async function POST(
     const nextDates = calculateNextRecurrence(task, settings);
 
     if (nextDates.displayDate || nextDates.dueDate) {
-      const createResponse = await fetch(`${STRAPI_API_URL}/api/tasks?populate=project`, {
+      const createResponse = await strapiFetch(token, `/api/tasks?populate=project`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           data: {
             title: task.title,
@@ -105,13 +94,11 @@ export async function POST(
     }
 
     // Delete the current task
-    const deleteResponse = await fetch(
-      `${STRAPI_API_URL}/api/tasks/${documentId}`,
+    const deleteResponse = await strapiFetch(
+      token,
+      `/api/tasks/${documentId}`,
       {
         method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
       }
     );
 
@@ -128,11 +115,7 @@ export async function POST(
       newTask,
     });
   } catch (error) {
-    console.error('Error skipping recurring task:', error);
-    return NextResponse.json(
-      { success: false, error: 'Internal server error' },
-      { status: 500 }
-    );
+    return errorResponse('Error skipping recurring task:', error);
   }
 }
 
