@@ -3,6 +3,13 @@
 import { useForm, SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import {
+  PASSWORD_MAX_BYTES,
+  PASSWORD_MIN_LENGTH,
+  PASSWORD_TOO_LONG,
+  PASSWORD_TOO_SHORT,
+  passwordBytes,
+} from "@/app/lib/passwordRules";
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AuthPage, AuthForm, AuthField } from "@/app/components/auth/Auth";
@@ -13,7 +20,10 @@ const schema = z
     code: z.string().min(1, "enter your invite code"),
     username: z.string().min(2, "pick a username"),
     email: z.email("enter a valid email"),
-    password: z.string().min(8, "at least 8 characters"),
+    password: z
+      .string()
+      .min(PASSWORD_MIN_LENGTH, PASSWORD_TOO_SHORT)
+      .refine((p) => passwordBytes(p) <= PASSWORD_MAX_BYTES, PASSWORD_TOO_LONG),
     passwordConfirmation: z.string().min(1, "confirm your password"),
   })
   .refine((data) => data.password === data.passwordConfirmation, {

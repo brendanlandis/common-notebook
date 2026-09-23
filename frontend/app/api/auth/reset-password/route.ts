@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { issuedTokenVerifies, setAuthCookies } from '@/app/lib/strapiAuth';
+import { passwordProblem } from '@/app/lib/passwordRules';
 import { checkRateLimit, clientAddress } from '../rate-limiter';
 
 const STRAPI_API_URL = process.env.STRAPI_API_URL;
@@ -29,6 +30,11 @@ export async function POST(req: NextRequest) {
         { success: false, error: 'Missing reset code or password' },
         { status: 400 }
       );
+    }
+
+    const problem = passwordProblem(String(password));
+    if (problem) {
+      return NextResponse.json({ success: false, error: `Password: ${problem}` }, { status: 400 });
     }
 
     const response = await fetch(`${STRAPI_API_URL}/api/auth/reset-password`, {

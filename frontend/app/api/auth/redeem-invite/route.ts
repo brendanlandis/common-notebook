@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { issuedTokenVerifies, setAuthCookies } from '@/app/lib/strapiAuth';
 import { seedDefaultSettings, seedDefaultWorlds } from '@/app/lib/strapiServer';
+import { passwordProblem } from '@/app/lib/passwordRules';
 import { checkRateLimit, clientAddress, resetRateLimit } from '../rate-limiter';
 
 const STRAPI_API_URL = process.env.STRAPI_API_URL;
@@ -128,6 +129,12 @@ export async function POST(req: NextRequest) {
         { success: false, error: 'Missing invite code, username, email, or password' },
         { status: 400 }
       );
+    }
+
+    // Checked before the invite is touched, so a refused password leaves it unspent.
+    const problem = passwordProblem(String(password));
+    if (problem) {
+      return NextResponse.json({ success: false, error: `Password: ${problem}` }, { status: 400 });
     }
 
     const trimmedCode = String(code).trim();

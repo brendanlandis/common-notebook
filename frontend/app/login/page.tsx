@@ -71,6 +71,7 @@ export default function LoginPage() {
           id="identifier"
           label="user or email"
           type="text"
+          autoComplete="username"
           {...register("identifier")}
           disabled={isSubmitting}
           error={errors.identifier?.message}
@@ -80,6 +81,7 @@ export default function LoginPage() {
           id="password"
           label="password"
           type="password"
+          autoComplete="current-password"
           {...register("password")}
           disabled={isSubmitting}
           error={errors.password?.message}
