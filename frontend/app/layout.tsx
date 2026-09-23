@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import localFont from "next/font/local";
 import { Lato } from "next/font/google";
 import "./css/screen.css";
@@ -37,11 +38,15 @@ const fontBody = Lato({
   variable: "--font-body",
 });
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  // The page's scripts must carry this render's nonce (see proxy.ts). Reading
+  // it makes every page render per request, which a nonce needs anyway.
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
+
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
@@ -64,7 +69,11 @@ export default function RootLayout({
           href="/favicon-16x16.png"
         />
         <link rel="manifest" href="/site.webmanifest"></link>
+        {/* Browsers blank a script's nonce attribute once it's parsed, so
+            hydration would report a mismatch. */}
         <script
+          nonce={nonce}
+          suppressHydrationWarning
           dangerouslySetInnerHTML={{
             __html: `
               (function() {

@@ -206,6 +206,15 @@ without verifying it — until 2026-09-23 `shows-tasks` did, and a hand-made coo
   Strapi just issued (`issuedTokenVerifies`) before setting it.
 - On the client, any 401 from `app/api/*` ends the session: `QueryProvider` clears the cache and goes to
   `/login`, once, and never retries a 401.
+- **A write to `app/api/*` must come from the app's own pages.** `proxy.ts` refuses a non-GET whose
+  `Sec-Fetch-Site` (or, from an older browser, `Origin`) names another site (403), and a body typed as
+  anything but JSON (415), which is what a forged form sends. A request with neither header isn't from a
+  page, so scripts and Playwright's `request` pass. `apiSend` sends JSON; a hand-rolled write with a body
+  must set `Content-Type: application/json`. Refusals log `[csrf]` lines.
+- **Every page carries a script nonce and a CSP built around it** (`app/lib/contentSecurityPolicy.ts`;
+  report-only until prod's `[csp]` log lines show nothing the app needs). A new inline `<script>` needs the
+  nonce, as the theme script in `app/layout.tsx` has, and nothing may eval: zod runs `jitless` from
+  `instrumentation-client.ts`. The headers every response gets are in `next.config.ts`.
 
 # Backend
 
