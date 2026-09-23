@@ -1,28 +1,41 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { AuthConfigError } from './app/lib/authErrors';
 import { devAuthBypassEnabled } from './app/lib/devAuth';
+import {
+  ACCESS_COOKIE,
+  REFRESH_COOKIE,
+  clearAuthCookies,
+  resolveSession,
+  setAuthCookies,
+} from './app/lib/strapiAuth';
 
 /**
- * Gate page navigations on the presence of a live session.
+ * Gate page navigations on a verified, live session.
  *
- * This is a UX gate, not an authorization boundary. It decides whether to render
- * the app shell or bounce to /login. Every piece of data is still fetched through
- * `app/api/*`, which sends a token Strapi verifies and which the ownership
- * middleware scopes to the caller. A forged cookie gets you an empty shell.
+ * A page renders only when the access cookie's signature and expiry check out
+ * against `JWT_SECRET` (the backend's), which costs no network call — or, when
+ * it doesn't, once Strapi has renewed the session from the refresh cookie. A
+ * cookie that is forged, stale, or for a session Strapi has dropped gets
+ * /login, with both cookies cleared. Until 2026-09-23 this only decoded the
+ * refresh cookie's `exp`, so any cookie that merely looked unexpired got the
+ * app shell.
  *
- * Two deliberate changes from the original:
+ * Every piece of data is still authorized by Strapi and scoped by the ownership
+ * middleware; this decides whether there is a signed-in user to render for.
  *
- *  - It checks the *refresh* token, not the access token. Access tokens live 30
- *    minutes and are refreshed transparently by `getAccessToken()` inside the
- *    route handlers; gating on one would bounce everybody to /login every half
- *    hour.
- *  - It no longer calls `GET /users/me` on every navigation. That was a Strapi
- *    round-trip per page view, and it coupled every page load to backend
- *    availability. Expiry is now read from the token locally.
+ *  - No Strapi call while the access token is good. It's renewed at most once
+ *    per browser per 30 minutes, the same call the first API request used to
+ *    make. A logout elsewhere reaches this browser when its access token next
+ *    needs renewing, within 30 minutes.
+ *  - A renewal's new cookies go to the browser *and* down to this request, so
+ *    the layout's `getAccessTokenServer()` sees them.
+ *  - Neither failure below is a logout, so neither clears cookies: 503 when
+ *    Strapi can't be reached to renew, 500 when this server can't verify tokens
+ *    (`JWT_SECRET` unset or not the backend's). A redirect there would loop.
+ *
+ * This runs with its own copy of `strapiAuth`; see the concurrency note there.
  */
-
-const ACCESS_COOKIE = 'auth_token';
-const REFRESH_COOKIE = 'refresh_token';
 
 /**
  * Reachable without a session. Forget one of these and the symptom is a redirect
@@ -30,37 +43,15 @@ const REFRESH_COOKIE = 'refresh_token';
  */
 const PUBLIC_PATHS = ['/login', '/register', '/forgot-password', '/reset-password'];
 
-const CLEAR_COOKIE_OPTIONS = {
-  httpOnly: true,
-  secure: process.env.NODE_ENV === 'production',
-  sameSite: 'lax' as const,
-  path: '/',
-  maxAge: 0,
-};
-
-/**
- * Read a JWT's `exp` without verifying the signature. Safe here precisely because
- * nothing is authorized on the result — see the note above. Written to work in
- * both the Edge and Node runtimes.
- */
-function expiresAt(token: string): number | null {
-  const payload = token.split('.')[1];
-  if (!payload) return null;
-  try {
-    const normalized = payload.replace(/-/g, '+').replace(/_/g, '/');
-    const json =
-      typeof atob === 'function' ? atob(normalized) : Buffer.from(normalized, 'base64').toString();
-    const exp = JSON.parse(json)?.exp;
-    return typeof exp === 'number' ? exp : null;
-  } catch {
-    return null;
-  }
-}
+const UNAVAILABLE_PAGE = `<!doctype html>
+<meta charset="utf-8">
+<meta http-equiv="refresh" content="5">
+<title>Can’t check your sign-in</title>
+<p>Can’t reach the server to check your sign-in. Trying again in a few seconds…</p>`;
 
 function redirectToLogin(request: NextRequest) {
   const res = NextResponse.redirect(new URL('/login', request.url));
-  res.cookies.set(ACCESS_COOKIE, '', CLEAR_COOKIE_OPTIONS);
-  res.cookies.set(REFRESH_COOKIE, '', CLEAR_COOKIE_OPTIONS);
+  clearAuthCookies(res);
   return res;
 }
 
@@ -78,26 +69,56 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // API routes authenticate themselves, and are where token refresh happens.
+  // API routes authenticate themselves, and refresh on their own.
   if (pathname.startsWith('/api/')) {
     return NextResponse.next();
   }
 
-  const refresh = request.cookies.get(REFRESH_COOKIE)?.value;
-  if (!refresh) {
-    return redirectToLogin(request);
+  let session;
+  try {
+    session = await resolveSession(
+      request.cookies.get(ACCESS_COOKIE)?.value ?? null,
+      request.cookies.get(REFRESH_COOKIE)?.value ?? null
+    );
+  } catch (err) {
+    if (!(err instanceof AuthConfigError)) throw err;
+    console.error('[auth]', err.message);
+    return new NextResponse('Sign-in is misconfigured on the server.', {
+      status: 500,
+      headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' },
+    });
   }
 
-  // A malformed token yields null; treat that as "no session" rather than trust it.
-  const exp = expiresAt(refresh);
-  if (exp === null || exp <= Math.floor(Date.now() / 1000)) {
-    return redirectToLogin(request);
+  switch (session.kind) {
+    case 'valid':
+      return NextResponse.next();
+    case 'refreshed': {
+      // Set on the request before `next()`, which snapshots its headers.
+      request.cookies.set(ACCESS_COOKIE, session.tokens.access);
+      request.cookies.set(REFRESH_COOKIE, session.tokens.refresh);
+      const res = NextResponse.next({ request: { headers: request.headers } });
+      setAuthCookies(res, session.tokens);
+      return res;
+    }
+    case 'unavailable':
+      return new NextResponse(UNAVAILABLE_PAGE, {
+        status: 503,
+        headers: {
+          'Content-Type': 'text/html; charset=utf-8',
+          'Retry-After': '5',
+          'Cache-Control': 'no-store',
+        },
+      });
+    case 'none':
+    case 'rejected':
+      return redirectToLogin(request);
   }
-
-  return NextResponse.next();
 }
 
 export const config = {
-  // Exclude: Next.js internals, API routes (handled separately above), and all static files from /public
-  matcher: ['/((?!_next/static|_next/image|.*\\.png|.*\\.jpg|.*\\.jpeg|.*\\.gif|.*\\.svg|.*\\.ico|.*\\.webp|.*\\.webmanifest|.*\\.woff|.*\\.woff2|.*\\.ttf|.*\\.otf|robots\\.txt).*)'],
+  // Exclude Next.js internals and static files from /public. Each extension is
+  // anchored to the end of the path; unanchored, `/view/x.png/y` skipped the gate.
+  matcher: [
+    '/((?!_next/static|_next/image|robots\\.txt$|.*\\.png$|.*\\.jpg$|.*\\.jpeg$|.*\\.gif$|.*\\.svg$|.*\\.ico$|.*\\.webp$|.*\\.webmanifest$|.*\\.woff$|.*\\.woff2$|.*\\.ttf$|.*\\.otf$).*)',
+  ],
 };
