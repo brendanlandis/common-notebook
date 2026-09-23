@@ -10,7 +10,7 @@ const askForReset = (email: string) => {
   return POST(
     new NextRequest('http://localhost:3000/api/auth/forgot-password', {
       method: 'POST',
-      headers: { 'content-type': 'application/json', 'x-real-ip': address, 'x-forwarded-for': address },
+      headers: { 'content-type': 'application/json', 'x-real-ip': address },
       body: JSON.stringify({ email }),
     })
   );

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { accountKey, checkRateLimit } from '../rate-limiter';
+import { accountKey, checkRateLimit, clientAddress } from '../rate-limiter';
 
 const STRAPI_API_URL = process.env.STRAPI_API_URL;
 
@@ -57,10 +57,7 @@ function requestResetEmail(email: string): void {
 
 export async function POST(req: NextRequest) {
   try {
-    const ip =
-      req.headers.get('x-forwarded-for')?.split(',')[0] ||
-      req.headers.get('x-real-ip') ||
-      'unknown';
+    const ip = clientAddress(req);
 
     // Sending mail is expensive and abusable; rate-limit as hard as login.
     const rateLimit = checkRateLimit(ip, 'forgot-password');

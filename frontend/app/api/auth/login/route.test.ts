@@ -6,11 +6,12 @@ import { POST } from './route';
 
 let visitor = 0;
 /** A different visitor each call unless one is named: the per-address limit stays out of the way. */
-const login = (identifier: string, address = `198.51.100.${++visitor % 250}`) =>
+const login = (identifier: string, address = `198.51.100.${++visitor % 250}`, headers: Record<string, string> = {}) =>
   POST(
     new NextRequest('http://localhost:3000/api/auth/login', {
       method: 'POST',
-      headers: { 'content-type': 'application/json', 'x-real-ip': address, 'x-forwarded-for': address },
+      // X-Real-IP as nginx sets it.
+      headers: { 'content-type': 'application/json', 'x-real-ip': address, ...headers },
       body: JSON.stringify({ identifier, password: 'a guess' }),
     })
   );
@@ -90,5 +91,14 @@ describe('POST /api/auth/login — per-address limit', () => {
     const address = '203.0.113.9';
     for (let i = 0; i < 5; i++) expect((await login(newAccount(), address)).status).toBe(401);
     expect((await login(newAccount(), address)).status).toBe(429);
+  });
+
+  it('ignores an X-Forwarded-For the visitor made up, which used to get them a fresh limit per try', async () => {
+    strapi(400);
+    const address = '203.0.113.10';
+    for (let i = 0; i < 5; i++) {
+      await login(newAccount(), address, { 'x-forwarded-for': `192.0.2.${i}` });
+    }
+    expect((await login(newAccount(), address, { 'x-forwarded-for': '192.0.2.99' })).status).toBe(429);
   });
 });

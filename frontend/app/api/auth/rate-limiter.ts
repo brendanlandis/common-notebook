@@ -102,6 +102,30 @@ export function resetRateLimit(key: string, scope: RateLimitScope): void {
   rateLimitStore.delete(`${scope}:${key}`);
 }
 
+let warnedNoAddress = false;
+
+/**
+ * The visitor's address, as nginx saw it. Only `X-Real-IP` counts: prod's server
+ * block sets it (`proxy_set_header X-Real-IP $remote_addr;`), replacing anything
+ * the visitor sent. `X-Forwarded-For` is the visitor's to write, since that
+ * block doesn't set it, so reading it let anyone name a fresh address per try.
+ *
+ * Without the header every visitor shares one bucket. That's local dev, where
+ * there's no nginx; in production it means the nginx line is missing, so say so.
+ */
+export function clientAddress(req: Request): string {
+  const address = req.headers.get('x-real-ip')?.trim();
+  if (address) return address;
+  if (process.env.NODE_ENV === 'production' && !warnedNoAddress) {
+    warnedNoAddress = true;
+    console.error(
+      '[rate-limit] No X-Real-IP header, so every visitor shares one set of sign-in limits. ' +
+        'nginx should set it: proxy_set_header X-Real-IP $remote_addr;'
+    );
+  }
+  return 'unknown';
+}
+
 /** The account a login or reset names, as a bucket key: case and spacing don't make a new one. */
 export function accountKey(identifier: unknown): string {
   return String(identifier).trim().toLowerCase();

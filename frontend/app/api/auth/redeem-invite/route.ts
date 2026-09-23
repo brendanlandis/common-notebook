@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { issuedTokenVerifies, setAuthCookies } from '@/app/lib/strapiAuth';
 import { seedDefaultSettings, seedDefaultWorlds } from '@/app/lib/strapiServer';
-import { checkRateLimit, resetRateLimit } from '../rate-limiter';
+import { checkRateLimit, clientAddress, resetRateLimit } from '../rate-limiter';
 
 const STRAPI_API_URL = process.env.STRAPI_API_URL;
 const STRAPI_INVITE_TOKEN = process.env.STRAPI_INVITE_TOKEN;
@@ -112,10 +112,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const ip =
-      req.headers.get('x-forwarded-for')?.split(',')[0] ||
-      req.headers.get('x-real-ip') ||
-      'unknown';
+    const ip = clientAddress(req);
 
     const rateLimit = checkRateLimit(ip, 'redeem-invite');
     if (!rateLimit.allowed) {

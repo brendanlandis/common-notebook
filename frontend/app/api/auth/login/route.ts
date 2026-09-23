@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { issuedTokenVerifies, setAuthCookies } from '@/app/lib/strapiAuth';
-import { accountKey, checkRateLimit, isRateLimited, resetRateLimit } from '../rate-limiter';
+import { accountKey, checkRateLimit, clientAddress, isRateLimited, resetRateLimit } from '../rate-limiter';
 
 const STRAPI_API_URL = process.env.STRAPI_API_URL;
 
@@ -16,10 +16,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Get client IP for rate limiting
-    const ip = req.headers.get('x-forwarded-for')?.split(',')[0] || 
-               req.headers.get('x-real-ip') || 
-               'unknown';
+    const ip = clientAddress(req);
 
     // Check rate limit
     const rateLimitResult = checkRateLimit(ip, 'login');

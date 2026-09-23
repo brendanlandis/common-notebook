@@ -211,6 +211,9 @@ without verifying it — until 2026-09-23 `shows-tasks` did, and a hand-made coo
   anything but JSON (415), which is what a forged form sends. A request with neither header isn't from a
   page, so scripts and Playwright's `request` pass. `apiSend` sends JSON; a hand-rolled write with a body
   must set `Content-Type: application/json`. Refusals log `[csrf]` lines.
+- **Sign-in limits key on `X-Real-IP`, never `X-Forwarded-For`** (`clientAddress` in
+  `app/api/auth/rate-limiter.ts`). Prod's nginx sets the first and not the second, so the second is
+  whatever the visitor wrote. Failed logins are also limited per account, and reset emails per address.
 - **Every page carries a script nonce and a CSP built around it** (`app/lib/contentSecurityPolicy.ts`;
   report-only until prod's `[csp]` log lines show nothing the app needs). A new inline `<script>` needs the
   nonce, as the theme script in `app/layout.tsx` has, and nothing may eval: zod runs `jitless` from
