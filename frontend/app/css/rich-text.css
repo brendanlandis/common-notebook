@@ -4,8 +4,22 @@ form .rich-text-content {
   border: 1px solid;
 }
 
+/* Blocks 8 apart (the rows role), list items 4, and a heading 16 below what
+   comes before it. Spacing goes on the second of two neighbors, so the first
+   and last block sit on the note's edges. */
 .rich-text-content {
   outline: none;
+
+  > * + *,
+  li > * + * {
+    margin-top: var(--spacing-rows);
+  }
+  li + li {
+    margin-top: 0.25rem;
+  }
+  > * + :is(h1, h2, h3, h4, h5, h6) {
+    margin-top: 1rem;
+  }
   p {
     line-height: 1.1rem;
   }
