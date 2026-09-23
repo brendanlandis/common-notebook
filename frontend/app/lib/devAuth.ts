@@ -10,9 +10,13 @@
  *
  *   1. DEV_AUTH_BYPASS === 'true'      explicit opt-in; unset everywhere on prod
  *   2. NODE_ENV !== 'production'
- *   3. STRAPI_API_URL points at localhost/127.0.0.1 — so even if the flag leaked
- *      to a prod host, the bypass could only ever mint a token against a *local*
- *      Strapi, never impersonate a real prod user.
+ *   3. STRAPI_API_URL points at localhost/127.0.0.1 — so on a host whose Strapi
+ *      is remote, even a leaked flag could only ever mint a token against a
+ *      *local* Strapi, never impersonate a real user there.
+ *
+ * Prod may reach its own Strapi locally (slowhouse: 127.0.0.1:1338), so don't
+ * count on 3 there. What keeps the bypass off on prod is 2: `next start` always
+ * runs with NODE_ENV=production.
  *
  * This module reads process.env ONLY (no next/headers) so it is safe to import
  * from both middleware (proxy.ts) and route handlers.
