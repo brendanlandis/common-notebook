@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { checkRateLimit } from '../rate-limiter';
+import { accountKey, checkRateLimit } from '../rate-limiter';
 
 const STRAPI_API_URL = process.env.STRAPI_API_URL;
 
@@ -74,6 +74,15 @@ export async function POST(req: NextRequest) {
     const { email } = await req.json();
     if (!email) {
       return NextResponse.json({ success: false, error: 'Enter an email' }, { status: 400 });
+    }
+
+    // A few emails an hour to one inbox, however many visitors ask. Counted for
+    // any address, so it says nothing about which have accounts.
+    if (!checkRateLimit(accountKey(email), 'reset-email').allowed) {
+      return NextResponse.json(
+        { success: false, error: 'Too many reset emails for this address. Please try again later.' },
+        { status: 429 }
+      );
     }
 
     requestResetEmail(String(email));

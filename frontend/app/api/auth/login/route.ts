@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { issuedTokenVerifies, setAuthCookies } from '@/app/lib/strapiAuth';
-import { checkRateLimit, resetRateLimit } from '../rate-limiter';
+import { accountKey, checkRateLimit, isRateLimited, resetRateLimit } from '../rate-limiter';
 
 const STRAPI_API_URL = process.env.STRAPI_API_URL;
 
@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
                'unknown';
 
     // Check rate limit
-    const rateLimitResult = checkRateLimit(ip);
+    const rateLimitResult = checkRateLimit(ip, 'login');
     if (!rateLimitResult.allowed) {
       const resetDate = new Date(rateLimitResult.resetAt);
       return NextResponse.json(
@@ -31,6 +31,16 @@ export async function POST(req: NextRequest) {
           error: 'Too many login attempts. Please try again later.',
           resetAt: resetDate.toISOString(),
         },
+        { status: 429 }
+      );
+    }
+
+    // An account that has failed too often, from any address, waits out the
+    // window before Strapi is asked again.
+    const account = accountKey(identifier);
+    if (isRateLimited(account, 'login-account')) {
+      return NextResponse.json(
+        { success: false, error: 'Too many failed logins for this account. Please try again later.' },
         { status: 429 }
       );
     }
@@ -49,8 +59,18 @@ export async function POST(req: NextRequest) {
 
     const data = await response.json();
 
+    // Strapi's own limit: every login through this app shares one bucket there,
+    // since they all come from this server. Not a failed guess, so not counted.
+    if (response.status === 429) {
+      return NextResponse.json(
+        { success: false, error: 'Too many login attempts. Please try again later.' },
+        { status: 429 }
+      );
+    }
+
     if (!response.ok) {
       // Authentication failed
+      checkRateLimit(account, 'login-account');
       return NextResponse.json(
         { 
           success: false, 
@@ -61,8 +81,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Authentication successful - reset rate limit for this IP
-    resetRateLimit(ip);
+    // Authentication successful - reset rate limit for this IP, and the account
+    resetRateLimit(ip, 'login');
+    resetRateLimit(account, 'login-account');
 
     // Strapi runs in refresh mode, so /auth/local returns both tokens. Without
     // the refresh token the user would be logged out when the short-lived access
