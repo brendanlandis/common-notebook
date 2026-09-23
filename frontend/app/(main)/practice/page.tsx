@@ -70,30 +70,36 @@ export default function PracticePage() {
       <FaviconManager type="metronome" />
       <main id="container-practice">
         <h1 className="mb-title">practice</h1>
-        <PracticeCharts />
+        <div className="flex flex-col gap-sections">
+          <PracticeCharts />
 
-        {completedLogs.length > 0 && (
-          <div className="practice-sessions">
-            <h2>practice history</h2>
-            {[...byDay.entries()].map(([date, sessions]) => (
-              <section key={date} className="practice-day">
-                <h3>{dayLabel(date, todayString, timeZoneSettings)}</h3>
-                {sessions.map((log) => (
-                  <PracticeSessionItem
-                    key={log.documentId}
-                    practiceLog={log}
-                    onUpdate={update}
-                    onDelete={remove}
-                  />
+          {completedLogs.length > 0 && (
+            <div className="practice-sessions flex flex-col gap-heading">
+              <h2>practice history</h2>
+              <div className="flex flex-col gap-lists">
+                {[...byDay.entries()].map(([date, sessions]) => (
+                  <section key={date} className="practice-day flex flex-col gap-heading">
+                    <h3>{dayLabel(date, todayString, timeZoneSettings)}</h3>
+                    <div className="flex flex-col gap-rows">
+                      {sessions.map((log) => (
+                        <PracticeSessionItem
+                          key={log.documentId}
+                          practiceLog={log}
+                          onUpdate={update}
+                          onDelete={remove}
+                        />
+                      ))}
+                    </div>
+                  </section>
                 ))}
-              </section>
-            ))}
-          </div>
-        )}
+              </div>
+            </div>
+          )}
 
-        {completedLogs.length === 0 && (
-          <p className="no-sessions">nothing practiced in the last 30 days</p>
-        )}
+          {completedLogs.length === 0 && (
+            <p className="no-sessions">nothing practiced in the last 30 days</p>
+          )}
+        </div>
       </main>
     </>
   );

@@ -74,14 +74,14 @@ export default function PracticeSessionItem({
 
   return (
     <div>
-      <div className="flex">
+      <div className="flex items-center gap-4">
         <div className="session-date-time">
           <span className="date">{date}</span>
         </div>
         <div className="session-duration">
           {formatDuration(practiceLog.duration)}
         </div>
-        <div className="session-actions">
+        <div className="session-actions flex gap-icons touch:gap-4">
           <button
             type="button"
             className="button-icon"
@@ -102,7 +102,7 @@ export default function PracticeSessionItem({
         </div>
       </div>
       {practiceLog.notes && practiceLog.notes.length > 0 && (
-        <div className="session-notes">
+        <div className="session-notes mt-rows ml-8">
           <RichTextDisplay content={practiceLog.notes} />
         </div>
       )}

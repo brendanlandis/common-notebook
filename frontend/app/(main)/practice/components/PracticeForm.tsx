@@ -4,6 +4,7 @@ import { useState } from 'react';
 import type { PracticeLog, StrapiBlock } from '@/app/types/index';
 import RichTextEditor from '@/app/components/ui/RichTextEditor';
 import Button from "@/app/components/ui/Button";
+import { Field } from "@/app/components/ui/FormControls";
 
 interface PracticeFormProps {
   practiceLog?: PracticeLog;
@@ -35,16 +36,15 @@ export default function PracticeForm({ practiceLog, onSubmit, onCancel }: Practi
   };
 
   return (
-    <form className="practice-form" onSubmit={handleFormSubmit}>
-      <div className="form-group">
-        <label htmlFor="notes">Notes</label>
+    <form className="practice-form flex flex-col gap-fields" onSubmit={handleFormSubmit}>
+      <Field label="notes" htmlFor="notes">
         <RichTextEditor 
           value={notes}
           onChange={setNotes}
         />
-      </div>
+      </Field>
 
-      <div>
+      <div className="flex gap-controls">
         <Button type="submit">Save</Button>
         <Button onClick={onCancel}>Cancel</Button>
       </div>

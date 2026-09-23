@@ -24,7 +24,7 @@ export default function PracticeCharts() {
   }
 
   return (
-    <div className="mx-auto">
+    <div className="flex flex-col gap-heading">
       <h2>Last 30 Days</h2>
       <PracticeChart stats={stats} />
     </div>
