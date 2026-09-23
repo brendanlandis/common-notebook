@@ -10,7 +10,7 @@
  * registers each file as a Koa middleware (`global::<name>`), which is a
  * different signature entirely.
  *
- * Three things make the guards subtle, all verified against Strapi 5.50:
+ * Four things make the guards subtle, all verified against Strapi 5.50:
  *
  *  1. The users-permissions plugin and the admin content-manager both call the
  *     document service. A naive middleware here breaks login and the admin
@@ -20,9 +20,13 @@
  *     against any row. They must be authorized by an explicit lookup.
  *  3. Admin requests set `ctx.state.user` to an *admin* user, from a different
  *     table than app users. Its id must never be used as an owner id.
+ *  4. A write names other rows through its relations, and Strapi resolves and
+ *     populates those with no owner filter. So a write's relation targets are
+ *     owner-checked too (`assertOwnsTargets`, shapes in `relations.ts`).
  */
 
 import { errors } from '@strapi/utils';
+import { collectOwnedTargets, type TargetRef } from './relations';
 import type { OwnershipRule } from './rule';
 
 const { ForbiddenError, NotFoundError, ValidationError } = errors;
@@ -70,6 +74,10 @@ export function mergeFilters(existing: any, added: Record<string, any>) {
   return { $and: [existing, added] };
 }
 
+function matchesRef(row: any, ref: TargetRef): boolean {
+  return 'id' in ref ? row?.id === ref.id : row?.documentId === ref.documentId;
+}
+
 /** True if this request is a content-API request rather than admin/plugin. */
 export function isContentApiRequest(url: string, prefix: string): boolean {
   if (!url) return false;
@@ -100,6 +108,46 @@ export function createOwnershipMiddleware({
       .query(uid)
       .findOne({ where: { documentId }, populate: rule.populate });
     if (!row || !rule.owns(row, user)) throw new NotFoundError();
+  }
+
+  /**
+   * Authorize the rows a write links to. Strapi resolves relation targets with
+   * no owner filter and populates them the same way, so a link to someone else's
+   * row would both cross tenants and hand that row back in the response. One
+   * query per target type, and only on writes that name owned rows.
+   *
+   * NotFound for a foreign target as for a missing one, for the reason above.
+   */
+  async function assertOwnsTargets(uid: string, data: unknown, user: any) {
+    const targets = collectOwnedTargets(
+      (model) => strapi.getModel(model),
+      uid,
+      data,
+      (target) => owned.has(target)
+    );
+
+    for (const [target, refs] of targets) {
+      const ids = [...new Set(refs.flatMap((ref) => ('id' in ref ? [ref.id] : [])))];
+      const documentIds = [
+        ...new Set(refs.flatMap((ref) => ('documentId' in ref ? [ref.documentId] : []))),
+      ];
+      const rows: any[] = await strapi.db.query(target).findMany({
+        where: {
+          $or: [
+            ...(ids.length ? [{ id: { $in: ids } }] : []),
+            ...(documentIds.length ? [{ documentId: { $in: documentIds } }] : []),
+          ],
+        },
+        populate: rule.populate,
+      });
+
+      for (const ref of refs) {
+        const matches = rows.filter((row) => matchesRef(row, ref));
+        if (!matches.length || !matches.every((row) => rule.owns(row, user))) {
+          throw new NotFoundError('Relation target not found');
+        }
+      }
+    }
   }
 
   return async function ownershipMiddleware(context: any, next: () => any) {
@@ -144,6 +192,7 @@ export function createOwnershipMiddleware({
     }
 
     if (action === 'create') {
+      await assertOwnsTargets(uid, params?.data, user);
       // Overwrite rather than default: a client must not choose its own owner.
       params.data = { ...(params.data ?? {}), ...rule.stamp(user) };
       return next();
@@ -151,6 +200,9 @@ export function createOwnershipMiddleware({
 
     if (DOCUMENT_ACTIONS.has(action)) {
       await assertOwns(uid, params?.documentId, user);
+      if (action === 'update' || action === 'clone') {
+        await assertOwnsTargets(uid, params?.data, user);
+      }
       // A clone would otherwise inherit the source row's owner implicitly.
       if (action === 'clone') {
         params.data = { ...(params.data ?? {}), ...rule.stamp(user) };

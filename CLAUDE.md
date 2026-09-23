@@ -194,7 +194,7 @@ empty shell, because every data call is still authorized by Strapi and scoped by
 
 # Backend
 
-Strapi `5.50.0`, TypeScript. Scripts: `npm run develop` / `build` / `start` / `deploy`.
+Strapi `5.50.2`, TypeScript. Scripts: `npm run develop` / `build` / `start` / `deploy`.
 DB via `DATABASE_CLIENT` (mysql | postgres | sqlite), **defaults to SQLite** locally
 (`backend/config/database.ts`). Media uploads go to AWS S3.
 
@@ -202,8 +202,22 @@ Content types under `backend/src/api/*/content-types/*/schema.json`: `task`, `pr
 `review`, `daily-pick`, `calendar-subscription`, `calendar-event-decision`, `practice-log` (with a
 `material` relation to `task` and a `segments` JSON column),
 `system-setting`, `invite`. Strapi 5 style — `documentId` is the stable identifier used throughout the
-frontend. Every one of them carries a `private` `owner` relation and is registered for the ownership
-middleware. Node engine constraint: `>=18 <=22.x`.
+frontend. Every one of them except `invite` carries a `private` `owner` relation and is registered for
+the ownership middleware (`backend/src/ownership/`); `invite` has no owner, and only the scoped invite
+token can reach it. Node engine constraint: `>=18 <=22.x`.
+
+**The ownership middleware also checks every row a write links to.** Strapi resolves relation targets,
+and populates them, with no owner filter, so a link to someone else's row would cross tenants and hand
+that row back in the response. `relations.ts` reads the relation shapes Strapi 5 accepts and rejects
+any other; a foreign or missing target is a 404, like a foreign row. `disconnect` is never checked: it
+only unlinks. `scripts/audit-cross-owner-links.js` lists any link that crosses owners (read-only).
+
+**Auth and ownership go only through Strapi's documented extension points** — the document-service
+middleware, `strapi.db.query`, `strapi.getModel`, config — never a patch or an override of its built-in
+controllers or plugin schemas. Brendan's rule: updating Strapi's package must not break our code. Where
+we lean on Strapi's behavior, fail closed and loudly. **After every Strapi upgrade**, run
+`npm run test:run` in both apps and `scripts/verify-isolation.sh` against a running Strapi
+(`relations.test.ts` also runs Strapi's own relation parser, so a changed parser fails there first).
 
 **Never edit a `schema.json` by hand to change a content type** — add fields and enum values through the
 Strapi Admin UI (see the standing note in Brendan's memory). Editing the file skips the migration Strapi
@@ -527,7 +541,9 @@ is server state via `useActiveSession`, which polls every 30s **only while somet
   choose its own owner. `invite.usedBy` trips only the second: writing it requires granting the invite
   token `plugin::users-permissions.user.find`, which also lets that token list every user's email.
   When a relation is mysteriously "invalid", check the caller's `find` permission on the *target* before
-  suspecting `private`.
+  suspecting `private`. A write that is mysteriously a **404** on a row the caller does own is the
+  ownership middleware refusing a relation *target*: one of the rows it links to isn't theirs, or doesn't
+  exist (`backend/src/ownership/relations.ts`).
 - **Strapi has no compare-and-set.** Anything read-then-write (invite redemption, the moon-phase reset)
   needs an in-process guard keyed by the thing being mutated. Correct on the single-process droplet; the
   same caveat as `app/api/auth/rate-limiter.ts`. This is also the argument against appending to a JSON

@@ -7,30 +7,57 @@ import {
   mergeFilters,
 } from './index';
 import { OWNED_CONTENT_TYPES, ownerIsRequestUser } from './rule';
+import { loadModels } from './schemas.test-support';
 
 const UID = 'api::task.task';
 const ALICE = { id: 2 };
 const BOB = { id: 3 };
+const MODELS = loadModels();
+
+/** A row a write can link to, for `db.query(uid).findMany`. */
+interface TargetRow {
+  uid: string;
+  id: number;
+  documentId: string;
+  owner: any;
+}
 
 /**
  * A fake Strapi. `url: null` means "no HTTP request" — a script or a lifecycle,
  * which is the case guard 2a must let through or the backfill cannot run.
+ * `targets` are the rows relation lookups can find; `queries` records each
+ * lookup's content type.
  */
 function fakeStrapi({
   url,
   user,
   row,
+  targets = [],
 }: {
   url?: string | null;
   user?: any;
   row?: any;
+  targets?: TargetRow[];
 } = {}) {
+  const queries: string[] = [];
+  const matches = (target: TargetRow, clause: any) =>
+    'id' in clause ? clause.id.$in.includes(target.id) : clause.documentId.$in.includes(target.documentId);
   return {
+    queries,
     requestContext: {
       get: () => (url === null || url === undefined ? undefined : { request: { url }, state: { user } }),
     },
     config: { get: (_key: string, fallback: any) => fallback },
-    db: { query: () => ({ findOne: async () => row ?? null }) },
+    getModel: (uid: string) => MODELS[uid],
+    db: {
+      query: (uid: string) => ({
+        findOne: async () => row ?? null,
+        findMany: async ({ where }: any) => {
+          queries.push(uid);
+          return targets.filter((t) => t.uid === uid && where.$or.some((c: any) => matches(t, c)));
+        },
+      }),
+    },
   };
 }
 
@@ -294,5 +321,124 @@ describe('task is an owned content type', () => {
     const next = vi.fn().mockResolvedValue('ok');
     await mw({ uid: UID, action: 'update', params: { documentId: 'x' } }, next);
     expect(next).toHaveBeenCalled();
+  });
+});
+
+describe('relation targets — a write may only link to the caller’s rows', () => {
+  const TARGETS: TargetRow[] = [
+    { uid: 'api::project.project', id: 10, documentId: 'alice-project', owner: ALICE },
+    { uid: 'api::project.project', id: 11, documentId: 'bob-project', owner: BOB },
+    { uid: 'api::world.world', id: 20, documentId: 'alice-world', owner: ALICE },
+    { uid: 'api::world.world', id: 21, documentId: 'bob-world', owner: BOB },
+    { uid: 'api::task.task', id: 30, documentId: 'alice-task', owner: ALICE },
+    { uid: 'api::task.task', id: 31, documentId: 'bob-task', owner: BOB },
+  ];
+
+  const setup = ({ url = '/api/tasks', row = { owner: ALICE } }: { url?: string | null; row?: any } = {}) => {
+    const strapi = fakeStrapi({ url, user: ALICE, row, targets: TARGETS });
+    const mw = createOwnershipMiddleware({ strapi, contentTypes: OWNED_CONTENT_TYPES, rule: ownerIsRequestUser });
+    return { strapi, mw };
+  };
+
+  const rejected = async (uid: string, action: string, params: any, name = 'NotFoundError') => {
+    const { mw } = setup();
+    const next = vi.fn();
+    await expect(mw({ uid, action, params }, next)).rejects.toMatchObject({ name });
+    expect(next).not.toHaveBeenCalled();
+  };
+
+  const allowed = async (uid: string, action: string, params: any, options?: { url?: string | null }) => {
+    const { mw, strapi } = setup(options);
+    const next = vi.fn().mockResolvedValue('ok');
+    await mw({ uid, action, params }, next);
+    expect(next).toHaveBeenCalled();
+    return strapi;
+  };
+
+  it('refuses a task created on someone else’s project, by documentId', async () => {
+    await rejected(UID, 'create', { data: { title: 't', project: 'bob-project' } });
+  });
+
+  it('refuses it by numeric id, which Strapi would link without any lookup', async () => {
+    await rejected(UID, 'create', { data: { title: 't', project: 11 } });
+  });
+
+  it('refuses it through connect', async () => {
+    await rejected(UID, 'create', { data: { title: 't', project: { connect: [{ documentId: 'bob-project' }] } } });
+  });
+
+  it('refuses setting someone else’s task onto the caller’s own project', async () => {
+    await rejected('api::project.project', 'update', {
+      documentId: 'alice-project',
+      data: { tasks: { set: ['bob-task'] } },
+    });
+  });
+
+  it('refuses someone else’s world as a project’s world', async () => {
+    await rejected('api::project.project', 'update', { documentId: 'alice-project', data: { worldRef: 'bob-world' } });
+  });
+
+  it('refuses someone else’s world inside a view section', async () => {
+    await rejected('api::view.view', 'create', { data: { name: 'v', sections: [{ worlds: ['bob-world'] }] } });
+  });
+
+  it('refuses someone else’s task as practice material', async () => {
+    await rejected('api::practice-log.practice-log', 'create', { data: { material: 31 } });
+  });
+
+  it('refuses a list that mixes the caller’s rows with someone else’s', async () => {
+    await rejected('api::review.review', 'create', { data: { tasks: ['alice-task', 'bob-task'] } });
+  });
+
+  it('treats a target that does not exist like a foreign one', async () => {
+    await rejected(UID, 'create', { data: { project: 'no-such-project' } });
+  });
+
+  it('refuses an id that is not a plain integer', async () => {
+    await rejected(UID, 'create', { data: { project: '12abc' } });
+  });
+
+  it('rejects a relation shape it does not recognize', async () => {
+    await rejected(UID, 'create', { data: { project: { foo: 1 } } }, 'ValidationError');
+  });
+
+  it('allows links to the caller’s own rows, in every form', async () => {
+    await allowed(UID, 'create', { data: { title: 't', project: 'alice-project' } });
+    await allowed(UID, 'create', { data: { title: 't', project: 10 } });
+    await allowed('api::project.project', 'update', {
+      documentId: 'alice-project',
+      data: { tasks: { connect: [30] }, worldRef: 'alice-world' },
+    });
+    await allowed('api::view.view', 'create', { data: { sections: [{ worlds: ['alice-world', 20] }] } });
+  });
+
+  it('allows a disconnect, even from someone else’s row — it only unlinks, and cleans up', async () => {
+    const strapi = await allowed('api::project.project', 'update', {
+      documentId: 'alice-project',
+      data: { tasks: { disconnect: ['bob-task'] } },
+    });
+    expect(strapi.queries).toEqual([]);
+  });
+
+  it('allows clearing a relation', async () => {
+    await allowed(UID, 'update', { documentId: 'alice-task', data: { project: null } });
+  });
+
+  it('looks each target type up once, however many rows are named', async () => {
+    const strapi = await allowed('api::review.review', 'create', { data: { tasks: ['alice-task', 30] } });
+    expect(strapi.queries).toEqual(['api::task.task']);
+  });
+
+  it('leaves the admin panel alone', async () => {
+    await allowed(
+      UID,
+      'create',
+      { data: { project: 'bob-project', owner: { connect: [{ id: 2 }] } } },
+      { url: '/content-manager/collection-types/api::task.task' }
+    );
+  });
+
+  it('leaves scripts and lifecycles alone', async () => {
+    await allowed(UID, 'create', { data: { project: 'bob-project' } }, { url: null });
   });
 });

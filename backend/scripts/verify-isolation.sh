@@ -1,10 +1,14 @@
 #!/usr/bin/env bash
 #
-# Prove that user A cannot read or mutate user B's data.
+# Prove that user A cannot read or mutate user B's data, or link to it.
 #
 # Run against Strapi DIRECTLY, never through the Next.js proxy — the proxy is not
 # the boundary. Assumes `node scripts/seed-dev.js --reset` has run and Strapi is
 # listening.
+#
+# Run it after every Strapi upgrade. The ownership middleware leans on how Strapi
+# resolves relations and routes writes through the document service; the unit
+# tests fake Strapi, so this is the check that exercises the real one.
 #
 # Usage:
 #   STRAPI=http://localhost:1337 ./scripts/verify-isolation.sh
@@ -19,7 +23,9 @@ set -uo pipefail
 
 STRAPI="${STRAPI:-http://localhost:1337}"
 PASSWORD="${SEED_PASSWORD:-seedpassword123}"
-TYPES=(todos projects practice-logs system-settings)
+# The types seed-dev.js seeds for both users. The other owned types go through
+# the same middleware, which the unit tests cover type by type.
+TYPES=(tasks projects practice-logs system-settings)
 
 pass=0
 fail=0
@@ -49,6 +55,25 @@ first_doc() {
   curl -sg -H "Authorization: Bearer $1" "$STRAPI/api/$2?pagination[pageSize]=1" \
     | jqp 'r=d.get("data") or []
 print(r[0]["documentId"] if r else "")'
+}
+
+first_id() {
+  curl -sg -H "Authorization: Bearer $1" "$STRAPI/api/$2?pagination[pageSize]=1" \
+    | jqp 'r=d.get("data") or []
+print(r[0]["id"] if r else "")'
+}
+
+# $1 token, $2 method, $3 path, $4 JSON body. Prints the status, then the
+# created row's documentId (if any) on a second line.
+send() {
+  curl -sg -w '\n%{http_code}' -X "$2" "$STRAPI$3" -H "Authorization: Bearer $1" \
+    -H 'Content-Type: application/json' -d "$4" \
+    | python3 -c "import sys,json
+lines=sys.stdin.read().rsplit('\n',1)
+code=lines[-1]; doc=''
+try: doc=(json.loads(lines[0]).get('data') or {}).get('documentId','')
+except Exception: pass
+print(code); print(doc)"
 }
 
 echo
@@ -112,7 +137,7 @@ echo
 # The middleware $and-merges rather than spreading, so a caller cannot override
 # the owner predicate with their own.
 echo "A client-supplied owner filter cannot widen the scope:"
-n=$(curl -sg -H "Authorization: Bearer $A" "$STRAPI/api/todos?filters[owner][id][\$eq]=$BID" \
+n=$(curl -sg -H "Authorization: Bearer $A" "$STRAPI/api/tasks?filters[owner][id][\$eq]=$BID" \
     | jqp 'print(len(d.get("data") or []))')
 [ "$n" = "0" ] && ok "alice filtering for bob's owner id → 0 rows" \
                || bad "alice filtering for bob's owner id → '$n' rows (expected 0)"
@@ -131,25 +156,58 @@ echo
 echo "Create is owned by the caller:"
 # `owner` is private, so the content API rejects it in a request body before the
 # middleware is even consulted. Belt and braces.
-code=$(curl -sg -o /dev/null -w '%{http_code}' -X POST "$STRAPI/api/todos" \
+code=$(curl -sg -o /dev/null -w '%{http_code}' -X POST "$STRAPI/api/tasks" \
   -H "Authorization: Bearer $A" -H 'Content-Type: application/json' \
   -d "{\"data\":{\"title\":\"probe\",\"completed\":false,\"recurrenceType\":\"none\",\"owner\":$BID}}")
 [ "$code" = "400" ] && ok "alice naming bob as owner → $code (private field rejected)" \
                     || bad "alice naming bob as owner → $code (expected 400)"
 
-newdoc=$(curl -sg -X POST "$STRAPI/api/todos" \
+newdoc=$(curl -sg -X POST "$STRAPI/api/tasks" \
   -H "Authorization: Bearer $A" -H 'Content-Type: application/json' \
   -d '{"data":{"title":"[seed] ownership probe","completed":false,"recurrenceType":"none"}}' \
   | jqp 'print((d.get("data") or {}).get("documentId",""))')
 if [ -n "$newdoc" ]; then
-  a=$(status "$A" "/api/todos/$newdoc"); b=$(status "$B" "/api/todos/$newdoc")
+  a=$(status "$A" "/api/tasks/$newdoc"); b=$(status "$B" "/api/tasks/$newdoc")
   [ "$a" = "200" ] && [ "$b" = "404" ] \
-    && ok "alice's new todo is hers alone (alice:$a bob:$b)" \
-    || bad "new todo visibility wrong (alice:$a bob:$b)"
-  curl -sg -o /dev/null -X DELETE "$STRAPI/api/todos/$newdoc" -H "Authorization: Bearer $A"
+    && ok "alice's new task is hers alone (alice:$a bob:$b)" \
+    || bad "new task visibility wrong (alice:$a bob:$b)"
+  curl -sg -o /dev/null -X DELETE "$STRAPI/api/tasks/$newdoc" -H "Authorization: Bearer $A"
 else
-  bad "could not create a probe todo as alice"
+  bad "could not create a probe task as alice"
 fi
+echo
+
+# Strapi resolves a write's relation targets, and populates them, with no owner
+# filter, so the middleware owner-checks every row a write links to
+# (src/ownership/relations.ts). A probe that gets through is deleted again.
+echo "Writes can only link to the caller's own rows:"
+bproj=$(first_doc "$B" projects); bprojid=$(first_id "$B" projects)
+btask=$(first_doc "$B" tasks); aproj=$(first_doc "$A" projects)
+bworld=$(send "$B" POST /api/worlds '{"data":{"title":"[seed] isolation probe"}}' | sed -n 2p)
+TASK='"title":"[seed] link probe","completed":false,"recurrenceType":"none"'
+
+# $1 label, $2 expected status, $3 method, $4 path, $5 body. $6 is the type to
+# delete a created probe from, when $3 is POST.
+expect() {
+  out=$(send "$A" "$3" "$4" "$5"); code=$(sed -n 1p <<<"$out"); doc=$(sed -n 2p <<<"$out")
+  [ "$code" = "$2" ] && ok "$1 → $code" || bad "$1 → $code (expected $2)"
+  [ -n "$doc" ] && [ "$3" = POST ] && curl -sg -o /dev/null -X DELETE "$STRAPI/api/$6/$doc" -H "Authorization: Bearer $A"
+}
+
+if [ -z "$bproj" ] || [ -z "$bprojid" ] || [ -z "$btask" ] || [ -z "$aproj" ] || [ -z "$bworld" ]; then
+  bad "could not resolve the rows to probe with (bob's project, task and world; alice's project)"
+else
+  expect "alice creates a task on bob's project, by documentId" 404 POST /api/tasks "{\"data\":{$TASK,\"project\":\"$bproj\"}}" tasks
+  expect "… by numeric id" 404 POST /api/tasks "{\"data\":{$TASK,\"project\":$bprojid}}" tasks
+  expect "… through connect" 404 POST /api/tasks "{\"data\":{$TASK,\"project\":{\"connect\":[{\"documentId\":\"$bproj\"}]}}}" tasks
+  expect "alice connects bob's task to her project" 404 PUT "/api/projects/$aproj" "{\"data\":{\"tasks\":{\"connect\":[\"$btask\"]}}}"
+  expect "alice sets bob's world as her project's world" 404 PUT "/api/projects/$aproj" "{\"data\":{\"worldRef\":\"$bworld\"}}"
+  expect "alice puts bob's world in a view section" 404 POST /api/views "{\"data\":{\"name\":\"[seed] link probe\",\"sections\":[{\"worlds\":[\"$bworld\"]}]}}" views
+  expect "alice logs practice on bob's task" 404 POST /api/practice-logs "{\"data\":{\"material\":\"$btask\"}}" practice-logs
+  expect "alice creates a task on her own project" 201 POST /api/tasks "{\"data\":{$TASK,\"project\":\"$aproj\"}}" tasks
+  expect "alice disconnects bob's task (only unlinks)" 200 PUT "/api/projects/$aproj" "{\"data\":{\"tasks\":{\"disconnect\":[\"$btask\"]}}}"
+fi
+[ -n "$bworld" ] && curl -sg -o /dev/null -X DELETE "$STRAPI/api/worlds/$bworld" -H "Authorization: Bearer $B"
 
 echo
 echo "─────────────────────────────"
