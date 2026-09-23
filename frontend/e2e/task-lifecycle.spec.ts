@@ -55,15 +55,22 @@ test.describe('task lifecycle', () => {
 
       // A 500 rather than an abort: an aborted request throws, and the old code's
       // catch refetched, which hid the missing rollback. This is the real hole.
-      await page.route('**/api/tasks/*/complete', (route) =>
-        route.fulfill({
+      // Held until the tick is seen: answered at once, the rollback could land
+      // before `check()` confirmed the click, which failed WebKit runs at random.
+      let answer!: () => void;
+      const answered = new Promise<void>((resolve) => (answer = resolve));
+      await page.route('**/api/tasks/*/complete', async (route) => {
+        await answered;
+        await route.fulfill({
           status: 500,
           contentType: 'application/json',
           body: JSON.stringify({ success: false, error: 'boom' }),
-        })
-      );
+        });
+      });
 
       await checkbox.check();
+      await expect(checkbox).toBeChecked();
+      answer();
 
       await expect(checkbox).not.toBeChecked();
       await expect(row).not.toHaveClass(/completed/);
