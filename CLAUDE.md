@@ -75,6 +75,13 @@ License: AGPL v3.
     sublayers, below Tailwind's utility classes. So a utility on an element beats them — which is
     why a default a utility would override (the task grid's single column) lives in the sheet
     rather than as a class. `SlateEditor.css` is imported by its component and is unlayered.
+  - **Within a sheet, rank rules by order, not specificity: prod's CSS is not dev's.** `next build`
+    minifies and `next dev` doesn't. Tailwind merges neighboring rules with the same declarations
+    into one list, and Next's minifier (targets include Firefox 111, which lacks `:has()`) wraps a
+    list holding `:has()` in `:is()`, which takes its most specific selector's specificity. That
+    put one-section views in three columns on prod only; `task-grid.css` wraps its `:has()` counts
+    in `:where()` for this. When prod and local look different, `next build` and diff
+    `.next/static/chunks/*.css` against what commonnotebook.com serves.
   - **A class name with no CSS behind it is a hook, not a leftover.** `task-section`,
     `tasks-container`, `group-section`, `tasks-list`, `completed`, `worked-on` and the
     `layout-<slug>` names are read by browser specs, unit tests, or the `[.layout-done_&]:`

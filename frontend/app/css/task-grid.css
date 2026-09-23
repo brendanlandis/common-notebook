@@ -7,6 +7,15 @@
  * wrong exactly when one of them came up empty, and Tailwind's `has-[…]` variant
  * would not parse these selectors.
  *
+ * Every rule here weighs the same as a bare `.tasks-container`: each section
+ * count sits inside `:where()`, which adds no specificity. So the last rule that
+ * matches wins, and a count wins by coming after the default rather than by
+ * outranking it. It has to be that way round. The production build merges
+ * neighboring rules that set the same columns into one `:is()`, and `:is()`
+ * takes the specificity of its most specific selector, so a default merged with
+ * a `:has()` count outranked the one-section rule: one-section views got three
+ * columns in half the page, on prod only (`next dev` doesn't minify).
+ *
  * Everything else about these pages — the columns, rows, headings, task rows and
  * their hover states — is on the markup. See TaskSection.tsx.
  */
@@ -24,15 +33,15 @@
     grid-template-columns: 1fr 1fr;
   }
   /* 3 sections */
-  .tasks-container:has(> .task-section:first-of-type:nth-last-of-type(3)) {
+  .tasks-container:where(:has(> .task-section:first-of-type:nth-last-of-type(3))) {
     grid-template-columns: 1fr 1fr;
   }
   /* 2 sections */
-  .tasks-container:has(> .task-section:first-of-type:nth-last-of-type(2)) {
+  .tasks-container:where(:has(> .task-section:first-of-type:nth-last-of-type(2))) {
     grid-template-columns: 1fr 1fr;
   }
   /* 1 section: narrower than the page, on the left like the rest */
-  .tasks-container:has(> .task-section:only-of-type) {
+  .tasks-container:where(:has(> .task-section:only-of-type)) {
     grid-template-columns: 1fr;
     width: 80%;
   }
@@ -43,13 +52,13 @@
   .tasks-container {
     grid-template-columns: 1fr 1fr 1fr;
   }
-  .tasks-container:has(> .task-section:first-of-type:nth-last-of-type(3)) {
+  .tasks-container:where(:has(> .task-section:first-of-type:nth-last-of-type(3))) {
     grid-template-columns: 1fr 1fr 1fr;
   }
-  .tasks-container:has(> .task-section:first-of-type:nth-last-of-type(2)) {
+  .tasks-container:where(:has(> .task-section:first-of-type:nth-last-of-type(2))) {
     grid-template-columns: 1fr 1fr;
   }
-  .tasks-container:has(> .task-section:only-of-type) {
+  .tasks-container:where(:has(> .task-section:only-of-type)) {
     grid-template-columns: 1fr;
     width: 50%;
   }
@@ -60,13 +69,13 @@
   .tasks-container {
     grid-template-columns: 1fr 1fr 1fr 1fr;
   }
-  .tasks-container:has(> .task-section:first-of-type:nth-last-of-type(3)) {
+  .tasks-container:where(:has(> .task-section:first-of-type:nth-last-of-type(3))) {
     grid-template-columns: 1fr 1fr 1fr;
   }
-  .tasks-container:has(> .task-section:first-of-type:nth-last-of-type(2)) {
+  .tasks-container:where(:has(> .task-section:first-of-type:nth-last-of-type(2))) {
     grid-template-columns: 1fr 1fr;
   }
-  .tasks-container:has(> .task-section:only-of-type) {
+  .tasks-container:where(:has(> .task-section:only-of-type)) {
     grid-template-columns: 1fr;
     width: 50%;
   }
