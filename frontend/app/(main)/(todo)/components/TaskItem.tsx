@@ -28,13 +28,10 @@ interface TaskItemProps {
   onRemoveWorkSession?: (originalDocumentId: string, date: string) => void;
   onSkipRecurring: (documentId: string) => void;
   showProjectName?: boolean;
-  /** Shrink-wrapped and with its actions always out, for the roulette's one task. */
-  inline?: boolean;
 }
 
 export default function TaskItem({
   task,
-  inline = false,
   onComplete,
   onEdit,
   onDelete,
@@ -145,7 +142,7 @@ export default function TaskItem({
           : isChecked
             ? "completed opacity-30"
             : ""
-      } ${inline ? "inline-block" : ""} [.layout-done_&]:opacity-40`}
+      } [.layout-done_&]:opacity-40`}
     >
       {/* group/item: the row's actions appear on hover of the whole row. */}
       <div className="group/item flex items-center gap-2 leading-tight touch:gap-4">
@@ -244,9 +241,7 @@ export default function TaskItem({
           })() && <span> (${task.price})</span>}
         </label>
         <span
-          className={`flex flex-1 justify-start gap-icons touch:gap-4 justify-self-start group-hover/item:opacity-100 touch:opacity-100 ${
-            inline ? "opacity-100" : "opacity-0"
-          }`}
+          className="flex flex-1 justify-start gap-icons touch:gap-4 justify-self-start opacity-0 group-hover/item:opacity-100 touch:opacity-100"
         >
           {task.trackingUrl && (
             <a

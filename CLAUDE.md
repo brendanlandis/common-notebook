@@ -24,7 +24,8 @@ License: AGPL v3.
     class string for a `data-tip` tooltip in each theme's colors),
     `components/ui/DrawerHeader.tsx`, `components/ui/DisclosureToggle.tsx`, `components/auth/Auth.tsx`,
     `(main)/(todo)/components/TaskSection.tsx` (`TaskGrid`, which holds every rule for how many
-    columns a view gets; `TaskSection`, a column, which takes its heading as `title`; `TaskList`;
+    columns a view gets, or with `single`, the one centered column of a chronological or roulette
+    view; `TaskSection`, a column, which takes its heading as `title`; `TaskList`;
     and `TaskSubsections`/`TaskSubsection` for labeled lists stacked in one column), and
     `(main)/review/components/ReviewParts.tsx` (the review pages' column, sections, project groups,
     notes and put-back arrow).
@@ -90,7 +91,9 @@ License: AGPL v3.
     `layout-<slug>` names are read by browser specs, unit tests, or the `[.layout-done_&]:`
     variants; so are the review pages' `review-section`, `review-pick-list` and `is-selected`.
     `review-calendar`, `review-calendar-frame`, `is-arriving`, `is-leaving` and the `cal-*` event
-    classes are what `review-calendar.css` hangs on. Renaming one breaks tests, not styling.
+    classes are what `review-calendar.css` hangs on. Renaming one breaks tests, not styling,
+    except `single-column`: `<main>` reads it (`has-[.single-column]:`) to let a one-column view
+    center in the window past 1600px.
   - **Don't mix a named breakpoint with `min-[…px]:` on one property.** Tailwind can't order
     `sm:`'s rem against px and puts `sm:` last, so it wins at every width above it. Write them all
     in px, as `TaskGrid` does.

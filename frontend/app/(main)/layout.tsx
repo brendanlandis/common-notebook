@@ -74,8 +74,12 @@ export default async function MainLayout({
                 <HeaderContent />
               </div>
             </header>
+            {/* Past 1600px the page stops widening and stays on the left, under
+                the header. A view that's one centered column (TaskGrid's
+                `single`) lifts that, so it centers in the window rather than
+                in the first 1600px of it. */}
             <main
-              className="w-full max-w-screen overflow-hidden px-4 pt-8 min-[1600px]:max-w-[1600px]"
+              className="w-full max-w-screen overflow-hidden px-4 pt-8 min-[1600px]:max-w-[1600px] min-[1600px]:has-[.single-column]:max-w-none"
               id="main-container"
             >
               <BetaGuard>{children}</BetaGuard>

@@ -29,11 +29,9 @@ export default function RouletteLayout({
   }
 
   return (
-    <TaskGrid>
+    <TaskGrid single>
       <TaskSection>
-        {/* One task, centered, with its actions always out: there is nothing
-            else on the page to hover over. */}
-        <TaskList className="block text-center">
+        <TaskList>
           <TaskItem
             key={randomTask.documentId}
             task={randomTask}
@@ -44,7 +42,6 @@ export default function RouletteLayout({
             onRemoveWorkSession={onRemoveWorkSession}
             onSkipRecurring={onSkipRecurring}
             showProjectName={true}
-            inline
           />
         </TaskList>
       </TaskSection>

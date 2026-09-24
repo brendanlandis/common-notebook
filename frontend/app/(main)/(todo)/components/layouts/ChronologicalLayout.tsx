@@ -45,7 +45,7 @@ export default function ChronologicalLayout({
   if (tasks.length === 0) return null;
 
   return (
-    <TaskGrid>
+    <TaskGrid single>
       {recentStatsSection}
       <TaskSection>
         <TaskSubsections>

@@ -8,8 +8,9 @@ import type { ReactNode } from "react";
  * wrap. A column without one (a chronological view's months, roulette, a
  * project's page) has nothing to line up, and takes one row.
  *
- * A column alone in its grid is one column of a full row wide (see TaskGrid),
- * not the whole page.
+ * A column alone in its grid is `--column` wide at most: one column of a full
+ * row, or in a view that's one column by design, a readable measure (see
+ * TaskGrid).
  *
  * `task-section` stays as a name because the browser specs and a unit test
  * address columns by it.
@@ -42,8 +43,22 @@ const GRID = [
   "print:[--column:100%]",
 ].join(" ");
 
+/*
+ * A view that's one column by design (chronological, roulette): from 640px,
+ * centered and as wide as its content, up to a readable measure (65ch, 641px
+ * at body size), with its content on the left as usual. Centered, a grid item
+ * shrinks to fit its content. `single-column` is how <main> knows to let it
+ * center in the window past 1600px (see (main)/layout.tsx). Printing gets the
+ * full width, as the grid does.
+ */
+const SINGLE = [
+  "tasks-container single-column grid grid-cols-1 text-left",
+  "[--column:65ch] min-[640px]:justify-items-center",
+  "print:justify-items-stretch print:[--column:100%]",
+].join(" ");
+
 /**
- * The grid a view's columns sit in.
+ * The grid a view's columns sit in, or with `single`, its one column.
  *
  * No row gap: the space between one row of columns and the next is each
  * column's bottom margin. A column's rows are a subgrid of these, and a subgrid
@@ -52,13 +67,16 @@ const GRID = [
  * below nothing: a label or a phone-sized heading got 17px under it instead.
  */
 export function TaskGrid({
+  single = false,
   className = "",
   children,
 }: {
+  /** One column by design (chronological, roulette), centered. */
+  single?: boolean;
   className?: string;
   children: ReactNode;
 }) {
-  return <div className={`${GRID} ${className}`}>{children}</div>;
+  return <div className={`${single ? SINGLE : GRID} ${className}`}>{children}</div>;
 }
 
 export default function TaskSection({
