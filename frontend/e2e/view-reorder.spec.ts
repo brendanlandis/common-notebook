@@ -1,5 +1,5 @@
 import { test, expect, Page } from '@playwright/test';
-import { gotoTodo } from './helpers';
+import { gotoTodo, openManageCluster, waitUntilStill } from './helpers';
 
 // The honest version of a test the unit suite can only fake: a real failed request
 // driving the real onMutate/onError rollback in useViews. Nothing is mocked — the
@@ -12,52 +12,6 @@ import { gotoTodo } from './helpers';
 // activation constraint, and dnd-kit only recomputes the drop target on movement,
 // so the drag is pressed and stepped rather than teleported.
 
-// The drawer slides in, and toBeVisible() does not wait for that to finish —
-// boundingBox() mid-transition reports a negative x, so a drag measured then is
-// driven entirely off-screen. It still emits pointer events, so the drag silently
-// does nothing and a rollback assertion passes vacuously. Wait for the panel to
-// stop moving before measuring anything inside it.
-/**
- * Wait for an element to stop moving before measuring it.
- *
- * Anything measured mid-transition reports coordinates that are about to be
- * wrong, and a drag driven off those coordinates still emits pointer events —
- * so it silently does nothing and the assertion fails as if the feature were
- * broken. Applies to the drawer sliding in *and* to a disclosure expanding.
- */
-const waitUntilStill = async (page: Page, locator: ReturnType<Page['locator']>, what: string) => {
-  let prevX = NaN;
-  let prevY = NaN;
-  for (let i = 0; i < 60; i++) {
-    const box = await locator.boundingBox();
-    if (box && box.x === prevX && box.y === prevY && box.x >= 0) return;
-    prevX = box ? box.x : NaN;
-    prevY = box ? box.y : NaN;
-    await page.waitForTimeout(50);
-  }
-  throw new Error(`${what} never settled`);
-};
-
-/**
- * Bring out the manage buttons, the way this device would.
- *
- * They live behind a caret. On a mouse it opens on hover; on a phone there is no
- * hover and it opens on tap. Driving it with `hover()` everywhere hid a real bug
- * for as long as this suite ran on desktop Chromium only — Playwright's `hover()`
- * dispatches mouse events even in a touch context, so it opened a cluster that a
- * person holding a phone could not open at all. `(hover: none)` is the browser's
- * own answer to "can this device hover", which is exactly the question.
- */
-const openManageCluster = async (page: Page) => {
-  const caret = page.getByRole('button', { name: 'more buttons' });
-  const cannotHover = await page.evaluate(() => matchMedia('(hover: none)').matches);
-
-  if (cannotHover) await caret.tap();
-  else await caret.hover();
-
-  await expect(caret).toHaveAttribute('aria-expanded', 'true');
-};
-
 // Rows by the lists' names, and grips by their "reorder …" labels, rather than
 // by styling classes.
 const viewRows = (page: Page) =>
@@ -66,6 +20,11 @@ const sectionRows = (viewRow: ReturnType<Page['locator']>) =>
   viewRow.getByRole('list', { name: /^sections of / }).locator(':scope > li');
 const GRIP = ':scope > button[aria-label^="reorder"]';
 
+// The drawer slides in, and toBeVisible() does not wait for that to finish —
+// boundingBox() mid-transition reports a negative x, so a drag measured then is
+// driven entirely off-screen. It still emits pointer events, so the drag silently
+// does nothing and a rollback assertion passes vacuously. Wait for the panel to
+// stop moving before measuring anything inside it.
 const openViewsDrawer = async (page: Page) => {
   await gotoTodo(page);
   await openManageCluster(page);

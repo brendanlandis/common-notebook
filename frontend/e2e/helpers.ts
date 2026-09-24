@@ -1,4 +1,4 @@
-import type { APIRequestContext, Page } from '@playwright/test';
+import type { APIRequestContext, Locator, Page } from '@playwright/test';
 import { expect } from '@playwright/test';
 
 // These tests run against the `brendan` account on the local sqlite copy, so they
@@ -125,4 +125,45 @@ export async function isCompletedOnServer(
   const body = await res.json();
   if (!body.success) return false;
   return (body.data as Array<{ documentId: string }>).some((t) => t.documentId === documentId);
+}
+
+/**
+ * Wait for an element to stop moving before measuring it.
+ *
+ * Anything measured mid-transition reports coordinates that are about to be
+ * wrong, and a drag driven off those coordinates still emits pointer events —
+ * so it silently does nothing and the assertion fails as if the feature were
+ * broken. Applies to the drawer sliding in *and* to a disclosure expanding.
+ */
+export async function waitUntilStill(page: Page, locator: Locator, what: string) {
+  let prevX = NaN;
+  let prevY = NaN;
+  for (let i = 0; i < 60; i++) {
+    const box = await locator.boundingBox();
+    if (box && box.x === prevX && box.y === prevY && box.x >= 0) return;
+    prevX = box ? box.x : NaN;
+    prevY = box ? box.y : NaN;
+    await page.waitForTimeout(50);
+  }
+  throw new Error(`${what} never settled`);
+}
+
+/**
+ * Bring out the manage buttons, the way this device would.
+ *
+ * They live behind a caret. On a mouse it opens on hover; on a phone there is no
+ * hover and it opens on tap. Driving it with `hover()` everywhere hid a real bug
+ * for as long as this suite ran on desktop Chromium only — Playwright's `hover()`
+ * dispatches mouse events even in a touch context, so it opened a cluster that a
+ * person holding a phone could not open at all. `(hover: none)` is the browser's
+ * own answer to "can this device hover", which is exactly the question.
+ */
+export async function openManageCluster(page: Page) {
+  const caret = page.getByRole('button', { name: 'more buttons' });
+  const cannotHover = await page.evaluate(() => matchMedia('(hover: none)').matches);
+
+  if (cannotHover) await caret.tap();
+  else await caret.hover();
+
+  await expect(caret).toHaveAttribute('aria-expanded', 'true');
 }
