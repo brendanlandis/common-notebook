@@ -3,25 +3,47 @@ import type { ReactNode } from "react";
 /*
  * One column of a task view: a heading and its list.
  *
- * The rows are a subgrid, so every column's heading and first task line up
- * across the grid however long the headings wrap. Four views opt out — they are
- * one long list rather than a row of columns, and spanning two rows would leave
- * a gap where the second row's content isn't.
+ * A column with a heading spans two of the grid's rows as a subgrid, so its
+ * heading and first task line up with its neighbors' however long the headings
+ * wrap. A column without one (a chronological view's months, roulette, a
+ * project's page) has nothing to line up, and takes one row.
+ *
+ * A column alone in its grid is one column of a full row wide (see TaskGrid),
+ * not the whole page.
  *
  * `task-section` stays as a name because the browser specs and a unit test
  * address columns by it.
  */
-const SECTION = [
-  "task-section mb-blocks grid grid-cols-1 content-start items-start gap-heading [&_*]:break-words",
-  "row-span-2 [grid-template-rows:subgrid]",
-  "[.layout-everything_&]:row-auto [.layout-everything_&]:[grid-template-rows:none]",
-  "[.layout-recurring_&]:row-auto [.layout-recurring_&]:[grid-template-rows:none]",
-  "[.layout-chipping-away_&]:row-auto [.layout-chipping-away_&]:[grid-template-rows:none]",
-  "[.layout-data-chores_&]:row-auto [.layout-data-chores_&]:[grid-template-rows:none]",
+const SECTION =
+  "task-section mb-blocks grid grid-cols-1 content-start items-start gap-heading only:max-w-(--column) [&_*]:break-words";
+const ALIGNED = "row-span-2 [grid-template-rows:subgrid]";
+
+/*
+ * As many columns as the view shows, up to 1 under 640px, 2 from 640, 3 from
+ * 900 and 4 from 1100. `--column` is one column's width when the row is full;
+ * auto-fit drops the tracks nothing fills, so fewer columns share the width
+ * among them. The 0.1px keeps rounding from costing a full row a column.
+ * Printing gets one column.
+ *
+ * The breakpoints are all px. Tailwind can't order `sm:`'s 40rem against
+ * `min-[900px]:`, and put `sm:` last, so two columns won at every width.
+ *
+ * It's one rule on purpose. The count used to be a stylesheet asking with
+ * `:has()` how many columns had rendered, and the production build merged its
+ * rules into one that put one-column views in three columns, on prod only.
+ */
+const GRID = [
+  "tasks-container grid gap-x-columns text-left",
+  "grid-cols-[repeat(auto-fit,minmax(calc(var(--column)_-_0.1px),1fr))]",
+  "[--column:100%]",
+  "min-[640px]:[--column:calc((100%_-_var(--spacing-columns))/2)]",
+  "min-[900px]:[--column:calc((100%_-_2*var(--spacing-columns))/3)]",
+  "min-[1100px]:[--column:calc((100%_-_3*var(--spacing-columns))/4)]",
+  "print:[--column:100%]",
 ].join(" ");
 
 /**
- * The grid a view's columns sit in; the column counts live in task-grid.css.
+ * The grid a view's columns sit in.
  *
  * No row gap: the space between one row of columns and the next is each
  * column's bottom margin. A column's rows are a subgrid of these, and a subgrid
@@ -36,21 +58,28 @@ export function TaskGrid({
   className?: string;
   children: ReactNode;
 }) {
-  return (
-    <div className={`tasks-container grid gap-x-columns text-left ${className}`}>
-      {children}
-    </div>
-  );
+  return <div className={`${GRID} ${className}`}>{children}</div>;
 }
 
 export default function TaskSection({
+  title,
+  headingLevel = "h2",
   className = "",
   children,
 }: {
+  /** The column's heading. */
+  title?: ReactNode;
+  /** h3 when the column sits under a group's name (home's "recurring"), a level below it. */
+  headingLevel?: "h2" | "h3";
   className?: string;
   children: ReactNode;
 }) {
-  return <div className={`${SECTION} ${className}`}>{children}</div>;
+  return (
+    <div className={`${SECTION} ${title ? ALIGNED : ""} ${className}`}>
+      {title && <TaskSectionHeading as={headingLevel}>{title}</TaskSectionHeading>}
+      {children}
+    </div>
+  );
 }
 
 /**
@@ -58,15 +87,12 @@ export default function TaskSection({
  * screen. The button sits inline after the title rather than in a flex row,
  * because a flex row would turn the heading trim's ::before/::after (type.css)
  * into flex items.
- *
- * Columns under a group's name (home's "recurring") are a level below it, so
- * their headings are labels, `as="h3"`.
  */
-export function TaskSectionHeading({
-  as: Heading = "h2",
+function TaskSectionHeading({
+  as: Heading,
   children,
 }: {
-  as?: "h2" | "h3";
+  as: "h2" | "h3";
   children: ReactNode;
 }) {
   return (

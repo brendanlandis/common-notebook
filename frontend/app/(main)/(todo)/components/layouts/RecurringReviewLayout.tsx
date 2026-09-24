@@ -2,7 +2,6 @@
 
 import TaskSection, {
   TaskGrid,
-  TaskSectionHeading,
   TaskList,
   TaskSubsections,
   TaskSubsection,
@@ -94,9 +93,7 @@ export default function RecurringReviewLayout({
         const label = getRecurrenceTypeLabel(recurrenceType);
 
         return (
-          <TaskSection key={recurrenceType}>
-            <TaskSectionHeading>{label}</TaskSectionHeading>
-
+          <TaskSection key={recurrenceType} title={label}>
             <TaskSubsections>
               {/* Render projects and categories */}
               {sections && sections.map((section, index) => {

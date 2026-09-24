@@ -6,7 +6,6 @@
     color: #000;
   }
   .tasks-container {
-    grid-template-columns: 1fr;
     input.checkbox {
       display: none;
     }

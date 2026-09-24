@@ -1,7 +1,6 @@
 "use client";
 
 import TaskSection, {
-  TaskSectionHeading,
   TaskList,
   TaskSubsections,
   TaskSubsection,
@@ -44,8 +43,7 @@ export default function UpcomingSection({
   }
 
   return (
-    <TaskSection className="upcoming-section">
-      <TaskSectionHeading>upcoming</TaskSectionHeading>
+    <TaskSection className="upcoming-section" title="upcoming">
       <TaskSubsections className="upcoming-days">
         {upcomingTasksByDay.map((dayGroup) => {
           if (dayGroup.tasks.length === 0) {

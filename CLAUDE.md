@@ -23,10 +23,11 @@ License: AGPL v3.
     `components/ui/Button.tsx` (the outlined text button), `components/ui/tooltip.ts` (`TOOLTIP`, the
     class string for a `data-tip` tooltip in each theme's colors),
     `components/ui/DrawerHeader.tsx`, `components/ui/DisclosureToggle.tsx`, `components/auth/Auth.tsx`,
-    `(main)/(todo)/components/TaskSection.tsx` (`TaskGrid`, `TaskSection`,
-    `TaskSectionHeading`, `TaskList`, and `TaskSubsections`/`TaskSubsection` for labeled lists
-    stacked in one column), and `(main)/review/components/ReviewParts.tsx` (the
-    review pages' column, sections, project groups, notes and put-back arrow).
+    `(main)/(todo)/components/TaskSection.tsx` (`TaskGrid`, which holds every rule for how many
+    columns a view gets; `TaskSection`, a column, which takes its heading as `title`; `TaskList`;
+    and `TaskSubsections`/`TaskSubsection` for labeled lists stacked in one column), and
+    `(main)/review/components/ReviewParts.tsx` (the review pages' column, sections, project groups,
+    notes and put-back arrow).
   - **Anything that opens over the page is Radix Dialog** (`@radix-ui/react-dialog`), styled by us:
     `components/ui/Drawer.tsx` for the main menu (`chrome/MainMenu`) and the task actions drawer
     (`(todo)/components/TaskForms.tsx`), and `PracticeSessionModal`. Radix gives Escape, focus
@@ -71,20 +72,18 @@ License: AGPL v3.
   - **`screen.css` also holds** the `--transition-time` every animation uses (450ms), and two custom
     variants: `dim:` for the dark theme, and `touch:` for `(hover: none) and (pointer: coarse)`,
     which is how a control revealed on hover stays put on a phone.
-  - **The sheets, and why each is a sheet:** `task-grid.css` (how many columns a view gets depends
-    on which children actually rendered, which only `:has()` can ask), `review-calendar.css`
-    (FullCalendar's DOM, event states, keyframes and view-transition rules), `SlateEditor.css` and
-    `rich-text.css` (editor and rendered rich text), `print.css`, and `type.css`.
+  - **The sheets, and why each is a sheet:** `review-calendar.css` (FullCalendar's DOM, event
+    states, keyframes and view-transition rules), `SlateEditor.css` and `rich-text.css` (editor and
+    rendered rich text), `print.css`, and `type.css`.
   - **They sit in `@layer utilities.legacy`**, declared in `screen.css`: above daisyUI's own
-    sublayers, below Tailwind's utility classes. So a utility on an element beats them — which is
-    why a default a utility would override (the task grid's single column) lives in the sheet
-    rather than as a class. `SlateEditor.css` is imported by its component and is unlayered.
+    sublayers, below Tailwind's utility classes. So a utility on an element beats them.
+    `SlateEditor.css` is imported by its component and is unlayered.
   - **Within a sheet, rank rules by order, not specificity: prod's CSS is not dev's.** `next build`
     minifies and `next dev` doesn't. Tailwind merges neighboring rules with the same declarations
     into one list, and Next's minifier (targets include Firefox 111, which lacks `:has()`) wraps a
     list holding `:has()` in `:is()`, which takes its most specific selector's specificity. That
-    put one-section views in three columns on prod only; `task-grid.css` wraps its `:has()` counts
-    in `:where()` for this. When prod and local look different, `next build` and diff
+    once put one-section views in three columns on prod only; the column count is a single rule on
+    `TaskGrid` now. When prod and local look different, `next build` and diff
     `.next/static/chunks/*.css` against what commonnotebook.com serves.
   - **A class name with no CSS behind it is a hook, not a leftover.** `task-section`,
     `tasks-container`, `group-section`, `tasks-list`, `completed`, `worked-on` and the
@@ -92,6 +91,9 @@ License: AGPL v3.
     variants; so are the review pages' `review-section`, `review-pick-list` and `is-selected`.
     `review-calendar`, `review-calendar-frame`, `is-arriving`, `is-leaving` and the `cal-*` event
     classes are what `review-calendar.css` hangs on. Renaming one breaks tests, not styling.
+  - **Don't mix a named breakpoint with `min-[…px]:` on one property.** Tailwind can't order
+    `sm:`'s rem against px and puts `sm:` last, so it wins at every width above it. Write them all
+    in px, as `TaskGrid` does.
   - **Don't butt a bracketed class against `${` in a template literal.** Tailwind's scanner
     misses `` `text-[0.85rem]${x}` `` and silently generates nothing (a plain `mb-4` in the same spot
     is fine). Put the arbitrary class first, or a space after it.

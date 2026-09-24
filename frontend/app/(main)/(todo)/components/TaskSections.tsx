@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import TaskItem from "./TaskItem";
-import TaskSection, { TaskGrid, TaskSectionHeading, TaskList } from "./TaskSection";
+import TaskSection, { TaskGrid, TaskList } from "./TaskSection";
 import type { Project, Task } from "@/app/types/index";
 import { PencilIcon } from "@phosphor-icons/react";
 
@@ -78,26 +78,31 @@ export default function TaskSections({
         }
 
         return (
-          <TaskSection key={key}>
-            {title !== "all tasks" && (
-              <TaskSectionHeading as={headingLevel}>
-                {"documentId" in section ? (
-                  <Link href={`/project/${section.slug || section.documentId}`}>
-                    {title}
-                  </Link>
-                ) : (
-                  title
-                )}
-                {"documentId" in section && onEditProject && (
-                  <button
-                    onClick={() => onEditProject(section as Project)}
-                    aria-label="edit project"
-                  >
-                    <PencilIcon size={18} />
-                  </button>
-                )}
-              </TaskSectionHeading>
-            )}
+          <TaskSection
+            key={key}
+            headingLevel={headingLevel}
+            title={
+              title !== "all tasks" && (
+                <>
+                  {"documentId" in section ? (
+                    <Link href={`/project/${section.slug || section.documentId}`}>
+                      {title}
+                    </Link>
+                  ) : (
+                    title
+                  )}
+                  {"documentId" in section && onEditProject && (
+                    <button
+                      onClick={() => onEditProject(section as Project)}
+                      aria-label="edit project"
+                    >
+                      <PencilIcon size={18} />
+                    </button>
+                  )}
+                </>
+              )
+            }
+          >
             <TaskList>
               {tasks.map((task) => (
                 <TaskItem
@@ -118,8 +123,7 @@ export default function TaskSections({
       })}
 
       {incidentals && incidentals.length > 0 && (
-        <TaskSection>
-          <TaskSectionHeading as={headingLevel}>incidentals</TaskSectionHeading>
+        <TaskSection title="incidentals" headingLevel={headingLevel}>
           <TaskList>
             {incidentals.map((task) => (
               <TaskItem

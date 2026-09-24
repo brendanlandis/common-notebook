@@ -136,7 +136,6 @@ hr {
 
 }
 
-@import "./task-grid.css" layer(utilities.legacy);
 @import "./review-calendar.css" layer(utilities.legacy);
 
 @import "./print.css" layer(utilities.legacy);
