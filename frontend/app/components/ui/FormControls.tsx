@@ -61,8 +61,9 @@ export function Input({
 
 /**
  * `small` is for a select in the header: 1.75rem tall (a notch under daisyUI's
- * small size) with text a step below body. It is never used in a form, because
- * below 16px iOS Safari zooms the page on focus.
+ * small size) with 14px text, a notch under the small step and off the type
+ * scale on purpose. It is never used in a form, because below 16px iOS Safari
+ * zooms the page on focus.
  */
 export function Select({
   className = "",
@@ -72,7 +73,7 @@ export function Select({
 }: ComponentProps<"select"> & Sizing & { small?: boolean }) {
   // The 2px of bottom padding lifts the text 1px: centered by the box, mostly
   // lowercase text with descenders reads low.
-  const size = small ? "select-sm [--size:1.75rem] pb-[2px] text-small" : "text-body";
+  const size = small ? "select-sm [--size:1.75rem] pb-[2px] text-[0.875rem]" : "text-body";
   return (
     <select className={`select ${FIELD} ${size} ${width(fullWidth)} ${className}`} {...props} />
   );
