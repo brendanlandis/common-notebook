@@ -19,8 +19,10 @@ import SettingsPanel from "@/app/components/settings/SettingsPanel";
 export default function MainMenuPanel() {
   const [panel, setPanel] = useState<"menu" | "settings">("menu");
 
+  // The menu clips sideways, so a hidden tooltip bubble can't make the drawer
+  // scroll (see fitTooltip).
   return panel === "menu" ? (
-    <div className="min-h-full w-auto min-w-80 bg-base-300 p-4 text-base-content">
+    <div className="min-h-full w-auto min-w-80 overflow-x-clip bg-base-300 p-4 text-base-content">
       <MenuItems onOpenSettings={() => setPanel("settings")} />
     </div>
   ) : (

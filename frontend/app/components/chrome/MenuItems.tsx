@@ -31,11 +31,7 @@ export default function MenuItems({
           <button
             type="button"
             onClick={onOpenSettings}
-            // The rightmost button, whose edge would clip a centered bubble.
-            // --tt-trans is daisyUI's tooltip X-translate (default -50%); this
-            // lines the bubble's right edge up with the button's. daisyUI shares
-            // it with the tail, so the after: transform puts the tail back.
-            className={`${TOOLTIP} ${MENU_BUTTON} [--tt-trans:calc(-100%_+_1.25rem)] after:[transform:translateX(-50%)_translateY(var(--tt-pos,-0.25rem))_rotate(180deg)]`}
+            className={`${TOOLTIP} ${MENU_BUTTON}`}
             data-tip="settings"
             aria-label="settings"
           >

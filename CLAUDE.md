@@ -33,6 +33,10 @@ License: AGPL v3.
     kept inside and returned, scroll lock, and exit animations (`animate-drawer-*`/`animate-fade-*`
     in `screen.css`, keyed on `data-state`). No other Radix primitives until one is needed; daisyUI's
     checkbox drawers are gone.
+  - **Tooltips keep their bubbles on screen.** `TooltipsInView` (root layout) moves a `data-tip`
+    bubble sideways just before it shows, inside the window and anything around it that clips;
+    the tail stays on the element. A hidden bubble is still laid out, so a box that scrolls with
+    a tooltip near its edge needs `overflow-x-clip`, as the header and the main menu have.
   - **Colors are daisyUI's tokens, by their own names** (`base-content` for ink, `base-100` for
     paper, `success` for "yes, this one"). Where the two themes need different tokens, say so with
     `dim:` (or `light-dark()` in a string handed to a chart).

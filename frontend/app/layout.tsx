@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import localFont from "next/font/local";
 import { Lato } from "next/font/google";
 import "./css/screen.css";
+import TooltipsInView from "@/app/components/ui/TooltipsInView";
 
 export const metadata: Metadata = {
   title: "common notebook",
@@ -120,6 +121,7 @@ export default async function RootLayout({
         `}
       >
         {children}
+        <TooltipsInView />
       </body>
     </html>
   );
