@@ -104,124 +104,128 @@ export default function HeaderContent() {
     return (
       <>
         <LayoutSelector value={selectorValue} />
-        <button
-          onClick={openTaskForm}
-          className={TOOLTIP}
-          data-tip="add task"
-        >
-          <PlusCircleIcon size={HEADER_ICON} />
-        </button>
-        <button
-          onClick={openProjectForm}
-          className={TOOLTIP}
-          data-tip="add project"
-        >
-          <FolderSimplePlusIcon size={HEADER_ICON} />
-        </button>
-        <button
-          className={`${TOOLTIP} [&_svg]:rounded-full [&_svg]:bg-base-content [&_svg]:text-base-100 dim:[&_svg]:bg-transparent dim:[&_svg]:text-base-content`}
-          data-tip="declutter"
-          onClick={handleResetMoonPhase}
-        >
-          <MoonPhaseIcon size={MOON_ICON} />
-        </button>
-        {/* Hover to reveal on a mouse; press the caret anywhere else.
-
-            The caret had no `onClick` at all — opening was `onMouseEnter` plus
-            `onFocus`, which is no way in on a touch screen. It appeared to work
-            on iOS only by accident, because WebKit focuses a button when you tap
-            it and Chrome on Android does not: on an Android phone, manage
-            projects, manage worlds and manage views could not be reached at all.
-
-            The hover is gated on the *device*, not on the event's `pointerType`.
-            That distinction is the whole fix. Synthetic mouse events are
-            everywhere on touch devices — browsers emit them for compatibility,
-            and automation dispatches them too — so a `pointerType === 'mouse'`
-            guard still lets a phone open the cluster on "hover" and then close
-            it again the moment the pointer appears to move, which unmounted the
-            buttons in the middle of the press and meant no `click` was ever
-            delivered. `(hover: hover)` asks the only question that matters: can
-            this input device hover at all.
-
-            `onFocus`/`onBlur` are deliberately gone. A keyboard user reaches the
-            caret by tabbing and opens it with Enter or Space, which is a click —
-            the same path as everyone else. Revealing on focus additionally meant
-            the focus opened it and the resulting click closed it again.
-
-            Hovering the caret opens it, and leaving the whole cluster closes
-            it. The buttons' space is held while they're hidden (below), and
-            hovering that empty space shouldn't bring them out. */}
-        <div
-          className="flex items-center"
-          onPointerLeave={() => {
-            if (canHover()) closeManage();
-          }}
-        >
-          {/* The gap before the buttons is the caret's padding, so it counts
-              as the caret: a bigger target than the caret alone. */}
+        {/* Every button from add task on wraps to a new line as one, so a
+            line never breaks between them. */}
+        <div className="flex items-center gap-3">
           <button
-            type="button"
-            className="flex cursor-pointer items-center self-stretch pr-3"
-            aria-label="more buttons"
-            aria-expanded={showManage}
-            onPointerEnter={() => {
-              if (canHover()) openManage();
-            }}
-            onClick={() => (showManage ? closeManage() : openManage())}
+            onClick={openTaskForm}
+            className={TOOLTIP}
+            data-tip="add task"
           >
-            {/* One caret that turns to point back, rather than two that swap. */}
-            <CaretRightIcon
-              size={CARET_ICON}
-              weight="regular"
-              className={`transition-[rotate] ${MOTION} ${showManage ? "rotate-180" : ""}`}
-            />
+            <PlusCircleIcon size={HEADER_ICON} />
           </button>
-          {/* Always mounted, so it can slide shut as well as open, and always
-              its full width, so the caret and its buttons wrap to a new line
-              together. When the buttons took no room until shown, a caret at
-              the end of a line opened on hover, wrapped to the next line out
-              from under the pointer, closed, came back and opened again, in a
-              loop. The buttons slide out from behind the caret into their
-              space; the gap is outside the clip, so an icon half-way out
-              doesn't touch the caret. Closed, it's inert: the hidden buttons
-              can't be tabbed to or read out. */}
-          <div className={slidOut ? "" : "overflow-hidden"} inert={!showManage}>
-            <div
-              className={`flex items-center gap-3 transition-[translate] ${MOTION} ${
-                showManage ? "" : "-translate-x-full"
-              }`}
-              onTransitionEnd={(e) => {
-                if (e.target === e.currentTarget && showManage) setSlidOut(true);
+          <button
+            onClick={openProjectForm}
+            className={TOOLTIP}
+            data-tip="add project"
+          >
+            <FolderSimplePlusIcon size={HEADER_ICON} />
+          </button>
+          <button
+            className={`${TOOLTIP} [&_svg]:rounded-full [&_svg]:bg-base-content [&_svg]:text-base-100 dim:[&_svg]:bg-transparent dim:[&_svg]:text-base-content`}
+            data-tip="declutter"
+            onClick={handleResetMoonPhase}
+          >
+            <MoonPhaseIcon size={MOON_ICON} />
+          </button>
+          {/* Hover to reveal on a mouse; press the caret anywhere else.
+
+              The caret had no `onClick` at all — opening was `onMouseEnter` plus
+              `onFocus`, which is no way in on a touch screen. It appeared to work
+              on iOS only by accident, because WebKit focuses a button when you tap
+              it and Chrome on Android does not: on an Android phone, manage
+              projects, manage worlds and manage views could not be reached at all.
+
+              The hover is gated on the *device*, not on the event's `pointerType`.
+              That distinction is the whole fix. Synthetic mouse events are
+              everywhere on touch devices — browsers emit them for compatibility,
+              and automation dispatches them too — so a `pointerType === 'mouse'`
+              guard still lets a phone open the cluster on "hover" and then close
+              it again the moment the pointer appears to move, which unmounted the
+              buttons in the middle of the press and meant no `click` was ever
+              delivered. `(hover: hover)` asks the only question that matters: can
+              this input device hover at all.
+
+              `onFocus`/`onBlur` are deliberately gone. A keyboard user reaches the
+              caret by tabbing and opens it with Enter or Space, which is a click —
+              the same path as everyone else. Revealing on focus additionally meant
+              the focus opened it and the resulting click closed it again.
+
+              Hovering the caret opens it, and leaving the whole cluster closes
+              it. The buttons' space is held while they're hidden (below), and
+              hovering that empty space shouldn't bring them out. */}
+          <div
+            className="flex items-center"
+            onPointerLeave={() => {
+              if (canHover()) closeManage();
+            }}
+          >
+            {/* The gap before the buttons is the caret's padding, so it counts
+                as the caret: a bigger target than the caret alone. */}
+            <button
+              type="button"
+              className="flex cursor-pointer items-center self-stretch pr-3"
+              aria-label="more buttons"
+              aria-expanded={showManage}
+              onPointerEnter={() => {
+                if (canHover()) openManage();
               }}
+              onClick={() => (showManage ? closeManage() : openManage())}
             >
-              {/* aria-label as well as data-tip: these are icon-only buttons, so
-                  the tooltip is the only thing naming them and it is presentation
-                  — a screen reader announced three unlabeled buttons, and no
-                  locator could address them by name either. */}
-              <button
-                onClick={openManageProjects}
-                className={TOOLTIP}
-                data-tip="manage projects"
-                aria-label="manage projects"
+              {/* One caret that turns to point back, rather than two that swap. */}
+              <CaretRightIcon
+                size={CARET_ICON}
+                weight="regular"
+                className={`transition-[rotate] ${MOTION} ${showManage ? "rotate-180" : ""}`}
+              />
+            </button>
+            {/* Always mounted, so it can slide shut as well as open, and always
+                its full width, so the header's buttons wrap with room for these
+                three. When they took no room until shown, a caret at the end of
+                a line opened on hover, wrapped to the next line out from under
+                the pointer, closed, came back and opened again, in a loop. They
+                slide out from behind the caret into their space; the gap is
+                outside the clip, so an icon half-way out doesn't touch the
+                caret. Closed, it's inert: the hidden buttons can't be tabbed to
+                or read out. */}
+            <div className={slidOut ? "" : "overflow-hidden"} inert={!showManage}>
+              <div
+                className={`flex items-center gap-3 transition-[translate] ${MOTION} ${
+                  showManage ? "" : "-translate-x-full"
+                }`}
+                onTransitionEnd={(e) => {
+                  if (e.target === e.currentTarget && showManage) setSlidOut(true);
+                }}
               >
-                <FoldersIcon size={HEADER_ICON} />
-              </button>
-              <button
-                onClick={openWorlds}
-                className={TOOLTIP}
-                data-tip="manage worlds"
-                aria-label="manage worlds"
-              >
-                <PlanetIcon size={HEADER_ICON} />
-              </button>
-              <button
-                onClick={openViews}
-                className={TOOLTIP}
-                data-tip="manage views"
-                aria-label="manage views"
-              >
-                <SquaresFourIcon size={HEADER_ICON} />
-              </button>
+                {/* aria-label as well as data-tip: these are icon-only buttons, so
+                    the tooltip is the only thing naming them and it is presentation
+                    — a screen reader announced three unlabeled buttons, and no
+                    locator could address them by name either. */}
+                <button
+                  onClick={openManageProjects}
+                  className={TOOLTIP}
+                  data-tip="manage projects"
+                  aria-label="manage projects"
+                >
+                  <FoldersIcon size={HEADER_ICON} />
+                </button>
+                <button
+                  onClick={openWorlds}
+                  className={TOOLTIP}
+                  data-tip="manage worlds"
+                  aria-label="manage worlds"
+                >
+                  <PlanetIcon size={HEADER_ICON} />
+                </button>
+                <button
+                  onClick={openViews}
+                  className={TOOLTIP}
+                  data-tip="manage views"
+                  aria-label="manage views"
+                >
+                  <SquaresFourIcon size={HEADER_ICON} />
+                </button>
+              </div>
             </div>
           </div>
         </div>
