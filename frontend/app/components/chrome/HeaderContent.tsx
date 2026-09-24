@@ -20,7 +20,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiSend, swallow } from "@/app/lib/apiFetch";
 import { TASKS_ROOT } from "@/app/(main)/(todo)/hooks/useTasks";
 import { TOOLTIP } from "@/app/components/ui/tooltip";
-import { CONTROL_ICON, CARET_ICON, MOON_ICON } from "@/app/components/chrome/iconSizes";
+import { HEADER_ICON, CARET_ICON, MOON_ICON } from "@/app/components/chrome/iconSizes";
 import { isTodoPath } from "@/app/lib/pages";
 import { prefersReducedMotion } from "@/app/lib/viewTransition";
 
@@ -109,14 +109,14 @@ export default function HeaderContent() {
           className={TOOLTIP}
           data-tip="add task"
         >
-          <PlusCircleIcon size={CONTROL_ICON} />
+          <PlusCircleIcon size={HEADER_ICON} />
         </button>
         <button
           onClick={openProjectForm}
           className={TOOLTIP}
           data-tip="add project"
         >
-          <FolderSimplePlusIcon size={CONTROL_ICON} />
+          <FolderSimplePlusIcon size={HEADER_ICON} />
         </button>
         <button
           className={`${TOOLTIP} [&_svg]:rounded-full [&_svg]:bg-base-content [&_svg]:text-base-100 dim:[&_svg]:bg-transparent dim:[&_svg]:text-base-content`}
@@ -146,21 +146,27 @@ export default function HeaderContent() {
             `onFocus`/`onBlur` are deliberately gone. A keyboard user reaches the
             caret by tabbing and opens it with Enter or Space, which is a click —
             the same path as everyone else. Revealing on focus additionally meant
-            the focus opened it and the resulting click closed it again. */}
+            the focus opened it and the resulting click closed it again.
+
+            Hovering the caret opens it, and leaving the whole cluster closes
+            it. The buttons' space is held while they're hidden (below), and
+            hovering that empty space shouldn't bring them out. */}
         <div
           className="flex items-center"
-          onPointerEnter={() => {
-            if (canHover()) openManage();
-          }}
           onPointerLeave={() => {
             if (canHover()) closeManage();
           }}
         >
+          {/* The gap before the buttons is the caret's padding, so it counts
+              as the caret: a bigger target than the caret alone. */}
           <button
             type="button"
-            className="flex cursor-pointer items-center"
+            className="flex cursor-pointer items-center self-stretch pr-3"
             aria-label="more buttons"
             aria-expanded={showManage}
+            onPointerEnter={() => {
+              if (canHover()) openManage();
+            }}
             onClick={() => (showManage ? closeManage() : openManage())}
           >
             {/* One caret that turns to point back, rather than two that swap. */}
@@ -170,52 +176,52 @@ export default function HeaderContent() {
               className={`transition-[rotate] ${MOTION} ${showManage ? "rotate-180" : ""}`}
             />
           </button>
-          {/* Always mounted, so it can slide shut as well as open. A grid column
-              going from 0fr to 1fr is how a width animates to fit its content;
-              the buttons sit at its right edge, so they come out from behind
-              the caret. The gap is outside the clip, so an icon half-way out
+          {/* Always mounted, so it can slide shut as well as open, and always
+              its full width, so the caret and its buttons wrap to a new line
+              together. When the buttons took no room until shown, a caret at
+              the end of a line opened on hover, wrapped to the next line out
+              from under the pointer, closed, came back and opened again, in a
+              loop. The buttons slide out from behind the caret into their
+              space; the gap is outside the clip, so an icon half-way out
               doesn't touch the caret. Closed, it's inert: the hidden buttons
               can't be tabbed to or read out. */}
-          <div
-            className={`ml-3 grid transition-[grid-template-columns] ${MOTION} ${
-              showManage ? "grid-cols-[1fr]" : "grid-cols-[0fr]"
-            }`}
-            inert={!showManage}
-            onTransitionEnd={(e) => {
-              if (e.target === e.currentTarget && showManage) setSlidOut(true);
-            }}
-          >
-            <div className={`flex min-w-0 justify-end ${slidOut ? "" : "overflow-hidden"}`}>
-              <div className="flex shrink-0 items-center gap-3">
-                {/* aria-label as well as data-tip: these are icon-only buttons, so
-                    the tooltip is the only thing naming them and it is presentation
-                    — a screen reader announced three unlabeled buttons, and no
-                    locator could address them by name either. */}
-                <button
-                  onClick={openManageProjects}
-                  className={TOOLTIP}
-                  data-tip="manage projects"
-                  aria-label="manage projects"
-                >
-                  <FoldersIcon size={CONTROL_ICON} />
-                </button>
-                <button
-                  onClick={openWorlds}
-                  className={TOOLTIP}
-                  data-tip="manage worlds"
-                  aria-label="manage worlds"
-                >
-                  <PlanetIcon size={CONTROL_ICON} />
-                </button>
-                <button
-                  onClick={openViews}
-                  className={TOOLTIP}
-                  data-tip="manage views"
-                  aria-label="manage views"
-                >
-                  <SquaresFourIcon size={CONTROL_ICON} />
-                </button>
-              </div>
+          <div className={slidOut ? "" : "overflow-hidden"} inert={!showManage}>
+            <div
+              className={`flex items-center gap-3 transition-[translate] ${MOTION} ${
+                showManage ? "" : "-translate-x-full"
+              }`}
+              onTransitionEnd={(e) => {
+                if (e.target === e.currentTarget && showManage) setSlidOut(true);
+              }}
+            >
+              {/* aria-label as well as data-tip: these are icon-only buttons, so
+                  the tooltip is the only thing naming them and it is presentation
+                  — a screen reader announced three unlabeled buttons, and no
+                  locator could address them by name either. */}
+              <button
+                onClick={openManageProjects}
+                className={TOOLTIP}
+                data-tip="manage projects"
+                aria-label="manage projects"
+              >
+                <FoldersIcon size={HEADER_ICON} />
+              </button>
+              <button
+                onClick={openWorlds}
+                className={TOOLTIP}
+                data-tip="manage worlds"
+                aria-label="manage worlds"
+              >
+                <PlanetIcon size={HEADER_ICON} />
+              </button>
+              <button
+                onClick={openViews}
+                className={TOOLTIP}
+                data-tip="manage views"
+                aria-label="manage views"
+              >
+                <SquaresFourIcon size={HEADER_ICON} />
+              </button>
             </div>
           </div>
         </div>

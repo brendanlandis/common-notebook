@@ -61,12 +61,14 @@ export default async function MainLayout({
                 whatever page is open. That it cannot be navigated away from is
                 the feature. */}
             <PracticeSessionModal />
-            <header className="grid grid-cols-1 items-start px-4 pt-4">
+            {/* Clipped sideways only. A hidden tooltip is still laid out, and
+                one under a button near the right edge made the page wider
+                than the window while the manage buttons were out. */}
+            <header className="grid grid-cols-1 items-start overflow-x-clip px-4 pt-4">
               {/* Wraps, because on a phone this row is wider than the
-                  screen. Revealing the manage cluster adds three buttons
-                  to a row that already fills a 393px viewport; without
-                  wrapping they extended past the right edge, present in
-                  the DOM and impossible to touch. */}
+                  screen. Without wrapping, the manage cluster's buttons
+                  extended past the right edge of a 393px viewport, present
+                  in the DOM and impossible to touch. */}
               <div className="flex flex-wrap items-center gap-3 justify-self-start">
                 <MainMenu />
                 <HeaderContent />

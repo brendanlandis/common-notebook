@@ -108,16 +108,27 @@ describe("HeaderContent manage-buttons disclosure", () => {
     expect(container.querySelector('[aria-label="more buttons"]')).toBeTruthy();
   });
 
-  it("reveals and wires the manage-projects button on hover", () => {
+  it("reveals and wires the manage-projects button on hovering the caret", () => {
     const { container } = renderHeader();
-    fireEvent.pointerEnter(container.querySelector('[aria-label="more buttons"]')!.parentElement!);
+    const caret = container.querySelector('[aria-label="more buttons"]')!;
+    fireEvent.pointerEnter(caret);
     expect(reachable(container, "manage projects")).toBe(true);
     expect(reachable(container, "manage worlds")).toBe(true);
     fireEvent.click(container.querySelector('[data-tip="manage projects"]')!);
     expect(openManageProjects).toHaveBeenCalledTimes(1);
-    // Leaving collapses it again.
-    fireEvent.pointerLeave(container.querySelector('[aria-label="more buttons"]')!.parentElement!);
+    // Leaving the cluster collapses it again.
+    fireEvent.pointerLeave(caret.parentElement!);
     expect(reachable(container, "manage projects")).toBe(false);
+  });
+
+  it("stays shut when the pointer enters the buttons' space rather than the caret", () => {
+    // The buttons keep their room while hidden, so the caret and its buttons
+    // wrap to a new line together. Passing over that empty room shouldn't
+    // bring them out.
+    const { container } = renderHeader();
+    const caret = container.querySelector('[aria-label="more buttons"]')!;
+    fireEvent.pointerEnter(caret.nextElementSibling!);
+    expect(reachable(container, "manage views")).toBe(false);
   });
 
   it("opens on a press, which is how a phone and a keyboard both get in", () => {
@@ -151,16 +162,16 @@ describe("HeaderContent manage-buttons disclosure", () => {
     // and nothing happened at all.
     withHover(false);
     const { container } = renderHeader();
-    const cluster = container.querySelector('[aria-label="more buttons"]')!.parentElement!;
+    const caret = container.querySelector('[aria-label="more buttons"]')!;
 
-    fireEvent.pointerEnter(cluster);
+    fireEvent.pointerEnter(caret);
     expect(reachable(container, "manage views")).toBe(false);
 
-    fireEvent.click(container.querySelector('[aria-label="more buttons"]')!);
+    fireEvent.click(caret);
     expect(reachable(container, "manage views")).toBe(true);
 
     // And a stray pointerleave must not snatch it away again.
-    fireEvent.pointerLeave(cluster);
+    fireEvent.pointerLeave(caret.parentElement!);
     expect(reachable(container, "manage views")).toBe(true);
   });
 });

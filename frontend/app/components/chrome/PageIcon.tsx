@@ -8,9 +8,9 @@ import type { Icon, IconProps } from "@phosphor-icons/react";
 
 /**
  * Each page's icon, and its size in the header. The sizes were set by eye
- * (2026-09-21) so the four read as the same height as the header's other
- * icons at 32px: the metronome's thin outline reads small, the broom's bulk
- * reads large.
+ * (2026-09-21) so the four read as the same height as a 32px icon, like the
+ * menu's close button that lands on them: the metronome's thin outline reads
+ * small, the broom's bulk reads large.
  */
 function pageIcon(path: string): { Icon: Icon; headerSize: number } {
   if (path === "/practice") return { Icon: MetronomeIcon, headerSize: 34 };
