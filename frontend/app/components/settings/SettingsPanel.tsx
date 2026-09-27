@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, type ReactNode } from "react";
+import { useState, useEffect } from "react";
 import TimezoneManager from "@/app/components/settings/TimezoneManager";
 import { saveVisibilityMinutesToStrapi } from "@/app/lib/completedTaskVisibilityConfig";
 import {
@@ -8,6 +8,8 @@ import {
   saveAutoDeclutterToStrapi,
 } from "@/app/lib/autoDeclutterConfig";
 import { saveSystemSetting } from "@/app/lib/systemSettingsClient";
+import { saveStuffProjectsEnabledToStrapi } from "@/app/lib/stuffProjectsConfig";
+import { useStuffProjects } from "@/app/(main)/(todo)/contexts/StuffProjectsContext";
 import { useDateTimeSettings } from "@/app/contexts/DateTimeSettingsContext";
 import { useBetaAccess } from "@/app/hooks/useBetaAccess";
 import { useReviewCadence } from "@/app/hooks/useReviewCadence";
@@ -16,7 +18,8 @@ import RecurrencePicker from "@/app/components/ui/RecurrencePicker";
 import { cadenceIsUsable } from "@/app/lib/reviewCadence";
 import CalendarsManager from "@/app/components/settings/CalendarsManager";
 import LogoutButton from "@/app/components/settings/LogoutButton";
-import { CheckboxInput, Field, Input, Select } from "@/app/components/ui/FormControls";
+import { Checkbox, CheckboxInput, Field, Input, Select } from "@/app/components/ui/FormControls";
+import DrawerSection from "@/app/components/ui/DrawerSection";
 
 export default function SettingsPanel() {
   const [autoDeclutter, setAutoDeclutter] = useState<boolean>(true); // Default on
@@ -31,6 +34,12 @@ export default function SettingsPanel() {
   } = useDateTimeSettings();
   const dayBoundaryHour = timeZoneSettings.dayBoundaryHour;
   const visibilityMinutes = completedTaskVisibilityMinutes;
+  // Loaded and held by StuffProjectsProvider, which the to-do views read too.
+  const {
+    stuffProjectsEnabled,
+    setStuffProjectsEnabled,
+    isLoaded: stuffProjectsLoaded,
+  } = useStuffProjects();
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -103,6 +112,21 @@ export default function SettingsPanel() {
     setIsSaving(false);
   };
 
+  const handleStuffProjectsChange = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const newValue = event.target.checked;
+    setStuffProjectsEnabled(newValue);
+    setIsSaving(true);
+
+    const success = await saveStuffProjectsEnabledToStrapi(newValue);
+    if (!success) {
+      console.error("Failed to save enable-stuff-projects setting");
+    }
+
+    setIsSaving(false);
+  };
+
   // Format hour for display (0 -> "12am", 1 -> "1am", 13 -> "1pm", etc.)
   const formatHour = (hour: number): string => {
     if (hour === 0) return "12am";
@@ -113,11 +137,11 @@ export default function SettingsPanel() {
 
   return (
     <div>
-      <SettingsSection title="timezone">
+      <DrawerSection title="timezone">
         <TimezoneManager />
-      </SettingsSection>
+      </DrawerSection>
 
-      <SettingsSection
+      <DrawerSection
         title="task completion"
         description="How long do you want tasks to stay visible after you check them off?"
       >
@@ -132,9 +156,9 @@ export default function SettingsPanel() {
           <option value="60">an hour</option>
           <option value="1440">a day</option>
         </Select>
-      </SettingsSection>
+      </DrawerSection>
 
-      <SettingsSection
+      <DrawerSection
         title="day boundary"
         description="What time does your day start and end?"
       >
@@ -154,9 +178,9 @@ export default function SettingsPanel() {
             </option>
           ))}
         </Select>
-      </SettingsSection>
+      </DrawerSection>
 
-      <SettingsSection title="auto-declutter">
+      <DrawerSection title="auto-declutter">
         <label className="flex cursor-pointer items-start gap-3">
           <CheckboxInput
             className="mt-0.5 shrink-0"
@@ -169,11 +193,24 @@ export default function SettingsPanel() {
             flags.
           </span>
         </label>
-      </SettingsSection>
+      </DrawerSection>
+
+      <DrawerSection
+        title="stuff projects"
+        description='Show the "stuff" world (shopping, errands, wishlist, and "in the mail" projects) and its view? Turning this off hides them without deleting anything.'
+      >
+        <Checkbox
+          checked={stuffProjectsEnabled}
+          onChange={handleStuffProjectsChange}
+          disabled={!stuffProjectsLoaded || isSaving}
+        >
+          show stuff projects
+        </Checkbox>
+      </DrawerSection>
 
       {betaAccess && cadence && (
         <>
-          <SettingsSection
+          <DrawerSection
             title="review"
             description="How often do you want to sit down and plan?"
           >
@@ -209,7 +246,7 @@ export default function SettingsPanel() {
                 </p>
               )}
             </div>
-          </SettingsSection>
+          </DrawerSection>
 
           {/* The only thing in this app that asks where you are, and it asks
               for the least that answers the question: two numbers, typed. No
@@ -217,7 +254,7 @@ export default function SettingsPanel() {
               decimal places is a few kilometres, which moves sunset by
               seconds. */}
           {location && (
-            <SettingsSection
+            <DrawerSection
               title="where you are"
               description="Only used to work out when the sun goes down, which the daily page draws across the day."
             >
@@ -255,40 +292,21 @@ export default function SettingsPanel() {
                   />
                 </Field>
               </div>
-            </SettingsSection>
+            </DrawerSection>
           )}
 
-          <SettingsSection
+          <DrawerSection
             title="calendars"
             description="Paste a secret ics url per calendar. Adding them one at a time is the point — a calendar never worth a thought never gets added."
           >
             <CalendarsManager />
-          </SettingsSection>
+          </DrawerSection>
         </>
       )}
 
-      <SettingsSection title="account">
+      <DrawerSection title="account">
         <LogoutButton />
-      </SettingsSection>
+      </DrawerSection>
     </div>
-  );
-}
-
-/** One setting: a heading, what it's for, and its control. */
-function SettingsSection({
-  title,
-  description,
-  children,
-}: {
-  title: string;
-  description?: string;
-  children: ReactNode;
-}) {
-  return (
-    <section className="flex flex-col gap-heading border-t border-base-content/15 py-[calc(var(--spacing-sections)/2)] first:border-t-0 first:pt-0">
-      <h3 className="mt-0">{title}</h3>
-      {description && <p className="text-small opacity-75">{description}</p>}
-      {children}
-    </section>
   );
 }

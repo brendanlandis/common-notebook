@@ -22,7 +22,9 @@ License: AGPL v3.
     `Toggle` — daisyUI's controls with the app's square corners and full-strength border),
     `components/ui/Button.tsx` (the outlined text button), `components/ui/tooltip.ts` (`TOOLTIP`, the
     class string for a `data-tip` tooltip in each theme's colors),
-    `components/ui/DrawerHeader.tsx`, `components/ui/DisclosureToggle.tsx`, `components/auth/Auth.tsx`,
+    `components/ui/DrawerHeader.tsx`, `components/ui/DrawerSection.tsx` (a part of the settings or
+    manage-projects drawer, with a rule above it), `components/ui/DisclosureToggle.tsx`,
+    `components/auth/Auth.tsx`,
     `(main)/(todo)/components/TaskSection.tsx` (`TaskGrid`, which holds every rule for how many
     columns a view gets, or with `single`, the one centered column of a chronological or roulette
     view; `TaskSection`, a column, which takes its heading as `title`; `TaskList`;
@@ -45,10 +47,11 @@ License: AGPL v3.
   - **The type scale is six roles, and a heading's element is its role.** Tokens in `screen.css`,
     all in rem: `text-title` and `text-section` (Sweetheart, fluid between 393px and 1440px wide),
     `text-label` (Lato bold caps), `text-body` (17px), `text-small` (15px), `text-tiny` (12px, the
-    calendar and charts only). `type.css` gives `<h1>` the title, `<h2>` the section, and `<h3>`
-    (and below) the label, so headings need no size class, only margins. Same size means same
-    element: pick the element by role, never for its look. Rich-text notes
-    (`.slate-editor-editable`, `.rich-text-content`) are skipped and keep their own headings.
+    calendar and charts only). `type.css` gives `<h1>` the title, `<h2>` the section, `<h3>` the
+    label, and `<h4>` (and below) a group under a label, in bold body text, so headings need no size
+    class, only margins. Same size means same element: pick the element by role, never for its
+    look. Rich-text notes (`.slate-editor-editable`, `.rich-text-content`) are skipped and keep
+    their own headings.
     Inputs, selects and buttons are body size, never smaller: iOS Safari zooms the page on focus
     below 16px. `text-sm`/`text-base`/`text-xs` and arbitrary sizes are off the scale; add a role
     rather than a one-off. **A page opens on its highest heading, never a lower one.** One title

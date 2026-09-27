@@ -36,9 +36,6 @@ vi.mock("@/app/(main)/(todo)/hooks/useTasks", () => ({
 vi.mock("@/app/(main)/(todo)/hooks/useWorlds", () => ({
   useWorlds: () => ({ worlds: [wa, wStuff] }),
 }));
-vi.mock("@/app/(main)/(todo)/contexts/StuffProjectsContext", () => ({
-  useStuffProjects: () => ({ stuffProjectsEnabled: true, setStuffProjectsEnabled: vi.fn() }),
-}));
 
 const completeProject = vi.fn().mockResolvedValue(undefined);
 const reviveProject = vi.fn().mockResolvedValue(undefined);

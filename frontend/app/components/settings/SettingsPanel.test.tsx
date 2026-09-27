@@ -41,6 +41,13 @@ vi.mock("@/app/lib/completedTaskVisibilityConfig", () => ({
 vi.mock("@/app/lib/systemSettingsClient", () => ({
   saveSystemSetting: async () => true,
 }));
+vi.mock("@/app/(main)/(todo)/contexts/StuffProjectsContext", () => ({
+  useStuffProjects: () => ({
+    stuffProjectsEnabled: true,
+    setStuffProjectsEnabled: vi.fn(),
+    isLoaded: true,
+  }),
+}));
 vi.mock("@/app/contexts/DateTimeSettingsContext", () => ({
   useDateTimeSettings: () => ({
     timeZoneSettings: { timezone: "America/New_York", dayBoundaryHour: 4 },

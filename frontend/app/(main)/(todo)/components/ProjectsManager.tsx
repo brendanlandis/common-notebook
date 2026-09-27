@@ -5,13 +5,13 @@ import type { Project, ProjectImportance } from "@/app/types/index";
 import { useTasks } from "@/app/(main)/(todo)/hooks/useTasks";
 import { useWorlds } from "@/app/(main)/(todo)/hooks/useWorlds";
 import { useManageProjects } from "@/app/(main)/(todo)/hooks/useManageProjects";
-import { useStuffProjects } from "@/app/(main)/(todo)/contexts/StuffProjectsContext";
-import { saveStuffProjectsEnabledToStrapi } from "@/app/lib/stuffProjectsConfig";
 import { doneCandidates, orderDoneCandidates, groupProjectsByWorld } from "@/app/lib/manageProjects";
 import { swallow } from "@/app/lib/apiFetch";
 import ProjectForm from "@/app/(main)/(todo)/components/ProjectForm";
-import { Checkbox, Input, Select } from "@/app/components/ui/FormControls";
+import { Input, Select } from "@/app/components/ui/FormControls";
+import Button from "@/app/components/ui/Button";
 import DisclosureToggle from "@/app/components/ui/DisclosureToggle";
+import DrawerSection from "@/app/components/ui/DrawerSection";
 
 const PER_WORLD = 10; // section 3: rows shown per world before "load more"
 
@@ -27,14 +27,12 @@ const PER_WORLD = 10; // section 3: rows shown per world before "load more"
 export default function ProjectsManager() {
   const { grouped, tasks, loading } = useTasks();
   const { worlds } = useWorlds();
-  const { stuffProjectsEnabled, setStuffProjectsEnabled } = useStuffProjects();
 
   const [search3, setSearch3] = useState("");
   const [search4, setSearch4] = useState("");
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [expandedWorlds, setExpandedWorlds] = useState<Set<string>>(new Set());
   const [visible, setVisible] = useState<Record<string, number>>({});
-  const [stuffSaving, setStuffSaving] = useState(false);
 
   const manage = useManageProjects(search4);
 
@@ -89,15 +87,6 @@ export default function ProjectsManager() {
   const loadMore = (key: string) =>
     setVisible((v) => ({ ...v, [key]: (v[key] ?? PER_WORLD) + PER_WORLD }));
 
-  const handleStuffToggle = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const next = e.target.checked;
-    setStuffProjectsEnabled(next);
-    setStuffSaving(true);
-    const ok = await saveStuffProjectsEnabledToStrapi(next);
-    if (!ok) console.error("Failed to save enable-stuff-projects setting");
-    setStuffSaving(false);
-  };
-
   // A project label prefixed by its world, e.g. "make music: tethers lp4".
   const worldPrefixed = (p: Project) => (p.world?.title ? `${p.world.title}: ${p.title}` : p.title);
 
@@ -116,7 +105,7 @@ export default function ProjectsManager() {
   const search3Lower = search3.trim().toLowerCase();
 
   return (
-    <div className="flex flex-col gap-sections">
+    <div>
       {/* 1 ── Are these done yet? ─────────────────────────────────────────── */}
       <ManagerSection title="are these done yet?">
         {candidates.length === 0 ? (
@@ -125,13 +114,14 @@ export default function ProjectsManager() {
           <ul className="flex flex-col gap-rows">
             {candidates.map((p) => (
               <ProjectRow key={p.documentId} as="li" title={worldPrefixed(p)}>
-                <button
-                  type="button"
+                <Button
+                  small
+                  className="shrink-0"
                   onClick={() => swallow("complete project", manage.completeProject(p.documentId))}
                   disabled={manage.busy}
                 >
                   mark complete
-                </button>
+                </Button>
               </ProjectRow>
             ))}
           </ul>
@@ -139,23 +129,12 @@ export default function ProjectsManager() {
       </ManagerSection>
 
       {/* 2 ── Importance ──────────────────────────────────────────────────── */}
+      {/* Each list's picker sits under its heading, where a long list can't
+          push it out of reach, and an empty list shows nothing at all. */}
       <ManagerSection title="importance">
         <div className="flex flex-col gap-lists">
           <div className="flex flex-col gap-heading">
-            <h3 className="mb-0">top of mind</h3>
-            {topOfMind ? (
-              <ProjectRow title={worldPrefixed(topOfMind)}>
-                <button
-                  type="button"
-                  onClick={() => setImportance(topOfMind.documentId, "normal")}
-                  disabled={manage.busy}
-                >
-                  → normal
-                </button>
-              </ProjectRow>
-            ) : (
-              <Muted>none</Muted>
-            )}
+            <h4>top of mind</h4>
             <Select
               aria-label="set top of mind"
               value=""
@@ -165,27 +144,22 @@ export default function ProjectsManager() {
               <option value="">set top of mind…</option>
               {groupedOptions(projects.filter((p) => p.importance !== "top of mind"))}
             </Select>
+            {topOfMind && (
+              <ProjectRow title={worldPrefixed(topOfMind)}>
+                <Button
+                  small
+                  className="shrink-0"
+                  onClick={() => setImportance(topOfMind.documentId, "normal")}
+                  disabled={manage.busy}
+                >
+                  mark normal
+                </Button>
+              </ProjectRow>
+            )}
           </div>
 
           <div className="flex flex-col gap-heading">
-            <h3 className="mb-0">later</h3>
-            {laterProjects.length === 0 ? (
-              <Muted>none</Muted>
-            ) : (
-              <ul className="flex flex-col gap-rows">
-                {laterProjects.map((p) => (
-                  <ProjectRow key={p.documentId} as="li" title={worldPrefixed(p)}>
-                    <button
-                      type="button"
-                      onClick={() => setImportance(p.documentId, "normal")}
-                      disabled={manage.busy}
-                    >
-                      → normal
-                    </button>
-                  </ProjectRow>
-                ))}
-              </ul>
-            )}
+            <h4>later</h4>
             <Select
               aria-label="add to later"
               value=""
@@ -195,6 +169,22 @@ export default function ProjectsManager() {
               <option value="">add to later…</option>
               {groupedOptions(projects.filter((p) => p.importance !== "later"))}
             </Select>
+            {laterProjects.length > 0 && (
+              <ul className="flex flex-col gap-rows">
+                {laterProjects.map((p) => (
+                  <ProjectRow key={p.documentId} as="li" title={worldPrefixed(p)}>
+                    <Button
+                      small
+                      className="shrink-0"
+                      onClick={() => setImportance(p.documentId, "normal")}
+                      disabled={manage.busy}
+                    >
+                      mark normal
+                    </Button>
+                  </ProjectRow>
+                ))}
+              </ul>
+            )}
           </div>
         </div>
       </ManagerSection>
@@ -282,13 +272,14 @@ export default function ProjectsManager() {
           <ul className="flex flex-col gap-rows">
             {manage.completedProjects.map((p) => (
               <ProjectRow key={p.documentId} as="li" title={p.title}>
-                <button
-                  type="button"
+                <Button
+                  small
+                  className="shrink-0"
                   onClick={() => swallow("revive project", manage.reviveProject(p.documentId))}
                   disabled={manage.busy}
                 >
                   revive
-                </button>
+                </Button>
               </ProjectRow>
             ))}
           </ul>
@@ -304,32 +295,15 @@ export default function ProjectsManager() {
           </button>
         )}
       </ManagerSection>
-
-      {/* ── stuff projects (moved here from /settings) ─────────────────────── */}
-      <ManagerSection title="stuff projects">
-        <p className="m-0 text-small opacity-75">
-          show the &quot;stuff&quot; world (shopping, errands, wishlist, and &quot;in the
-          mail&quot; projects) and its view? turning this off hides them without deleting
-          anything.
-        </p>
-        <Checkbox
-          checked={stuffProjectsEnabled}
-          onChange={handleStuffToggle}
-          disabled={stuffSaving}
-        >
-          show stuff projects
-        </Checkbox>
-      </ManagerSection>
     </div>
   );
 }
 
 function ManagerSection({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section className="flex flex-col gap-heading">
-      <h3 className="m-0">{title}</h3>
+    <DrawerSection title={title}>
       <div className="flex flex-col gap-rows">{children}</div>
-    </section>
+    </DrawerSection>
   );
 }
 
