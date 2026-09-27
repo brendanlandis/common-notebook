@@ -3,6 +3,9 @@
  * the light theme and the accent in the dark one, each with its own foreground.
  * Put it on anything with a `data-tip`.
  *
+ * Its text sits 1px above the middle of the bubble, which keeps its height:
+ * centered by the box, lowercase text reads low, as in the header's select.
+ *
  * Its bubble moves sideways by `--tip-shift` to stay on screen (see
  * `fitTooltip`). That's the `translate` property, which daisyUI doesn't
  * animate, so the bubble is already in place as it fades in.
@@ -11,6 +14,7 @@ export const TOOLTIP = [
   "tooltip tooltip-bottom",
   "[--tt-bg:var(--color-success)] before:text-success-content",
   "dim:[--tt-bg:var(--color-accent)] dim:before:text-accent-content",
+  "before:pt-[3px] before:pb-[5px]",
   "before:[translate:var(--tip-shift,0)]",
 ].join(" ");
 
