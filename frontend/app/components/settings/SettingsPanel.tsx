@@ -179,7 +179,7 @@ export default function SettingsPanel() {
           >
             <div className="flex flex-col gap-fields">
               <RecurrencePicker
-                labelInputs
+                labelAll
                 value={cadence}
                 onChange={(next) => saveCadence({ ...cadence, ...next })}
               />

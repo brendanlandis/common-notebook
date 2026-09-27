@@ -133,12 +133,12 @@ export interface RecurrencePickerProps {
    */
   errors?: Partial<Record<keyof RecurrenceRule, string | undefined>>;
   /**
-   * Labels above the number fields as well. A select always shows its label,
-   * since it can't hold a placeholder; a number field says what it is with its
-   * placeholder, which is all the task form gives it. The settings drawer labels
-   * both.
+   * A label above "how many days" too. That field starts empty, so in the task
+   * form its placeholder says what it is. Every other field shows its label: a
+   * select can't hold a placeholder, and "day of month" starts at 1, which hides
+   * one. The settings drawer labels them all.
    */
-  labelInputs?: boolean;
+  labelAll?: boolean;
 }
 
 export default function RecurrencePicker({
@@ -146,10 +146,26 @@ export default function RecurrencePicker({
   onChange,
   offset,
   errors,
-  labelInputs = false,
+  labelAll = false,
 }: RecurrencePickerProps) {
   const type = value.recurrenceType;
   const set = (patch: Partial<RecurrenceRule>) => onChange({ ...value, ...patch });
+
+  const whenToDisplay = offset && hasEventDate(type) && (
+    <Field label="when to display" htmlFor="displayDateOffset">
+      <Select
+        id="displayDateOffset"
+        value={offset.value}
+        onChange={(e) => offset.onChange(Number(e.target.value))}
+      >
+        {OFFSET_OPTIONS.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </Select>
+    </Field>
+  );
 
   return (
     <>
@@ -175,7 +191,7 @@ export default function RecurrencePicker({
         <Field
           label="how many days"
           htmlFor="recurrenceInterval"
-          hideLabel={!labelInputs}
+          hideLabel={!labelAll}
           error={errors?.recurrenceInterval}
         >
           <Input
@@ -212,27 +228,30 @@ export default function RecurrencePicker({
         </Field>
       )}
 
+      {/* Shares its line with "when to display" where there is one: both are
+          short, and each alone took the drawer's full width. */}
       {type === "monthly date" && (
-        <Field
-          label="day of month (1-31)"
-          htmlFor="recurrenceDayOfMonth"
-          hideLabel={!labelInputs}
-          error={errors?.recurrenceDayOfMonth}
-        >
-          <Input
-            id="recurrenceDayOfMonth"
-            type="number"
-            min="1"
-            max="31"
-            placeholder="day of month (1-31)"
-            value={value.recurrenceDayOfMonth ?? ""}
-            onChange={(e) =>
-              set({
-                recurrenceDayOfMonth: e.target.value === "" ? null : Number(e.target.value),
-              })
-            }
-          />
-        </Field>
+        <div className={whenToDisplay ? "grid gap-fields sm:grid-cols-2" : undefined}>
+          <Field
+            label="day of month (1-31)"
+            htmlFor="recurrenceDayOfMonth"
+            error={errors?.recurrenceDayOfMonth}
+          >
+            <Input
+              id="recurrenceDayOfMonth"
+              type="number"
+              min="1"
+              max="31"
+              value={value.recurrenceDayOfMonth ?? ""}
+              onChange={(e) =>
+                set({
+                  recurrenceDayOfMonth: e.target.value === "" ? null : Number(e.target.value),
+                })
+              }
+            />
+          </Field>
+          {whenToDisplay}
+        </div>
       )}
 
       {type === "monthly day" && (
@@ -314,21 +333,7 @@ export default function RecurrencePicker({
         </div>
       )}
 
-      {offset && hasEventDate(type) && (
-        <Field label="when to display" htmlFor="displayDateOffset">
-          <Select
-            id="displayDateOffset"
-            value={offset.value}
-            onChange={(e) => offset.onChange(Number(e.target.value))}
-          >
-            {OFFSET_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </Select>
-        </Field>
-      )}
+      {type !== "monthly date" && whenToDisplay}
     </>
   );
 }
