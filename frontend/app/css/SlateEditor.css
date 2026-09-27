@@ -66,10 +66,13 @@
   white-space: pre-wrap;
 }
 
-/* A placeholder as strong as an input's (daisyUI's half), where Slate sets a
-   third inline, which only !important gets past. */
+/* A placeholder as strong as an input's (daisyUI's half), on the line typing
+   starts on. Slate's inline style gives it a third, and `top: 0` against the
+   editor's padding box, which is the padding above that line; only !important
+   gets past it. */
 .slate-editor-editable [data-slate-placeholder] {
   opacity: 0.5 !important;
+  top: 1rem !important; /* the editor's padding */
 }
 
 /* Block Element Styles */
