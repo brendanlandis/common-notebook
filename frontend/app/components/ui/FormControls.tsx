@@ -17,8 +17,8 @@ const width = (fullWidth: boolean) => (fullWidth ? "w-full" : "w-auto");
 
 /**
  * A control with its label. The label sits above it, or with `hideLabel` is
- * left to screen readers where a placeholder or the value already says what
- * the field is.
+ * left to screen readers where a placeholder already says what the field is.
+ * A control that can't hold a placeholder (a select, a date) shows its label.
  */
 export function Field({
   label,

@@ -316,7 +316,9 @@ export default function ProjectsManager() {
           checked={stuffProjectsEnabled}
           onChange={handleStuffToggle}
           disabled={stuffSaving}
-        />
+        >
+          show stuff projects
+        </Checkbox>
       </ManagerSection>
     </div>
   );

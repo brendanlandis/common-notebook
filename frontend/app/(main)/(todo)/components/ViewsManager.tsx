@@ -163,22 +163,24 @@ export default function ViewsManager() {
                     <Input
                       type="text"
                       className="min-w-0 basis-full"
+                      placeholder="view name"
                       defaultValue={view.name}
                       onBlur={(e) => handleRename(view, e.target.value)}
                       disabled={busy}
                       aria-label="view name"
                     />
-                    <Select
-                      fullWidth={false}
-                      value={view.layout}
-                      onChange={(e) => handleLayout(view, e.target.value as ViewLayout)}
-                      disabled={busy}
-                      aria-label="layout"
-                    >
-                      {LAYOUT_OPTIONS.map((o) => (
-                        <option key={o.value} value={o.value}>{o.label}</option>
-                      ))}
-                    </Select>
+                    <SideLabel label="layout">
+                      <Select
+                        fullWidth={false}
+                        value={view.layout}
+                        onChange={(e) => handleLayout(view, e.target.value as ViewLayout)}
+                        disabled={busy}
+                      >
+                        {LAYOUT_OPTIONS.map((o) => (
+                          <option key={o.value} value={o.value}>{o.label}</option>
+                        ))}
+                      </Select>
+                    </SideLabel>
                     <button type="button" onClick={() => handleDeleteView(view)} disabled={busy}>delete</button>
                   </div>
 
@@ -308,9 +310,11 @@ export default function ViewsManager() {
           disabled={busy}
           aria-label="new view name"
         />
-        <Select fullWidth={false} value={newLayout} onChange={(e) => setNewLayout(e.target.value as ViewLayout)} disabled={busy} aria-label="new view layout">
-          {LAYOUT_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-        </Select>
+        <SideLabel label="layout">
+          <Select fullWidth={false} value={newLayout} onChange={(e) => setNewLayout(e.target.value as ViewLayout)} disabled={busy}>
+            {LAYOUT_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+          </Select>
+        </SideLabel>
         <button type="button" onClick={handleAdd} disabled={busy || !newName.trim()}>add view</button>
       </div>
     </div>
@@ -321,6 +325,19 @@ export default function ViewsManager() {
 function InlineField({ label, children }: { label: string; children: ReactNode }) {
   return (
     <label className="grid gap-1 sm:grid-cols-[6.5rem_1fr] sm:items-center sm:gap-2">
+      <span className="text-small opacity-75">{label}</span>
+      {children}
+    </label>
+  );
+}
+
+/**
+ * A control's name just before it, in a row it shares with other controls, or
+ * above it where the two don't fit on one line.
+ */
+function SideLabel({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <label className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
       <span className="text-small opacity-75">{label}</span>
       {children}
     </label>

@@ -66,6 +66,12 @@
   white-space: pre-wrap;
 }
 
+/* A placeholder as strong as an input's (daisyUI's half), where Slate sets a
+   third inline, which only !important gets past. */
+.slate-editor-editable [data-slate-placeholder] {
+  opacity: 0.5 !important;
+}
+
 /* Block Element Styles */
 .slate-editor-editable {
   h1 {

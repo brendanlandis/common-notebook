@@ -65,7 +65,7 @@ export default function ProjectSelector({
         onChange(documentId, project?.projectType ?? null);
       }}
     >
-      <option value="">project</option>
+      <option value="">no project</option>
       {visibleWorlds.map((world) => {
         const worldProjects = projectsByWorldId.get(world.documentId);
         if (!worldProjects || worldProjects.length === 0) return null;

@@ -130,14 +130,25 @@ export default function ProjectForm({
       </Field>
 
       <Field label="slug" htmlFor="slug" hideLabel>
-        <Input id="slug" type="text" value={slugPreview} readOnly tabIndex={-1} />
+        <Input
+          id="slug"
+          type="text"
+          placeholder="slug"
+          value={slugPreview}
+          readOnly
+          tabIndex={-1}
+        />
       </Field>
 
       <Field label="description" htmlFor="description" hideLabel>
-        <RichTextEditor value={description} onChange={setDescription} />
+        <RichTextEditor
+          value={description}
+          onChange={setDescription}
+          placeholder="description"
+        />
       </Field>
 
-      <Field label="world" htmlFor="world" hideLabel>
+      <Field label="world" htmlFor="world">
         <Select id="world" {...register("world")}>
           <option value="">no world</option>
           {worlds.map((w) => (
@@ -152,7 +163,7 @@ export default function ProjectForm({
           world is chosen, since the two questions are really one: filing a
           project there is what makes "instrument or study?" worth asking. */}
       {isSubject && (
-        <Field label="kind of subject" htmlFor="subjectType" hideLabel>
+        <Field label="kind of subject" htmlFor="subjectType">
           <Select id="subjectType" {...register("subjectType")}>
             <option value="instrument">instrument</option>
             <option value="study">study</option>
@@ -169,7 +180,7 @@ export default function ProjectForm({
         </Checkbox>
       )}
 
-      <Field label="importance" htmlFor="importance" hideLabel>
+      <Field label="importance" htmlFor="importance">
         <Select id="importance" {...register("importance")}>
           <option value="normal">normal</option>
           <option value="top of mind">top of mind</option>

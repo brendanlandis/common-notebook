@@ -99,6 +99,7 @@ export default function WorldsManager() {
                 <Input
                   type="text"
                   className="min-w-0"
+                  placeholder="world name"
                   defaultValue={world.title}
                   onBlur={(e) => handleRename(world, e.target.value)}
                   disabled={busy}

@@ -374,7 +374,7 @@ export default function TaskForm({ task, onSubmit, onCancel }: TaskFormProps) {
       className="flex flex-col gap-fields text-left"
       onSubmit={handleSubmit(handleFormSubmit)}
     >
-      <Field label="project" htmlFor="project" hideLabel>
+      <Field label="project" htmlFor="project">
         <ProjectSelector
           id="project"
           value={unifiedValue}
@@ -393,7 +393,11 @@ export default function TaskForm({ task, onSubmit, onCancel }: TaskFormProps) {
       </Field>
 
       <Field label="description" htmlFor="description" hideLabel>
-        <RichTextEditor value={description} onChange={setDescription} />
+        <RichTextEditor
+          value={description}
+          onChange={setDescription}
+          placeholder="description"
+        />
       </Field>
 
       {showTrackingUrl(selectedProjectType) && (

@@ -133,11 +133,12 @@ export interface RecurrencePickerProps {
    */
   errors?: Partial<Record<keyof RecurrenceRule, string | undefined>>;
   /**
-   * Labels above each control. The task form leaves them to screen readers,
-   * since each select's value already reads as a phrase ("weekly", "mondays");
-   * the settings drawer shows them.
+   * Labels above the number fields as well. A select always shows its label,
+   * since it can't hold a placeholder; a number field says what it is with its
+   * placeholder, which is all the task form gives it. The settings drawer labels
+   * both.
    */
-  showLabels?: boolean;
+  labelInputs?: boolean;
 }
 
 export default function RecurrencePicker({
@@ -145,15 +146,14 @@ export default function RecurrencePicker({
   onChange,
   offset,
   errors,
-  showLabels = false,
+  labelInputs = false,
 }: RecurrencePickerProps) {
   const type = value.recurrenceType;
   const set = (patch: Partial<RecurrenceRule>) => onChange({ ...value, ...patch });
-  const hideLabel = !showLabels;
 
   return (
     <>
-      <Field label="recurrence type" htmlFor="recurrenceType" hideLabel={hideLabel}>
+      <Field label="recurrence type" htmlFor="recurrenceType">
         <Select
           id="recurrenceType"
           value={type}
@@ -175,7 +175,7 @@ export default function RecurrencePicker({
         <Field
           label="how many days"
           htmlFor="recurrenceInterval"
-          hideLabel={hideLabel}
+          hideLabel={!labelInputs}
           error={errors?.recurrenceInterval}
         >
           <Input
@@ -196,7 +196,6 @@ export default function RecurrencePicker({
         <Field
           label="day of week"
           htmlFor="recurrenceDayOfWeek"
-          hideLabel={hideLabel}
           error={errors?.recurrenceDayOfWeek}
         >
           <Select
@@ -217,7 +216,7 @@ export default function RecurrencePicker({
         <Field
           label="day of month (1-31)"
           htmlFor="recurrenceDayOfMonth"
-          hideLabel={hideLabel}
+          hideLabel={!labelInputs}
           error={errors?.recurrenceDayOfMonth}
         >
           <Input
@@ -241,7 +240,6 @@ export default function RecurrencePicker({
           <Field
             label="week of month"
             htmlFor="recurrenceWeekOfMonth"
-            hideLabel={hideLabel}
             error={errors?.recurrenceWeekOfMonth}
           >
             <Select
@@ -259,7 +257,6 @@ export default function RecurrencePicker({
           <Field
             label="day of week"
             htmlFor="recurrenceDayOfWeekMonthly"
-            hideLabel={hideLabel}
             error={errors?.recurrenceDayOfWeekMonthly}
           >
             <Select
@@ -284,7 +281,6 @@ export default function RecurrencePicker({
           <Field
             label="month"
             htmlFor="recurrenceMonth"
-            hideLabel={hideLabel}
             error={errors?.recurrenceMonth}
           >
             <Select
@@ -299,7 +295,7 @@ export default function RecurrencePicker({
               ))}
             </Select>
           </Field>
-          <Field label="day of month" htmlFor="recurrenceDayOfMonth" hideLabel={hideLabel}>
+          <Field label="day of month" htmlFor="recurrenceDayOfMonth">
             <Select
               id="recurrenceDayOfMonth"
               value={value.recurrenceDayOfMonth ?? 1}
