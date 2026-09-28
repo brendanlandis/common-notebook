@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import type { View, ViewSectionInput, ViewLayout, WorldMode } from "@/app/types/index";
+import { PlusIcon, XIcon } from "@phosphor-icons/react";
+import type { View, ViewSectionInput, ViewLayout, World, WorldMode } from "@/app/types/index";
 import { useViews } from "@/app/(main)/(todo)/hooks/useViews";
 import { useWorlds } from "@/app/(main)/(todo)/hooks/useWorlds";
 import {
@@ -12,7 +13,7 @@ import {
   PROJECT_TYPE_OPTIONS,
   RECURRENCE_OPTIONS,
 } from "@/app/lib/views";
-import { Checkbox, Input, Select } from "@/app/components/ui/FormControls";
+import { CheckboxInput, Input, Select } from "@/app/components/ui/FormControls";
 import Button from "@/app/components/ui/Button";
 import DeleteButton from "@/app/components/ui/DeleteButton";
 import DrawerSection from "@/app/components/ui/DrawerSection";
@@ -239,7 +240,8 @@ export default function ViewsManager() {
                       groupKey={`sections:${view.documentId}`}
                       ids={view.sections.map((_, si) => sectionId(view.documentId, si))}
                     >
-                      <ul aria-label={`sections of ${view.name}`} className="flex flex-col gap-rows">
+                      {/* No box of their own: a faint rule between them. */}
+                      <ul aria-label={`sections of ${view.name}`} className="flex flex-col divide-y divide-base-content/15">
                       {view.sections.map((section, si) => {
                         const input = sectionToInput(section);
                         const showWorlds = input.worldMode !== "all";
@@ -247,28 +249,30 @@ export default function ViewsManager() {
                           <SortableRow
                             key={si}
                             id={sectionId(view.documentId, si)}
-                            className="grid grid-cols-[auto_1fr] items-start gap-controls rounded border-l-[3px] border-base-300 bg-base-200 p-2"
+                            className="grid grid-cols-[auto_1fr] items-start gap-controls py-4 first:pt-2"
                             handleLabel={`reorder section ${si + 1} of ${view.name}`}
                             disabled={busy || !multiSection || view.sections.length < 2}
                           >
                             <div className="flex min-w-0 flex-col gap-rows">
                               {multiSection && (
-                                // Keyed by its own value: the row is keyed by
-                                // index, so after a reorder React reuses this DOM
-                                // node and an uncontrolled input ignores the new
-                                // defaultValue — the selects (which are
-                                // controlled) would swap while the label stayed
-                                // put. The key forces a remount.
-                                <Input
-                                  key={`${si}-${section.name ?? ""}`}
-                                  type="text"
-                                  className="min-w-0"
-                                  placeholder="section label"
-                                  defaultValue={section.name ?? ""}
-                                  onBlur={(e) => patchSection(view, si, { name: e.target.value.trim() || undefined })}
-                                  disabled={busy}
-                                  aria-label="section label"
-                                />
+                                <InlineField label="label">
+                                  {/* Keyed by its own value: the row is keyed by
+                                      index, so after a reorder React reuses this
+                                      DOM node and an uncontrolled input ignores
+                                      the new defaultValue — the selects (which
+                                      are controlled) would swap while the label
+                                      stayed put. The key forces a remount. */}
+                                  <Input
+                                    key={`${si}-${section.name ?? ""}`}
+                                    type="text"
+                                    className="min-w-0"
+                                    placeholder="section label"
+                                    defaultValue={section.name ?? ""}
+                                    onBlur={(e) => patchSection(view, si, { name: e.target.value.trim() || undefined })}
+                                    disabled={busy}
+                                    aria-label="section label"
+                                  />
+                                </InlineField>
                               )}
                               <InlineField label="worlds">
                                 <Select className="min-w-0" value={input.worldMode} onChange={(e) => patchSection(view, si, { worldMode: e.target.value as WorldMode })} disabled={busy} aria-label="worlds mode">
@@ -276,17 +280,15 @@ export default function ViewsManager() {
                                 </Select>
                               </InlineField>
                               {showWorlds && (
-                                <div className="flex flex-wrap gap-x-4 gap-y-2 sm:pl-[6.5rem]">
-                                  {worlds.map((w) => (
-                                    <Checkbox
-                                      key={w.documentId}
-                                      checked={input.worlds.includes(w.documentId)}
-                                      onChange={() => toggleWorld(view, si, w.documentId)}
-                                      disabled={busy}
-                                    >
-                                      {w.title}
-                                    </Checkbox>
-                                  ))}
+                                // Outside the label: a click on a chip's name
+                                // mustn't reach the mode select.
+                                <div className={`grid ${FIELD_COLUMNS}`}>
+                                  <WorldsField
+                                    worlds={worlds}
+                                    selected={input.worlds}
+                                    onToggle={(worldId) => toggleWorld(view, si, worldId)}
+                                    disabled={busy}
+                                  />
                                 </div>
                               )}
                               <InlineField label="importance">
@@ -304,9 +306,9 @@ export default function ViewsManager() {
                                   {RECURRENCE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                                 </Select>
                               </InlineField>
-                              <Checkbox checked={input.longOnly} onChange={(e) => patchSection(view, si, { longOnly: e.target.checked })} disabled={busy}>
-                                long only
-                              </Checkbox>
+                              <InlineField label="long only">
+                                <CheckboxInput className="justify-self-start" checked={input.longOnly} onChange={(e) => patchSection(view, si, { longOnly: e.target.checked })} disabled={busy} />
+                              </InlineField>
                               {multiSection && view.sections.length > 1 && (
                                 <DeleteButton
                                   className="self-end"
@@ -329,7 +331,15 @@ export default function ViewsManager() {
                     )}
 
                     {expanded.has(view.documentId) && multiSection && (
-                      <Button className="self-start" onClick={() => addSection(view)} disabled={busy}>add section</Button>
+                      <button
+                        type="button"
+                        className="inline-flex self-center"
+                        aria-label="add section"
+                        onClick={() => addSection(view)}
+                        disabled={busy}
+                      >
+                        <PlusIcon size={20} aria-hidden="true" />
+                      </button>
                     )}
                   </div>
                 </SortableRow>
@@ -343,12 +353,79 @@ export default function ViewsManager() {
   );
 }
 
+/** A section's settings: names in a column, controls flush beside them. */
+const FIELD_COLUMNS = "sm:grid-cols-[6.5rem_1fr] sm:items-center sm:gap-2";
+
 /** A section setting: its name in a column beside the control, or above it on a phone. */
 function InlineField({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <label className="grid gap-1 sm:grid-cols-[6.5rem_1fr] sm:items-center sm:gap-2">
+    <label className={`grid gap-1 ${FIELD_COLUMNS}`}>
       <span className="text-small opacity-75">{label}</span>
       {children}
     </label>
+  );
+}
+
+/**
+ * The worlds a section names, as one field: each a chip with its ×, then a
+ * dropdown of the rest, where a pick adds one and never replaces. The dropdown
+ * fills the rest of the field, so a click anywhere past the chips opens it.
+ * Sits in the controls' column, under the mode it qualifies.
+ */
+function WorldsField({
+  worlds,
+  selected,
+  onToggle,
+  disabled,
+}: {
+  worlds: World[];
+  selected: string[];
+  onToggle: (worldId: string) => void;
+  disabled: boolean;
+}) {
+  const chosen = worlds.filter((w) => selected.includes(w.documentId));
+  const rest = worlds.filter((w) => !selected.includes(w.documentId));
+  return (
+    <div
+      role="group"
+      aria-label="worlds"
+      className="flex min-h-10 flex-wrap items-center gap-1 border border-base-content bg-base-100 px-2 py-1 sm:col-start-2"
+    >
+      {chosen.map((w) => (
+        <span
+          key={w.documentId}
+          className="inline-flex items-center gap-1 rounded-full border border-base-content py-0.5 pr-2 pl-3 text-small"
+        >
+          {w.title}
+          <button
+            type="button"
+            aria-label={`remove ${w.title}`}
+            onClick={() => onToggle(w.documentId)}
+            disabled={disabled}
+            className="inline-flex"
+          >
+            <XIcon size={12} weight="bold" aria-hidden="true" />
+          </button>
+        </span>
+      ))}
+      {rest.length > 0 && (
+        // Always showing its first option, which reads as the field's
+        // placeholder, at a placeholder's strength.
+        <select
+          value=""
+          onChange={(e) => e.target.value && onToggle(e.target.value)}
+          disabled={disabled}
+          aria-label="add a world"
+          className="min-w-32 flex-1 cursor-pointer appearance-none bg-transparent px-1 text-body text-base-content/50 outline-none"
+        >
+          <option value="">add a world…</option>
+          {rest.map((w) => (
+            <option key={w.documentId} value={w.documentId}>
+              {w.title}
+            </option>
+          ))}
+        </select>
+      )}
+    </div>
   );
 }
