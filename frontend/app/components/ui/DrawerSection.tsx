@@ -15,7 +15,7 @@ export default function DrawerSection({
   children: ReactNode;
 }) {
   return (
-    <section className="flex flex-col gap-heading border-t border-base-content/15 py-[calc(var(--spacing-sections)/2)] first:border-t-0 first:pt-0">
+    <section className="flex flex-col gap-heading border-t border-base-content/30 py-sections first:border-t-0 first:pt-0">
       <h3 className="mt-0">{title}</h3>
       {description && <p className="text-small opacity-75">{description}</p>}
       {children}
