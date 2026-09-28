@@ -218,8 +218,10 @@ export default function ProjectsManager() {
               >
                 {group.label}
               </DisclosureToggle>
+              {/* A world's projects sit a step in from its name, and a
+                  project's form a step in from the project's. */}
               {worldOpen && (
-                <>
+                <div className="flex flex-col gap-rows pl-4">
                   <ul className="flex flex-col gap-rows">
                     {shown.map((p) => (
                       <li key={p.documentId} className="flex flex-col gap-rows">
@@ -231,7 +233,7 @@ export default function ProjectsManager() {
                           {p.title}
                         </DisclosureToggle>
                         {expanded.has(p.documentId) && (
-                          <div>
+                          <div className="pl-4">
                             <ProjectForm
                               project={p}
                               onSubmit={(data) => handleSave(p, data)}
@@ -247,7 +249,7 @@ export default function ProjectsManager() {
                       load more
                     </Button>
                   )}
-                </>
+                </div>
               )}
             </div>
           );
