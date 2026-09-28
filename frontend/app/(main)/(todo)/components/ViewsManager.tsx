@@ -95,6 +95,9 @@ export default function ViewsManager() {
   // are `section:<viewId>:<index>`, view ids are bare documentIds.
   const handleDragEnd = (activeId: string, overId: string) => {
     if (activeId.startsWith("section:")) {
+      // A section's grip strip stays live while a save is in flight, so the
+      // strips don't flash on every edit; a drop that lands then is refused.
+      if (busy) return;
       const viewId = activeId.split(":")[1];
       // Refuse a cross-view drop: the two lists are different `sections` arrays.
       if (!overId.startsWith(`section:${viewId}:`)) return;
@@ -243,8 +246,9 @@ export default function ViewsManager() {
                       groupKey={`sections:${view.documentId}`}
                       ids={view.sections.map((_, si) => sectionId(view.documentId, si))}
                     >
-                      {/* No box of their own: a faint rule between them. */}
-                      <ul aria-label={`sections of ${view.name}`} className="flex flex-col divide-y divide-base-content/15">
+                      {/* Each a card you can pick up: its left edge is a grip
+                          strip, the full height of the card. */}
+                      <ul aria-label={`sections of ${view.name}`} className="flex flex-col gap-4">
                       {view.sections.map((section, si) => {
                         const input = sectionToInput(section);
                         const showWorlds = input.worldMode !== "all";
@@ -252,11 +256,12 @@ export default function ViewsManager() {
                           <SortableRow
                             key={si}
                             id={sectionId(view.documentId, si)}
-                            className="grid grid-cols-[auto_1fr] items-start gap-controls py-4 first:pt-2"
+                            className="grid grid-cols-[auto_1fr] border border-base-content/30 bg-base-200"
                             handleLabel={`reorder section ${si + 1} of ${view.name}`}
-                            disabled={busy || !multiSection || view.sections.length < 2}
+                            handleClassName="w-7 border-r border-base-content/30 bg-base-300"
+                            disabled={!multiSection || view.sections.length < 2}
                           >
-                            <div className="flex min-w-0 flex-col gap-rows">
+                            <div className="flex min-w-0 flex-col gap-rows p-4">
                               {multiSection && (
                                 <InlineField label="label">
                                   {/* Keyed by its own value: the row is keyed by

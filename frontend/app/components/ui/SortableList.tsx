@@ -158,6 +158,8 @@ type SortableRowProps = {
   className?: string;
   /** Accessible name for the handle, e.g. "reorder day job". */
   handleLabel: string;
+  /** Extra classes for the handle, as for a grip that runs down a card's side. */
+  handleClassName?: string;
   disabled?: boolean;
   children: ReactNode;
 };
@@ -168,6 +170,7 @@ export function SortableRow({
   id,
   className,
   handleLabel,
+  handleClassName = "",
   disabled,
   children,
 }: SortableRowProps) {
@@ -185,7 +188,7 @@ export function SortableRow({
       <button
         type="button"
         // touch-none lets dnd-kit's pointer sensor own the gesture on touch.
-        className="flex cursor-grab touch-none items-center justify-center active:cursor-grabbing disabled:cursor-default disabled:opacity-30"
+        className={`flex cursor-grab touch-none items-center justify-center active:cursor-grabbing disabled:cursor-default disabled:opacity-30 ${handleClassName}`}
         aria-label={handleLabel}
         disabled={disabled}
         {...attributes}
