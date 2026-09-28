@@ -56,8 +56,11 @@
   opacity: 0.5;
 }
 
+/* Room for three lines or so before it grows. Important because while a
+   placeholder shows, Slate sets an inline min-height of the placeholder's
+   height, one line, and the empty editor shrank to fit it. */
 .slate-editor-editable {
-  min-height: 100px;
+  min-height: 100px !important;
   padding: 1rem;
   outline: none;
   background: var(--color-base-100);
