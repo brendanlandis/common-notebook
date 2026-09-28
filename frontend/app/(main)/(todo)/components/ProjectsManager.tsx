@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
+import { PencilIcon } from "@phosphor-icons/react";
 import type { Project, ProjectImportance } from "@/app/types/index";
 import { useTasks } from "@/app/(main)/(todo)/hooks/useTasks";
 import { useWorlds } from "@/app/(main)/(todo)/hooks/useWorlds";
@@ -12,6 +13,7 @@ import { Input, Select } from "@/app/components/ui/FormControls";
 import Button from "@/app/components/ui/Button";
 import DisclosureToggle from "@/app/components/ui/DisclosureToggle";
 import DrawerSection from "@/app/components/ui/DrawerSection";
+import SlideDown from "@/app/components/ui/SlideDown";
 
 const PER_WORLD = 10; // section 3: rows shown per world before "load more"
 
@@ -218,29 +220,33 @@ export default function ProjectsManager() {
               >
                 {group.label}
               </DisclosureToggle>
-              {/* A world's projects sit a step in from its name, and a
-                  project's form a step in from the project's. */}
+              {/* A world's projects sit a step in, under its name. A project
+                  isn't a folder: its pencil slides its form out beneath it,
+                  a step further in. */}
               {worldOpen && (
                 <div className="flex flex-col gap-rows pl-4">
                   <ul className="flex flex-col gap-rows">
                     {shown.map((p) => (
-                      <li key={p.documentId} className="flex flex-col gap-rows">
-                        <DisclosureToggle
-                          expanded={expanded.has(p.documentId)}
-                          onToggle={() => toggleExpand(p.documentId)}
-                          className="w-full"
-                        >
-                          {p.title}
-                        </DisclosureToggle>
-                        {expanded.has(p.documentId) && (
-                          <div className="pl-4">
+                      <li key={p.documentId} className="flex flex-col">
+                        <ProjectRow title={p.title}>
+                          <button
+                            type="button"
+                            aria-label={`edit ${p.title}`}
+                            aria-expanded={expanded.has(p.documentId)}
+                            onClick={() => toggleExpand(p.documentId)}
+                          >
+                            <PencilIcon size={20} aria-hidden="true" />
+                          </button>
+                        </ProjectRow>
+                        <SlideDown open={expanded.has(p.documentId)}>
+                          <div className="pt-2 pl-4">
                             <ProjectForm
                               project={p}
                               onSubmit={(data) => handleSave(p, data)}
                               onCancel={() => collapse(p.documentId)}
                             />
                           </div>
-                        )}
+                        </SlideDown>
                       </li>
                     ))}
                   </ul>

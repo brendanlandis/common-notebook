@@ -103,13 +103,13 @@ describe("ProjectsManager", () => {
     expect(completeProject).toHaveBeenCalledTimes(1);
   });
 
-  it("section 3 worlds are accordions; expanding a world then a project shows the form", () => {
+  it("section 3 worlds are accordions; a project's edit button shows its form", () => {
     render(<ProjectsManager />);
     // World collapsed by default — its project rows aren't in the DOM yet.
-    expect(screen.queryByRole("button", { name: "Busy Proj" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "edit Busy Proj" })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "day job" })); // open the world
     expect(screen.queryByTestId("project-form")).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "Busy Proj" })); // open the project
+    fireEvent.click(screen.getByRole("button", { name: "edit Busy Proj" })); // open the project
     expect(screen.getByTestId("project-form").textContent).toContain("p-busy");
   });
 
