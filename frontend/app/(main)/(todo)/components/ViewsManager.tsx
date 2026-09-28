@@ -175,7 +175,7 @@ export default function ViewsManager() {
       <DrawerSection>
         <SortableProvider onDragEnd={handleDragEnd}>
           <SortableGroup groupKey="views" ids={ordered.map((v) => v.documentId)}>
-          <ul aria-label="views" className="flex flex-col gap-4">
+          <ul aria-label="views" className="flex flex-col">
             {ordered.map((view) => {
               const multiSection = view.layout === "projects";
               return (
@@ -183,8 +183,11 @@ export default function ViewsManager() {
                   key={view.documentId}
                   id={view.documentId}
                   // handle | name, layout and delete on one line, with the
-                  // view's sections under the name
-                  className="grid grid-cols-[auto_1fr] items-center gap-x-controls gap-y-rows"
+                  // view's sections under the name. An open view ends 64px
+                  // above the next, so its sections and + read as its own.
+                  className={`grid grid-cols-[auto_1fr] items-center gap-x-controls gap-y-rows last:pb-0 ${
+                    expanded.has(view.documentId) ? "pb-16" : "pb-4"
+                  }`}
                   handleLabel={`reorder ${view.name}`}
                   disabled={busy}
                 >
@@ -331,15 +334,14 @@ export default function ViewsManager() {
                     )}
 
                     {expanded.has(view.documentId) && multiSection && (
-                      <button
-                        type="button"
-                        className="inline-flex self-center"
+                      <Button
+                        className="self-center"
                         aria-label="add section"
                         onClick={() => addSection(view)}
                         disabled={busy}
                       >
                         <PlusIcon size={20} aria-hidden="true" />
-                      </button>
+                      </Button>
                     )}
                   </div>
                 </SortableRow>
