@@ -10,9 +10,9 @@ import DrawerSection from "@/app/components/ui/DrawerSection";
 import { SortableProvider, SortableGroup, SortableRow, reorderIds } from "@/app/components/ui/SortableList";
 
 // Create / rename / reorder / delete the user's worlds. Deletion is blocked
-// while any project still references the world (its trash can is dimmed, and
-// its title says how many); the stuff world (systemKey) can be renamed and
-// reordered but not deleted.
+// while any project still references the world (pressing its trash can says
+// how many); the stuff world (systemKey) can be renamed and reordered but not
+// deleted.
 //
 // Reordering is drag-only. `reorderWorlds` already carries the optimistic
 // onMutate/onError rollback, so the drag handler's whole job is handing it the
@@ -133,15 +133,15 @@ export default function WorldsManager() {
                   <DeleteButton
                     aria-label={`delete ${world.title}`}
                     question={`Are you sure you want to delete the "${world.title}" world?`}
-                    onDelete={() => handleDelete(world)}
-                    disabled={busy || isStuff || count > 0}
-                    title={
-                      count > 0
-                        ? `${count} project(s) still use this world`
-                        : isStuff
-                          ? "the stuff world can't be deleted while it exists"
-                          : "delete this world"
+                    cannot={
+                      isStuff
+                        ? "The stuff world can't be deleted. To hide it, turn off stuff projects in settings."
+                        : count > 0
+                          ? `"${world.title}" still has ${count} project${count === 1 ? "" : "s"}. Move them to another world before deleting it.`
+                          : undefined
                     }
+                    onDelete={() => handleDelete(world)}
+                    disabled={busy}
                   />
                 </SortableRow>
               );
