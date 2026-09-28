@@ -24,8 +24,8 @@ License: AGPL v3.
     the pointer says it's pressable), `components/ui/DeleteButton.tsx` (a trash can that asks
     before it deletes), `components/ui/tooltip.ts` (`TOOLTIP`, the
     class string for a `data-tip` tooltip in each theme's colors),
-    `components/ui/DrawerHeader.tsx`, `components/ui/DrawerSection.tsx` (a part of the settings or
-    manage-projects drawer, with a rule above it), `components/ui/DisclosureToggle.tsx`,
+    `components/ui/DrawerHeader.tsx`, `components/ui/DrawerSection.tsx` (a part of the settings or a
+    manage drawer, with a rule above it), `components/ui/DisclosureToggle.tsx`,
     `components/auth/Auth.tsx`,
     `(main)/(todo)/components/TaskSection.tsx` (`TaskGrid`, which holds every rule for how many
     columns a view gets, or with `single`, the one centered column of a chronological or roulette

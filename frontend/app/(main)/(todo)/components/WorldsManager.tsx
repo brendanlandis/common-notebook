@@ -4,11 +4,15 @@ import { useEffect, useState } from "react";
 import type { Project, World } from "@/app/types/index";
 import { useWorlds } from "@/app/(main)/(todo)/hooks/useWorlds";
 import { Input } from "@/app/components/ui/FormControls";
+import Button from "@/app/components/ui/Button";
+import DeleteButton from "@/app/components/ui/DeleteButton";
+import DrawerSection from "@/app/components/ui/DrawerSection";
 import { SortableProvider, SortableGroup, SortableRow, reorderIds } from "@/app/components/ui/SortableList";
 
 // Create / rename / reorder / delete the user's worlds. Deletion is blocked
-// while any project still references the world (a count is shown instead); the
-// stuff world (systemKey) can be renamed and reordered but not deleted.
+// while any project still references the world (its trash can is dimmed, and
+// its title says how many); the stuff world (systemKey) can be renamed and
+// reordered but not deleted.
 //
 // Reordering is drag-only. `reorderWorlds` already carries the optimistic
 // onMutate/onError rollback, so the drag handler's whole job is handing it the
@@ -68,10 +72,10 @@ export default function WorldsManager() {
     setBusy(false);
   };
 
+  // DeleteButton has already asked.
   const handleDelete = async (world: World) => {
     const count = projectCounts[world.documentId] ?? 0;
     if (count > 0) return;
-    if (!confirm(`Delete the "${world.title}" world?`)) return;
     setBusy(true);
     await deleteWorld(world.documentId);
     setBusy(false);
@@ -80,69 +84,72 @@ export default function WorldsManager() {
   if (loading) return <p>loading worlds…</p>;
 
   return (
-    <div className="flex flex-col gap-sections">
-      <SortableProvider onDragEnd={handleDragEnd}>
-        <SortableGroup ids={worlds.map((w) => w.documentId)}>
-        <ul aria-label="worlds" className="flex flex-col gap-rows">
-          {worlds.map((world) => {
-            const count = projectCounts[world.documentId] ?? 0;
-            const isStuff = world.systemKey === "stuff";
-            return (
-              <SortableRow
-                key={world.documentId}
-                id={world.documentId}
-                // handle | name | delete
-                className="grid grid-cols-[auto_1fr_auto] items-center gap-controls"
-                handleLabel={`reorder ${world.title}`}
-                disabled={busy}
-              >
-                <Input
-                  type="text"
-                  className="min-w-0"
-                  placeholder="world name"
-                  defaultValue={world.title}
-                  onBlur={(e) => handleRename(world, e.target.value)}
-                  disabled={busy}
-                  aria-label="world name"
-                />
-                <button
-                  type="button"
-                  onClick={() => handleDelete(world)}
-                  disabled={busy || isStuff || count > 0}
-                  title={
-                    count > 0
-                      ? `${count} project(s) still use this world`
-                      : isStuff
-                        ? "the stuff world can't be deleted while it exists"
-                        : "delete this world"
-                  }
-                >
-                  delete{count > 0 ? ` (${count})` : ""}
-                </button>
-              </SortableRow>
-            );
-          })}
-        </ul>
-        </SortableGroup>
-      </SortableProvider>
+    <div>
+      <DrawerSection>
+        <div className="flex flex-wrap items-center gap-controls">
+          <Input
+            type="text"
+            className="min-w-0 flex-[1_1_8rem]"
+            placeholder="new world"
+            value={newTitle}
+            onChange={(e) => setNewTitle(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleAdd();
+            }}
+            disabled={busy}
+            aria-label="new world name"
+          />
+          <Button onClick={handleAdd} disabled={busy || !newTitle.trim()}>
+            add world
+          </Button>
+        </div>
+      </DrawerSection>
 
-      <div className="flex flex-wrap items-center gap-controls">
-        <Input
-          type="text"
-          className="min-w-0 flex-[1_1_8rem]"
-          placeholder="new world"
-          value={newTitle}
-          onChange={(e) => setNewTitle(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") handleAdd();
-          }}
-          disabled={busy}
-          aria-label="new world name"
-        />
-        <button type="button" onClick={handleAdd} disabled={busy || !newTitle.trim()}>
-          add world
-        </button>
-      </div>
+      <DrawerSection>
+        <SortableProvider onDragEnd={handleDragEnd}>
+          <SortableGroup ids={worlds.map((w) => w.documentId)}>
+          <ul aria-label="worlds" className="flex flex-col gap-rows">
+            {worlds.map((world) => {
+              const count = projectCounts[world.documentId] ?? 0;
+              const isStuff = world.systemKey === "stuff";
+              return (
+                <SortableRow
+                  key={world.documentId}
+                  id={world.documentId}
+                  // handle | name | delete
+                  className="grid grid-cols-[auto_1fr_auto] items-center gap-controls"
+                  handleLabel={`reorder ${world.title}`}
+                  disabled={busy}
+                >
+                  <Input
+                    type="text"
+                    className="min-w-0"
+                    placeholder="world name"
+                    defaultValue={world.title}
+                    onBlur={(e) => handleRename(world, e.target.value)}
+                    disabled={busy}
+                    aria-label="world name"
+                  />
+                  <DeleteButton
+                    aria-label={`delete ${world.title}`}
+                    question={`Are you sure you want to delete the "${world.title}" world?`}
+                    onDelete={() => handleDelete(world)}
+                    disabled={busy || isStuff || count > 0}
+                    title={
+                      count > 0
+                        ? `${count} project(s) still use this world`
+                        : isStuff
+                          ? "the stuff world can't be deleted while it exists"
+                          : "delete this world"
+                    }
+                  />
+                </SortableRow>
+              );
+            })}
+          </ul>
+          </SortableGroup>
+        </SortableProvider>
+      </DrawerSection>
     </div>
   );
 }
