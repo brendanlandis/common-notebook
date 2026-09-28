@@ -49,7 +49,8 @@
  *   title     16px   a page's or drawer's title and what's under it
  *   fields    16px   one field of a form and the next, stacked or side by side
  *   columns   32px   columns side by side
- *   sections  32px   one section of a page or drawer and the next
+ *   sections  32px   one section of a page and the next (a drawer's are
+ *                    DrawerSection's, 64px either side of a rule)
  *   blocks    64px   blocks stacked: one row of columns and the next, groups
  *
  * The header's own 12px gaps are off the scale: they were set by eye before it
