@@ -40,7 +40,6 @@
   transition: all var(--transition-time) ease;
 }
 
-.slate-editor-toolbar-button:hover:not(:disabled),
 .slate-editor-toolbar-button.active {
   background-color: var(--color-base-content);
   color: var(--color-base-100);

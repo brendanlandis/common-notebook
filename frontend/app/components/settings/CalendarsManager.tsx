@@ -6,6 +6,7 @@ import { apiFetch, apiSend } from "@/app/lib/apiFetch";
 import type { ClientCalendar } from "@/app/lib/ics/clientCalendar";
 import { Field, Input } from "@/app/components/ui/FormControls";
 import Button from "@/app/components/ui/Button";
+import DeleteButton from "@/app/components/ui/DeleteButton";
 
 /**
  * Subscribing to calendars, by pasting a secret ICS URL each.
@@ -76,15 +77,12 @@ export default function CalendarsManager() {
                   <span className="ml-2 text-small italic">no url</span>
                 )}
               </span>
-              <Button
-                small
-                className="shrink-0"
+              <DeleteButton
                 aria-label={`remove ${calendar.name}`}
-                onClick={() => remove.mutate(calendar.documentId)}
+                question={`Are you sure you want to remove the "${calendar.name}" calendar?`}
+                onDelete={() => remove.mutate(calendar.documentId)}
                 disabled={remove.isPending}
-              >
-                remove
-              </Button>
+              />
             </li>
           ))}
           {calendars.length === 0 && (

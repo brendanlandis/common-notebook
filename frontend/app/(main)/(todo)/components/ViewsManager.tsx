@@ -13,6 +13,8 @@ import {
   RECURRENCE_OPTIONS,
 } from "@/app/lib/views";
 import { Checkbox, Input, Select } from "@/app/components/ui/FormControls";
+import Button from "@/app/components/ui/Button";
+import DeleteButton from "@/app/components/ui/DeleteButton";
 import DisclosureToggle from "@/app/components/ui/DisclosureToggle";
 import { SortableProvider, SortableGroup, SortableRow, reorderIds } from "@/app/components/ui/SortableList";
 import { defaultSection, sectionToInput, viewSections } from "@/app/lib/viewSectionInput";
@@ -102,7 +104,6 @@ export default function ViewsManager() {
   };
 
   const handleDeleteView = (view: View) => {
-    if (!confirm(`Delete the "${view.name}" view?`)) return;
     run(() => deleteView(view.documentId));
   };
 
@@ -181,7 +182,12 @@ export default function ViewsManager() {
                         ))}
                       </Select>
                     </SideLabel>
-                    <button type="button" onClick={() => handleDeleteView(view)} disabled={busy}>delete</button>
+                    <DeleteButton
+                      aria-label={`delete ${view.name}`}
+                      question={`Are you sure you want to delete the "${view.name}" view?`}
+                      onDelete={() => handleDeleteView(view)}
+                      disabled={busy}
+                    />
                   </div>
 
                   {/* Collapsed by default. Expanded inline, a view with several
@@ -277,7 +283,17 @@ export default function ViewsManager() {
                                 long only
                               </Checkbox>
                               {multiSection && view.sections.length > 1 && (
-                                <button type="button" className="self-end" onClick={() => removeSection(view, si)} disabled={busy} aria-label="remove section">✕</button>
+                                <DeleteButton
+                                  className="self-end"
+                                  aria-label="remove section"
+                                  question={
+                                    section.name
+                                      ? `Are you sure you want to remove the "${section.name}" section?`
+                                      : "Are you sure you want to remove this section?"
+                                  }
+                                  onDelete={() => removeSection(view, si)}
+                                  disabled={busy}
+                                />
                               )}
                             </div>
                           </SortableRow>
@@ -288,7 +304,7 @@ export default function ViewsManager() {
                     )}
 
                     {expanded.has(view.documentId) && multiSection && (
-                      <button type="button" className="self-start" onClick={() => addSection(view)} disabled={busy}>add section</button>
+                      <Button className="self-start" onClick={() => addSection(view)} disabled={busy}>add section</Button>
                     )}
                   </div>
                 </div>
@@ -315,7 +331,7 @@ export default function ViewsManager() {
             {LAYOUT_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
           </Select>
         </SideLabel>
-        <button type="button" onClick={handleAdd} disabled={busy || !newName.trim()}>add view</button>
+        <Button onClick={handleAdd} disabled={busy || !newName.trim()}>add view</Button>
       </div>
     </div>
   );

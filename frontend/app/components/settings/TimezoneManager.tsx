@@ -218,7 +218,7 @@ export default function TimezoneManager() {
       <button
         type="button"
         onClick={handleDetectTimezone}
-        className="flex cursor-pointer items-center justify-center disabled:cursor-not-allowed disabled:opacity-50"
+        className="flex items-center justify-center disabled:opacity-50"
         title="detect timezone"
       >
         {/* Counterclockwise, a little faster than Tailwind's spin. A loop, not a

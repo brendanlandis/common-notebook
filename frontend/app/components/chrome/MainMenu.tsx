@@ -14,7 +14,7 @@ export default function MainMenu() {
         type="button"
         aria-label="open menu"
         onClick={() => setOpen(true)}
-        className="cursor-pointer text-success dim:text-primary"
+        className="text-success dim:text-primary"
       >
         <HeaderIcon />
       </button>

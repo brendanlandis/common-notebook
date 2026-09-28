@@ -124,8 +124,9 @@
 }
 
 /* Tailwind's preflight gives buttons the default arrow; every button here is
- * something to press. */
-button {
+ * something to press, and the pointer is all that says so: no button changes
+ * on hover. A disabled one keeps the arrow. */
+button:not(:disabled) {
   cursor: pointer;
 }
 

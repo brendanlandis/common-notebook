@@ -94,7 +94,7 @@ export default function PracticeSessionModal() {
         // exactly the "hide but keep practicing" escape the whole design is
         // built to refuse, and PracticeSessionModal.test.tsx asserts its
         // absence there.
-        className="absolute top-2 right-2 inline-flex cursor-pointer p-2 opacity-50 transition-opacity hover:opacity-100 focus-visible:opacity-100 [transition-duration:var(--transition-time)]"
+        className="absolute top-2 right-2 inline-flex p-2 opacity-50 transition-opacity focus-visible:opacity-100 [transition-duration:var(--transition-time)]"
             aria-label="close"
             onClick={dismiss}
           >
@@ -103,7 +103,7 @@ export default function PracticeSessionModal() {
           <PracticeSubject title={readyMaterial.title} subject={readyMaterial.project?.title} />
           <button
             type="button"
-            className="cursor-pointer transition-opacity [transition-duration:var(--transition-time)] disabled:cursor-default disabled:opacity-40"
+            className="transition-opacity [transition-duration:var(--transition-time)] disabled:opacity-40"
             aria-label={`start practicing ${readyMaterial.title}`}
             disabled={isStarting}
             onClick={() => start(readyMaterial.documentId)}
@@ -124,7 +124,7 @@ export default function PracticeSessionModal() {
         // Paused: a small button, top right, over everything. Still visible
         // from every page, because a paused session you cannot see is a session
         // you will forget.
-        className="fixed top-3 right-3 z-60 flex cursor-pointer items-center gap-2 rounded-full border border-current bg-base-100 px-3 py-1.5 [&_[role=timer]]:text-body"
+        className="fixed top-3 right-3 z-60 flex items-center gap-2 rounded-full border border-current bg-base-100 px-3 py-1.5 [&_[role=timer]]:text-body"
         aria-label={`resume practicing ${material?.title ?? 'your session'}`}
         disabled={isToggling}
         onClick={resume}
@@ -143,7 +143,7 @@ export default function PracticeSessionModal() {
         <div className="flex gap-8">
           <button
             type="button"
-            className="cursor-pointer transition-opacity [transition-duration:var(--transition-time)] disabled:cursor-default disabled:opacity-40"
+            className="transition-opacity [transition-duration:var(--transition-time)] disabled:opacity-40"
             aria-label="pause"
             disabled={isToggling}
             onClick={pause}
@@ -152,7 +152,7 @@ export default function PracticeSessionModal() {
           </button>
           <button
             type="button"
-            className="cursor-pointer transition-opacity [transition-duration:var(--transition-time)] disabled:cursor-default disabled:opacity-40"
+            className="transition-opacity [transition-duration:var(--transition-time)] disabled:opacity-40"
             aria-label="stop"
             disabled={isStopping}
             onClick={stop}

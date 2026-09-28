@@ -20,7 +20,9 @@ License: AGPL v3.
   - **Shared components carry the app's look**, rather than a repeated string of utilities:
     `components/ui/FormControls.tsx` (`Field`, `Input`, `Select`, `Checkbox`, `CheckboxInput`,
     `Toggle` — daisyUI's controls with the app's square corners and full-strength border),
-    `components/ui/Button.tsx` (the outlined text button), `components/ui/tooltip.ts` (`TOOLTIP`, the
+    `components/ui/Button.tsx` (the outlined text button; no button changes on hover or press, only
+    the pointer says it's pressable), `components/ui/DeleteButton.tsx` (a trash can that asks
+    before it deletes), `components/ui/tooltip.ts` (`TOOLTIP`, the
     class string for a `data-tip` tooltip in each theme's colors),
     `components/ui/DrawerHeader.tsx`, `components/ui/DrawerSection.tsx` (a part of the settings or
     manage-projects drawer, with a rule above it), `components/ui/DisclosureToggle.tsx`,

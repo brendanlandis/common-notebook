@@ -17,7 +17,7 @@ export default function DisclosureToggle({
       type="button"
       aria-expanded={expanded}
       onClick={onToggle}
-      className={`cursor-pointer text-left ${className}`}
+      className={`text-left ${className}`}
     >
       <span aria-hidden="true">{expanded ? "▾ " : "▸ "}</span>
       {children}

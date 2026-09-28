@@ -164,7 +164,7 @@ export default function HeaderContent() {
                 as the caret: a bigger target than the caret alone. */}
             <button
               type="button"
-              className="flex cursor-pointer items-center self-stretch pr-3"
+              className="flex items-center self-stretch pr-3"
               aria-label="more buttons"
               aria-expanded={showManage}
               onPointerEnter={() => {

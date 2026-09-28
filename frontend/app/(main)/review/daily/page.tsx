@@ -337,7 +337,7 @@ export default function DailyReviewPage() {
                         tweens up out of the pool below, exactly as a task does. */}
                     <button
                       type="button"
-                      className={`${DAILY_ITEM} cursor-pointer text-left`}
+                      className={`${DAILY_ITEM} text-left`}
                       style={{ viewTransitionName: `pill-${task.documentId}` }}
                       onClick={() => openFor(task)}
                     >

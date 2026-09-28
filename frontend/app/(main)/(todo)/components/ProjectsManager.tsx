@@ -243,9 +243,9 @@ export default function ProjectsManager() {
                     ))}
                   </ul>
                   {!search3Lower && matched.length > shown.length && (
-                    <button type="button" className="self-start text-small" onClick={() => loadMore(group.key)}>
+                    <Button small className="self-start" onClick={() => loadMore(group.key)}>
                       load more
-                    </button>
+                    </Button>
                   )}
                 </>
               )}
@@ -285,14 +285,14 @@ export default function ProjectsManager() {
           </ul>
         )}
         {manage.hasMoreCompleted && (
-          <button
-            type="button"
-            className="self-start text-small"
+          <Button
+            small
+            className="self-start"
             onClick={() => manage.fetchMoreCompleted()}
             disabled={manage.fetchingMoreCompleted}
           >
             load more
-          </button>
+          </Button>
         )}
       </ManagerSection>
     </div>

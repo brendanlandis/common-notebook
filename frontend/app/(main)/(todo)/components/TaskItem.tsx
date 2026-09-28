@@ -156,7 +156,7 @@ export default function TaskItem({
         {isMaterial ? (
           <button
             type="button"
-            className="inline-flex cursor-pointer items-center"
+            className="inline-flex items-center"
             onClick={() => openFor(task)}
             title="practice this"
             aria-label={`practice ${task.title}`}
@@ -177,7 +177,7 @@ export default function TaskItem({
         )}
         {task.long && !isWorkedOnEntry && (
           <button
-            className="cookie-icon cursor-pointer [.layout-done_&]:hidden"
+            className="cookie-icon [.layout-done_&]:hidden"
             onClick={() => onWorkSession(task.documentId)}
             title="mark as worked on today"
             aria-label="mark as worked on today"
@@ -190,7 +190,7 @@ export default function TaskItem({
           originalDocumentId &&
           workSessionDate && (
             <button
-              className="cookie-icon cursor-pointer [.layout-done_&]:hidden"
+              className="cookie-icon [.layout-done_&]:hidden"
               onClick={() =>
                 onRemoveWorkSession(originalDocumentId, workSessionDate)
               }
@@ -202,7 +202,7 @@ export default function TaskItem({
           )}
         {task.isRecurring && !isWorkedOnEntry && (
           <button
-            className="cursor-pointer [.layout-done_&]:hidden"
+            className="[.layout-done_&]:hidden"
             onClick={() => onSkipRecurring(task.documentId)}
             title="skip this one"
             aria-label="skip this one"

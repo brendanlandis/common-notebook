@@ -117,7 +117,7 @@ export function UnpickButton({ title, ...props }: { title: string } & ComponentP
   return (
     <button
       type="button"
-      className="ml-auto inline-flex cursor-pointer items-center p-1 opacity-40 transition-opacity duration-(--transition-time) ease-[ease] hover:opacity-100 focus-visible:opacity-100"
+      className="ml-auto inline-flex items-center p-1 opacity-40 transition-opacity duration-(--transition-time) ease-[ease] focus-visible:opacity-100"
       aria-label={`put ${title} back`}
       {...props}
     >

@@ -48,7 +48,7 @@ interface TaskPickListProps {
  * on as a name because a unit test reads it.
  */
 const PILL = [
-  "group inline-flex cursor-pointer items-baseline gap-[0.4rem] rounded-full border border-base-content px-[0.7rem] py-1 text-left text-base-content",
+  "group inline-flex items-baseline gap-[0.4rem] rounded-full border border-base-content px-[0.7rem] py-1 text-left text-base-content",
   "aria-pressed:border-success aria-pressed:bg-success aria-pressed:text-base-100",
 ].join(" ");
 
