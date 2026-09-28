@@ -15,6 +15,7 @@ import {
 import { Checkbox, Input, Select } from "@/app/components/ui/FormControls";
 import Button from "@/app/components/ui/Button";
 import DeleteButton from "@/app/components/ui/DeleteButton";
+import DrawerSection from "@/app/components/ui/DrawerSection";
 import DisclosureToggle from "@/app/components/ui/DisclosureToggle";
 import { SortableProvider, SortableGroup, SortableRow, reorderIds } from "@/app/components/ui/SortableList";
 import { defaultSection, sectionToInput, viewSections } from "@/app/lib/viewSectionInput";
@@ -33,6 +34,10 @@ import { defaultSection, sectionToInput, viewSections } from "@/app/lib/viewSect
 // view row itself.
 
 const sectionId = (viewId: string, index: number) => `section:${viewId}:${index}`;
+
+// Every layout select is as wide as the widest choice, so the names beside
+// them line up down the list.
+const LAYOUT_WIDTH = "w-36 shrink-0";
 
 export default function ViewsManager() {
   const { views, loading, createView, updateView, deleteView, reorderViews } = useViews();
@@ -144,44 +149,66 @@ export default function ViewsManager() {
   if (loading) return <p>loading views…</p>;
 
   return (
-    <div className="flex flex-col gap-sections">
-      <SortableProvider onDragEnd={handleDragEnd}>
-        <SortableGroup groupKey="views" ids={ordered.map((v) => v.documentId)}>
-        <ul aria-label="views" className="flex flex-col gap-rows">
-          {ordered.map((view) => {
-            const multiSection = view.layout === "projects";
-            return (
-              <SortableRow
-                key={view.documentId}
-                id={view.documentId}
-                className="grid grid-cols-[auto_1fr] items-start gap-controls rounded-lg border border-base-300 p-3"
-                handleLabel={`reorder ${view.name}`}
-                disabled={busy}
-              >
-                <div className="flex min-w-0 flex-col gap-rows">
-                  <div className="flex flex-wrap items-center gap-controls">
-                    {/* The name has a row to itself; the layout and delete share the next. */}
+    <div>
+      <DrawerSection>
+        <div className="flex flex-wrap items-center gap-controls">
+          <Input
+            type="text"
+            className="min-w-0 flex-[1_1_8rem]"
+            placeholder="new view"
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") handleAdd(); }}
+            disabled={busy}
+            aria-label="new view name"
+          />
+          <div className={LAYOUT_WIDTH}>
+            <Select value={newLayout} onChange={(e) => setNewLayout(e.target.value as ViewLayout)} disabled={busy} aria-label="new view layout">
+              {LAYOUT_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </Select>
+          </div>
+          <Button onClick={handleAdd} disabled={busy || !newName.trim()}>add view</Button>
+        </div>
+      </DrawerSection>
+
+      <DrawerSection>
+        <SortableProvider onDragEnd={handleDragEnd}>
+          <SortableGroup groupKey="views" ids={ordered.map((v) => v.documentId)}>
+          <ul aria-label="views" className="flex flex-col gap-4">
+            {ordered.map((view) => {
+              const multiSection = view.layout === "projects";
+              return (
+                <SortableRow
+                  key={view.documentId}
+                  id={view.documentId}
+                  // handle | name, layout and delete on one line, with the
+                  // view's sections under the name
+                  className="grid grid-cols-[auto_1fr] items-center gap-x-controls gap-y-rows"
+                  handleLabel={`reorder ${view.name}`}
+                  disabled={busy}
+                >
+                  <div className="flex min-w-0 items-center gap-controls">
                     <Input
                       type="text"
-                      className="min-w-0 basis-full"
+                      className="min-w-0 flex-1"
                       placeholder="view name"
                       defaultValue={view.name}
                       onBlur={(e) => handleRename(view, e.target.value)}
                       disabled={busy}
                       aria-label="view name"
                     />
-                    <SideLabel label="layout">
+                    <div className={LAYOUT_WIDTH}>
                       <Select
-                        fullWidth={false}
                         value={view.layout}
                         onChange={(e) => handleLayout(view, e.target.value as ViewLayout)}
                         disabled={busy}
+                        aria-label="layout"
                       >
                         {LAYOUT_OPTIONS.map((o) => (
                           <option key={o.value} value={o.value}>{o.label}</option>
                         ))}
                       </Select>
-                    </SideLabel>
+                    </div>
                     <DeleteButton
                       aria-label={`delete ${view.name}`}
                       question={`Are you sure you want to delete the "${view.name}" view?`}
@@ -196,7 +223,7 @@ export default function ViewsManager() {
                       keyboard reordering fail outright, because
                       sortableKeyboardCoordinates can't move a row that dwarfs its
                       neighbor. Compact rows keep both usable. */}
-                  <div className="flex flex-col gap-rows">
+                  <div className="col-start-2 flex min-w-0 flex-col gap-rows">
                     <DisclosureToggle
                       expanded={expanded.has(view.documentId)}
                       onToggle={() => toggleExpanded(view.documentId)}
@@ -226,24 +253,22 @@ export default function ViewsManager() {
                           >
                             <div className="flex min-w-0 flex-col gap-rows">
                               {multiSection && (
-                                <InlineField label="label">
-                                  {/* Keyed by its own value: the row is keyed by
-                                      index, so after a reorder React reuses this
-                                      DOM node and an uncontrolled input ignores
-                                      the new defaultValue — the selects (which
-                                      are controlled) would swap while the label
-                                      stayed put. The key forces a remount. */}
-                                  <Input
-                                    key={`${si}-${section.name ?? ""}`}
-                                    type="text"
-                                    className="min-w-0"
-                                    placeholder="section label"
-                                    defaultValue={section.name ?? ""}
-                                    onBlur={(e) => patchSection(view, si, { name: e.target.value.trim() || undefined })}
-                                    disabled={busy}
-                                    aria-label="section label"
-                                  />
-                                </InlineField>
+                                // Keyed by its own value: the row is keyed by
+                                // index, so after a reorder React reuses this DOM
+                                // node and an uncontrolled input ignores the new
+                                // defaultValue — the selects (which are
+                                // controlled) would swap while the label stayed
+                                // put. The key forces a remount.
+                                <Input
+                                  key={`${si}-${section.name ?? ""}`}
+                                  type="text"
+                                  className="min-w-0"
+                                  placeholder="section label"
+                                  defaultValue={section.name ?? ""}
+                                  onBlur={(e) => patchSection(view, si, { name: e.target.value.trim() || undefined })}
+                                  disabled={busy}
+                                  aria-label="section label"
+                                />
                               )}
                               <InlineField label="worlds">
                                 <Select className="min-w-0" value={input.worldMode} onChange={(e) => patchSection(view, si, { worldMode: e.target.value as WorldMode })} disabled={busy} aria-label="worlds mode">
@@ -307,32 +332,13 @@ export default function ViewsManager() {
                       <Button className="self-start" onClick={() => addSection(view)} disabled={busy}>add section</Button>
                     )}
                   </div>
-                </div>
-              </SortableRow>
-            );
-          })}
-        </ul>
-        </SortableGroup>
-      </SortableProvider>
-
-      <div className="flex flex-wrap items-center gap-controls">
-        <Input
-          type="text"
-          className="min-w-0 flex-[1_1_8rem]"
-          placeholder="new view"
-          value={newName}
-          onChange={(e) => setNewName(e.target.value)}
-          onKeyDown={(e) => { if (e.key === "Enter") handleAdd(); }}
-          disabled={busy}
-          aria-label="new view name"
-        />
-        <SideLabel label="layout">
-          <Select fullWidth={false} value={newLayout} onChange={(e) => setNewLayout(e.target.value as ViewLayout)} disabled={busy}>
-            {LAYOUT_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-          </Select>
-        </SideLabel>
-        <Button onClick={handleAdd} disabled={busy || !newName.trim()}>add view</Button>
-      </div>
+                </SortableRow>
+              );
+            })}
+          </ul>
+          </SortableGroup>
+        </SortableProvider>
+      </DrawerSection>
     </div>
   );
 }
@@ -341,19 +347,6 @@ export default function ViewsManager() {
 function InlineField({ label, children }: { label: string; children: ReactNode }) {
   return (
     <label className="grid gap-1 sm:grid-cols-[6.5rem_1fr] sm:items-center sm:gap-2">
-      <span className="text-small opacity-75">{label}</span>
-      {children}
-    </label>
-  );
-}
-
-/**
- * A control's name just before it, in a row it shares with other controls, or
- * above it where the two don't fit on one line.
- */
-function SideLabel({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <label className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
       <span className="text-small opacity-75">{label}</span>
       {children}
     </label>

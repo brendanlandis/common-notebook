@@ -116,9 +116,9 @@ export function findCodePreset(slug: string): LayoutRuleset | undefined {
 // ── Settings-UI option lists (value → friendly label) ────────────────────────
 
 export const LAYOUT_OPTIONS: { value: ViewLayout; label: string }[] = [
-  { value: "projects", label: "projects (one column per project)" },
-  { value: "chronological", label: "chronological (flat list, oldest first)" },
-  { value: "roulette", label: "roulette (one random task)" },
+  { value: "projects", label: "multi-column" },
+  { value: "chronological", label: "chronological" },
+  { value: "roulette", label: "roulette" },
 ];
 
 export const WORLD_MODE_OPTIONS: { value: WorldMode; label: string }[] = [
