@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
-import type { APIRequestContext, Page } from '@playwright/test';
-import { createProject, createTask, deleteProject, deleteTask, gotoTodo } from './helpers';
+import type { Page } from '@playwright/test';
+import { anyWorldId, createProject, createTask, deleteProject, deleteTask, gotoTodo } from './helpers';
 
 /**
  * The reported bug: with one project already "top of mind", promoting a second
@@ -20,24 +20,6 @@ import { createProject, createTask, deleteProject, deleteTask, gotoTodo } from '
  */
 
 const TOP_OF_MIND_SECTION = 'top of mind';
-
-/**
- * A project needs a world to render as a *column*.
- *
- * `getTaskWorld` reads `task.project.world`, and a task without one is treated
- * as an incidental — it still appears, but with no column header, so no "edit
- * project" button to click. Resolved at runtime rather than hardcoded: worlds
- * are per-user rows, and the ids differ per account.
- */
-async function anyWorldId(request: APIRequestContext): Promise<string> {
-  const res = await request.get('/api/worlds');
-  const body = await res.json();
-  const worlds = (body.data ?? []) as Array<{ documentId: string; systemKey: string | null }>;
-  // The stuff world routes projects through a different layout entirely.
-  const world = worlds.find((w) => w.systemKey !== 'stuff');
-  expect(world, 'this account has no ordinary world to attach a project to').toBeTruthy();
-  return world!.documentId;
-}
 
 /** The Good Morning group whose heading is "top of mind". */
 function topOfMindSection(page: Page) {

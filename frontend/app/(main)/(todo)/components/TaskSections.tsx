@@ -28,6 +28,8 @@ interface TaskSectionsProps {
   recentStatsSection?: React.ReactNode;
   /** h3 when the columns sit under a group's name, so they read a level below it. */
   headingLevel?: "h2" | "h3";
+  /** Where grids share a page, the most columns any of them has (see TaskGrid). */
+  pageColumns?: number;
 }
 
 export default function TaskSections({
@@ -44,6 +46,7 @@ export default function TaskSections({
   upcomingSection,
   recentStatsSection,
   headingLevel = "h2",
+  pageColumns,
 }: TaskSectionsProps) {
   // The upcoming panel and the stats chart count: on the done view they can be
   // the only things there, and bailing out on empty `sections` alone meant an
@@ -58,7 +61,7 @@ export default function TaskSections({
   }
 
   return (
-    <TaskGrid>
+    <TaskGrid pageColumns={pageColumns}>
       {upcomingSection}
       {recentStatsSection}
       {sections.map((section) => {

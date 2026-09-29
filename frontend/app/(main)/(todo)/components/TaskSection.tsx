@@ -8,40 +8,63 @@ import type { ReactNode } from "react";
  * wrap. A column without one (a chronological view's months, roulette, a
  * project's page) has nothing to line up, and takes one row.
  *
- * A column alone in its grid is `--column` wide at most: one column of a full
- * row, or in a view that's one column by design, a readable measure (see
+ * How wide a column is, and how many share a row, is the grid's to say (see
  * TaskGrid).
  *
  * `task-section` stays as a name because the browser specs and a unit test
  * address columns by it.
  */
 const SECTION =
-  "task-section mb-blocks grid grid-cols-1 content-start items-start gap-heading only:max-w-(--column) [&_*]:break-words";
+  "task-section mb-blocks grid grid-cols-1 content-start items-start gap-heading [&_*]:break-words";
 const ALIGNED = "row-span-2 [grid-template-rows:subgrid]";
 
 /*
- * As many columns as the view shows, up to 1 under 640px, 2 from 640, 3 from
- * 900 and 4 from 1100. `--column` is one column's width when the row is full;
- * auto-fit drops the tracks nothing fills, so fewer columns share the width
- * among them. The 0.1px keeps rounding from costing a full row a column.
- * Printing gets one column.
+ * A row holds up to 1 column under 640px, 2 from 640, 3 from 900 and 4 from
+ * 1100. `--column` is one column's width when the row is full. The 0.1px in
+ * the tracks keeps rounding from costing a full row a column. Printing gets
+ * one column.
  *
  * The breakpoints are all px. Tailwind can't order `sm:`'s 40rem against
  * `min-[900px]:`, and put `sm:` last, so two columns won at every width.
  *
- * It's one rule on purpose. The count used to be a stylesheet asking with
- * `:has()` how many columns had rendered, and the production build merged its
- * rules into one that put one-column views in three columns, on prod only.
+ * The count is decided here on purpose. It used to be a stylesheet asking
+ * with `:has()` how many columns had rendered, and the production build merged
+ * its rules into one that put one-column views in three columns, on prod only.
  */
-const GRID = [
-  "tasks-container grid gap-x-columns text-left",
-  "grid-cols-[repeat(auto-fit,minmax(calc(var(--column)_-_0.1px),1fr))]",
+const GRID = "tasks-container grid gap-x-columns text-left print:[--column:100%]";
+const COLUMN = [
   "[--column:100%]",
   "min-[640px]:[--column:calc((100%_-_var(--spacing-columns))/2)]",
   "min-[900px]:[--column:calc((100%_-_2*var(--spacing-columns))/3)]",
   "min-[1100px]:[--column:calc((100%_-_3*var(--spacing-columns))/4)]",
-  "print:[--column:100%]",
+];
+
+/*
+ * A grid alone on its page shows as many columns as it has: auto-fit drops
+ * the tracks nothing fills, so fewer columns share the width among them. A
+ * column alone is one column of a full row at most; its grid area is then the
+ * whole row, which is what `--column`'s 100% measures on it.
+ */
+const OWN_COLUMNS = [
+  GRID,
+  "grid-cols-[repeat(auto-fit,minmax(calc(var(--column)_-_0.1px),1fr))]",
+  "*:only:max-w-(--column)",
+  ...COLUMN,
 ].join(" ");
+
+/*
+ * Grids sharing a page (a view's sections) all keep as many tracks as the
+ * widest has columns, up to a full row, filled or not, so the page's columns
+ * line up from one grid to the next. `--column` stops narrowing at that count,
+ * and auto-fill keeps the tracks nothing fills. A column alone takes one
+ * track, which is already a column's width.
+ */
+const linedUp = (count: number) =>
+  [
+    GRID,
+    "grid-cols-[repeat(auto-fill,minmax(calc(var(--column)_-_0.1px),1fr))]",
+    ...COLUMN.slice(0, count),
+  ].join(" ");
 
 /*
  * A view that's one column by design (chronological, roulette): from 640px,
@@ -53,7 +76,7 @@ const GRID = [
  */
 const SINGLE = [
   "tasks-container single-column grid grid-cols-1 text-left",
-  "[--column:65ch] min-[640px]:justify-items-center",
+  "[--column:65ch] *:only:max-w-(--column) min-[640px]:justify-items-center",
   "print:justify-items-stretch print:[--column:100%]",
 ].join(" ");
 
@@ -68,15 +91,26 @@ const SINGLE = [
  */
 export function TaskGrid({
   single = false,
+  pageColumns,
   className = "",
   children,
 }: {
   /** One column by design (chronological, roulette), centered. */
   single?: boolean;
+  /**
+   * Where grids share a page, the most columns any of them has. Where none has
+   * more than one, their columns line up as they are.
+   */
+  pageColumns?: number;
   className?: string;
   children: ReactNode;
 }) {
-  return <div className={`${single ? SINGLE : GRID} ${className}`}>{children}</div>;
+  const grid = single
+    ? SINGLE
+    : pageColumns && pageColumns > 1
+      ? linedUp(pageColumns)
+      : OWN_COLUMNS;
+  return <div className={`${grid} ${className}`}>{children}</div>;
 }
 
 export default function TaskSection({

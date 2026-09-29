@@ -25,6 +25,11 @@ export default function ProjectsLayout({
 
   if (groups.length === 0) return null;
 
+  // Every group's columns line up with the widest group's.
+  const pageColumns = Math.max(
+    ...groups.map((g) => g.columns.length + (g.incidentals.length > 0 ? 1 : 0))
+  );
+
   return (
     <>
       {groups.map((group, i) => (
@@ -49,6 +54,7 @@ export default function ProjectsLayout({
               onSkipRecurring={onSkipRecurring}
               onEditProject={onEditProject}
               headingLevel={group.name ? "h3" : "h2"}
+              pageColumns={pageColumns}
             />
           </div>
         </Fragment>

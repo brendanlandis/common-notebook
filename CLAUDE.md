@@ -29,8 +29,10 @@ License: AGPL v3.
     manage drawer, with a rule above it), `components/ui/DisclosureToggle.tsx`,
     `components/auth/Auth.tsx`,
     `(main)/(todo)/components/TaskSection.tsx` (`TaskGrid`, which holds every rule for how many
-    columns a view gets, or with `single`, the one centered column of a chronological or roulette
-    view; `TaskSection`, a column, which takes its heading as `title`; `TaskList`;
+    columns a view gets: with `pageColumns`, grids sharing a page (a view's sections) keep the
+    widest one's tracks so their columns line up, and with `single`, the one centered column of a
+    chronological or roulette view; `TaskSection`, a column, which takes its heading as `title`;
+    `TaskList`;
     and `TaskSubsections`/`TaskSubsection` for labeled lists stacked in one column), and
     `(main)/review/components/ReviewParts.tsx` (the review pages' column, sections, project groups,
     notes and put-back arrow).
@@ -89,7 +91,7 @@ License: AGPL v3.
     minifies and `next dev` doesn't. Tailwind merges neighboring rules with the same declarations
     into one list, and Next's minifier (targets include Firefox 111, which lacks `:has()`) wraps a
     list holding `:has()` in `:is()`, which takes its most specific selector's specificity. That
-    once put one-section views in three columns on prod only; the column count is a single rule on
+    once put one-section views in three columns on prod only; the column count is decided on
     `TaskGrid` now. When prod and local look different, `next build` and diff
     `.next/static/chunks/*.css` against what commonnotebook.com serves.
   - **A class name with no CSS behind it is a hook, not a leftover.** `task-section`,

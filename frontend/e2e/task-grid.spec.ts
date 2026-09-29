@@ -1,5 +1,6 @@
 import { test, expect, type APIRequestContext, type Page } from '@playwright/test';
 import {
+  anyWorldId,
   createProject,
   createTask,
   deleteProject,
@@ -10,11 +11,13 @@ import {
 
 // How many columns a task view gets and how wide they are, which only a browser
 // can show. The rules were a stylesheet counting columns with :has(), which the
-// production build broke on prod only; they're one rule on TaskGrid now
+// production build broke on prod only; they're decided on TaskGrid now
 // (TaskSection.tsx), and this pins down what it does.
 //
 // The views and columns are the account's own, so every expectation is worked
-// out from what rendered, never from fixed names or counts.
+// out from what rendered, never from fixed names or counts. One test builds its
+// own sections instead: the account's may each have as many columns, and line
+// up whatever the rule.
 
 const GUTTER = 16; // the page's side padding
 const GAP = 32; // between columns
@@ -58,8 +61,33 @@ const viewWith = async (request: APIRequestContext, layout: string) => {
   return view ? `/view/${view.slug}` : null;
 };
 
+/**
+ * Every grid keeps as many tracks as the page's widest has columns, up to the
+ * limit, and its columns sit on them from the left, so they line up from one
+ * grid to the next. A lone column is one column of a full row wide; otherwise
+ * the columns share the row.
+ */
+const expectLinedUp = (all: Awaited<ReturnType<typeof grids>>, limit: number) => {
+  const widest = Math.max(...all.map((grid) => grid.columns.length));
+  const across = widest === 1 ? limit : Math.min(widest, limit);
+  for (const grid of all) {
+    const each = (grid.width - (across - 1) * GAP) / across;
+    const firstRow = grid.columns.filter((c) => Math.abs(c.top - grid.columns[0].top) < 1);
+    expect(firstRow, 'columns across the first row').toHaveLength(
+      Math.min(grid.columns.length, across)
+    );
+    firstRow.forEach((column, i) =>
+      expect(column.left, `column ${i + 1} on the page’s line`).toBeCloseTo(
+        GUTTER + i * (each + GAP),
+        0
+      )
+    );
+    for (const column of grid.columns) expect(column.width).toBeCloseTo(each, 0);
+  }
+};
+
 test.describe('task grid', () => {
-  test('a view shows its columns side by side, up to the window’s limit, sharing the width', async ({
+  test('a view shows its columns side by side, up to the window’s limit, lined up across its sections', async ({
     page,
     isMobile,
   }) => {
@@ -67,21 +95,73 @@ test.describe('task grid', () => {
       await test.step(stepName(width), async () => {
         await resize(page, width);
         await gotoTodo(page);
-        const limit = limitAt(await windowWidth(page));
-        for (const grid of await grids(page)) {
-          const count = grid.columns.length;
-          const across = Math.min(count, limit);
-          // A lone column is one column of a full row wide; otherwise they share the row.
-          const each =
-            count === 1
-              ? (grid.width - (limit - 1) * GAP) / limit
-              : (grid.width - (across - 1) * GAP) / across;
-          const firstRow = grid.columns.filter((c) => Math.abs(c.top - grid.columns[0].top) < 1);
-          expect(firstRow, 'columns across the first row').toHaveLength(across);
-          expect(grid.columns[0].left, 'the first column starts at the page edge').toBeCloseTo(GUTTER, 0);
-          for (const column of grid.columns) expect(column.width).toBeCloseTo(each, 0);
-        }
+        expectLinedUp(await grids(page), limitAt(await windowWidth(page)));
       });
+    }
+  });
+
+  test('a section with fewer columns keeps the widest section’s tracks', async ({
+    page,
+    request,
+    isMobile,
+  }) => {
+    // Two projects with soon tasks over three without. Home becomes a view of
+    // two sections, soon and the rest, over only these tasks, rewritten in the
+    // browser: the account's own view and tasks are untouched.
+    const world = await anyWorldId(request);
+    const projects: string[] = [];
+    const tasks: string[] = [];
+    try {
+      for (let i = 0; i < 5; i++) {
+        const project = (await createProject(request, { world })).documentId;
+        projects.push(project);
+        tasks.push((await createTask(request, { project, soon: i < 2 })).documentId);
+      }
+      const ours = new Set(tasks);
+      await page.route('**/api/tasks', async (route) => {
+        const response = await route.fetch();
+        const body = await response.json();
+        body.data = body.data.filter((t: { documentId: string }) => ours.has(t.documentId));
+        await route.fulfill({ response, json: body });
+      });
+      await page.route('**/api/views', async (route) => {
+        const response = await route.fetch();
+        const body = await response.json();
+        const section = {
+          worldMode: 'all',
+          worlds: [],
+          projectType: 'any',
+          recurrence: 'both',
+          longOnly: false,
+        };
+        body.data.push({
+          ...body.data[0],
+          documentId: 'e2e-lined-up',
+          slug: 'e2e-lined-up',
+          name: '[e2e] lined up',
+          position: -1,
+          layout: 'projects',
+          systemKey: null,
+          sections: [
+            { ...section, name: 'soon', importance: 'soonAndTopOfMind' },
+            { ...section, name: 'the rest', importance: 'any' },
+          ],
+        });
+        await route.fulfill({ response, json: body });
+      });
+
+      for (const width of widthsFor(isMobile)) {
+        await test.step(stepName(width), async () => {
+          await resize(page, width);
+          await gotoTodo(page);
+          const all = await grids(page);
+          expect(all.map((grid) => grid.columns.length), 'columns in each section').toEqual([2, 3]);
+          expectLinedUp(all, limitAt(await windowWidth(page)));
+        });
+      }
+    } finally {
+      for (const task of tasks) await deleteTask(request, task);
+      for (const project of projects) await deleteProject(request, project);
     }
   });
 

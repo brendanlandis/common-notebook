@@ -42,6 +42,25 @@ export async function createProject(
   return { documentId: body.data.documentId, title, slug: body.data.slug };
 }
 
+/**
+ * A project needs a world to render as a *column*.
+ *
+ * `getTaskWorld` reads `task.project.world`, and a task without one is treated
+ * as an incidental — it still appears, but with no column header, so no "edit
+ * project" button to click. Resolved at runtime rather than hardcoded: worlds
+ * are per-user rows, and the ids differ per account.
+ */
+export async function anyWorldId(request: APIRequestContext): Promise<string> {
+  const res = await request.get('/api/worlds');
+  const body = await res.json();
+  const worlds = (body.data ?? []) as Array<{ documentId: string; systemKey: string | null }>;
+  // A system world shows only in a section that names it (practice), or routes
+  // projects through a different layout entirely (stuff).
+  const world = worlds.find((w) => !w.systemKey);
+  expect(world, 'this account has no ordinary world to attach a project to').toBeTruthy();
+  return world!.documentId;
+}
+
 interface CreatedTask {
   documentId: string;
   title: string;
