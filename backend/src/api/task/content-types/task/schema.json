@@ -126,6 +126,15 @@
     },
     "materialCategory": {
       "type": "string"
+    },
+    "tempo": {
+      "type": "integer"
+    },
+    "goalTempo": {
+      "type": "integer"
+    },
+    "link": {
+      "type": "string"
     }
   }
 }

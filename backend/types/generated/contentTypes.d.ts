@@ -782,7 +782,9 @@ export interface ApiTaskTask extends Struct.CollectionTypeSchema {
     displayDate: Schema.Attribute.Date;
     displayDateOffset: Schema.Attribute.Integer;
     dueDate: Schema.Attribute.Date;
+    goalTempo: Schema.Attribute.Integer;
     isRecurring: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
+    link: Schema.Attribute.String;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<'oneToMany', 'api::task.task'> &
       Schema.Attribute.Private;
@@ -830,6 +832,7 @@ export interface ApiTaskTask extends Struct.CollectionTypeSchema {
       Schema.Attribute.DefaultTo<'none'>;
     recurrenceWeekOfMonth: Schema.Attribute.Integer;
     soon: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
+    tempo: Schema.Attribute.Integer;
     title: Schema.Attribute.String & Schema.Attribute.Required;
     trackingUrl: Schema.Attribute.String;
     updatedAt: Schema.Attribute.DateTime;
