@@ -232,6 +232,13 @@ export interface Task extends RecurrenceRule, RecurrenceAnchor {
   // field is named for wish lists, and giving a field a second meaning is how
   // `projectType` and `importance` both ended up spelled 'normal'.
   materialCategory: string | null;
+  // Practice material's tempo in bpm: where it is now, and where it's headed.
+  // Both null for a piece that doesn't use one. Optional on the type because
+  // most tasks are never practice material and older fixtures predate them.
+  tempo?: number | null;
+  goalTempo?: number | null;
+  // A lesson, tab or recording for the piece.
+  link?: string | null;
   workSessions: WorkSession[] | null;
   project?: Project | null;
   workedOnPhase?: 1 | 2 | 3; // Added for worked-on state tracking

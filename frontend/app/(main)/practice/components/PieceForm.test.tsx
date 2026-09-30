@@ -124,4 +124,25 @@ describe("PieceForm", () => {
     expect(onSubmit).not.toHaveBeenCalled();
     expect(screen.getByText("a piece needs a name")).toBeTruthy();
   });
+
+  it("saves the tempo and link, and a blank tempo as none", () => {
+    const onSubmit = vi.fn();
+    render(
+      <PieceForm
+        piece={piece({ tempo: 140, goalTempo: 160 } as Partial<Task>)}
+        onSubmit={onSubmit}
+        onDelete={vi.fn()}
+      />,
+    );
+    expect((screen.getByLabelText("at") as HTMLInputElement).value).toBe("140");
+
+    fireEvent.change(screen.getByLabelText("at"), { target: { value: "150" } });
+    fireEvent.change(screen.getByLabelText("goal"), { target: { value: "" } });
+    fireEvent.change(screen.getByLabelText("link"), { target: { value: "https://example.com/tab" } });
+    fireEvent.click(screen.getByRole("button", { name: "update piece" }));
+
+    expect(onSubmit).toHaveBeenCalledWith(
+      expect.objectContaining({ tempo: 150, goalTempo: null, link: "https://example.com/tab" }),
+    );
+  });
 });

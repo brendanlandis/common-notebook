@@ -55,6 +55,12 @@ export function flagsFor(
   };
 }
 
+/** A tempo box's value as whole bpm, or null when it's blank: no tempo. */
+function bpm(value: string): number | null {
+  const n = Math.round(Number(value));
+  return value.trim() && Number.isFinite(n) && n > 0 ? n : null;
+}
+
 interface PieceFormProps {
   /** The piece being edited; absent for a new one. */
   piece?: Task;
@@ -90,6 +96,11 @@ export default function PieceForm({ piece, subjectId, onSubmit, onDelete }: Piec
   );
   const [category, setCategory] = useState(piece?.materialCategory ?? "");
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [tempo, setTempo] = useState(piece?.tempo != null ? String(piece.tempo) : "");
+  const [goalTempo, setGoalTempo] = useState(
+    piece?.goalTempo != null ? String(piece.goalTempo) : "",
+  );
+  const [link, setLink] = useState(piece?.link ?? "");
   const [notes, setNotes] = useState<StrapiBlock[]>(piece?.description ?? []);
   const [place, setPlace] = useState<PiecePlace>(piece ? placeOf(piece) : "rotation");
   const [titleError, setTitleError] = useState<string | undefined>();
@@ -119,6 +130,9 @@ export default function PieceForm({ piece, subjectId, onSubmit, onDelete }: Piec
       title: title.trim(),
       project: subject || null,
       materialCategory: category.trim() || null,
+      tempo: bpm(tempo),
+      goalTempo: bpm(goalTempo),
+      link: link.trim() || null,
       description: notes,
       ...flagsFor(place, piece),
     });
@@ -185,6 +199,49 @@ export default function PieceForm({ piece, subjectId, onSubmit, onDelete }: Piec
           )}
         </Field>
       </div>
+
+      {/* Blank means the piece doesn't use a tempo, and it shows none anywhere. */}
+      <fieldset>
+        <legend className="mb-1 text-small">
+          tempo, in bpm <span className="opacity-80">(blank if it doesn&apos;t use one)</span>
+        </legend>
+        <div className="flex items-center gap-2">
+          <label htmlFor="piece-tempo">at</label>
+          <Input
+            id="piece-tempo"
+            type="number"
+            inputMode="numeric"
+            min={1}
+            fullWidth={false}
+            className="w-20"
+            value={tempo}
+            onChange={(e) => setTempo(e.target.value)}
+          />
+          <label htmlFor="piece-goal-tempo" className="ml-2">
+            goal
+          </label>
+          <Input
+            id="piece-goal-tempo"
+            type="number"
+            inputMode="numeric"
+            min={1}
+            fullWidth={false}
+            className="w-20"
+            value={goalTempo}
+            onChange={(e) => setGoalTempo(e.target.value)}
+          />
+        </div>
+      </fieldset>
+
+      <Field label="link" htmlFor="piece-link">
+        <Input
+          id="piece-link"
+          type="url"
+          placeholder="a lesson, tab or recording"
+          value={link}
+          onChange={(e) => setLink(e.target.value)}
+        />
+      </Field>
 
       <Field label="notes" htmlFor="piece-notes">
         <RichTextEditor value={notes} onChange={setNotes} placeholder="notes" />
