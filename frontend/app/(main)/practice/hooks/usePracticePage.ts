@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useSyncExternalStore } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { apiFetch } from '@/app/lib/apiFetch';
@@ -9,6 +9,12 @@ import { isPracticeWorld } from '@/app/lib/worlds';
 import type { PracticeSession, Project, Task } from '@/app/types/index';
 
 const LAST_SUBJECT_KEY = 'practice-subject';
+
+/** Another tab picking a subject is a change here too. */
+function subscribeToStorage(onChange: () => void) {
+  window.addEventListener('storage', onChange);
+  return () => window.removeEventListener('storage', onChange);
+}
 
 function readLastSubject(): string | null {
   try {
@@ -38,9 +44,9 @@ export function usePracticeSubject() {
     [projects],
   );
 
-  // Read after mount: localStorage isn't there during the server render.
-  const [last, setLast] = useState<string | null>(null);
-  useEffect(() => setLast(readLastSubject()), []);
+  // localStorage as an external store: nothing on the server, the stored choice
+  // once hydrated, so the two renders agree.
+  const last = useSyncExternalStore(subscribeToStorage, readLastSubject, () => null);
 
   const slugOf = (p: Project) => p.slug ?? p.documentId;
   const wanted = params.get('subject') ?? last;
@@ -54,7 +60,6 @@ export function usePracticeSubject() {
       } catch {
         // A private window: the choice just isn't remembered.
       }
-      setLast(slug);
       router.replace(`${pathname}?subject=${encodeURIComponent(slug)}`);
     },
     [router, pathname],

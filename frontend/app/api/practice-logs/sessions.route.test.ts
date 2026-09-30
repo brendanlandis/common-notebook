@@ -30,7 +30,7 @@ function request(url: string, body?: unknown): NextRequest {
 
 const params = (documentId: string) => ({ params: Promise.resolve({ documentId }) });
 
-type Row = Record<string, any>;
+type Row = { documentId: string } & Record<string, unknown>;
 
 /**
  * A Strapi stand-in with three tables. Relations are stored as documentIds and
@@ -47,8 +47,8 @@ function fakeStrapi() {
 
   const expandLog = (row: Row) => ({
     ...row,
-    material: tasks.get(row.material) ?? null,
-    session: row.session ? sessions.get(row.session) ?? null : null,
+    material: tasks.get(row.material as string) ?? null,
+    session: row.session ? sessions.get(row.session as string) ?? null : null,
   });
 
   vi.stubGlobal(
@@ -63,12 +63,12 @@ function fakeStrapi() {
       if (path.startsWith('/api/system-settings')) return ok([]);
 
       if (path === '/api/practice-sessions' && init?.method === 'POST') {
-        const row = { documentId: `s${next++}`, ...body };
+        const row: Row = { documentId: `s${next++}`, ...body };
         sessions.set(row.documentId, row);
         return ok(row);
       }
       if (path === '/api/practice-logs' && init?.method === 'POST') {
-        const row = { documentId: `l${next++}`, ...body };
+        const row: Row = { documentId: `l${next++}`, ...body };
         logs.set(row.documentId, row);
         return ok(expandLog(row));
       }

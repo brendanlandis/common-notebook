@@ -47,6 +47,28 @@ interface StatsResponse {
 }
 
 /**
+ * Minutes practiced on each piece on one effective day, by piece documentId.
+ * Only finished stretches count: a piece is practiced once a stretch of it has
+ * been banked. Under the practice-logs root, so stopping the timer refreshes it.
+ */
+export function useMinutesPracticedOn(date: string) {
+  const query = useQuery({
+    queryKey: [...PRACTICE_LOGS_ROOT, 'list', 'date', date] as const,
+    queryFn: () =>
+      apiFetch<LogsResponse>(`/api/practice-logs?date=${encodeURIComponent(date)}`),
+    select: (body) => body.data ?? [],
+  });
+  return useMemo(() => {
+    const minutes = new Map<string, number>();
+    for (const log of query.data ?? []) {
+      const piece = log.material?.documentId;
+      if (piece && log.stop) minutes.set(piece, (minutes.get(piece) ?? 0) + (log.duration ?? 0));
+    }
+    return minutes;
+  }, [query.data]);
+}
+
+/**
  * Past sessions, newest first.
  *
  * `material` narrows to one piece; omitting it returns everything, which is what

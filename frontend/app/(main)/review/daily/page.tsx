@@ -18,6 +18,7 @@ import { useDailyPick } from "../hooks/useDailyPick";
 import { useCompleteTask } from "../hooks/useCompleteTask";
 import { useArrival } from "../hooks/useArrival";
 import { useCalendarEvents } from "../hooks/useCalendarEvents";
+import { useMinutesPracticedOn } from "@/app/(main)/practice/hooks/usePracticeLogs";
 import WeekCalendar from "../components/WeekCalendar";
 import {
   CALENDAR_FRAME,
@@ -71,6 +72,8 @@ export default function DailyReviewPage() {
   const { location } = useLocation();
   const { events, loading: calendarLoading } = useCalendarEvents(today, tomorrow);
   const { toggleComplete } = useCompleteTask(today);
+  // A pick practiced today is done, marked by the session rather than a checkbox.
+  const practicedToday = useMinutesPracticedOn(today);
   const arriving = useArrival(calendarLoading);
 
   // Only what you decided to be at. This is the reading surface, not the
@@ -325,14 +328,20 @@ export default function DailyReviewPage() {
           {practice.picked.length > 0 && (
             <section>
               <ul className="flex flex-col items-start">
-                {practice.picked.map((task) => (
+                {practice.picked.map((task) => {
+                  const minutes = practicedToday.get(task.documentId);
+                  const done = minutes !== undefined;
+                  return (
                   <li key={task.documentId} className={DAILY_ROW}>
                     {/* An icon, not a checkbox. A checkbox beside a task means done
                         everywhere else in this app, and practice is measured in
                         minutes spent, not in being finished — so it borrows no
                         control that would say otherwise. Pressing it opens the
-                        practice modal ready to go; pressing the name does the same,
-                        because the whole row is one intention.
+                        piece's popover; pressing the name does the same, because
+                        the whole row is one intention. Practiced today, the name
+                        is struck through with its minutes, as a done task is — the
+                        session marks it, not a checkbox — and it can still be
+                        played again.
                         The button carries the view-transition name so the pill
                         tweens up out of the pool below, exactly as a task does. */}
                     <button
@@ -346,15 +355,23 @@ export default function DailyReviewPage() {
                           wrapped title rather than sitting off at the row's right
                           edge — see the same nesting in `TaskPickList`. */}
                       <span>
-                        {task.title}
+                        <span className={done ? "line-through opacity-55" : undefined}>
+                          {task.title}
+                        </span>
                         {task.project?.title && (
-                          <PickProject>{task.project.title}</PickProject>
+                          <PickProject>
+                            {done ? `${task.project.title} · ${minutes} min` : task.project.title}
+                          </PickProject>
                         )}
                       </span>
                     </button>
-                    <UnpickButton title={task.title} onClick={() => toggle(task.documentId)} />
+                    {/* Nothing to put back once it's been practiced. */}
+                    {!done && (
+                      <UnpickButton title={task.title} onClick={() => toggle(task.documentId)} />
+                    )}
                   </li>
-                ))}
+                  );
+                })}
               </ul>
             </section>
           )}
