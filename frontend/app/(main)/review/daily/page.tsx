@@ -405,8 +405,13 @@ export default function DailyReviewPage() {
                       Right-aligned rather than trailing the text, so the arrows
                       line up in a column the way the checkboxes do; a control
                       that lands in a different place on every row reads as
-                      clutter even when it's the same control. */}
-                  <UnpickButton title={task.title} onClick={() => toggle(task.documentId)} />
+                      clutter even when it's the same control.
+                      Gone once the task is done: there is nothing left to put
+                      back, and an arrow beside a struck-through line reads as
+                      unfinished business. */}
+                  {!task.completed && (
+                    <UnpickButton title={task.title} onClick={() => toggle(task.documentId)} />
+                  )}
                 </li>
               ))}
             </ul>
