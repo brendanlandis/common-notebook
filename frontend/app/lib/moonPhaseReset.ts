@@ -9,6 +9,7 @@ import {
   upsertSystemSetting,
 } from './strapiServer';
 import { SessionEndedError } from './authErrors';
+import { isPracticeWorld } from './worlds';
 
 /**
  * The declutter **watermark**: the day from which we watch for the next new moon.
@@ -24,8 +25,17 @@ interface StrapiRow {
   documentId: string;
 }
 
+interface SoonTaskRow extends StrapiRow {
+  project?: { worldRef?: { systemKey: string | null } | null } | null;
+}
+
 /**
  * Clear the "soon" flag on tasks and demote "top of mind" projects.
+ *
+ * **Practice material keeps its `soon`.** On material the flag is the rotation — the
+ * pieces chosen on purpose to work through — not a passing "soon", so clearing it
+ * every new moon emptied every rotation onto the shelf. It is matched on the world,
+ * as everywhere else, never on a flag or the project type.
  *
  * Both filters run **server-side**. The old version fetched `/api/projects` with
  * no pagination at all and filtered `importance === 'top of mind'` in JS, so with
@@ -40,10 +50,14 @@ export async function performMoonPhaseReset(token: string): Promise<{
   tasksUpdated: number;
   projectsUpdated: number;
 }> {
-  const soonTasks = await fetchAllPages<StrapiRow>(token, '/api/tasks?filters[soon][$eq]=true');
+  const soonTasks = await fetchAllPages<SoonTaskRow>(
+    token,
+    '/api/tasks?filters[soon][$eq]=true&populate[project][populate][worldRef][fields][0]=systemKey',
+  );
 
   let tasksUpdated = 0;
   for (const task of soonTasks) {
+    if (isPracticeWorld(task.project?.worldRef)) continue;
     const response = await strapiFetch(token, `/api/tasks/${task.documentId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },

@@ -190,7 +190,7 @@ export default function SettingsPanel() {
           />
           <span>
             Every new moon, clear the &quot;top of mind&quot; and &quot;soon&quot;
-            flags.
+            flags. Practice pieces stay in rotation.
           </span>
         </label>
       </DrawerSection>

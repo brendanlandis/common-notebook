@@ -192,3 +192,21 @@ describe('setAutoDeclutter', () => {
     expect(upsertSystemSetting).toHaveBeenCalledTimes(1); // no watermark stamp
   });
 });
+
+describe('performMoonPhaseReset — which tasks lose soon', () => {
+  it('clears soon on ordinary tasks but leaves practice material in rotation', async () => {
+    // On material, soon is the rotation: a new moon must not empty it.
+    fetchAllPages.mockResolvedValue([
+      { documentId: 'chore', project: { worldRef: { systemKey: null } } },
+      { documentId: 'loose' },
+      { documentId: 'scales', project: { worldRef: { systemKey: 'practice' } } },
+    ]);
+    strapiFetch.mockResolvedValue({ ok: true });
+
+    const result = await mod.performMoonPhaseReset('token');
+
+    const cleared = strapiFetch.mock.calls.map(([, path]) => path);
+    expect(cleared).toEqual(['/api/tasks/chore', '/api/tasks/loose']);
+    expect(result.tasksUpdated).toBe(2);
+  });
+});

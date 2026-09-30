@@ -23,7 +23,7 @@ export function isStuffWorld(w: World): boolean {
   return w.systemKey === STUFF_SYSTEM_KEY;
 }
 
-export function isPracticeWorld(w: World | null | undefined): boolean {
+export function isPracticeWorld(w: Pick<World, "systemKey"> | null | undefined): boolean {
   return w?.systemKey === PRACTICE_SYSTEM_KEY;
 }
 
