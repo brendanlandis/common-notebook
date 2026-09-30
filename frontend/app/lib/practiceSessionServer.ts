@@ -1,5 +1,7 @@
 import { strapiFetch } from './strapiServer';
-import { parseSegments, type PracticeSegment } from './practiceSession';
+import { noteBlocks, parseSegments, type PracticeSegment } from './practiceSession';
+
+export { noteBlocks };
 
 /**
  * Server-side plumbing for the practice session intent endpoints.
@@ -191,16 +193,6 @@ export async function createPracticeSession(
   return (body.data as { documentId: string }) ?? null;
 }
 
-/**
- * A note typed into a plain box, as the blocks a log's `notes` column holds: one
- * paragraph, with line breaks kept inside it (the display renders them), or no
- * blocks at all for a blank note.
- */
-export function noteBlocks(text: string | null | undefined) {
-  const trimmed = (text ?? '').trim();
-  if (!trimmed) return [];
-  return [{ type: 'paragraph', children: [{ type: 'text', text: trimmed }] }];
-}
 
 /**
  * Save what was written about one piece's stretch: its note and the tempo

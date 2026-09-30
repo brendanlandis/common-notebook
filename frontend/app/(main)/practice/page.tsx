@@ -193,9 +193,20 @@ function Place({ label, pieces, playable = false }: { label: string; pieces: Tas
  * and the note. Notes in italics.
  */
 function HistoryDaySummary({ day, label }: { day: HistoryDay; label: string }) {
+  const { editDay } = usePracticeForms();
   return (
     <div className="flex flex-col gap-rows">
-      <h3>{label}</h3>
+      <div className="flex items-start gap-2">
+        <h3 className="grow">{label}</h3>
+        <button
+          type="button"
+          aria-label={`edit ${label}'s practice`}
+          className="-mt-2 flex h-9 w-11 shrink-0 items-start justify-end pt-2"
+          onClick={() => editDay(day.date, label)}
+        >
+          <PencilSimpleIcon size={20} aria-hidden="true" />
+        </button>
+      </div>
       <ul className="m-0 flex list-disc flex-col gap-rows pl-5">
         {day.subjects.map((s) => (
           <li key={s.key}>

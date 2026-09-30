@@ -200,3 +200,14 @@ export function isStale(
     getEffectiveDayForTimestamp(now, settings)
   );
 }
+
+/**
+ * A note typed into a plain box, as the blocks a log's `notes` column holds: one
+ * paragraph, with line breaks kept inside it (the display renders them), or no
+ * blocks at all for a blank note.
+ */
+export function noteBlocks(text: string | null | undefined) {
+  const trimmed = (text ?? '').trim();
+  if (!trimmed) return [];
+  return [{ type: 'paragraph', children: [{ type: 'text', text: trimmed }] }];
+}

@@ -9,6 +9,7 @@ import { CONTROL_ICON } from '@/app/components/chrome/iconSizes';
 import { useTaskActions } from '@/app/(main)/(todo)/contexts/TaskActionsContext';
 import ProjectForm from '@/app/(main)/(todo)/components/ProjectForm';
 import PieceForm from '@/app/(main)/practice/components/PieceForm';
+import DayEditor from '@/app/(main)/practice/components/DayEditor';
 import { usePracticeSubject } from '@/app/(main)/practice/hooks/usePracticePage';
 import { useWorlds } from '@/app/(main)/(todo)/hooks/useWorlds';
 import { TASKS_ROOT } from '@/app/(main)/(todo)/hooks/useTasks';
@@ -26,7 +27,11 @@ import type { Task } from '@/app/types/index';
  * drawer state (`TaskActionsContext`), since the header sits outside this page;
  * a piece's pencil opens it through `editPiece` below, which names the piece.
  */
-const PracticeFormsContext = createContext<{ editPiece: (piece: Task) => void } | null>(null);
+const PracticeFormsContext = createContext<{
+  editPiece: (piece: Task) => void;
+  /** Open a day of history to put right; `label` is how history names the day. */
+  editDay: (date: string, label: string) => void;
+} | null>(null);
 
 export function usePracticeForms() {
   const context = useContext(PracticeFormsContext);
@@ -37,6 +42,14 @@ export function usePracticeForms() {
 export function PracticeFormsProvider({ children }: { children: ReactNode }) {
   const { drawerContent, isOpen, openTaskForm, closeDrawer, onDrawerExited } = useTaskActions();
   const [editing, setEditing] = useState<Task | null>(null);
+  // The day being edited has a drawer of its own: it isn't a task or a project,
+  // so the shared drawer state has no word for it.
+  const [day, setDay] = useState<{ date: string; label: string } | null>(null);
+  const [dayOpen, setDayOpen] = useState(false);
+  const editDay = useCallback((date: string, label: string) => {
+    setDay({ date, label });
+    setDayOpen(true);
+  }, []);
   const queryClient = useQueryClient();
   const { subject } = usePracticeSubject();
   const { worlds } = useWorlds();
@@ -83,7 +96,7 @@ export function PracticeFormsProvider({ children }: { children: ReactNode }) {
     swallow('save subject', apiSend('/api/projects', 'POST', data).finally(reread));
   };
 
-  const value = useMemo(() => ({ editPiece }), [editPiece]);
+  const value = useMemo(() => ({ editPiece, editDay }), [editPiece, editDay]);
 
   const title =
     drawerContent === 'task' ? (editing ? 'edit piece' : 'new piece') : 'new subject';
@@ -118,6 +131,22 @@ export function PracticeFormsProvider({ children }: { children: ReactNode }) {
           {drawerContent === 'project' && (
             <ProjectForm defaultWorld={practiceWorld} onSubmit={saveSubject} onCancel={close} />
           )}
+        </div>
+      </Drawer>
+
+      <Drawer
+        open={dayOpen}
+        onOpenChange={setDayOpen}
+        title={day?.label ?? 'day'}
+        onExited={() => setDay(null)}
+      >
+        <div className={`actions-drawer ${DRAWER_PANEL}`}>
+          <DrawerHeader title={day?.label ?? ''}>
+            <DrawerClose aria-label="close">
+              <XIcon size={CONTROL_ICON} weight="regular" />
+            </DrawerClose>
+          </DrawerHeader>
+          {day && <DayEditor key={day.date} date={day.date} onDone={() => setDayOpen(false)} />}
         </div>
       </Drawer>
     </PracticeFormsContext.Provider>
