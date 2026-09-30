@@ -2,12 +2,13 @@
 
 import { useEffect, useMemo, type ReactNode } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
-import { PlayIcon, PauseIcon, StopIcon, MetronomeIcon, XIcon } from '@phosphor-icons/react';
+import { PauseIcon, StopIcon, MetronomeIcon } from '@phosphor-icons/react';
 import { useActiveSession } from '@/app/(main)/practice/hooks/usePracticeSession';
 import { usePracticeSessionUI } from '@/app/contexts/PracticeSessionContext';
 import { useDateTimeSettings } from '@/app/contexts/DateTimeSettingsContext';
 import { isStale } from '@/app/lib/practiceSession';
 import PracticeClock from '@/app/(main)/practice/components/PracticeClock';
+import PiecePopover from '@/app/(main)/practice/components/PiecePopover';
 import Button from "@/app/components/ui/Button";
 
 /**
@@ -26,8 +27,8 @@ import Button from "@/app/components/ui/Button";
  *
  * Three states:
  *
- * - **ready** — you clicked a practice icon and haven't pressed play. Name,
- *   subject, play button, and a close in the corner.
+ * - **ready** — you opened a piece and haven't started it: its popover
+ *   (`PiecePopover`), with its details, "start timer", and a close in the corner.
  * - **running** — the same panel, with a clock, pause and stop, and **no close**.
  * - **paused** — a button in the corner. Pause is the only way out,
  *   deliberately: an escape that left the clock running would reintroduce
@@ -82,35 +83,17 @@ export default function PracticeSessionModal() {
   // Nothing running and nothing offered: the modal isn't there at all.
   if (!session && !readyMaterial) return null;
 
-  // Offered but not started. `readyMaterial` is a Task, so it carries its own
-  // project — the subject — without a second fetch.
+  // Offered but not started: the piece's popover, whose "start timer" starts it.
+  // `readyMaterial` is a Task, so it carries its own project — the subject —
+  // without a second fetch.
   if (!session && readyMaterial) {
     return (
-      <PracticeModal label="start practicing" onEscape={dismiss}>
-          <button
-            type="button"
-            // Top right, and only in the ready state — the running panel
-        // deliberately has no close. A dismiss that left the clock running is
-        // exactly the "hide but keep practicing" escape the whole design is
-        // built to refuse, and PracticeSessionModal.test.tsx asserts its
-        // absence there.
-        className="absolute top-2 right-2 inline-flex p-2 opacity-50 transition-opacity focus-visible:opacity-100 [transition-duration:var(--transition-time)]"
-            aria-label="close"
-            onClick={dismiss}
-          >
-            <XIcon size={20} weight="bold" />
-          </button>
-          <PracticeSubject title={readyMaterial.title} subject={readyMaterial.project?.title} />
-          <button
-            type="button"
-            className="transition-opacity [transition-duration:var(--transition-time)] disabled:opacity-40"
-            aria-label={`start practicing ${readyMaterial.title}`}
-            disabled={isStarting}
-            onClick={() => start(readyMaterial.documentId)}
-          >
-            <PlayIcon size={96} weight="regular" />
-          </button>
-      </PracticeModal>
+      <PiecePopover
+        piece={readyMaterial}
+        onClose={dismiss}
+        onStart={() => start(readyMaterial.documentId)}
+        starting={isStarting}
+      />
     );
   }
 
@@ -190,16 +173,7 @@ export default function PracticeSessionModal() {
  * entirely as well was a step past that: it stopped reading as a modal and
  * started reading as a navigation, with no visible edge to say otherwise.
  */
-function PracticeModal({
-  label,
-  onEscape,
-  children,
-}: {
-  label: string;
-  /** Escape closes only the ready panel; while a session runs it does nothing. */
-  onEscape?: () => void;
-  children: ReactNode;
-}) {
+function PracticeModal({ label, children }: { label: string; children: ReactNode }) {
   // Radix Dialog keeps Tab inside the panel and the page behind from scrolling,
   // which a plain overlay did not: the backdrop ate clicks, but Tab still walked
   // into the app behind it. Clicking the backdrop never closes it.
@@ -212,10 +186,8 @@ function PracticeModal({
         <Dialog.Overlay className="fixed inset-0 z-60 grid place-items-center overflow-y-auto bg-black/55 p-4">
           <Dialog.Content
             aria-describedby={undefined}
-            onEscapeKeyDown={(event) => {
-              event.preventDefault();
-              onEscape?.();
-            }}
+            // Escape does nothing while a session runs: pause is the way out.
+            onEscapeKeyDown={(event) => event.preventDefault()}
             onPointerDownOutside={(event) => event.preventDefault()}
             onInteractOutside={(event) => event.preventDefault()}
             className="relative flex w-full max-w-104 flex-col items-center gap-sections rounded-2xl bg-base-100 px-8 py-10 text-center shadow-[0_1.5rem_3rem_rgb(0_0_0/0.35)]"

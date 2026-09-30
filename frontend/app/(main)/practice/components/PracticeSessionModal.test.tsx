@@ -34,6 +34,13 @@ vi.mock('@/app/(main)/practice/hooks/usePracticeSession', () => ({
   useActiveSession: () => session.current,
 }));
 
+// The ready state is the piece's popover, which reads the piece's past logs for
+// its "last time" line.
+const pieceLogs = vi.hoisted(() => ({ current: [] as unknown[] }));
+vi.mock('@/app/(main)/practice/hooks/usePracticeLogs', () => ({
+  usePracticeLogs: () => ({ logs: pieceLogs.current }),
+}));
+
 const readyMaterial = vi.hoisted(() => ({ current: null as Task | null }));
 // Stable across renders, so `dismiss` can be asserted on — a fresh `vi.fn()` per
 // render would also make the component's effect dependency churn every time.
@@ -78,6 +85,7 @@ beforeEach(() => {
   vi.useFakeTimers({ shouldAdvanceTime: true });
   vi.setSystemTime(new Date('2026-08-14T15:00:00.000Z'));
   readyMaterial.current = null;
+  pieceLogs.current = [];
   ui.openFor.mockClear();
   ui.dismiss.mockClear();
   session.current = {
@@ -104,18 +112,40 @@ describe('nothing running', () => {
   });
 });
 
-describe('ready state', () => {
-  it('names the material and its subject, and offers play', async () => {
+describe('ready state: the piece popover', () => {
+  it('names the piece and its subject, and starts the timer', async () => {
     readyMaterial.current = material;
     renderModal();
 
     expect(screen.getByRole('heading', { name: 'bach invention 4' })).toBeDefined();
     expect(screen.getByText('guitar')).toBeDefined();
 
-    fireEvent.click(
-      screen.getByRole('button', { name: /start practicing bach invention 4/i })
-    );
+    fireEvent.click(screen.getByRole('button', { name: /start timer/i }));
     expect(session.current.start).toHaveBeenCalledWith('material-1');
+  });
+
+  it("shows the details a piece has, and none it doesn't", () => {
+    readyMaterial.current = {
+      ...material,
+      materialCategory: 'songs',
+      tempo: 140,
+      goalTempo: 160,
+      link: 'https://www.songsterr.com/a/wsa/reversal',
+    } as unknown as Task;
+    pieceLogs.current = [
+      { documentId: 'open', date: '2026-08-14', duration: 0, stop: null },
+      { documentId: 'last', date: '2026-08-11', duration: 20, stop: '2026-08-11T15:20:00.000Z' },
+    ];
+    renderModal();
+
+    expect(screen.getByText('guitar · songs')).toBeDefined();
+    expect(screen.getByText('140 bpm, goal 160')).toBeDefined();
+    expect(screen.getByRole('link', { name: /songsterr\.com/ }).getAttribute('href')).toBe(
+      'https://www.songsterr.com/a/wsa/reversal'
+    );
+    // The open log isn't a finished session; the last finished one is.
+    expect(screen.getByText('3 days ago, 20 min')).toBeDefined();
+    expect(screen.queryByText('notes')).toBeNull();
   });
 
   it('closes from the corner rather than a button at the foot of the panel', () => {
@@ -144,7 +174,10 @@ describe('ready state', () => {
     session.current = { ...session.current, isStarting: true };
     renderModal();
 
-    expect(screen.getByRole('dialog', { name: 'start practicing' })).toBeDefined();
+    expect(screen.getByRole('dialog', { name: 'bach invention 4' })).toBeDefined();
+    expect(
+      (screen.getByRole('button', { name: /start timer/i }) as HTMLButtonElement).disabled
+    ).toBe(true);
     expect(ui.dismiss).not.toHaveBeenCalled();
   });
 });
