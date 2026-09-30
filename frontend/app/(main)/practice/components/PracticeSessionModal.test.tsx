@@ -166,7 +166,7 @@ describe('ready state: the piece popover', () => {
     );
     // The open log isn't a finished session; the last finished one is.
     expect(screen.getByText('3 days ago, 20 min')).toBeDefined();
-    expect(screen.queryByText('notes')).toBeNull();
+    expect(screen.queryByText('note')).toBeNull();
   });
 
   it('logs time done without the timer, for the day picked', async () => {

@@ -136,9 +136,11 @@ export default function DayEditor({ date, onDone }: { date: string; onDone: () =
               {group.title} · {group.stretches.reduce((sum, l) => sum + (l.duration ?? 0), 0)} min
             </h3>
             {group.session && (
-              <Field label="notes" htmlFor={`notes-${group.session.documentId}`}>
+              <Field label="note" htmlFor={`notes-${group.session.documentId}`}>
                 <Textarea
                   id={`notes-${group.session.documentId}`}
+                  // Every note is labeled "note"; this one says which to a screen reader.
+                  aria-label="note on the whole session"
                   rows={2}
                   value={edits[group.session.documentId]?.note ?? group.session.notes ?? ''}
                   onChange={(e) => edit(group.session!.documentId, { note: e.target.value })}

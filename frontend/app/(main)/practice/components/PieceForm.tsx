@@ -235,8 +235,8 @@ export default function PieceForm({ piece, subjectId, onSubmit, onDelete }: Piec
         </Field>
       </div>
 
-      <Field label="notes" htmlFor="piece-notes">
-        <RichTextEditor value={notes} onChange={setNotes} placeholder="notes" />
+      <Field label="note" htmlFor="piece-notes">
+        <RichTextEditor value={notes} onChange={setNotes} placeholder="note" />
       </Field>
 
       <fieldset className="flex flex-col gap-2">

@@ -149,10 +149,13 @@ export default function PracticeNoteDialog(props: NoteDialogProps) {
               {props.mode === 'stop' && (
                 <div className="border-t border-base-content/30 pt-4">
                   <label htmlFor="session-note" className="mb-1 block text-small">
-                    note on the whole session
+                    note
                   </label>
                   <Textarea
                     id="session-note"
+                    // Every note is labeled "note"; this one, under the rule, is the
+                    // whole session's, and says so to a screen reader.
+                    aria-label="note on the whole session"
                     rows={2}
                     value={sessionNote}
                     onChange={(e) => setSessionNote(e.target.value)}

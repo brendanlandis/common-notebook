@@ -105,7 +105,7 @@ export default function PiecePopover({
   if (last) details.push({ label: 'last time', value: lastTimeLabel(last, todayISO) });
   if (hasText(piece.description)) {
     details.push({
-      label: 'notes',
+      label: 'note',
       value: <RichTextDisplay content={piece.description as BlocksContent} className="[&_p]:m-0" />,
     });
   }

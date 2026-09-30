@@ -71,11 +71,11 @@ describe('DayEditor', () => {
   it("shows the day's session with its notes, and each piece's minutes, tempo and note", () => {
     renderEditor();
     expect(screen.getByRole('heading', { name: 'guitar · 24 min' })).toBeTruthy();
-    expect((screen.getByLabelText('notes') as HTMLTextAreaElement).value).toBe('short on sleep');
+    expect((screen.getByLabelText('note on the whole session') as HTMLTextAreaElement).value).toBe('short on sleep');
     expect(screen.getAllByLabelText('minutes').map((i) => (i as HTMLInputElement).value)).toEqual(['6', '18']);
     // Tempo reached only for the piece that has a tempo.
     expect(screen.getAllByLabelText('tempo reached')).toHaveLength(1);
-    expect((screen.getAllByLabelText('note')[0] as HTMLTextAreaElement).value).toBe('second shape buzzes');
+    expect(screen.getByDisplayValue('second shape buzzes')).toBeTruthy();
     expect(screen.queryByText('x')).toBeNull();
   });
 
@@ -83,7 +83,7 @@ describe('DayEditor', () => {
     const onDone = renderEditor();
     fireEvent.change(screen.getAllByLabelText('minutes')[1], { target: { value: '20' } });
     fireEvent.change(screen.getByLabelText('tempo reached'), { target: { value: '144' } });
-    fireEvent.change(screen.getByLabelText('notes'), { target: { value: 'slept fine' } });
+    fireEvent.change(screen.getByLabelText('note on the whole session'), { target: { value: 'slept fine' } });
     fireEvent.click(screen.getByRole('button', { name: 'save' }));
 
     await waitFor(() => expect(onDone).toHaveBeenCalled());
