@@ -244,7 +244,7 @@ without verifying it — until 2026-09-23 `shows-tasks` did, and a hand-made coo
 
 # Backend
 
-Strapi `5.50.2`, TypeScript. Scripts: `npm run develop` / `build` / `start` / `deploy`.
+Strapi `5.56.0`, TypeScript. Scripts: `npm run develop` / `build` / `start` / `deploy`.
 DB via `DATABASE_CLIENT` (mysql | postgres | sqlite), **defaults to SQLite** locally
 (`backend/config/database.ts`). Media uploads go to AWS S3.
 
