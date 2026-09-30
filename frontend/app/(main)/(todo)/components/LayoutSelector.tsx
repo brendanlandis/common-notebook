@@ -4,6 +4,7 @@ import { useStuffProjects } from "@/app/(main)/(todo)/contexts/StuffProjectsCont
 import { useWorlds } from "@/app/(main)/(todo)/hooks/useWorlds";
 import { useViews } from "@/app/(main)/(todo)/hooks/useViews";
 import { sortViewsByPosition, getDefaultViewSlug, CODE_PRESETS } from "@/app/lib/views";
+import { isPracticeWorld } from "@/app/lib/worlds";
 
 interface LayoutSelectorProps {
   value: string; // view slug, `world:<slug>`, or "" on a project route
@@ -22,8 +23,10 @@ export default function LayoutSelector({ value }: LayoutSelectorProps) {
   );
 
   // Per-world entries come from the user's worlds. The stuff world is surfaced by
-  // the "stuff" view, not here.
-  const worldOptions = worlds.filter((w) => w.systemKey !== "stuff");
+  // the "stuff" view, not here, and practice and study has its own page. That world
+  // is hidden, never deleted: deleting it would turn every piece of material back
+  // into an ordinary task.
+  const worldOptions = worlds.filter((w) => w.systemKey !== "stuff" && !isPracticeWorld(w));
 
   // On pages not represented by any option (a project route), `value` is "" —
   // show a blank row at the top so the select has something to display. A view
