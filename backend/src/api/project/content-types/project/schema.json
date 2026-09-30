@@ -68,6 +68,12 @@
     },
     "completedAt": {
       "type": "datetime"
+    },
+    "practice_sessions": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::practice-session.practice-session",
+      "mappedBy": "subject"
     }
   }
 }

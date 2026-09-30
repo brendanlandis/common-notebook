@@ -40,6 +40,15 @@
     },
     "segments": {
       "type": "json"
+    },
+    "session": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::practice-session.practice-session",
+      "inversedBy": "practice_logs"
+    },
+    "tempoReached": {
+      "type": "integer"
     }
   }
 }

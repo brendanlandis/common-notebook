@@ -623,8 +623,53 @@ export interface ApiPracticeLogPracticeLog extends Struct.CollectionTypeSchema {
       Schema.Attribute.Private;
     publishedAt: Schema.Attribute.DateTime;
     segments: Schema.Attribute.JSON;
+    session: Schema.Attribute.Relation<
+      'manyToOne',
+      'api::practice-session.practice-session'
+    >;
     start: Schema.Attribute.DateTime;
     stop: Schema.Attribute.DateTime;
+    tempoReached: Schema.Attribute.Integer;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface ApiPracticeSessionPracticeSession
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'practice_sessions';
+  info: {
+    displayName: 'Practice Session';
+    pluralName: 'practice-sessions';
+    singularName: 'practice-session';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    date: Schema.Attribute.Date;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::practice-session.practice-session'
+    > &
+      Schema.Attribute.Private;
+    notes: Schema.Attribute.Text;
+    owner: Schema.Attribute.Relation<
+      'oneToOne',
+      'plugin::users-permissions.user'
+    > &
+      Schema.Attribute.Private;
+    practice_logs: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::practice-log.practice-log'
+    >;
+    publishedAt: Schema.Attribute.DateTime;
+    subject: Schema.Attribute.Relation<'manyToOne', 'api::project.project'>;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
@@ -663,6 +708,10 @@ export interface ApiProjectProject extends Struct.CollectionTypeSchema {
       'plugin::users-permissions.user'
     > &
       Schema.Attribute.Private;
+    practice_sessions: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::practice-session.practice-session'
+    >;
     projectType: Schema.Attribute.Enumeration<
       [
         'default',
@@ -1431,6 +1480,7 @@ declare module '@strapi/strapi' {
       'api::daily-pick.daily-pick': ApiDailyPickDailyPick;
       'api::invite.invite': ApiInviteInvite;
       'api::practice-log.practice-log': ApiPracticeLogPracticeLog;
+      'api::practice-session.practice-session': ApiPracticeSessionPracticeSession;
       'api::project.project': ApiProjectProject;
       'api::review.review': ApiReviewReview;
       'api::system-setting.system-setting': ApiSystemSettingSystemSetting;

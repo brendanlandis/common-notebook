@@ -1,0 +1,39 @@
+{
+  "kind": "collectionType",
+  "collectionName": "practice_sessions",
+  "info": {
+    "singularName": "practice-session",
+    "pluralName": "practice-sessions",
+    "displayName": "Practice Session"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "date": {
+      "type": "date"
+    },
+    "notes": {
+      "type": "text"
+    },
+    "subject": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::project.project",
+      "inversedBy": "practice_sessions"
+    },
+    "practice_logs": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::practice-log.practice-log",
+      "mappedBy": "session"
+    },
+    "owner": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "plugin::users-permissions.user",
+      "private": true
+    }
+  }
+}
