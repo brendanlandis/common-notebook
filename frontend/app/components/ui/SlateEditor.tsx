@@ -202,7 +202,7 @@ const toggleBlock = (editor: CustomEditor, format: string, level?: number) => {
     ...(format === "heading" && level ? { level } : {}),
   } as Partial<SlateElement>;
 
-  Transforms.setNodes(editor, newProperties, {
+  Transforms.setNodes<SlateElement>(editor, newProperties, {
     match: (n) => SlateElement.isElement(n) && Editor.isBlock(editor, n),
   });
 };
@@ -220,7 +220,7 @@ const toggleList = (
     split: true,
   });
 
-  Transforms.setNodes(editor, {
+  Transforms.setNodes<SlateElement>(editor, {
     type: isActive ? "paragraph" : "list-item",
   } as Partial<SlateElement>);
 
@@ -866,7 +866,7 @@ export default function SlateEditor({
           );
           if (entry && Editor.string(editor, entry[1]) === "") {
             event.preventDefault();
-            Transforms.setNodes(editor, { type: "paragraph" } as Partial<
+            Transforms.setNodes<SlateElement>(editor, { type: "paragraph" } as Partial<
               SlateElement
             >, {
               match: (n) =>
@@ -913,7 +913,7 @@ export default function SlateEditor({
             event.preventDefault();
             if (text === "") {
               // Wholly empty block → become a paragraph in place.
-              Transforms.setNodes(
+              Transforms.setNodes<SlateElement>(
                 editor,
                 { type: "paragraph" } as Partial<SlateElement>,
                 {
