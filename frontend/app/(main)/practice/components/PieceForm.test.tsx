@@ -80,7 +80,7 @@ describe("PieceForm", () => {
   it("moves a piece from rotation to learned", () => {
     const onSubmit = vi.fn();
     render(<PieceForm piece={piece()} onSubmit={onSubmit} onDelete={vi.fn()} />);
-    expect(screen.getByLabelText("in rotation")).toBeChecked();
+    expect((screen.getByLabelText("in rotation") as HTMLInputElement).checked).toBe(true);
 
     fireEvent.click(screen.getByLabelText("learned"));
     fireEvent.click(screen.getByRole("button", { name: "update piece" }));
@@ -112,8 +112,8 @@ describe("PieceForm", () => {
   it("suggests the categories already used under the chosen subject only", () => {
     render(<PieceForm piece={piece({ materialCategory: null } as Partial<Task>)} onSubmit={vi.fn()} />);
     fireEvent.focus(screen.getByLabelText("category"));
-    expect(screen.getByText("scales")).toBeInTheDocument();
-    expect(screen.getByText("songs")).toBeInTheDocument();
+    expect(screen.getByText("scales")).toBeTruthy();
+    expect(screen.getByText("songs")).toBeTruthy();
     expect(screen.queryByText("intervals")).toBeNull();
   });
 
@@ -122,6 +122,6 @@ describe("PieceForm", () => {
     render(<PieceForm onSubmit={onSubmit} />);
     fireEvent.click(screen.getByRole("button", { name: "create piece" }));
     expect(onSubmit).not.toHaveBeenCalled();
-    expect(screen.getByText("a piece needs a name")).toBeInTheDocument();
+    expect(screen.getByText("a piece needs a name")).toBeTruthy();
   });
 });
