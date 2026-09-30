@@ -80,7 +80,7 @@ describe("PieceForm", () => {
   it("moves a piece from rotation to learned", () => {
     const onSubmit = vi.fn();
     render(<PieceForm piece={piece()} onSubmit={onSubmit} onDelete={vi.fn()} />);
-    expect((screen.getByLabelText("in rotation") as HTMLInputElement).checked).toBe(true);
+    expect((screen.getByLabelText("top of mind") as HTMLInputElement).checked).toBe(true);
 
     fireEvent.click(screen.getByLabelText("learned"));
     fireEvent.click(screen.getByRole("button", { name: "update piece" }));

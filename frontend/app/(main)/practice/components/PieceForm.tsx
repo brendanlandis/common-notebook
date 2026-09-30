@@ -20,7 +20,7 @@ import type { StrapiBlock, Task } from "@/app/types/index";
 export type PiecePlace = "rotation" | "shelf" | "hold" | "learned";
 
 export const PIECE_PLACES: { value: PiecePlace; label: string }[] = [
-  { value: "rotation", label: "in rotation" },
+  { value: "rotation", label: "top of mind" },
   { value: "shelf", label: "on the shelf" },
   { value: "hold", label: "on hold" },
   { value: "learned", label: "learned" },
