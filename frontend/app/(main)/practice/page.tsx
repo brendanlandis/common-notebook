@@ -15,9 +15,12 @@ import { toISODate, getToday, shiftISODate, parseDate, formatInTimezone } from "
 import type { TimeZoneSettings } from "@/app/lib/timeZoneSettings";
 import DisclosureToggle from "@/app/components/ui/DisclosureToggle";
 import FaviconManager from "@/app/components/ui/FaviconManager";
+import Button from "@/app/components/ui/Button";
 
 /** History appears once there are this many practice days in the last 30. */
 const HISTORY_AFTER_DAYS = 3;
+/** History's days come a week at a time, newest first. */
+const DAYS_PER_PAGE = 7;
 
 /**
  * The home for practice: one subject at a time, chosen in the header.
@@ -26,7 +29,8 @@ const HISTORY_AFTER_DAYS = 3;
  * metronome or name opens its popover (details, start timer, log time) and its
  * pencil edits it. The shelf, on hold and learned follow as three collapsed
  * lines. History covers every subject, and appears once there is enough of it
- * to say something.
+ * to say something: the 30-day chart, then the last week's days, a week more
+ * per "view previous week".
  *
  * Today's picks aren't here: the daily page has them. This page is for keeping
  * the rotation and working through it.
@@ -40,7 +44,10 @@ export default function PracticePage() {
 
   const today = toISODate(getToday(timeZoneSettings), timeZoneSettings);
   const since = shiftISODate(today, -29); // 29 days ago + today = the chart's 30
-  const sessions = usePracticeSessions(since);
+  // The days listed: the last week, and a week further back per "view previous week".
+  const [weeks, setWeeks] = useState(1);
+  const listedSince = shiftISODate(today, -(weeks * DAYS_PER_PAGE - 1));
+  const sessions = usePracticeSessions(listedSince);
 
   const pieces = tasks.filter(
     (t) => subject && t.project?.documentId === subject.documentId && !t.completed
@@ -50,7 +57,8 @@ export default function PracticePage() {
   const hold = pieces.filter((t) => t.onHold);
 
   const showHistory = practiceDays(logs, since) >= HISTORY_AFTER_DAYS;
-  const days = showHistory ? buildHistory(logs, sessions, since) : [];
+  const days = showHistory ? buildHistory(logs, sessions, listedSince) : [];
+  const olderPractice = logs.some((l) => l.stop && l.date < listedSince);
 
   return (
     <>
@@ -92,6 +100,16 @@ export default function PracticePage() {
                         label={dayLabel(day.date, today, timeZoneSettings)}
                       />
                     ))}
+                    {days.length === 0 && (
+                      <p className="m-0 opacity-80">Nothing practiced in the last {weeks * DAYS_PER_PAGE} days.</p>
+                    )}
+                    {olderPractice && (
+                      <div>
+                        <Button small onClick={() => setWeeks(weeks + 1)}>
+                          view previous week
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 </div>
               </section>
