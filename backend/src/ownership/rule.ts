@@ -40,6 +40,7 @@ export const OWNED_CONTENT_TYPES = [
   'api::world.world',
   'api::view.view',
   'api::practice-log.practice-log',
+  'api::practice-session.practice-session',
   'api::system-setting.system-setting',
   'api::review.review',
   'api::daily-pick.daily-pick',
