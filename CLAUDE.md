@@ -353,9 +353,16 @@ Practice runs on the **same substrate as tasks**, not beside it:
 ```
 world  "practice and study"   (systemKey: practice)
  └─ subject   = project       (projectType: instrument | study)
-     └─ material = task       (+ materialCategory, onHold)
-         └─ session = practice-log row
+     ├─ material = task       (+ materialCategory, onHold, tempo, goalTempo, link)
+     └─ session  = practice-session row   (a sitting: date, subject, a note on the whole of it)
+         └─ stretch = practice-log row    (one piece's time in it, its note, tempoReached)
 ```
+
+**A piece's place is its flags**, not a field: in rotation ("top of mind" on the page) = `soon`;
+on the shelf = not `soon`; on hold = `onHold`; learned = `completed`. The piece form
+(`practice/components/PieceForm.tsx`) writes all three on every move, so no stale flag survives.
+The new-moon declutter leaves practice material's `soon` alone (`moonPhaseReset.ts`): there the
+flag is a rotation chosen on purpose, not a passing "soon".
 
 The `PRACTICE_SYSTEM_KEY` (`app/lib/worlds.ts`) is load-bearing twice over: it keeps material out of
 everyday to-do views (`resolveVisibleWorldIds` excludes any system world from `all`/`except`, so
@@ -380,37 +387,45 @@ nothing extra for the daily page to read.
 
 ## Sessions
 
-`practice-log` is `{start, stop, duration, date, notes, material, segments}`.
+A **practice-session** is one sitting: from start to stop, across however many pieces "switch to"
+moved through. One subject, one day (the effective day it started), and a plain-text note on the
+whole of it. Each piece's time in it is a **practice-log** — `{start, stop, duration, date, notes,
+material, segments, tempoReached, session}` — which the code has long called a "session"; read
+the variable names with that in mind.
 
 - **`segments`** (`app/lib/practiceSession.ts`) is `[{start, stop|null}]` — the stretches actually
   practised. `duration` is their **sum**, not `stop - start`: a 40-minute sitting with 15 minutes of
   pause is 25 minutes practised. Only the last segment may be open; `parseSegments` normalises anything
   else, because it is a JSON column that can hold whatever a half-written request left behind.
-  This is the one place a JSON blob is right: scratch state on the session's own row, never queried
-  across rows, collapsed to an integer on stop.
+  A log written afterwards has no segments and `start = stop` = midday of its day; `date` files it.
 - **`date`** is the **effective day of the session's start** (`getEffectiveDayForTimestamp`), so a
-  session begun at 1am under a 4am boundary belongs to the previous day and one that runs past the
-  boundary is filed under the day it began.
-- **Writes are intent endpoints**, never a client-supplied array: `POST /api/practice-logs` (start),
-  and `/pause`, `/resume`, `/stop`, `/correct` on `[documentId]`. Each does its read-modify-write
-  server-side under `withSessionLock` (`app/lib/practiceSessionServer.ts`) — chained, not shared, unlike
-  the moon-phase mutex, because the callers want different things done rather than the same thing once.
+  session begun at 1am under a 4am boundary belongs to the previous day. Every stretch after a switch
+  takes the session's day, so a session that crosses midnight stays one.
+- **Writes are intent endpoints**, never a client-supplied array: `POST /api/practice-logs` (start:
+  opens the session and its first stretch), and `/pause`, `/resume`, `/stop`, `/correct`, `/switch`
+  (close this stretch, open the next piece's in the same session) and `/note` (a stretch's note and
+  tempo reached, after it closed) on `[documentId]`; `POST /api/practice-logs/logged` records time
+  practised without the timer. Each does its read-modify-write server-side under `withSessionLock`
+  (`app/lib/practiceSessionServer.ts`).
 - **Every intent is idempotent, and that is load-bearing.** A session is shared between devices (start
   on the phone, stop on the laptop), so a stale client must only ever be able to re-assert something
   already true. Pause-when-paused does not move the recorded stop; stop-when-stopped does not rewrite
-  it; resume-when-running writes nothing. A finished session **refuses to reopen** — `stop` is the one
-  irreversible step.
-- **One open session at a time, globally.** `GET /api/practice-logs/active` answers "is anything
-  running?" without a material in scope, which the old per-type query could not — and which is why two
-  sessions on different types used to be able to run at once. A second start returns 409 with the open
-  one.
+  it; resume-when-running writes nothing; a replayed switch returns the stretch it already opened. A
+  finished stretch **refuses to reopen** — `stop` is the one irreversible step.
+- **Tempo reached becomes the piece's tempo.** `/note` and `/logged` write it on the stretch and the
+  piece both, so the next session starts from it.
+- **One open stretch at a time, globally.** `GET /api/practice-logs/active` answers "is anything
+  running?" and returns the open stretch with its session, the session's subject and every stretch in
+  it — the "switch to" list and the note after stop read that. A second start returns 409 with the
+  open one.
 - **There is no heartbeat, deliberately.** It would measure *tab open*, not practising — leave the page
   up while you make coffee and it reports practice with total confidence. Instead the modal offers a
   correction ("call it 30/60/90/120 minutes") once a session has run over four hours or crossed the day
-  boundary (`isStale`). `/correct` is the only place a duration comes from the client. It keeps the
-  segments as evidence rather than rewriting them to match.
+  boundary (`isStale`). `/correct` and `/logged` are the only places a duration comes from the client.
+- **History groups by day and subject, not by session**, so stretches from before sessions existed
+  (no `session`) read exactly like new ones; nothing was backfilled.
 
-## The practice screen is a modal, not a page
+## The practice screen is a modal; the practice page is where practice is kept
 
 `PracticeSessionModal` is mounted in `(main)/layout.tsx`, so a running session covers the header, the
 menu and whatever page is open. Two reasons, both worth keeping: practising is the one thing here that
@@ -418,10 +433,18 @@ isn't reading or deciding, and — with no heartbeat — being unable to use the
 dangling. **Pause is the only way out of full screen**; there is deliberately no "hide but keep running",
 and `PracticeSessionModal.test.tsx` asserts the absence.
 
-`/practice` is now the read-only *record* — the 30-day chart plus sessions grouped by day. Nothing starts
-a session from there: you press play on a piece of material, which lives on the to-do list and the review pages.
-`PracticeSessionContext` holds only which material the modal is *offering* (UI state); the session itself
-is server state via `useActiveSession`, which polls every 30s **only while something is running**.
+Its ready state is the **piece popover** (`PiecePopover.tsx`): every metronome and piece name in the
+app calls `openFor(task)`, which shows the piece's details, "start timer" and "log time". Running, it
+lists the subject's top of mind under "switch to"; a switch or a stop brings up `PracticeNoteDialog`.
+`PracticeSessionContext` holds only which piece is being *offered* (UI state); the session itself is
+server state via `useActiveSession`, which polls every 30s **only while something is running**.
+
+`/practice` shows one subject at a time, chosen in the header (`?subject=<slug>`, remembered per
+device): its top of mind, then the shelf, on hold and learned as collapsed lines, then history (every
+subject, once there are three practice days in 30). It has its own drawer (`PracticeForms.tsx`) for
+the piece form and a new subject, since the task pages' drawer is tied to their views. The practice
+world is hidden from the view picker in code (`LayoutSelector`), never deleted: deleting it would turn
+every piece back into an ordinary task.
 
 # Conventions
 
