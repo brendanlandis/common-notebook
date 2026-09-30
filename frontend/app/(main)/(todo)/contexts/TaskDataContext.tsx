@@ -78,7 +78,8 @@ interface TaskDataContextType {
   onComplete: (documentId: string) => void;
   onEdit: (task: Task) => void;
   onEditProject: (project: Project) => void;
-  onDelete: (documentId: string) => void;
+  /** Asks first; true when it went ahead, so a drawer showing the task can close. */
+  onDelete: (documentId: string) => boolean;
   onWorkSession: (documentId: string) => void;
   onRemoveWorkSession: (originalDocumentId: string, date: string) => void;
   onSkipRecurring: (documentId: string) => void;
@@ -369,13 +370,14 @@ export function TaskDataProvider({ children }: { children: ReactNode }) {
 
   const handleDelete = useCallback(
     (documentId: string) => {
-      if (!confirm("Are you sure you want to delete this task?")) return;
+      if (!confirm("Are you sure you want to delete this task?")) return false;
 
       // Pattern: originalDocumentId-worked-YYYY-MM-DD (a "worked on" virtual entry)
       const workedOnMatch = documentId.match(/^(.+)-worked-(\d{4}-\d{2}-\d{2})$/);
       const actualDocumentId = workedOnMatch ? workedOnMatch[1] : documentId;
 
       swallow("delete task", mutateDelete(actualDocumentId));
+      return true;
     },
     [mutateDelete]
   );

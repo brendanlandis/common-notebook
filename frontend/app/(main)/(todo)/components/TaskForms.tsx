@@ -2,6 +2,8 @@
 
 import { XIcon } from "@phosphor-icons/react";
 import TaskForm from "./TaskForm";
+import PieceForm from "@/app/(main)/practice/components/PieceForm";
+import { isPracticeMaterial } from "@/app/lib/reviewLists";
 import ProjectForm from "./ProjectForm";
 import WorldsManager from "@/app/(main)/(todo)/components/WorldsManager";
 import ViewsManager from "@/app/(main)/(todo)/components/ViewsManager";
@@ -24,13 +26,18 @@ export default function TaskForms() {
     editingProject,
     onSubmitTask,
     onCancelTaskForm,
+    onDelete,
     onSubmitProject,
     onCancelProjectForm,
   } = useTaskData();
 
+  // A piece of practice material gets its own form: no dates or recurrence, and a
+  // place (rotation, shelf, on hold, learned) the task form can't say.
+  const editingPiece = editingTask && isPracticeMaterial(editingTask) ? editingTask : null;
+
   const title =
     drawerContent === "task"
-      ? editingTask ? "edit task" : "new task"
+      ? editingPiece ? "edit piece" : editingTask ? "edit task" : "new task"
       : drawerContent === "project"
         ? editingProject ? "edit project" : "new project"
         : drawerContent
@@ -51,7 +58,18 @@ export default function TaskForms() {
           </DrawerClose>
         </DrawerHeader>
 
-        {drawerContent === "task" && (
+        {drawerContent === "task" && editingPiece && (
+          <PieceForm
+            key={editingPiece.documentId}
+            piece={editingPiece}
+            onSubmit={onSubmitTask}
+            onDelete={() => {
+              if (onDelete(editingPiece.documentId)) closeDrawer();
+            }}
+          />
+        )}
+
+        {drawerContent === "task" && !editingPiece && (
           <TaskForm
             key={editingTask?.documentId || "new"}
             task={editingTask || undefined}

@@ -124,3 +124,25 @@ export function Checkbox({
     </label>
   );
 }
+
+/**
+ * One choice of several, with its label beside it; clicking the words picks it.
+ * Round, like the switch, because a round mark is what says "only one of these"
+ * everywhere else; the border is the fields' full-strength text color.
+ */
+export function Radio({
+  children,
+  className = "",
+  ...props
+}: Omit<ComponentProps<"input">, "type"> & { children?: ReactNode }) {
+  return (
+    <label className={`flex cursor-pointer items-center gap-2 ${className}`}>
+      <input
+        type="radio"
+        className={`radio border-base-content before:bg-base-content ${MOTION}`}
+        {...props}
+      />
+      {children}
+    </label>
+  );
+}
