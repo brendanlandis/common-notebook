@@ -128,7 +128,9 @@ export function Checkbox({
 /**
  * One choice of several, with its label beside it; clicking the words picks it.
  * Round, like the switch, because a round mark is what says "only one of these"
- * everywhere else; the border is the fields' full-strength text color.
+ * everywhere else; the border is the fields' full-strength text color. The dot is
+ * daisyUI's own, in the text color and only on the checked one: a `before:` fill
+ * here, as the checkbox has, would dot every radio in the group.
  */
 export function Radio({
   children,
@@ -139,7 +141,7 @@ export function Radio({
     <label className={`flex cursor-pointer items-center gap-2 ${className}`}>
       <input
         type="radio"
-        className={`radio border-base-content before:bg-base-content ${MOTION}`}
+        className={`radio border-base-content ${MOTION}`}
         {...props}
       />
       {children}

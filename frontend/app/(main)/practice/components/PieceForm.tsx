@@ -213,7 +213,7 @@ export default function PieceForm({ piece, subjectId, onSubmit, onDelete }: Piec
             inputMode="numeric"
             min={1}
             fullWidth={false}
-            className="w-20"
+            style={{ width: "5.5rem" }}
             value={tempo}
             onChange={(e) => setTempo(e.target.value)}
           />
@@ -226,7 +226,7 @@ export default function PieceForm({ piece, subjectId, onSubmit, onDelete }: Piec
             inputMode="numeric"
             min={1}
             fullWidth={false}
-            className="w-20"
+            style={{ width: "5.5rem" }}
             value={goalTempo}
             onChange={(e) => setGoalTempo(e.target.value)}
           />
