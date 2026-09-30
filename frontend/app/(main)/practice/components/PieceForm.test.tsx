@@ -134,9 +134,9 @@ describe("PieceForm", () => {
         onDelete={vi.fn()}
       />,
     );
-    expect((screen.getByLabelText("at") as HTMLInputElement).value).toBe("140");
+    expect((screen.getByLabelText("tempo") as HTMLInputElement).value).toBe("140");
 
-    fireEvent.change(screen.getByLabelText("at"), { target: { value: "150" } });
+    fireEvent.change(screen.getByLabelText("tempo"), { target: { value: "150" } });
     fireEvent.change(screen.getByLabelText("goal"), { target: { value: "" } });
     fireEvent.change(screen.getByLabelText("link"), { target: { value: "https://example.com/tab" } });
     fireEvent.click(screen.getByRole("button", { name: "update piece" }));

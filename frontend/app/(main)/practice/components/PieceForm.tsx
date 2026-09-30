@@ -200,48 +200,40 @@ export default function PieceForm({ piece, subjectId, onSubmit, onDelete }: Piec
         </Field>
       </div>
 
-      {/* Blank means the piece doesn't use a tempo, and it shows none anywhere. */}
-      <fieldset>
-        <legend className="mb-1 text-small">
-          tempo, in bpm <span className="opacity-80">(blank if it doesn&apos;t use one)</span>
-        </legend>
-        <div className="flex items-center gap-2">
-          <label htmlFor="piece-tempo">at</label>
+      {/* Tempo and goal share half the row, the link takes the other half.
+          A blank tempo means the piece doesn't use one, and nothing shows one. */}
+      <div className="grid grid-cols-4 gap-fields">
+        <Field label="tempo" htmlFor="piece-tempo">
           <Input
             id="piece-tempo"
             type="number"
             inputMode="numeric"
             min={1}
-            fullWidth={false}
-            style={{ width: "5.5rem" }}
+            placeholder="bpm"
             value={tempo}
             onChange={(e) => setTempo(e.target.value)}
           />
-          <label htmlFor="piece-goal-tempo" className="ml-2">
-            goal
-          </label>
+        </Field>
+        <Field label="goal" htmlFor="piece-goal-tempo">
           <Input
             id="piece-goal-tempo"
             type="number"
             inputMode="numeric"
             min={1}
-            fullWidth={false}
-            style={{ width: "5.5rem" }}
+            placeholder="bpm"
             value={goalTempo}
             onChange={(e) => setGoalTempo(e.target.value)}
           />
-        </div>
-      </fieldset>
-
-      <Field label="link" htmlFor="piece-link">
-        <Input
-          id="piece-link"
-          type="url"
-          placeholder="a lesson, tab or recording"
-          value={link}
-          onChange={(e) => setLink(e.target.value)}
-        />
-      </Field>
+        </Field>
+        <Field label="link" htmlFor="piece-link" className="col-span-2">
+          <Input
+            id="piece-link"
+            type="url"
+            value={link}
+            onChange={(e) => setLink(e.target.value)}
+          />
+        </Field>
+      </div>
 
       <Field label="notes" htmlFor="piece-notes">
         <RichTextEditor value={notes} onChange={setNotes} placeholder="notes" />
