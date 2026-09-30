@@ -19,7 +19,27 @@ export interface PracticeLogRow {
   duration: number | null;
   date: string | null;
   segments: unknown;
+  material?: { documentId: string; title?: string; tempo?: number | null } | null;
+  session?: { documentId: string; date?: string | null } | null;
 }
+
+/**
+ * What a log is read with wherever the timer needs to know where it stands: its
+ * piece and that piece's subject, and its session with the session's subject and
+ * every stretch in it — the "switch to" list and the note after stop both come
+ * from that one read.
+ */
+export const LOG_POPULATE =
+  'populate[material][populate][0]=project' +
+  '&populate[session][populate][subject][fields][0]=title' +
+  '&populate[session][populate][practice_logs][fields][0]=duration' +
+  '&populate[session][populate][practice_logs][fields][1]=stop' +
+  '&populate[session][populate][practice_logs][fields][2]=start' +
+  '&populate[session][populate][practice_logs][fields][3]=segments' +
+  '&populate[session][populate][practice_logs][fields][4]=tempoReached' +
+  '&populate[session][populate][practice_logs][populate][material][fields][0]=title' +
+  '&populate[session][populate][practice_logs][populate][material][fields][1]=tempo' +
+  '&populate[session][populate][practice_logs][populate][material][fields][2]=goalTempo';
 
 /**
  * One writer at a time per session, and in order.
@@ -64,9 +84,13 @@ export function withSessionLock<T>(key: string, run: () => Promise<T>): Promise<
 /** The session row, or null when Strapi will not give it to us. */
 export async function fetchSession(
   token: string,
-  documentId: string
+  documentId: string,
+  populate = ''
 ): Promise<PracticeLogRow | null> {
-  const response = await strapiFetch(token, `/api/practice-logs/${documentId}`);
+  const response = await strapiFetch(
+    token,
+    `/api/practice-logs/${documentId}${populate ? `?${populate}` : ''}`
+  );
   if (!response.ok) return null;
   const body = await response.json();
   return (body.data as PracticeLogRow) ?? null;
@@ -128,9 +152,82 @@ export async function fetchOpenSession(token: string): Promise<PracticeLogRow | 
   const response = await strapiFetch(
     token,
     '/api/practice-logs?filters[stop][$null]=true&sort[0]=start:desc' +
-      '&pagination[pageSize]=1&populate[material][populate][0]=project'
+      `&pagination[pageSize]=1&${LOG_POPULATE}`
   );
   if (!response.ok) return null;
   const body = await response.json();
   return (body.data?.[0] as PracticeLogRow) ?? null;
+}
+
+/**
+ * The subject a piece belongs to: its project's documentId, or null for a piece
+ * with no project. A session is filed under it.
+ */
+export async function subjectOf(token: string, material: string): Promise<string | null> {
+  const response = await strapiFetch(
+    token,
+    `/api/tasks/${encodeURIComponent(material)}?populate[project][fields][0]=documentId`
+  );
+  if (!response.ok) return null;
+  const body = await response.json();
+  return body.data?.project?.documentId ?? null;
+}
+
+/**
+ * Open a new sitting for `subject` on the effective day `date`. The owner is
+ * stamped by the ownership middleware, as on every owned type.
+ */
+export async function createPracticeSession(
+  token: string,
+  { date, subject }: { date: string; subject: string | null }
+): Promise<{ documentId: string } | null> {
+  const response = await strapiFetch(token, '/api/practice-sessions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ data: { date, subject, notes: null } }),
+  });
+  if (!response.ok) return null;
+  const body = await response.json();
+  return (body.data as { documentId: string }) ?? null;
+}
+
+/**
+ * A note typed into a plain box, as the blocks a log's `notes` column holds: one
+ * paragraph, with line breaks kept inside it (the display renders them), or no
+ * blocks at all for a blank note.
+ */
+export function noteBlocks(text: string | null | undefined) {
+  const trimmed = (text ?? '').trim();
+  if (!trimmed) return [];
+  return [{ type: 'paragraph', children: [{ type: 'text', text: trimmed }] }];
+}
+
+/**
+ * Save what was written about one piece's stretch: its note and the tempo
+ * reached. The tempo reached also becomes the piece's current tempo — "at 140,
+ * goal 160" moves when you reach 150 — so the next session starts from it.
+ */
+export async function writeLogNote(
+  token: string,
+  documentId: string,
+  { notes, tempoReached }: { notes?: string | null; tempoReached?: number | null }
+): Promise<PracticeLogRow | null> {
+  const data: Record<string, unknown> = {};
+  if (notes !== undefined) data.notes = noteBlocks(notes);
+  if (tempoReached !== undefined) data.tempoReached = tempoReached;
+  const row = await writeSession(token, documentId, data);
+  if (!row) return null;
+
+  if (tempoReached) {
+    const withMaterial = await fetchSession(token, documentId, 'populate[material][fields][0]=documentId');
+    const material = withMaterial?.material?.documentId;
+    if (material) {
+      await strapiFetch(token, `/api/tasks/${material}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ data: { tempo: tempoReached } }),
+      });
+    }
+  }
+  return row;
 }

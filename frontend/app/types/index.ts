@@ -300,9 +300,27 @@ export interface PracticeLog {
   notes: StrapiBlock[];
   duration: number; // minutes
   date: string; // YYYY-MM-DD — the effective day the session *started*
+  /** Tempo reached on this piece in this stretch, if it has a tempo. */
+  tempoReached?: number | null;
+  /** The sitting this stretch belongs to. Null on logs written before sessions. */
+  session?: PracticeSession | null;
   createdAt: string;
   updatedAt: string;
   publishedAt: string;
+}
+
+/**
+ * One sitting: everything practiced between pressing start and pressing stop,
+ * across however many pieces "switch to" moved through. One subject, one day,
+ * and a note on the whole of it. Each piece's stretch is a `PracticeLog`.
+ */
+export interface PracticeSession {
+  id?: number;
+  documentId: string;
+  date: string; // YYYY-MM-DD, the effective day it started
+  notes: string | null;
+  subject?: Project | null;
+  practice_logs?: PracticeLog[];
 }
 
 /** One uninterrupted stretch of practice. `stop` is null while it is running. */

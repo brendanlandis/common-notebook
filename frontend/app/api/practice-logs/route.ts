@@ -2,11 +2,20 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAccessToken } from '@/app/lib/strapiAuth';
 import { fetchAllPages, getTimeZoneSettings, strapiFetch } from '@/app/lib/strapiServer';
 import { getEffectiveDayForTimestamp } from '@/app/lib/dayBoundaryHelpers';
-import { fetchOpenSession } from '@/app/lib/practiceSessionServer';
+import {
+  createPracticeSession,
+  fetchOpenSession,
+  LOG_POPULATE,
+  subjectOf,
+} from '@/app/lib/practiceSessionServer';
 import { errorResponse } from '@/app/lib/errorResponse';
 
-/** Material and its subject, so a session can name what it is without a second fetch. */
-const POPULATE = 'populate[material][populate][0]=project';
+/**
+ * Material and its subject, so a log can name what it is without a second fetch,
+ * and its session's documentId, so history can put a log under its sitting.
+ */
+const POPULATE =
+  'populate[material][populate][0]=project&populate[session][fields][0]=documentId';
 
 export async function GET(req: NextRequest) {
   try {
@@ -57,6 +66,9 @@ export async function GET(req: NextRequest) {
  * its own `date` with `getEffectiveDayForTimestamp` and the stop route computed
  * it again, which worked only for as long as the two agreed.
  *
+ * It opens the *session* too — the sitting, filed under the piece's subject —
+ * and this piece's stretch is the first log in it. "Switch to" adds the next.
+ *
  * **One open session at a time, globally.** Not per material: two sessions
  * running at once is not a state the modal can render or the totals can survive,
  * and "the open one" is the question every reader asks. A second start answers
@@ -93,20 +105,33 @@ export async function POST(req: NextRequest) {
 
     const now = new Date();
     const settings = await getTimeZoneSettings(token);
+    // The effective day, not the calendar day: a session begun at 1am under
+    // a 4am boundary belongs to the previous day, and the stop route files
+    // it under the same one.
+    const date = getEffectiveDayForTimestamp(now, settings);
 
-    const response = await strapiFetch(token, `/api/practice-logs?${POPULATE}`, {
+    const sitting = await createPracticeSession(token, {
+      date,
+      subject: await subjectOf(token, material),
+    });
+    if (!sitting) {
+      return NextResponse.json(
+        { success: false, error: 'Failed to start practice session' },
+        { status: 502 }
+      );
+    }
+
+    const response = await strapiFetch(token, `/api/practice-logs?${LOG_POPULATE}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         data: {
           material,
+          session: sitting.documentId,
           start: now.toISOString(),
           stop: null,
           duration: 0,
-          // The effective day, not the calendar day: a session begun at 1am under
-          // a 4am boundary belongs to the previous day, and the stop route files
-          // it under the same one.
-          date: getEffectiveDayForTimestamp(now, settings),
+          date,
           segments: [{ start: now.toISOString(), stop: null }],
           notes: [],
         },

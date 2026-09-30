@@ -277,7 +277,8 @@ describe('start', () => {
     const res = await startPOST(request('/api/practice-logs', { material: 'task-1' }));
     expect((await res.json()).success).toBe(true);
 
-    expect(writes[0]).toMatchObject({
+    // The first write opens the sitting; the stretch is the one naming the piece.
+    expect(writes.find((w) => 'material' in w)).toMatchObject({
       material: 'task-1',
       start: '2026-08-14T15:00:00.000Z',
       stop: null,
