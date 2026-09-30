@@ -1,10 +1,13 @@
 'use client';
 
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
-import { ArrowSquareOutIcon, MetronomeIcon, XIcon } from '@phosphor-icons/react';
+import { ArrowSquareOutIcon, ClockIcon, MetronomeIcon, XIcon } from '@phosphor-icons/react';
 import type { BlocksContent } from '@strapi/blocks-react-renderer';
 import RichTextDisplay from '@/app/components/ui/RichTextDisplay';
+import Button from '@/app/components/ui/Button';
+import { Field, Input, Select, Textarea } from '@/app/components/ui/FormControls';
+import { usePracticeNotes } from '@/app/(main)/practice/hooks/usePracticeSession';
 import { usePracticeLogs } from '@/app/(main)/practice/hooks/usePracticeLogs';
 import { useDateTimeSettings } from '@/app/contexts/DateTimeSettingsContext';
 import { getToday, toISODate } from '@/app/lib/dateUtils';
@@ -79,6 +82,9 @@ export default function PiecePopover({
 }) {
   const { timeZoneSettings } = useDateTimeSettings();
   const { logs } = usePracticeLogs(piece.documentId);
+  // "log time" turns the popover into the form for practice done without the
+  // timer; closing it from there closes the popover.
+  const [logging, setLogging] = useState(false);
   const last = logs.find((log) => log.stop);
   const todayISO = toISODate(getToday(timeZoneSettings), timeZoneSettings);
 
@@ -115,6 +121,10 @@ export default function PiecePopover({
             aria-describedby={undefined}
             className="flex w-full max-w-110 flex-col gap-sections rounded-2xl bg-base-100 p-6 text-left shadow-[0_1.5rem_3rem_rgb(0_0_0/0.35)]"
           >
+            {logging ? (
+              <LogTimeForm piece={piece} todayISO={todayISO} onDone={onClose} />
+            ) : (
+              <>
             <div className="flex items-start gap-4">
               <Dialog.Title asChild>
                 <h2 className="m-0 min-w-0 grow">{piece.title}</h2>
@@ -148,10 +158,157 @@ export default function PiecePopover({
                 <MetronomeIcon size={20} aria-hidden="true" />
                 start timer
               </button>
+              <Button className="px-5" onClick={() => setLogging(true)}>
+                <ClockIcon size={20} aria-hidden="true" />
+                log time
+              </Button>
             </div>
+              </>
+            )}
           </Dialog.Content>
         </Dialog.Overlay>
       </Dialog.Portal>
     </Dialog.Root>
+  );
+}
+
+/** The effective day `days` before `todayISO`. */
+function daysBefore(todayISO: string, days: number): string {
+  const d = new Date(`${todayISO}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() - days);
+  return d.toISOString().slice(0, 10);
+}
+
+/**
+ * Practice done without the timer: which day, how many minutes, the tempo
+ * reached if the piece has a tempo, and a note. Only this piece's note — one
+ * logged piece doesn't need a whole-session note too.
+ */
+function LogTimeForm({
+  piece,
+  todayISO,
+  onDone,
+}: {
+  piece: Task;
+  todayISO: string;
+  onDone: () => void;
+}) {
+  const { logTime } = usePracticeNotes();
+  const hasTempo = piece.tempo != null || piece.goalTempo != null;
+  const [day, setDay] = useState<'today' | 'yesterday' | 'other'>('today');
+  const [otherDate, setOtherDate] = useState(daysBefore(todayISO, 2));
+  const [minutes, setMinutes] = useState('');
+  const [tempo, setTempo] = useState(piece.tempo != null ? String(piece.tempo) : '');
+  const [note, setNote] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const mins = Math.round(Number(minutes));
+    if (!(mins > 0)) {
+      setError('how many minutes?');
+      return;
+    }
+    const date = day === 'today' ? todayISO : day === 'yesterday' ? daysBefore(todayISO, 1) : otherDate;
+    const reached = Math.round(Number(tempo));
+    setSaving(true);
+    setError(null);
+    try {
+      await logTime({
+        material: piece.documentId,
+        date,
+        minutes: mins,
+        ...(hasTempo && tempo.trim() && reached > 0 ? { tempoReached: reached } : {}),
+        notes: note,
+      });
+      onDone();
+    } catch {
+      setError("couldn't log that; try again");
+      setSaving(false);
+    }
+  };
+
+  return (
+    <form className="flex flex-col gap-fields" onSubmit={submit}>
+      <div className="flex items-start gap-4">
+        <div className="flex min-w-0 grow flex-col gap-heading">
+          <p className="m-0 text-small opacity-80">log time</p>
+          <Dialog.Title asChild>
+            <h2 className="m-0">{piece.title}</h2>
+          </Dialog.Title>
+        </div>
+        <Dialog.Close className="-mt-1 -mr-1 inline-flex shrink-0 p-1" aria-label="close">
+          <XIcon size={24} weight="regular" />
+        </Dialog.Close>
+      </div>
+
+      <div className="grid grid-cols-2 gap-fields">
+        <Field label="day" htmlFor="log-day">
+          <Select id="log-day" value={day} onChange={(e) => setDay(e.target.value as typeof day)}>
+            <option value="today">today</option>
+            <option value="yesterday">yesterday</option>
+            <option value="other">pick a date…</option>
+          </Select>
+        </Field>
+        <Field label="minutes" htmlFor="log-minutes">
+          <Input
+            id="log-minutes"
+            type="number"
+            inputMode="numeric"
+            min={1}
+            value={minutes}
+            onChange={(e) => setMinutes(e.target.value)}
+          />
+        </Field>
+      </div>
+      {day === 'other' && (
+        <Field label="date" htmlFor="log-date">
+          <Input
+            id="log-date"
+            type="date"
+            max={todayISO}
+            value={otherDate}
+            onChange={(e) => setOtherDate(e.target.value)}
+          />
+        </Field>
+      )}
+
+      {hasTempo && (
+        <div className="flex items-center gap-2 text-small">
+          <label htmlFor="log-tempo">tempo reached</label>
+          <Input
+            id="log-tempo"
+            type="number"
+            inputMode="numeric"
+            min={1}
+            fullWidth={false}
+            style={{ width: '5.5rem' }}
+            value={tempo}
+            onChange={(e) => setTempo(e.target.value)}
+          />
+          <span className="opacity-80">
+            bpm{piece.goalTempo != null ? ` · goal ${piece.goalTempo}` : ''}
+          </span>
+        </div>
+      )}
+
+      <Field label="note" htmlFor="log-note">
+        <Textarea
+          id="log-note"
+          rows={3}
+          placeholder="how did it go?"
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+        />
+      </Field>
+
+      {error && <p className="m-0 text-center text-small italic">{error}</p>}
+      <div className="text-center">
+        <Button type="submit" disabled={saving}>
+          log it
+        </Button>
+      </div>
+    </form>
   );
 }

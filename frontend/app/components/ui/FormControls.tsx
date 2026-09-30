@@ -59,6 +59,20 @@ export function Input({
   );
 }
 
+/** A plain box for a few lines of text, square like the other fields. */
+export function Textarea({
+  className = "",
+  fullWidth = true,
+  ...props
+}: ComponentProps<"textarea"> & Sizing) {
+  return (
+    <textarea
+      className={`textarea ${FIELD} text-body ${width(fullWidth)} ${className}`}
+      {...props}
+    />
+  );
+}
+
 /**
  * `small` is for a select in the header: 1.75rem tall (a notch under daisyUI's
  * small size) with 14px text, a notch under the small step and off the type

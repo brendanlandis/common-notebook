@@ -15,7 +15,13 @@ import { elapsedMs, isRunning, type PracticeSegment } from '@/app/lib/practiceSe
  * an interval re-rendering it every second to show the same digits is work for
  * nothing.
  */
-export default function PracticeClock({ segments }: { segments: PracticeSegment[] }) {
+export default function PracticeClock({
+  segments,
+  className = 'text-title leading-none',
+}: {
+  segments: PracticeSegment[];
+  className?: string;
+}) {
   const running = isRunning(segments);
   const [, setTick] = useState(0);
 
@@ -30,7 +36,7 @@ export default function PracticeClock({ segments }: { segments: PracticeSegment[
   // resume, and `setTick` exists only to schedule the re-render.
   return (
     <div
-      className="text-title leading-none tabular-nums"
+      className={`${className} tabular-nums`}
       role="timer"
       aria-live="off"
     >

@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiFetch, apiSend } from '@/app/lib/apiFetch';
 import type { PracticeLog } from '@/app/types/index';
 import { isRunning, parseSegments } from '@/app/lib/practiceSession';
+import { TASKS_ROOT } from '@/app/(main)/(todo)/hooks/useTasks';
 
 /**
  * The one practice session that is currently open, and the four things you can
@@ -25,6 +26,14 @@ export const ACTIVE_SESSION_KEY = [...PRACTICE_LOGS_ROOT, 'active'] as const;
 interface ActiveResponse {
   success?: boolean;
   data?: PracticeLog | null;
+}
+
+export interface SwitchResponse {
+  success?: boolean;
+  /** The stretch now running. */
+  data?: PracticeLog;
+  /** The stretch just closed, with its minutes banked. */
+  closed?: PracticeLog;
 }
 
 /**
@@ -75,6 +84,16 @@ export function useActiveSession() {
   const resumeMutation = useIntentMutation('resume', invalidate);
   const stopMutation = useIntentMutation('stop', invalidate);
 
+  /**
+   * Move on to another piece, clock still running. Resolves with the new
+   * stretch and the one just closed, whose note is asked for next.
+   */
+  const switchMutation = useMutation({
+    mutationFn: ({ from, material }: { from: string; material: string }) =>
+      apiSend<SwitchResponse>(`/api/practice-logs/${from}/switch`, 'POST', { material }),
+    onSettled: invalidate,
+  });
+
   const correctMutation = useMutation({
     mutationFn: ({ documentId, minutes }: { documentId: string; minutes: number }) =>
       apiSend(`/api/practice-logs/${documentId}/correct`, 'POST', { minutes }),
@@ -93,12 +112,23 @@ export function useActiveSession() {
     start: (material: string) => startMutation.mutate(material),
     pause: () => session && pauseMutation.mutate(session.documentId),
     resume: () => session && resumeMutation.mutate(session.documentId),
-    stop: () => session && stopMutation.mutate(session.documentId),
+    /** Resolves with the stopped stretch, so the note after stop can name it. */
+    stop: (): Promise<PracticeLog | null> =>
+      session
+        ? stopMutation
+            .mutateAsync(session.documentId)
+            .then((body) => (body as { data?: PracticeLog }).data ?? null)
+        : Promise.resolve(null),
+    switchTo: (material: string): Promise<SwitchResponse | null> =>
+      session
+        ? switchMutation.mutateAsync({ from: session.documentId, material })
+        : Promise.resolve(null),
     correct: (minutes: number) =>
       session && correctMutation.mutate({ documentId: session.documentId, minutes }),
 
     isStarting: startMutation.isPending,
     isStopping: stopMutation.isPending,
+    isSwitching: switchMutation.isPending,
     // Pause and resume are the same control, so the button only needs to know
     // that *something* is in flight.
     isToggling: pauseMutation.isPending || resumeMutation.isPending,
@@ -119,4 +149,33 @@ function useIntentMutation(name: 'pause' | 'resume' | 'stop', invalidate: () => 
       apiSend(`/api/practice-logs/${documentId}/${name}`, 'POST'),
     onSettled: invalidate,
   });
+}
+
+/**
+ * The writes that come after the clock: a note on a piece's stretch (with the
+ * tempo reached), a note on a whole session, and practice logged afterwards.
+ * Each re-reads the practice data when it lands, so history and the chart move.
+ */
+export function usePracticeNotes() {
+  const queryClient = useQueryClient();
+  const invalidate = useCallback(() => {
+    void queryClient.invalidateQueries({ queryKey: PRACTICE_LOGS_ROOT });
+    void queryClient.invalidateQueries({ queryKey: ['practice-sessions'] });
+    // The tempo reached moves the piece's tempo.
+    void queryClient.invalidateQueries({ queryKey: TASKS_ROOT });
+  }, [queryClient]);
+
+  return {
+    saveNote: (log: string, note: { notes?: string; tempoReached?: number | null }) =>
+      apiSend(`/api/practice-logs/${log}/note`, 'POST', note).finally(invalidate),
+    saveSessionNote: (session: string, notes: string) =>
+      apiSend(`/api/practice-sessions/${session}`, 'PUT', { notes }).finally(invalidate),
+    logTime: (entry: {
+      material: string;
+      date: string;
+      minutes: number;
+      tempoReached?: number | null;
+      notes?: string;
+    }) => apiSend('/api/practice-logs/logged', 'POST', entry).finally(invalidate),
+  };
 }

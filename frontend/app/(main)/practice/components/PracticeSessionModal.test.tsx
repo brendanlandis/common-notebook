@@ -23,15 +23,31 @@ const session = vi.hoisted(() => ({
     pause: vi.fn(),
     resume: vi.fn(),
     stop: vi.fn(),
+    switchTo: vi.fn(),
     correct: vi.fn(),
     isStarting: false,
     isStopping: false,
+    isSwitching: false,
     isToggling: false,
   },
 }));
 
+const notes = vi.hoisted(() => ({
+  saveNote: vi.fn(async () => ({})),
+  saveSessionNote: vi.fn(async () => ({})),
+  logTime: vi.fn(async () => ({})),
+}));
+
 vi.mock('@/app/(main)/practice/hooks/usePracticeSession', () => ({
   useActiveSession: () => session.current,
+  usePracticeNotes: () => notes,
+}));
+
+// "Switch to" offers the subject's top of mind, read from the task list.
+const allTasks = vi.hoisted(() => ({ current: [] as unknown[] }));
+vi.mock('@/app/(main)/(todo)/hooks/useTasks', () => ({
+  useTasks: () => ({ tasks: allTasks.current }),
+  TASKS_ROOT: ['tasks'],
 }));
 
 // The ready state is the piece's popover, which reads the piece's past logs for
@@ -86,6 +102,10 @@ beforeEach(() => {
   vi.setSystemTime(new Date('2026-08-14T15:00:00.000Z'));
   readyMaterial.current = null;
   pieceLogs.current = [];
+  allTasks.current = [];
+  notes.saveNote.mockClear();
+  notes.saveSessionNote.mockClear();
+  notes.logTime.mockClear();
   ui.openFor.mockClear();
   ui.dismiss.mockClear();
   session.current = {
@@ -97,6 +117,7 @@ beforeEach(() => {
     pause: vi.fn(),
     resume: vi.fn(),
     stop: vi.fn(),
+    switchTo: vi.fn(),
     correct: vi.fn(),
   };
 });
@@ -146,6 +167,41 @@ describe('ready state: the piece popover', () => {
     // The open log isn't a finished session; the last finished one is.
     expect(screen.getByText('3 days ago, 20 min')).toBeDefined();
     expect(screen.queryByText('notes')).toBeNull();
+  });
+
+  it('logs time done without the timer, for the day picked', async () => {
+    readyMaterial.current = { ...material, tempo: 140, goalTempo: 160 } as unknown as Task;
+    renderModal();
+
+    fireEvent.click(screen.getByRole('button', { name: /log time/i }));
+    expect(screen.getByRole('heading', { name: 'bach invention 4' })).toBeDefined();
+
+    fireEvent.change(screen.getByLabelText('day'), { target: { value: 'yesterday' } });
+    fireEvent.change(screen.getByLabelText('minutes'), { target: { value: '20' } });
+    fireEvent.change(screen.getByLabelText('tempo reached'), { target: { value: '144' } });
+    fireEvent.change(screen.getByLabelText('note'), { target: { value: "at a friend's" } });
+    fireEvent.click(screen.getByRole('button', { name: 'log it' }));
+
+    await vi.waitFor(() =>
+      expect(notes.logTime).toHaveBeenCalledWith({
+        material: 'material-1',
+        date: '2026-08-13',
+        minutes: 20,
+        tempoReached: 144,
+        notes: "at a friend's",
+      })
+    );
+    await vi.waitFor(() => expect(ui.dismiss).toHaveBeenCalled());
+  });
+
+  it('won\'t log time without minutes', () => {
+    readyMaterial.current = material;
+    renderModal();
+    fireEvent.click(screen.getByRole('button', { name: /log time/i }));
+    expect(screen.queryByLabelText('tempo reached')).toBeNull(); // no tempo on this piece
+    fireEvent.click(screen.getByRole('button', { name: 'log it' }));
+    expect(notes.logTime).not.toHaveBeenCalled();
+    expect(screen.getByText('how many minutes?')).toBeDefined();
   });
 
   it('closes from the corner rather than a button at the foot of the panel', () => {
@@ -279,5 +335,100 @@ describe('paused', () => {
 
     fireEvent.click(button);
     expect(session.current.resume).toHaveBeenCalled();
+  });
+});
+
+describe('switching pieces and stopping', () => {
+  const guitar = { documentId: 'subject-1', title: 'guitar' };
+  const piece = (documentId: string, title: string, over: Record<string, unknown> = {}) =>
+    ({ documentId, title, project: guitar, soon: true, onHold: false, completed: false, ...over }) as unknown as Task;
+
+  beforeEach(() => {
+    session.current = {
+      ...session.current,
+      session: {
+        documentId: 'log-2',
+        material: { ...material, tempo: 140, goalTempo: 160 },
+        session: {
+          documentId: 'sitting-1',
+          subject: guitar,
+          practice_logs: [
+            { documentId: 'log-1', start: '2026-08-14T14:30:00.000Z', stop: '2026-08-14T14:36:00.000Z', duration: 6, segments: [{ start: '2026-08-14T14:30:00.000Z', stop: '2026-08-14T14:36:00.000Z' }], material: { documentId: 'dyad', title: 'dyad exercise' } },
+            { documentId: 'log-2', start: '2026-08-14T14:36:00.000Z', stop: null, duration: 0, material: { documentId: 'material-1', title: 'bach invention 4' } },
+          ],
+        },
+      },
+      segments: [{ start: '2026-08-14T14:36:00.000Z', stop: null }],
+      running: true,
+    };
+    allTasks.current = [
+      piece('material-1', 'bach invention 4'),
+      piece('dyad', 'dyad exercise'),
+      piece('shelf', 'scales', { soon: false }),
+      piece('held', 'sight reading', { onHold: true }),
+      piece('other', 'intervals', { project: { documentId: 'subject-2', title: 'ear training' } }),
+    ];
+  });
+
+  it("the clock is the whole session's, with this piece's time under it", () => {
+    renderModal();
+    const [total, piece] = screen.getAllByRole('timer').map((t) => t.textContent);
+    expect(total).toBe('30:00'); // 6 on the dyad exercise + 24 on this piece
+    expect(piece).toBe('24:00');
+  });
+
+  it("offers the subject's top of mind, minus the piece playing, with its minutes so far", () => {
+    renderModal();
+    const offered = screen.getAllByRole('button').filter((b) => !b.getAttribute('aria-label'));
+    expect(offered.map((b) => b.textContent)).toEqual(['dyad exercise6 min']);
+  });
+
+  it('switching asks for a note on the piece left, with its tempo', async () => {
+    session.current.switchTo = vi.fn(async () => ({
+      data: { documentId: 'log-3' },
+      closed: { documentId: 'log-2', duration: 18 },
+    }));
+    renderModal();
+
+    fireEvent.click(screen.getByRole('button', { name: /dyad exercise/ }));
+    expect(session.current.switchTo).toHaveBeenCalledWith('dyad');
+
+    expect(await screen.findByRole('dialog', { name: 'bach invention 4' })).toBeDefined();
+    expect(screen.getByText('18 min')).toBeDefined();
+    expect((screen.getByLabelText('tempo reached') as HTMLInputElement).value).toBe('140');
+    expect(screen.getByText('next: dyad exercise')).toBeDefined();
+
+    fireEvent.change(screen.getByLabelText('note'), { target: { value: 'turnaround rushes' } });
+    fireEvent.change(screen.getByLabelText('tempo reached'), { target: { value: '150' } });
+    fireEvent.click(screen.getByRole('button', { name: 'save and switch' }));
+    await vi.waitFor(() =>
+      expect(notes.saveNote).toHaveBeenCalledWith('log-2', { notes: 'turnaround rushes', tempoReached: 150 })
+    );
+  });
+
+  it('after stop, a note on the last piece and one on the whole session', async () => {
+    session.current.stop = vi.fn(async () => ({ documentId: 'log-2', duration: 18 }));
+    renderModal();
+
+    fireEvent.click(screen.getByRole('button', { name: 'stop' }));
+    expect(await screen.findByRole('dialog', { name: '24 minutes' })).toBeDefined();
+    expect(screen.getByText('dyad exercise')).toBeDefined();
+
+    fireEvent.change(screen.getByLabelText('note on the whole session'), {
+      target: { value: 'short on sleep' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'save' }));
+    await vi.waitFor(() =>
+      expect(notes.saveSessionNote).toHaveBeenCalledWith('sitting-1', 'short on sleep')
+    );
+  });
+
+  it('skipping saves nothing', async () => {
+    session.current.stop = vi.fn(async () => ({ documentId: 'log-2', duration: 18 }));
+    renderModal();
+    fireEvent.click(screen.getByRole('button', { name: 'stop' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'skip' }));
+    expect(notes.saveNote).not.toHaveBeenCalled();
+    expect(notes.saveSessionNote).not.toHaveBeenCalled();
   });
 });

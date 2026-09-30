@@ -1,14 +1,17 @@
 'use client';
 
-import { useEffect, useMemo, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
-import { PauseIcon, StopIcon, MetronomeIcon } from '@phosphor-icons/react';
+import { ArrowsLeftRightIcon, PauseIcon, StopIcon, MetronomeIcon } from '@phosphor-icons/react';
 import { useActiveSession } from '@/app/(main)/practice/hooks/usePracticeSession';
 import { usePracticeSessionUI } from '@/app/contexts/PracticeSessionContext';
 import { useDateTimeSettings } from '@/app/contexts/DateTimeSettingsContext';
-import { isStale } from '@/app/lib/practiceSession';
+import { isStale, parseSegments } from '@/app/lib/practiceSession';
 import PracticeClock from '@/app/(main)/practice/components/PracticeClock';
 import PiecePopover from '@/app/(main)/practice/components/PiecePopover';
+import PracticeNoteDialog, { type NotePiece } from '@/app/(main)/practice/components/PracticeNoteDialog';
+import { useTasks } from '@/app/(main)/(todo)/hooks/useTasks';
+import type { PracticeLog, Task } from '@/app/types/index';
 import Button from "@/app/components/ui/Button";
 
 /**
@@ -44,10 +47,112 @@ import Button from "@/app/components/ui/Button";
 export default function PracticeSessionModal() {
   const { timeZoneSettings } = useDateTimeSettings();
   const { readyMaterial, dismiss } = usePracticeSessionUI();
-  const { session, segments, running, start, pause, resume, stop, correct, isStarting, isStopping, isToggling } =
-    useActiveSession();
+  const {
+    session,
+    segments,
+    running,
+    start,
+    pause,
+    resume,
+    stop,
+    switchTo,
+    correct,
+    isStarting,
+    isStopping,
+    isSwitching,
+    isToggling,
+  } = useActiveSession();
+  const { tasks } = useTasks();
 
   const material = session?.material ?? null;
+
+  /**
+   * The note being asked for: on the piece just left (the clock already on the
+   * next), or after stop on the last piece and the session. It outlives the
+   * running session, since a stopped one is no longer "active".
+   */
+  const [note, setNote] = useState<
+    | { mode: 'switch'; piece: NotePiece; next: string }
+    | { mode: 'stop'; piece: NotePiece; earlier: { title: string; minutes: number }[]; session: string | null }
+    | null
+  >(null);
+
+  // This session's stretches, in the order they were played.
+  const stretches = useMemo(
+    () =>
+      [...(session?.session?.practice_logs ?? [])].sort((a, b) =>
+        String(a.start).localeCompare(String(b.start))
+      ),
+    [session]
+  );
+
+  /**
+   * The whole session's stretches of practice, for the big clock: every piece
+   * played so far, then the one playing now. "Switch to" keeps the clock running,
+   * so the clock is the session's, and the piece's own time sits under it.
+   */
+  const earlierSegments = useMemo(
+    () =>
+      stretches
+        .filter((s) => s.documentId !== session?.documentId)
+        .flatMap((s) => parseSegments(s.segments)),
+    [stretches, session]
+  );
+  const sessionSegments = useMemo(() => [...earlierSegments, ...segments], [earlierSegments, segments]);
+
+  /**
+   * What "switch to" offers: the session's subject's top of mind — in rotation,
+   * not on hold, not learned — without the piece already playing, each with the
+   * minutes it has had so far this session.
+   */
+  const switchable = useMemo(() => {
+    if (!session) return [];
+    const subject = session.session?.subject?.documentId ?? material?.project?.documentId;
+    if (!subject) return [];
+    const minutes = new Map<string, number>();
+    for (const s of stretches) {
+      const id = s.material?.documentId;
+      if (id && s.stop) minutes.set(id, (minutes.get(id) ?? 0) + (s.duration ?? 0));
+    }
+    return tasks
+      .filter(
+        (t) =>
+          t.project?.documentId === subject &&
+          t.soon &&
+          !t.onHold &&
+          !t.completed &&
+          t.documentId !== material?.documentId
+      )
+      .map((t) => ({ task: t, minutes: minutes.get(t.documentId) ?? 0 }));
+  }, [session, stretches, tasks, material]);
+
+  const pieceOf = (log: PracticeLog, piece: Task | null | undefined): NotePiece => ({
+    log: log.documentId,
+    title: piece?.title ?? 'practice',
+    minutes: log.duration ?? 0,
+    tempo: piece?.tempo ?? null,
+    goalTempo: piece?.goalTempo ?? null,
+  });
+
+  const handleSwitch = async (next: Task) => {
+    const leaving = material;
+    const result = await switchTo(next.documentId).catch(() => null);
+    if (result?.closed) {
+      setNote({ mode: 'switch', piece: pieceOf(result.closed, leaving), next: next.title });
+    }
+  };
+
+  const handleStop = async () => {
+    const last = material;
+    const earlier = stretches
+      .filter((s) => s.stop && s.documentId !== session?.documentId)
+      .map((s) => ({ title: s.material?.title ?? 'practice', minutes: s.duration ?? 0 }));
+    const sitting = session?.session?.documentId ?? null;
+    const stopped = await stop().catch(() => null);
+    if (stopped) {
+      setNote({ mode: 'stop', piece: pieceOf(stopped, last), earlier, session: sitting });
+    }
+  };
 
   // Only offer to correct a session that has been running long enough to be
   // suspect — see `isStale`. Recomputed on every render, which is exactly often
@@ -79,6 +184,21 @@ export default function PracticeSessionModal() {
   useEffect(() => {
     if (session && readyMaterial) dismiss();
   }, [session, readyMaterial, dismiss]);
+
+  // A note after switching or stopping comes first: it is what just happened.
+  if (note) {
+    return note.mode === 'switch' ? (
+      <PracticeNoteDialog mode="switch" piece={note.piece} next={note.next} onDone={() => setNote(null)} />
+    ) : (
+      <PracticeNoteDialog
+        mode="stop"
+        piece={note.piece}
+        earlier={note.earlier}
+        session={note.session}
+        onDone={() => setNote(null)}
+      />
+    );
+  }
 
   // Nothing running and nothing offered: the modal isn't there at all.
   if (!session && !readyMaterial) return null;
@@ -113,7 +233,7 @@ export default function PracticeSessionModal() {
         onClick={resume}
       >
         <MetronomeIcon size={22} weight="regular" aria-hidden="true" />
-        <PracticeClock segments={segments} />
+        <PracticeClock segments={sessionSegments} />
       </button>
     );
   }
@@ -121,7 +241,14 @@ export default function PracticeSessionModal() {
   return (
     <PracticeModal label="practicing">
         <PracticeSubject title={material?.title} subject={material?.project?.title} />
-        <PracticeClock segments={segments} />
+        <div className="flex flex-col items-center gap-2">
+          <PracticeClock segments={sessionSegments} />
+          {earlierSegments.length > 0 && (
+            <div className="flex items-baseline gap-1 text-small opacity-80">
+              this piece <PracticeClock segments={segments} className="text-small" />
+            </div>
+          )}
+        </div>
 
         <div className="flex gap-8">
           <button
@@ -138,7 +265,7 @@ export default function PracticeSessionModal() {
             className="transition-opacity [transition-duration:var(--transition-time)] disabled:opacity-40"
             aria-label="stop"
             disabled={isStopping}
-            onClick={stop}
+            onClick={handleStop}
           >
             <StopIcon size={64} weight="regular" />
           </button>
@@ -149,6 +276,34 @@ export default function PracticeSessionModal() {
             and stopping normally stays available; this is only here because the
             segments cannot tell four hours of practice from four hours of the
             tab being open, and you can. */}
+        {/* Move on without stopping the clock. Only this subject's top of mind:
+            a session is one subject. */}
+        {switchable.length > 0 && (
+          <div className="flex w-full flex-col gap-1 border-t border-base-content/30 pt-6 text-left">
+            <h3 className="m-0 mb-1 text-small font-bold tracking-[0.08em] uppercase opacity-80">
+              switch to
+            </h3>
+            <ul className="m-0 flex list-none flex-col p-0">
+              {switchable.map(({ task, minutes }) => (
+                <li key={task.documentId}>
+                  <button
+                    type="button"
+                    className="flex min-h-11 w-full items-center gap-3 text-left disabled:opacity-40"
+                    disabled={isSwitching}
+                    onClick={() => handleSwitch(task)}
+                  >
+                    <ArrowsLeftRightIcon size={20} aria-hidden="true" className="shrink-0" />
+                    <span className="grow">{task.title}</span>
+                    {minutes > 0 && (
+                      <span className="text-small tabular-nums opacity-80">{minutes} min</span>
+                    )}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
         {stale && (
           <div className="flex flex-col items-center gap-rows opacity-85 [&_p]:m-0">
             <p>you left this running — call it</p>
