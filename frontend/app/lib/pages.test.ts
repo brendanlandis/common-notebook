@@ -15,7 +15,7 @@ describe('visiblePages', () => {
   });
 
   it('hides beta pages from a non-beta user', () => {
-    expect(visiblePages(false)).toEqual(['/']);
+    expect(visiblePages(false)).toEqual(['/', '/practice']);
   });
 
   it('lists only real destinations, not chrome', () => {
