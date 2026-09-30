@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, type ReactNode } from 'react';
+import { Temporal } from 'temporal-polyfill';
 import * as Dialog from '@radix-ui/react-dialog';
 import { ArrowSquareOutIcon, ClockIcon, MetronomeIcon, XIcon } from '@phosphor-icons/react';
 import type { BlocksContent } from '@strapi/blocks-react-renderer';
@@ -21,9 +22,7 @@ import type { PracticeLog, Task } from '@/app/types/index';
  * start — so a session at 1am under a 4am boundary is "yesterday" at noon.
  */
 export function lastTimeLabel(log: Pick<PracticeLog, 'date' | 'duration'>, todayISO: string): string {
-  const days = Math.round(
-    (Date.parse(`${todayISO}T00:00:00Z`) - Date.parse(`${log.date}T00:00:00Z`)) / 86_400_000,
-  );
+  const days = Temporal.PlainDate.from(log.date).until(Temporal.PlainDate.from(todayISO)).days;
   const when =
     days <= 0
       ? 'today'
@@ -174,9 +173,7 @@ export default function PiecePopover({
 
 /** The effective day `days` before `todayISO`. */
 function daysBefore(todayISO: string, days: number): string {
-  const d = new Date(`${todayISO}T00:00:00Z`);
-  d.setUTCDate(d.getUTCDate() - days);
-  return d.toISOString().slice(0, 10);
+  return Temporal.PlainDate.from(todayISO).subtract({ days }).toString();
 }
 
 /**
