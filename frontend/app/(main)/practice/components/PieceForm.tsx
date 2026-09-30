@@ -259,7 +259,7 @@ export default function PieceForm({ piece, subjectId, onSubmit, onDelete }: Piec
       </div>
 
       {onDelete && (
-        <div className="mt-8 border-t border-base-content/30 pt-8 text-center">
+        <div className="mt-16 border-t border-base-content/30 pt-16 text-center">
           <Button onClick={onDelete}>delete</Button>
         </div>
       )}
