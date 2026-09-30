@@ -113,12 +113,11 @@ describe('nothing running', () => {
 });
 
 describe('ready state: the piece popover', () => {
-  it('names the piece and its subject, and starts the timer', async () => {
+  it('names the piece, and starts the timer', async () => {
     readyMaterial.current = material;
     renderModal();
 
     expect(screen.getByRole('heading', { name: 'bach invention 4' })).toBeDefined();
-    expect(screen.getByText('guitar')).toBeDefined();
 
     fireEvent.click(screen.getByRole('button', { name: /start timer/i }));
     expect(session.current.start).toHaveBeenCalledWith('material-1');
@@ -138,7 +137,8 @@ describe('ready state: the piece popover', () => {
     ];
     renderModal();
 
-    expect(screen.getByText('guitar · songs')).toBeDefined();
+    // No subject or category line: the list it was opened from says both.
+    expect(screen.queryByText(/guitar/)).toBeNull();
     expect(screen.getByText('140 bpm, goal 160')).toBeDefined();
     expect(screen.getByRole('link', { name: /songsterr\.com/ }).getAttribute('href')).toBe(
       'https://www.songsterr.com/a/wsa/reversal'

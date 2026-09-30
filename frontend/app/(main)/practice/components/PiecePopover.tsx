@@ -61,7 +61,8 @@ function hasText(nodes: unknown[] | null | undefined): boolean {
  * A piece of practice material, opened from its metronome or its name — on the
  * practice page, the daily page, anywhere a piece is listed.
  *
- * Its details, where it has them, and "start timer". It is the timer's ready
+ * Its name, its details where it has them, and "start timer". No subject or
+ * category line: you opened it from a list that already says both. It is the timer's ready
  * state: pressing start leaves this up, button disabled, until the running timer
  * replaces it, so there is no gap between the two where the page flashes through.
  */
@@ -81,7 +82,6 @@ export default function PiecePopover({
   const last = logs.find((log) => log.stop);
   const todayISO = toISODate(getToday(timeZoneSettings), timeZoneSettings);
 
-  const kind = [piece.project?.title, piece.materialCategory].filter(Boolean).join(' · ');
   const tempo = tempoLabel(piece);
 
   const details: { label: string; value: ReactNode }[] = [];
@@ -116,12 +116,9 @@ export default function PiecePopover({
             className="flex w-full max-w-110 flex-col gap-sections rounded-2xl bg-base-100 p-6 text-left shadow-[0_1.5rem_3rem_rgb(0_0_0/0.35)]"
           >
             <div className="flex items-start gap-4">
-              <div className="flex min-w-0 grow flex-col gap-heading">
-                <Dialog.Title asChild>
-                  <h2 className="m-0">{piece.title}</h2>
-                </Dialog.Title>
-                {kind && <p className="m-0 text-small opacity-80">{kind}</p>}
-              </div>
+              <Dialog.Title asChild>
+                <h2 className="m-0 min-w-0 grow">{piece.title}</h2>
+              </Dialog.Title>
               <Dialog.Close
                 className="-mt-1 -mr-1 inline-flex shrink-0 p-1"
                 aria-label="close"
