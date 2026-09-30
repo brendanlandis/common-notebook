@@ -25,7 +25,7 @@ export default function PracticeCharts() {
 
   return (
     <div className="flex flex-col gap-heading">
-      <h2>Last 30 Days</h2>
+      <h3>last 30 days</h3>
       <PracticeChart stats={stats} />
     </div>
   );

@@ -33,12 +33,15 @@ type ProjectFormInputs = z.infer<typeof schema>;
 
 interface ProjectFormProps {
   project?: Project;
+  /** The world a new project starts in, e.g. practice and study for a new subject. */
+  defaultWorld?: string;
   onSubmit: (data: any) => void;
   onCancel: () => void;
 }
 
 export default function ProjectForm({
   project,
+  defaultWorld,
   onSubmit,
   onCancel,
 }: ProjectFormProps) {
@@ -57,7 +60,7 @@ export default function ProjectForm({
     defaultValues: {
       title: project?.title || "",
       description: project?.description || [],
-      world: project?.world?.documentId ?? "",
+      world: project?.world?.documentId ?? defaultWorld ?? "",
       importance: project?.importance || "normal",
       // Both null and 'default' mean ordinary; only 'chores' checks the box.
       chores: project?.projectType === "chores",

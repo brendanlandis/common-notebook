@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { usePathname } from "next/navigation";
 import LayoutSelector from "@/app/(main)/(todo)/components/LayoutSelector";
 import { getDefaultViewSlug } from "@/app/lib/views";
@@ -23,6 +23,8 @@ import { TOOLTIP } from "@/app/components/ui/tooltip";
 import { HEADER_ICON, CARET_ICON, MOON_ICON } from "@/app/components/chrome/iconSizes";
 import { isTodoPath } from "@/app/lib/pages";
 import { prefersReducedMotion } from "@/app/lib/viewTransition";
+import { Select } from "@/app/components/ui/FormControls";
+import { usePracticeSubject } from "@/app/(main)/practice/hooks/usePracticePage";
 
 /** How the manage cluster slides and its caret turns: at the site's one speed. */
 const MOTION = "duration-(--transition-time) ease-[ease] motion-reduce:transition-none";
@@ -233,11 +235,56 @@ export default function HeaderContent() {
     );
   }
 
-  // /practice carries no header controls. It held a dropdown of the six
-  // practice types, which is the enum that no longer exists — you pick what to
-  // practice by pressing play on a piece of material, not by choosing a category
-  // up here first.
+  // /practice: which subject the page shows, in the slot and style of the Tasks
+  // page's view dropdown, then add a piece to it or add a subject.
+  if (pathname === "/practice") {
+    // Suspense because the subject is read from the address (useSearchParams).
+    return (
+      <Suspense>
+        <PracticeHeader />
+      </Suspense>
+    );
+  }
 
   // For home or other routes, return null (nothing displayed)
   return null;
+}
+
+function PracticeHeader() {
+  const { subjects, subject, choose, slugOf } = usePracticeSubject();
+  const { openTaskForm, openProjectForm } = useTaskActions();
+
+  return (
+    <>
+      {subjects.length > 0 && (
+        <Select
+          fullWidth={false}
+          small
+          className="min-w-48"
+          aria-label="subject"
+          value={subject ? slugOf(subject) : ""}
+          onChange={(e) => choose(e.target.value)}
+        >
+          {subjects.map((s) => (
+            <option key={s.documentId} value={slugOf(s)}>
+              {s.title}
+            </option>
+          ))}
+        </Select>
+      )}
+      <div className="flex items-center gap-3">
+        <button onClick={openTaskForm} className={TOOLTIP} data-tip="add piece" aria-label="add piece">
+          <PlusCircleIcon size={HEADER_ICON} />
+        </button>
+        <button
+          onClick={openProjectForm}
+          className={TOOLTIP}
+          data-tip="add subject"
+          aria-label="add subject"
+        >
+          <FolderSimplePlusIcon size={HEADER_ICON} />
+        </button>
+      </div>
+    </>
+  );
 }
