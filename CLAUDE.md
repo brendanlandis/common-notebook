@@ -216,6 +216,8 @@ without verifying it — until 2026-09-23 `shows-tasks` did, and a hand-made coo
   request's render; otherwise `/login` with both cookies cleared. At most one Strapi round-trip per browser
   per 30 minutes, the one the first API call used to make — Brendan's requirement: auth must never cost
   noticeable load time. A logout elsewhere reaches a browser when its access token next needs renewing.
+  A live session on /login, /register or /forgot-password is sent home (renewed first if need be);
+  /reset-password stays open to anyone, and the two failures below show the page rather than redirect.
 - Neither failure is a logout, so neither clears cookies or redirects: Strapi unreachable for a refresh
   is a 503 (`SessionUnavailableError`), and a token the frontend can't verify at all — `JWT_SECRET` unset,
   or not the backend's — is a 500 (`AuthConfigError`) with a log line saying which. A redirect there would

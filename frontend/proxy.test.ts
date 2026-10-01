@@ -42,8 +42,10 @@ function strapiRefresh(answer: { status: number; access?: string; refresh?: stri
 }
 
 const passesThrough = (res: Response) => res.headers.get('x-middleware-next') === '1';
-const sentToLogin = (res: Response) =>
-  res.status === 307 && new URL(res.headers.get('location')!).pathname === '/login';
+const sentTo = (path: string) => (res: Response) =>
+  res.status === 307 && new URL(res.headers.get('location')!).pathname === path;
+const sentToLogin = sentTo('/login');
+const sentHome = sentTo('/');
 const setCookies = (res: Response) => res.headers.getSetCookie();
 const clearsBoth = (res: Response) =>
   ['auth_token', 'refresh_token'].every((name) =>
@@ -164,6 +166,74 @@ describe('the page gate', () => {
     vi.stubEnv('DEV_AUTH_BYPASS', 'true');
     vi.stubEnv('STRAPI_API_URL', 'http://localhost:1337');
     expect(passesThrough(await proxy(request('/view/everything')))).toBe(true);
+    expect(passesThrough(await proxy(request('/login', { auth_token: await signToken() })))).toBe(true);
+  });
+});
+
+describe('the signed-out pages, for someone signed in', () => {
+  const SIGNED_OUT_PAGES = ['/login', '/register', '/forgot-password'];
+
+  it('sends a verified session home without asking Strapi', async () => {
+    const fetchMock = strapiRefresh({ status: 500 });
+    const token = await signToken();
+    for (const path of SIGNED_OUT_PAGES) {
+      const res = await proxy(request(path, { auth_token: token, refresh_token: 'r1' }));
+      expect(sentHome(res), path).toBe(true);
+      expect(setCookies(res), path).toEqual([]);
+    }
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('renews an expired session and sends it home with the new cookies', async () => {
+    const fresh = await signToken({ userId: '4' });
+    strapiRefresh({ status: 200, access: fresh, refresh: 'r2' });
+    const res = await proxy(
+      request('/login', { auth_token: await signToken({ expiresIn: -60 }), refresh_token: 'r1' })
+    );
+    expect(sentHome(res)).toBe(true);
+    expect(setCookies(res).some((c) => c.startsWith(`auth_token=${fresh};`))).toBe(true);
+    expect(setCookies(res).some((c) => c.startsWith('refresh_token=r2;'))).toBe(true);
+  });
+
+  it('leaves /reset-password alone, so an emailed link still works', async () => {
+    const res = await proxy(request('/reset-password', { auth_token: await signToken() }));
+    expect(passesThrough(res)).toBe(true);
+  });
+
+  it('shows the page for a forged access cookie', async () => {
+    const res = await proxy(request('/login', { auth_token: unsignedToken() }));
+    expect(passesThrough(res)).toBe(true);
+  });
+
+  it('shows the page for a session Strapi refuses to renew, clearing both cookies', async () => {
+    strapiRefresh({ status: 401 });
+    const res = await proxy(request('/login', { refresh_token: 'revoked' }));
+    expect(passesThrough(res)).toBe(true);
+    expect(clearsBoth(res)).toBe(true);
+  });
+
+  it('shows the page, keeping the cookies, when Strapi cannot be reached to renew', async () => {
+    strapiRefresh(new Error('The operation was aborted due to timeout'));
+    const res = await proxy(request('/login', { refresh_token: 'r1' }));
+    expect(passesThrough(res)).toBe(true);
+    expect(setCookies(res)).toEqual([]);
+  });
+
+  // Where the gate answers 500. Home would answer the same, so a redirect
+  // there would only take away the sign-in page.
+  it('shows the page, not a redirect, when JWT_SECRET is unset', async () => {
+    const token = await signToken();
+    vi.stubEnv('JWT_SECRET', '');
+    const res = await proxy(request('/login', { auth_token: token }));
+    expect(passesThrough(res)).toBe(true);
+    expect(setCookies(res)).toEqual([]);
+  });
+
+  it('shows the page when the token Strapi just issued fails verification — mismatched secrets', async () => {
+    strapiRefresh({ status: 200, access: await signToken({ secret: 'the-backends-different-secret-0123' }), refresh: 'r2' });
+    const res = await proxy(request('/login', { refresh_token: 'r1' }));
+    expect(passesThrough(res)).toBe(true);
+    expect(setCookies(res)).toEqual([]);
   });
 });
 

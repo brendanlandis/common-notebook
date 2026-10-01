@@ -39,6 +39,7 @@ import {
  *  - Neither failure below is a logout, so neither clears cookies: 503 when
  *    Strapi can't be reached to renew, 500 when this server can't verify tokens
  *    (`JWT_SECRET` unset or not the backend's). A redirect there would loop.
+ *  - A signed-in visitor on /login, /register or /forgot-password goes home.
  *
  * This runs with its own copy of `strapiAuth`; see the concurrency note there.
  *
@@ -52,6 +53,13 @@ import {
  * loop from an emailed password-reset link.
  */
 const PUBLIC_PATHS = ['/login', '/register', '/forgot-password', '/reset-password'];
+
+/**
+ * The public pages that are only for someone signed out, so a signed-in visitor
+ * goes home instead. Not /reset-password: an emailed reset link works whoever is
+ * signed in on that browser.
+ */
+const SIGNED_OUT_PATHS = ['/login', '/register', '/forgot-password'];
 
 const UNAVAILABLE_PAGE = `<!doctype html>
 <meta charset="utf-8">
@@ -143,6 +151,52 @@ function redirectToLogin(request: NextRequest) {
   return res;
 }
 
+/**
+ * A signed-out page (`SIGNED_OUT_PATHS`): home for a live session, renewed the
+ * same way the gate renews one, and the page itself for anything else. It asks
+ * `resolveSession`, as the gate does, so the two never disagree: a session the
+ * gate sends to /login can't be sent back home from there. The client's 401
+ * handler goes to /login too, and every 401 from `app/api/*` clears the cookies
+ * first, so it arrives signed out.
+ *
+ * The two failures that aren't a logout (Strapi out of reach, a token this
+ * server can't verify) render the page and keep the cookies, where the gate
+ * answers 503 or 500: sign-in should always be reachable, and home would only
+ * answer the same error.
+ */
+async function signedOutPage(request: NextRequest) {
+  let session;
+  try {
+    session = await resolveSession(
+      request.cookies.get(ACCESS_COOKIE)?.value ?? null,
+      request.cookies.get(REFRESH_COOKIE)?.value ?? null
+    );
+  } catch (err) {
+    if (!(err instanceof AuthConfigError)) throw err;
+    console.error('[auth]', err.message);
+    return render(request);
+  }
+
+  switch (session.kind) {
+    case 'valid':
+      return NextResponse.redirect(new URL('/', request.url));
+    case 'refreshed': {
+      const res = NextResponse.redirect(new URL('/', request.url));
+      setAuthCookies(res, session.tokens);
+      return res;
+    }
+    case 'rejected': {
+      // The session is over. Clear its cookies, or every visit asks Strapi again.
+      const res = render(request);
+      clearAuthCookies(res);
+      return res;
+    }
+    case 'none':
+    case 'unavailable':
+      return render(request);
+  }
+}
+
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -158,6 +212,10 @@ export async function proxy(request: NextRequest) {
   // Cannot activate on production.
   if (devAuthBypassEnabled()) {
     return render(request);
+  }
+
+  if (SIGNED_OUT_PATHS.includes(pathname)) {
+    return signedOutPage(request);
   }
 
   if (PUBLIC_PATHS.includes(pathname)) {
