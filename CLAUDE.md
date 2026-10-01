@@ -93,7 +93,7 @@ License: AGPL v3.
     list holding `:has()` in `:is()`, which takes its most specific selector's specificity. That
     once put one-section views in three columns on prod only; the column count is decided on
     `TaskGrid` now. When prod and local look different, `next build` and diff
-    `.next/static/chunks/*.css` against what commonnotebook.com serves.
+    `.next/static/chunks/*.css` against what app.commonnotebook.com serves.
   - **A class name with no CSS behind it is a hook, not a leftover.** `task-section`,
     `tasks-container`, `group-section`, `tasks-list`, `completed`, `worked-on` and the
     `layout-<slug>` names are read by browser specs, unit tests, or the `[.layout-done_&]:`

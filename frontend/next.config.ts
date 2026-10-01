@@ -5,8 +5,8 @@ import type { NextConfig } from 'next';
  * proxy.ts's (see app/lib/contentSecurityPolicy.ts).
  */
 const SECURITY_HEADERS = [
-  // No includeSubDomains: www.commonnotebook.com has no certificate (checked
-  // 2026-09-23), and HSTS would turn its http redirect into an error.
+  // No includeSubDomains: the app is served from app.commonnotebook.com
+  // (since 2026-10-01), which has no names under it for it to cover.
   { key: 'Strict-Transport-Security', value: 'max-age=63072000' },
   { key: 'X-Content-Type-Options', value: 'nosniff' },
   // Other sites learn nothing from a link followed out of a note.
