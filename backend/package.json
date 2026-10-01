@@ -40,5 +40,8 @@
   },
   "strapi": {
     "uuid": "bdaf654a-20b1-4b81-8800-c085a93e9cbc"
+  },
+  "overrides": {
+    "axios": "1.20.0"
   }
 }
