@@ -538,11 +538,12 @@ every piece back into an ordinary task.
 # Gotchas
 - Run tests with `npm run test:run` (one-shot) — plain `npm test` is Vitest **watch mode** and will
   hang a non-interactive run. Single file: `npx vitest run <path>`.
-- CI runs `npm run build` (both apps) + `npm run test:run` (both apps). **Lint and `tsc` are not
-  CI-gated.** `npm run lint` (`eslint .`) reports ~158 pre-existing findings — don't chase these as if
-  new; scope checks to files you touched. `tsc --noEmit` is clean in both apps, test files included;
-  keep it that way. jest-dom's matcher types come from `vitest.setup.ts`'s
-  `import '@testing-library/jest-dom/vitest'`.
+- CI runs `npm run typecheck` (`tsc --noEmit`) and `npm run build` (both apps, the Build workflow) +
+  `npm run test:run` (both apps). A type error anywhere, a test file included, fails CI; the backend's
+  tsconfig leaves its tests out, since Strapi compiles it on boot. jest-dom's matcher types come from
+  `vitest.setup.ts`'s `import '@testing-library/jest-dom/vitest'`. **Lint is not CI-gated:**
+  `npm run lint` (`eslint .`) reports ~158 pre-existing findings — don't chase these as if new; scope
+  checks to files you touched.
 - **Never call `fetch` from a query/mutation function — use `apiFetch`/`apiSend` (`app/lib/apiFetch.ts`).**
   `fetch` resolves on a 401 and the handlers answer `{success:false}`, so a raw `fetch` in a `queryFn`
   turns every failure into a *successful* query holding `undefined` — an empty list where an error

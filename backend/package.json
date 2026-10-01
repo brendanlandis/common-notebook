@@ -9,6 +9,7 @@
     "develop": "strapi develop",
     "start": "strapi start",
     "strapi": "strapi",
+    "typecheck": "tsc --noEmit",
     "test:run": "vitest run",
     "test": "vitest"
   },
