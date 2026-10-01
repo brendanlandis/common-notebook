@@ -13,15 +13,15 @@
  * inject `<style>` elements. With a nonce in the list, browsers would ignore
  * `'unsafe-inline'`.
  *
- * **Report-only for now.** Browsers send what it would have blocked to
- * `/api/csp-report`, which logs it. Once that log shows nothing the app needs,
- * enforcing it is a change to `CSP_HEADER` alone.
+ * Enforced. Browsers send what it blocks to `/api/csp-report`, which logs it as
+ * a `[csp]` line.
  *
- * Framing is refused separately, by an enforced policy in `next.config.ts` on
- * every response: a report-only `frame-ancestors` blocks nothing.
+ * It repeats `frame-ancestors 'none'` from `next.config.ts`, which sends that
+ * on every response: a page's header comes from here and replaces the config's,
+ * which would otherwise leave a page's framing to X-Frame-Options alone.
  */
 
-export const CSP_HEADER = 'Content-Security-Policy-Report-Only';
+export const CSP_HEADER = 'Content-Security-Policy';
 
 /** Where browsers send violation reports: `app/api/csp-report/route.ts`. */
 export const CSP_REPORT_PATH = '/api/csp-report';
@@ -46,6 +46,7 @@ export function contentSecurityPolicy(nonce: string, { dev = false } = {}): stri
     "object-src 'none'",
     "base-uri 'none'",
     "form-action 'self'",
+    "frame-ancestors 'none'",
     `report-uri ${CSP_REPORT_PATH}`,
   ].join('; ');
 }

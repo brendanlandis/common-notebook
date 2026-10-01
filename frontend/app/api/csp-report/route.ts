@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 /**
- * Where browsers report what the page policy would have blocked
- * (`app/lib/contentSecurityPolicy.ts`, report-only for now). Each report is one
- * `[csp]` line in the log, so the policy can be enforced once the log shows
- * nothing the app needs.
+ * Where browsers report what the page policy blocked
+ * (`app/lib/contentSecurityPolicy.ts`). Each report is one `[csp]` line in the
+ * log, so something the app needs that the policy refuses shows up there.
  *
  * Anyone can post here, signed in or not, so it only ever logs, and only a few
  * short fields. Addresses lose their query string (a reset link's is its code).

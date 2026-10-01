@@ -240,9 +240,12 @@ without verifying it — until 2026-09-23 `shows-tasks` did, and a hand-made coo
   `app/api/auth/rate-limiter.ts`). Prod's nginx sets the first and not the second, so the second is
   whatever the visitor wrote. Failed logins are also limited per account, and reset emails per address.
 - **Every page carries a script nonce and a CSP built around it** (`app/lib/contentSecurityPolicy.ts`;
-  report-only until prod's `[csp]` log lines show nothing the app needs). A new inline `<script>` needs the
-  nonce, as the theme script in `app/layout.tsx` has, and nothing may eval: zod runs `jitless` from
-  `instrumentation-client.ts`. The headers every response gets are in `next.config.ts`.
+  enforced, and what it blocks reaches prod's log as `[csp]` lines). A new inline
+  `<script>` needs the nonce, as the theme script in `app/layout.tsx` has, and nothing may eval: zod runs
+  `jitless` from `instrumentation-client.ts`. Anything loaded from another origin (an image, a font, a
+  fetch from the browser) needs a source added to the policy first. The headers every response gets are
+  in `next.config.ts`; a page's CSP header replaces the config's, which is why the page policy repeats
+  `frame-ancestors 'none'`.
 
 # Backend
 

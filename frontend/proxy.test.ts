@@ -52,7 +52,7 @@ const clearsBoth = (res: Response) =>
     setCookies(res).some((c) => c.startsWith(`${name}=;`) && /Max-Age=0/i.test(c))
   );
 
-const policyOf = (res: Response) => res.headers.get('content-security-policy-report-only');
+const policyOf = (res: Response) => res.headers.get('content-security-policy');
 /** The nonce the page render sees, and the one the policy sent to the browser allows. */
 const nonces = (res: Response) => ({
   render: res.headers.get('x-middleware-request-x-nonce'),
@@ -320,14 +320,25 @@ describe('writes to the API', () => {
 });
 
 describe('the page policy', () => {
-  it('sends a report-only policy allowing only the nonce this render puts on its scripts', async () => {
+  it('enforces a policy allowing only the nonce this render puts on its scripts', async () => {
     const res = await proxy(request('/view/everything', { auth_token: await signToken() }));
     const { render, policy } = nonces(res);
     expect(render).toMatch(/^[A-Za-z0-9+/]{22}==$/);
     expect(policy).toBe(render);
     expect(policyOf(res)).toContain("'strict-dynamic'");
     // Next reads the policy off the request to find the nonce for its own scripts.
-    expect(res.headers.get('x-middleware-request-content-security-policy-report-only')).toBe(policyOf(res));
+    expect(res.headers.get('x-middleware-request-content-security-policy')).toBe(policyOf(res));
+    expect(res.headers.get('content-security-policy-report-only')).toBeNull();
+  });
+
+  it("refuses framing itself, since it replaces next.config's header on a page", async () => {
+    const res = await proxy(request('/view/everything', { auth_token: await signToken() }));
+    expect(policyOf(res)).toContain("frame-ancestors 'none'");
+  });
+
+  it('still sends what it blocks to the report endpoint', async () => {
+    const res = await proxy(request('/view/everything', { auth_token: await signToken() }));
+    expect(policyOf(res)).toContain('report-uri /api/csp-report');
   });
 
   it('never reuses a nonce', async () => {

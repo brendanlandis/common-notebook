@@ -11,8 +11,9 @@ const SECURITY_HEADERS = [
   { key: 'X-Content-Type-Options', value: 'nosniff' },
   // Other sites learn nothing from a link followed out of a note.
   { key: 'Referrer-Policy', value: 'same-origin' },
-  // Never inside another site's frame. Enforced now, unlike the page policy:
-  // nothing frames this app. X-Frame-Options is for browsers older than CSP 2.
+  // Never inside another site's frame: nothing frames this app. A page's own
+  // policy from proxy.ts replaces this header, so it repeats the rule.
+  // X-Frame-Options is for browsers older than CSP 2.
   { key: 'Content-Security-Policy', value: "frame-ancestors 'none'" },
   { key: 'X-Frame-Options', value: 'DENY' },
   // Settings asks for the location, to find the time zone; nothing else is used.
