@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach, type Mock } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { apiFetch, apiSend } from '@/app/lib/apiFetch';
@@ -71,13 +71,9 @@ const EVENTS = [
 
 let decisions: StoredDecision[] = [];
 let eventsCalls = 0;
+let client: QueryClient;
 
 function wrapper({ children }: { children: React.ReactNode }) {
-  // Per-test client, and `retry: false` so a failure case asserts immediately
-  // instead of sitting through a backoff.
-  const client = new QueryClient({
-    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
-  });
   return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
 }
 
@@ -96,6 +92,11 @@ const stateOf = (
 beforeEach(() => {
   decisions = [];
   eventsCalls = 0;
+  // Per-test client, and `retry: false` so a failure case asserts immediately
+  // instead of sitting through a backoff.
+  client = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  });
 
   (apiFetch as Mock).mockImplementation(async (url: string) => {
     if (url.startsWith('/api/calendars/events')) {
@@ -135,6 +136,14 @@ beforeEach(() => {
       return { success: true };
     }
   );
+});
+
+// A test that ends with a write still queued hands it to the next test: it
+// reaches `apiSend` after the next `beforeEach` has swapped in the fake upsert
+// above, and saves its decision into the next test's empty store. Unmounting
+// does not stop it; mutations outlive their component.
+afterEach(async () => {
+  await waitFor(() => expect(client.isMutating()).toBe(0));
 });
 
 describe('useCalendarEvents', () => {
