@@ -196,6 +196,14 @@ module.exports = ({ env }) => ({
       sizeLimit: 10 * 1024 * 1024 * 1024, // 256mb in bytes
       enabled: true,
       multipart: true,
+      // What Strapi checks each upload's type against, by its bytes, its
+      // extension and what the browser declared. Nothing in the app uploads
+      // any more, so this is the admin panel: images, as it always held, and
+      // never SVG, a picture that can carry script.
+      security: {
+        allowedTypes: ["image/*"],
+        deniedTypes: ["image/svg+xml"],
+      },
       providerOptions: {
         baseUrl: env("CDN_URL"),
         rootPath: env("CDN_ROOT_PATH"),
