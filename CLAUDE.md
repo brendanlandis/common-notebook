@@ -254,7 +254,7 @@ Content types under `backend/src/api/*/content-types/*/schema.json`: `task`, `pr
 `system-setting`, `invite`. Strapi 5 style — `documentId` is the stable identifier used throughout the
 frontend. Every one of them except `invite` carries a `private` `owner` relation and is registered for
 the ownership middleware (`backend/src/ownership/`); `invite` has no owner, and only the scoped invite
-token can reach it. Node engine constraint: `>=18 <=22.x`.
+token can reach it. Node engine constraint: `>=20 <=26.x`, Strapi 5.56's own range.
 
 **The ownership middleware also checks every row a write links to.** Strapi resolves relation targets,
 and populates them, with no owner filter, so a link to someone else's row would cross tenants and hand
@@ -581,10 +581,10 @@ every piece back into an ordinary task.
   in `catch`, so a Playwright test using `route.abort()` can pass against code that mishandles a real
   server error. Use `route.fulfill({ status: 500 })` to test a rejected write, and `route.abort()` only
   where a network failure is the actual case (see `e2e/task-lifecycle.spec.ts` vs `e2e/view-reorder.spec.ts`).
-- **Everything runs Node 25 / npm 11** — prod, local, and all four CI jobs — even though
-  `backend/package.json` still declares `engines: >=18 <=22.x` (harmless `EBADENGINE` warnings).
-  Don't "fix" a CI job back to Node 22: Node 22 ships npm 10, which rejects an npm 11 lockfile with
-  `Missing: yaml@2.9.0 from lock file` (npm 11 omits optional peer deps such as `vite`'s `yaml`).
+- **Everything runs Node 25 / npm 11** — prod, local, and all four CI jobs; the backend's `engines`
+  allows 20 through 26. Don't "fix" a CI job back to Node 22: Node 22 ships npm 10, which rejects an
+  npm 11 lockfile with `Missing: yaml@2.9.0 from lock file` (npm 11 omits optional peer deps such as
+  `vite`'s `yaml`).
 - **`npm install` will not catch a broken lockfile; only `npm ci` will.** After changing backend deps,
   run `npm ci --dry-run` before pushing — that's the exact check CI performs.
 - **Strapi silently clamps `pagination[pageSize]` to `maxLimit: 100`** (`backend/config/api.ts`), and

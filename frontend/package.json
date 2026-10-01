@@ -44,13 +44,13 @@
     "slate": "^0.126.2",
     "slate-dom": "^0.126.0",
     "slate-history": "^0.113.1",
-    "slate-react": "^0.126.4",
+    "slate-react": "^0.127.1",
     "temporal-polyfill": "^1.0.5",
     "zod": "^4.6.5"
   },
   "devDependencies": {
     "@playwright/test": "^1.63.0",
-    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.3",
     "@types/node": "^26.6.3",
     "@types/react": "^19.3.0",
