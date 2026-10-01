@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from "vitest";
 import { renderHook, act, waitFor } from "@testing-library/react";
-import { createElement, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { Task, Project } from "@/app/types/index";
 
@@ -27,21 +27,18 @@ import { DateTimeSettingsProvider } from "@/app/contexts/DateTimeSettingsContext
 // loses its last observer.
 let queryClient: QueryClient;
 
-const wrapper = ({ children }: { children: ReactNode }) =>
-  createElement(
-    QueryClientProvider,
-    { client: queryClient },
-    createElement(
-      DateTimeSettingsProvider,
-      {
-        initial: {
-          timeZoneSettings: { timezone: "America/New_York", dayBoundaryHour: 4 },
-          completedTaskVisibilityMinutes: 15,
-        },
-      },
-      children
-    )
-  );
+const wrapper = ({ children }: { children: ReactNode }) => (
+  <QueryClientProvider client={queryClient}>
+    <DateTimeSettingsProvider
+      initial={{
+        timeZoneSettings: { timezone: "America/New_York", dayBoundaryHour: 4 },
+        completedTaskVisibilityMinutes: 15,
+      }}
+    >
+      {children}
+    </DateTimeSettingsProvider>
+  </QueryClientProvider>
+);
 
 const makeTask = (overrides: Partial<Task> = {}): Task =>
   ({

@@ -15,7 +15,12 @@ import type { Task } from '@/app/types/index';
 
 // TaskItem resolves its dates against the provider's settings.
 const Wrapper = ({ children }: { children: React.ReactNode }) => (
-  <DateTimeSettingsProvider initial={{ timezone: 'America/New_York', dayBoundaryHour: 4 }}>
+  <DateTimeSettingsProvider
+    initial={{
+      timeZoneSettings: { timezone: 'America/New_York', dayBoundaryHour: 4 },
+      completedTaskVisibilityMinutes: 0,
+    }}
+  >
     {children}
   </DateTimeSettingsProvider>
 );

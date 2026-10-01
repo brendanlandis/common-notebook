@@ -1,7 +1,21 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { transformLayout } from './layoutTransformers';
 import type { RawTaskData } from './layoutTransformers';
-import type { LayoutRuleset, Task, Project, RecurrenceType } from '@/app/types/index';
+import type { LayoutRuleset, Task, Project, RecurrenceType, World } from '@/app/types/index';
+import type { TimeZoneSettings } from './timeZoneSettings';
+
+// The recurring review reads no dates, but transformLayout takes the settings
+// every other view needs.
+const EST: TimeZoneSettings = { timezone: 'America/New_York', dayBoundaryHour: 4 };
+
+const LIFE_STUFF: World = {
+  id: 1,
+  documentId: 'world-life-stuff',
+  title: 'life stuff',
+  slug: 'life-stuff',
+  position: 0,
+  systemKey: null,
+};
 
 // Helper to create minimal task for testing
 function createTask(overrides: Partial<Task>): Task {
@@ -47,7 +61,7 @@ function createProject(overrides: Partial<Project>): Project {
     documentId: 'project-1',
     title: 'Test Project',
     description: [],
-    world: 'life stuff',
+    world: LIFE_STUFF,
     importance: 'normal',
     createdAt: '2024-01-01T00:00:00Z',
     updatedAt: '2024-01-01T00:00:00Z',
@@ -84,7 +98,7 @@ describe('layoutTransformers - recurring-review', () => {
         recurringIncidentals: [],
       };
 
-      const result = transformLayout(rawData, recurringReviewRuleset);
+      const result = transformLayout(rawData, recurringReviewRuleset, EST);
 
       expect(result.recurringReviewSections).toBeDefined();
       expect(result.recurringReviewSections?.size).toBe(0);
@@ -117,7 +131,7 @@ describe('layoutTransformers - recurring-review', () => {
         recurringIncidentals: [dailyTask, weeklyTask],
       };
 
-      const result = transformLayout(rawData, recurringReviewRuleset);
+      const result = transformLayout(rawData, recurringReviewRuleset, EST);
 
       // Incidentals only appear in recurringReviewIncidentals, not sections
       expect(result.recurringReviewIncidentals?.size).toBe(2);
@@ -154,7 +168,7 @@ describe('layoutTransformers - recurring-review', () => {
         recurringIncidentals: [incompleteTask, completedTask],
       };
 
-      const result = transformLayout(rawData, recurringReviewRuleset);
+      const result = transformLayout(rawData, recurringReviewRuleset, EST);
 
       const dailyIncidentals = result.recurringReviewIncidentals?.get('daily');
       expect(dailyIncidentals?.length).toBe(1);
@@ -213,7 +227,7 @@ describe('layoutTransformers - recurring-review', () => {
         recurringIncidentals: [incidentalTask],
       };
 
-      const result = transformLayout(rawData, recurringReviewRuleset);
+      const result = transformLayout(rawData, recurringReviewRuleset, EST);
 
       const dailySections = result.recurringReviewSections?.get('daily');
       const dailyIncidentals = result.recurringReviewIncidentals?.get('daily');
@@ -269,7 +283,7 @@ describe('layoutTransformers - recurring-review', () => {
         recurringIncidentals: [],
       };
 
-      const result = transformLayout(rawData, recurringReviewRuleset);
+      const result = transformLayout(rawData, recurringReviewRuleset, EST);
 
       const dailySections = result.recurringReviewSections?.get('daily');
       const choresTasks = (dailySections![0] as any).tasks;
@@ -322,7 +336,7 @@ describe('layoutTransformers - recurring-review', () => {
           recurringIncidentals: [task],
         };
 
-        const result = transformLayout(rawData, recurringReviewRuleset);
+        const result = transformLayout(rawData, recurringReviewRuleset, EST);
 
         const keyToCheck = expectedKey || type;
         expect(result.recurringReviewIncidentals?.has(keyToCheck)).toBe(true);
@@ -375,7 +389,7 @@ describe('layoutTransformers - recurring-review', () => {
         recurringIncidentals: [],
       };
 
-      const result = transformLayout(rawData, recurringReviewRuleset);
+      const result = transformLayout(rawData, recurringReviewRuleset, EST);
 
       const dailySections = result.recurringReviewSections?.get('daily');
       expect(dailySections?.length).toBe(2);
@@ -430,7 +444,7 @@ describe('layoutTransformers - recurring-review', () => {
         recurringIncidentals: [],
       };
 
-      const result = transformLayout(rawData, recurringReviewRuleset);
+      const result = transformLayout(rawData, recurringReviewRuleset, EST);
 
       const weeklySections = result.recurringReviewSections?.get('weekly');
       expect(weeklySections?.length).toBe(2);
@@ -457,7 +471,7 @@ describe('layoutTransformers - recurring-review', () => {
         recurringIncidentals: [],
       };
 
-      const result = transformLayout(rawData, recurringReviewRuleset);
+      const result = transformLayout(rawData, recurringReviewRuleset, EST);
 
       expect(result.recurringReviewSections?.size).toBe(0);
     });
@@ -512,7 +526,7 @@ describe('layoutTransformers - recurring-review', () => {
         recurringIncidentals: [incidentalTask],
       };
 
-      const result = transformLayout(rawData, recurringReviewRuleset);
+      const result = transformLayout(rawData, recurringReviewRuleset, EST);
 
       expect(result.recurringReviewSections?.get('daily')?.length).toBe(2); // 2 projects
       expect(result.recurringReviewIncidentals?.get('daily')?.length).toBe(1);
@@ -549,7 +563,7 @@ describe('layoutTransformers - recurring-review', () => {
         recurringIncidentals: [monthlyDateTask, monthlyDayTask],
       };
 
-      const result = transformLayout(rawData, recurringReviewRuleset);
+      const result = transformLayout(rawData, recurringReviewRuleset, EST);
 
       // Both should be under "monthly" key
       expect(result.recurringReviewIncidentals?.has('monthly')).toBe(true);
@@ -608,7 +622,7 @@ describe('layoutTransformers - recurring-review', () => {
         recurringIncidentals: [monthlyDayTask1, monthlyDateTask1, monthlyDayTask2, monthlyDateTask2],
       };
 
-      const result = transformLayout(rawData, recurringReviewRuleset);
+      const result = transformLayout(rawData, recurringReviewRuleset, EST);
 
       const monthlyIncidentals = result.recurringReviewIncidentals?.get('monthly');
       expect(monthlyIncidentals?.length).toBe(4);
@@ -662,7 +676,7 @@ describe('layoutTransformers - recurring-review', () => {
         recurringIncidentals: [],
       };
 
-      const result = transformLayout(rawData, recurringReviewRuleset);
+      const result = transformLayout(rawData, recurringReviewRuleset, EST);
 
       const monthlySections = result.recurringReviewSections?.get('monthly');
       expect(monthlySections?.length).toBe(1);
@@ -725,7 +739,7 @@ describe('layoutTransformers - recurring-review', () => {
         recurringIncidentals: [task7Days, task2Days, task14Days, task2DaysB],
       };
 
-      const result = transformLayout(rawData, recurringReviewRuleset);
+      const result = transformLayout(rawData, recurringReviewRuleset, EST);
 
       const everyXDaysIncidentals = result.recurringReviewIncidentals?.get('every x days');
       expect(everyXDaysIncidentals?.length).toBe(4);
@@ -776,7 +790,7 @@ describe('layoutTransformers - recurring-review', () => {
         recurringIncidentals: [],
       };
 
-      const result = transformLayout(rawData, recurringReviewRuleset);
+      const result = transformLayout(rawData, recurringReviewRuleset, EST);
 
       const everyXDaysSections = result.recurringReviewSections?.get('every x days');
       expect(everyXDaysSections?.length).toBe(1);

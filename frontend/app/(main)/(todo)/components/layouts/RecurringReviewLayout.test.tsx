@@ -3,7 +3,7 @@ import { render, screen } from '@testing-library/react';
 import RecurringReviewLayout from './RecurringReviewLayout';
 import type { TransformedLayout } from '@/app/lib/layoutTransformers';
 import type { LayoutRendererProps } from './types';
-import type { Task, Project, RecurrenceType } from '@/app/types/index';
+import type { Task, Project, RecurrenceType, World } from '@/app/types/index';
 
 // Mock TaskItemRecurringReview component
 vi.mock('../TaskItemRecurringReview', () => ({
@@ -13,6 +13,15 @@ vi.mock('../TaskItemRecurringReview', () => ({
     </li>
   ),
 }));
+
+const LIFE_STUFF: World = {
+  id: 1,
+  documentId: 'world-life-stuff',
+  title: 'life stuff',
+  slug: 'life-stuff',
+  position: 0,
+  systemKey: null,
+};
 
 // Helper to create minimal task
 function createTask(overrides: Partial<Task>): Task {
@@ -58,7 +67,7 @@ function createProject(overrides: Partial<Project>): Project {
     documentId: 'project-1',
     title: 'Test Project',
     description: [],
-    world: 'life stuff',
+    world: LIFE_STUFF,
     importance: 'normal',
     createdAt: '2024-01-01T00:00:00Z',
     updatedAt: '2024-01-01T00:00:00Z',

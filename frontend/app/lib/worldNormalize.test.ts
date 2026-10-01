@@ -51,7 +51,7 @@ describe("normalizeProjectWorld (round-trip sanity)", () => {
     const raw = { documentId: "p1", title: "x", world: "computer", worldRef: { documentId: "w1" } };
     const out = normalizeProjectWorld(raw);
     expect(out.world).toEqual({ documentId: "w1" });
-    expect((out as Record<string, unknown>).worldRef).toBeUndefined();
+    expect(out).not.toHaveProperty("worldRef");
   });
 
   it("yields world: null when the relation is empty", () => {

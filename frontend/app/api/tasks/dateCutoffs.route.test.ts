@@ -19,11 +19,9 @@ process.env.STRAPI_API_URL = 'http://localhost:1337';
 // which is why the whole suite also runs under TZ=UTC / NY / Kolkata.
 
 function request(url: string): NextRequest {
-  const req = new NextRequest(new URL(url, 'http://localhost'));
-  vi.spyOn(req.cookies, 'get').mockImplementation(
-    (name: string) => (name === 'auth_token' ? ({ value: 'test-token', name } as any) : undefined)
-  );
-  return req;
+  return new NextRequest(new URL(url, 'http://localhost'), {
+    headers: { cookie: 'auth_token=test-token' },
+  });
 }
 
 /** Capture every fetched URL; return empty pages, plus any per-prefix overrides. */

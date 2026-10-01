@@ -16,14 +16,10 @@ vi.mock('@/app/lib/strapiAuth', async (importOriginal) =>
 
 // Helper to create mock request
 function createMockRequest(url: string, cookies: Record<string, string> = {}): NextRequest {
-  const request = new NextRequest(new URL(url, 'http://localhost'));
-  
-  // Mock cookies
-  vi.spyOn(request.cookies, 'get').mockImplementation((name: string) => {
-    return cookies[name] ? { value: cookies[name], name } as any : undefined;
-  });
-
-  return request;
+  const cookie = Object.entries(cookies)
+    .map(([name, value]) => `${name}=${value}`)
+    .join('; ');
+  return new NextRequest(new URL(url, 'http://localhost'), { headers: { cookie } });
 }
 
 // Mock fetch setup

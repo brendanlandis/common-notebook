@@ -539,8 +539,10 @@ every piece back into an ordinary task.
 - Run tests with `npm run test:run` (one-shot) — plain `npm test` is Vitest **watch mode** and will
   hang a non-interactive run. Single file: `npx vitest run <path>`.
 - CI runs `npm run build` (both apps) + `npm run test:run` (both apps). **Lint and `tsc` are not
-  CI-gated.** `npm run lint` (`eslint .`) reports ~168 pre-existing findings and `tsc --noEmit` has
-  pre-existing errors in some test files — don't chase these as if new; scope checks to files you touched.
+  CI-gated.** `npm run lint` (`eslint .`) reports ~158 pre-existing findings — don't chase these as if
+  new; scope checks to files you touched. `tsc --noEmit` is clean in both apps, test files included;
+  keep it that way. jest-dom's matcher types come from `vitest.setup.ts`'s
+  `import '@testing-library/jest-dom/vitest'`.
 - **Never call `fetch` from a query/mutation function — use `apiFetch`/`apiSend` (`app/lib/apiFetch.ts`).**
   `fetch` resolves on a 401 and the handlers answer `{success:false}`, so a raw `fetch` in a `queryFn`
   turns every failure into a *successful* query holding `undefined` — an empty list where an error
@@ -568,7 +570,7 @@ every piece back into an ordinary task.
   `app/lib/dateArchitecture.test.ts` is the CI-gated guard that keeps the stubs and `toZonedTime` from
   creeping back.
   Components/hooks reading `useDateTimeSettings()` need a `DateTimeSettingsProvider` wrapper in tests;
-  pass `initial` so the provider doesn't fetch (see `app/(main)/(todo)/hooks/useTasks.test.ts`).
+  pass `initial` so the provider doesn't fetch (see `app/(main)/(todo)/hooks/useTasks.test.tsx`).
   Query-backed hooks need a `QueryClientProvider` wrapper with a **per-test client** and
   **`retry: false`** — the app default of 1 makes every failure case sit through a backoff before the
   assertion runs (see `app/(main)/(todo)/hooks/useWorlds.test.ts`). Component tests that only care about a hook's

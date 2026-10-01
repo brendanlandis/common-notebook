@@ -15,11 +15,10 @@ process.env.STRAPI_API_URL = 'http://localhost:1337';
 // because the mocked fetch returns no system-setting rows.
 
 function request(url: string, method = 'GET'): NextRequest {
-  const req = new NextRequest(new URL(url, 'http://localhost'), { method });
-  vi.spyOn(req.cookies, 'get').mockImplementation(
-    (name: string) => (name === 'auth_token' ? ({ value: 'test-token', name } as any) : undefined)
-  );
-  return req;
+  return new NextRequest(new URL(url, 'http://localhost'), {
+    method,
+    headers: { cookie: 'auth_token=test-token' },
+  });
 }
 
 function mockFetch(handler: (url: string, init?: RequestInit) => unknown) {

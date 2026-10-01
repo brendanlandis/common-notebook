@@ -293,7 +293,7 @@ describe("TaskItemRecurringReview", () => {
   });
 
   it("should render description when present", () => {
-    const taskWithDescription = {
+    const taskWithDescription: Task = {
       ...baseTask,
       description: [{ type: "paragraph", children: [{ type: "text", text: "Test description" }] }],
     };

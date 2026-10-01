@@ -1,11 +1,14 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { transformLayout } from './layoutTransformers';
+import { findCodePreset } from './views';
 import type { Task, Project } from '@/app/types/index';
 import * as dateUtils from './dateUtils';
 import type { TimeZoneSettings } from './timeZoneSettings';
 
 // The timezone and day boundary are parameters now; these tests pin them.
 const EST: TimeZoneSettings = { timezone: 'America/New_York', dayBoundaryHour: 4 };
+
+const DONE_RULESET = findCodePreset('done')!;
 
 // Mock only the clock (getToday). parseDate/toISODate/formatInTimezone run for
 // real. The old stubs were the worst in the repo: a machine-local parseDate, a
@@ -91,7 +94,7 @@ describe('Layout Transformer - Work Session Virtual Entries', () => {
         ],
       });
 
-      const ruleset = { codePreset: 'done' as const };
+      const ruleset = DONE_RULESET;
       const result = transformLayout(
         {
           projects: [],
@@ -131,7 +134,7 @@ describe('Layout Transformer - Work Session Virtual Entries', () => {
         ],
       });
 
-      const ruleset = { codePreset: 'done' as const };
+      const ruleset = DONE_RULESET;
       const result = transformLayout(
         {
           projects: [],
@@ -147,7 +150,7 @@ describe('Layout Transformer - Work Session Virtual Entries', () => {
       ,
         EST);
 
-      const allTasks = result.doneSections.flatMap(section => section.tasks);
+      const allTasks = result.doneSections!.flatMap(section => section.tasks);
       const virtualEntry = allTasks.find(task => task.documentId.includes('-worked-'));
       
       expect(virtualEntry).toBeDefined();
@@ -166,7 +169,7 @@ describe('Layout Transformer - Work Session Virtual Entries', () => {
         ],
       });
 
-      const ruleset = { codePreset: 'done' as const };
+      const ruleset = DONE_RULESET;
       const result = transformLayout(
         {
           projects: [],
@@ -182,7 +185,7 @@ describe('Layout Transformer - Work Session Virtual Entries', () => {
       ,
         EST);
 
-      const allTasks = result.doneSections.flatMap(section => section.tasks);
+      const allTasks = result.doneSections!.flatMap(section => section.tasks);
       const virtualEntry = allTasks.find(task => task.documentId.includes('-worked-'));
       
       expect(virtualEntry).toBeDefined();
@@ -200,7 +203,7 @@ describe('Layout Transformer - Work Session Virtual Entries', () => {
         ],
       });
 
-      const ruleset = { codePreset: 'done' as const };
+      const ruleset = DONE_RULESET;
       const result = transformLayout(
         {
           projects: [],
@@ -216,7 +219,7 @@ describe('Layout Transformer - Work Session Virtual Entries', () => {
       ,
         EST);
 
-      const allTasks = result.doneSections.flatMap(section => section.tasks);
+      const allTasks = result.doneSections!.flatMap(section => section.tasks);
       const virtualEntry = allTasks.find(task => task.documentId.includes('-worked-'));
       
       expect(virtualEntry!.completedAt).toBe(sessionTimestamp);
@@ -234,7 +237,7 @@ describe('Layout Transformer - Work Session Virtual Entries', () => {
         ],
       });
 
-      const ruleset = { codePreset: 'done' as const };
+      const ruleset = DONE_RULESET;
       const result = transformLayout(
         {
           projects: [],
@@ -251,13 +254,13 @@ describe('Layout Transformer - Work Session Virtual Entries', () => {
         EST);
 
       // Should have separate date sections for each work session
-      expect(result.doneSections.length).toBeGreaterThanOrEqual(2);
+      expect(result.doneSections!.length).toBeGreaterThanOrEqual(2);
       
       // Check that entries are in correct date sections
-      const jan5Section = result.doneSections.find(s => 
+      const jan5Section = result.doneSections!.find(s => 
         s.tasks.some(t => t.documentId === 'task-1-worked-2026-01-05')
       );
-      const jan4Section = result.doneSections.find(s => 
+      const jan4Section = result.doneSections!.find(s => 
         s.tasks.some(t => t.documentId === 'task-1-worked-2026-01-04')
       );
       
@@ -275,7 +278,7 @@ describe('Layout Transformer - Work Session Virtual Entries', () => {
         ],
       });
 
-      const ruleset = { codePreset: 'done' as const };
+      const ruleset = DONE_RULESET;
       const result = transformLayout(
         {
           projects: [],
@@ -291,7 +294,7 @@ describe('Layout Transformer - Work Session Virtual Entries', () => {
       ,
         EST);
 
-      const allTasks = result.doneSections.flatMap(section => section.tasks);
+      const allTasks = result.doneSections!.flatMap(section => section.tasks);
       const jan5Entry = allTasks.find(t => t.documentId === 'task-1-worked-2026-01-05');
       const dec1Entry = allTasks.find(t => t.documentId === 'task-1-worked-2025-12-01');
       
@@ -312,7 +315,7 @@ describe('Layout Transformer - Work Session Virtual Entries', () => {
         ],
       });
 
-      const ruleset = { codePreset: 'done' as const };
+      const ruleset = DONE_RULESET;
       const result = transformLayout(
         {
           projects: [],
@@ -328,7 +331,7 @@ describe('Layout Transformer - Work Session Virtual Entries', () => {
       ,
         EST);
 
-      const allTasks = result.doneSections.flatMap(section => section.tasks);
+      const allTasks = result.doneSections!.flatMap(section => section.tasks);
       const virtualEntries = allTasks.filter(task => 
         task.documentId.includes('multi-session-task-worked-')
       );
@@ -357,7 +360,7 @@ describe('Layout Transformer - Work Session Virtual Entries', () => {
         ],
       });
 
-      const ruleset = { codePreset: 'done' as const };
+      const ruleset = DONE_RULESET;
       const result = transformLayout(
         {
           projects: [],
@@ -373,7 +376,7 @@ describe('Layout Transformer - Work Session Virtual Entries', () => {
       ,
         EST);
 
-      const allTasks = result.doneSections.flatMap(section => section.tasks);
+      const allTasks = result.doneSections!.flatMap(section => section.tasks);
       const task1Entry = allTasks.find(t => t.documentId === 'task-1-worked-2026-01-05');
       const task2Entry = allTasks.find(t => t.documentId === 'task-2-worked-2026-01-05');
       
@@ -392,7 +395,7 @@ describe('Layout Transformer - Work Session Virtual Entries', () => {
         workSessions: [],
       });
 
-      const ruleset = { codePreset: 'done' as const };
+      const ruleset = DONE_RULESET;
       const result = transformLayout(
         {
           projects: [],
@@ -408,7 +411,7 @@ describe('Layout Transformer - Work Session Virtual Entries', () => {
       ,
         EST);
 
-      const allTasks = result.doneSections.flatMap(section => section.tasks);
+      const allTasks = result.doneSections!.flatMap(section => section.tasks);
       const virtualEntries = allTasks.filter(task => 
         task.documentId.includes('-worked-')
       );
@@ -423,7 +426,7 @@ describe('Layout Transformer - Work Session Virtual Entries', () => {
         workSessions: null,
       });
 
-      const ruleset = { codePreset: 'done' as const };
+      const ruleset = DONE_RULESET;
       const result = transformLayout(
         {
           projects: [],
@@ -439,7 +442,7 @@ describe('Layout Transformer - Work Session Virtual Entries', () => {
       ,
         EST);
 
-      const allTasks = result.doneSections.flatMap(section => section.tasks);
+      const allTasks = result.doneSections!.flatMap(section => section.tasks);
       const virtualEntries = allTasks.filter(task => 
         task.documentId.includes('-worked-')
       );
@@ -496,7 +499,7 @@ describe('Layout Transformer - Work Session Virtual Entries', () => {
         ],
       });
 
-      const ruleset = { codePreset: 'done' as const };
+      const ruleset = DONE_RULESET;
       const result = transformLayout(
         {
           projects: [],
@@ -512,7 +515,7 @@ describe('Layout Transformer - Work Session Virtual Entries', () => {
       ,
         EST);
 
-      const allTasks = result.doneSections.flatMap(section => section.tasks);
+      const allTasks = result.doneSections!.flatMap(section => section.tasks);
       const virtualEntry = allTasks.find(task => task.documentId.includes('-worked-'));
       
       expect(virtualEntry).toBeDefined();
@@ -541,7 +544,7 @@ describe('Layout Transformer - Work Session Virtual Entries', () => {
         ],
       });
 
-      const ruleset = { codePreset: 'done' as const };
+      const ruleset = DONE_RULESET;
       const result = transformLayout(
         {
           projects: [],

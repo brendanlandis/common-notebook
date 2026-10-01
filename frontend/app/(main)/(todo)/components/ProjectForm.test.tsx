@@ -1,6 +1,6 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, vi, type Mock } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import type { World } from "@/app/types/index";
+import type { Project, World } from "@/app/types/index";
 
 /**
  * The subject-type dropdown, and the one rule underneath it: `projectType` is a
@@ -9,24 +9,38 @@ import type { World } from "@/app/types/index";
  */
 
 const worlds: World[] = [
-  { documentId: "w-life", title: "life stuff", slug: "life-stuff", systemKey: null } as World,
+  { id: 1, documentId: "w-life", title: "life stuff", slug: "life-stuff", position: 0, systemKey: null },
   {
+    id: 2,
     documentId: "w-practice",
     title: "practice and study",
     slug: "practice-and-study",
+    position: 1,
     systemKey: "practice",
-  } as World,
+  },
 ];
+
+/** A saved project, with what the form reads filled in by each test. */
+const savedProject = (fields: Pick<Project, "title" | "projectType" | "world">): Project => ({
+  id: 1,
+  documentId: "p-1",
+  description: [],
+  createdAt: "2026-01-01T00:00:00.000Z",
+  updatedAt: "2026-01-01T00:00:00.000Z",
+  publishedAt: "2026-01-01T00:00:00.000Z",
+  ...fields,
+});
 
 vi.mock("@/app/(main)/(todo)/hooks/useWorlds", () => ({ useWorlds: () => ({ worlds }) }));
 vi.mock("@/app/components/ui/RichTextEditor", () => ({ default: () => null }));
 
 import ProjectForm from "./ProjectForm";
 
-let onSubmit: ReturnType<typeof vi.fn>;
+type OnSubmit = Parameters<typeof ProjectForm>[0]["onSubmit"];
+let onSubmit: Mock<OnSubmit>;
 
-function renderForm(project?: Parameters<typeof ProjectForm>[0]["project"]) {
-  onSubmit = vi.fn();
+function renderForm(project?: Project) {
+  onSubmit = vi.fn<OnSubmit>();
   render(<ProjectForm project={project} onSubmit={onSubmit} onCancel={vi.fn()} />);
 }
 
@@ -105,13 +119,7 @@ describe("in practice and study", () => {
   });
 
   it("seeds the dropdown from an existing subject", () => {
-    renderForm({
-      documentId: "p-1",
-      title: "german",
-      description: [],
-      projectType: "study",
-      world: worlds[1],
-    } as Parameters<typeof ProjectForm>[0]["project"]);
+    renderForm(savedProject({ title: "german", projectType: "study", world: worlds[1] }));
 
     expect((screen.getByLabelText("kind of subject") as HTMLSelectElement).value).toBe("study");
   });
@@ -119,13 +127,7 @@ describe("in practice and study", () => {
   it("moving a subject out of the world reverts it to an ordinary project", async () => {
     // `instrument` outside practice and study would be a project type nothing
     // reads, on a project nothing treats as a subject.
-    renderForm({
-      documentId: "p-1",
-      title: "guitar",
-      description: [],
-      projectType: "instrument",
-      world: worlds[1],
-    } as Parameters<typeof ProjectForm>[0]["project"]);
+    renderForm(savedProject({ title: "guitar", projectType: "instrument", world: worlds[1] }));
 
     chooseWorld("w-life");
     submit();
