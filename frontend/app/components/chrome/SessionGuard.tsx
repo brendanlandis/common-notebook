@@ -23,6 +23,7 @@ export default function SessionGuard() {
           res.status === 401 &&
           window.location.pathname !== '/login'
         ) {
+          // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- the full reload is the point: it drops client state and proxy.ts re-gates
           window.location.href = '/login';
         }
       })

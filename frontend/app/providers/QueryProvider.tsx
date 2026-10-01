@@ -6,6 +6,7 @@ import { isUnauthorized } from '@/app/lib/apiFetch';
 
 /** A hard navigation: a fresh heap, and proxy.ts checks the session again. */
 function goToLogin() {
+  // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- the full reload is the point: no router.push
   if (window.location.pathname !== '/login') window.location.assign('/login');
 }
 
