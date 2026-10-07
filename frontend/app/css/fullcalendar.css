@@ -1,0 +1,11 @@
+/* FullCalendar's own sheets, for the review pages' calendar (imported by
+ * `WeekCalendar`, so no other page loads them).
+ *
+ * In `components.fullcalendar`, a layer below `utilities.legacy`, so
+ * `review-calendar.css` overrides them on order alone, without `!important`.
+ * Unlayered, they would beat every layered rule in the app whatever its
+ * specificity. The palette's colors are set from daisyUI's tokens in
+ * `review-calendar.css`. */
+@import "@fullcalendar/react/skeleton.css" layer(components.fullcalendar);
+@import "@fullcalendar/react/themes/classic/theme.css" layer(components.fullcalendar);
+@import "@fullcalendar/react/themes/classic/palette.css" layer(components.fullcalendar);

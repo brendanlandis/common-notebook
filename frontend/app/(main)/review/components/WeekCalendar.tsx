@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useRef } from "react";
-import FullCalendar from "@fullcalendar/react";
-import timeGridPlugin from "@fullcalendar/timegrid";
+import FullCalendar, { type CalendarRef } from "@fullcalendar/react";
+import timeGridPlugin from "@fullcalendar/react/timegrid";
+import classicTheme from "@fullcalendar/react/themes/classic";
 import { Temporal } from "temporal-polyfill";
 import type { ResolvedInstance } from "@/app/lib/ics/resolveDecisions";
+import "@/app/css/fullcalendar.css";
 
 /**
  * The week's calendar, as a decision surface.
@@ -23,8 +25,8 @@ import type { ResolvedInstance } from "@/app/lib/ics/resolveDecisions";
  * which is not necessarily the owner's configured one. That is precisely the
  * bug class this codebase has shipped three times and now has a CI-gated test
  * against: correct on a laptop whose zone matches the setting, wrong in
- * production. FullCalendar's own named-zone support needs a luxon or moment
- * plugin, i.e. a second date library, which is what we are avoiding.
+ * production. FullCalendar 7 can take a named zone itself, but these values have
+ * already been through one zone conversion, and a second would be wrong.
  *
  * So: every zone decision happens in Temporal, upstream. This component paints.
  */
@@ -94,9 +96,22 @@ export function toFullCalendarEvents(events: ResolvedInstance[]) {
     start: instance.start,
     end: instance.end,
     allDay: instance.allDay,
-    classNames: [STATE_CLASS[instance.state] ?? "cal-event-unset"],
+    className: STATE_CLASS[instance.state] ?? "cal-event-unset",
     extendedProps: { instance },
   }));
+}
+
+// Read in UTC, like everything else this grid is handed: wall clock labeled UTC.
+const HEADER_FORMAT = new Intl.DateTimeFormat("en-US", {
+  weekday: "short",
+  month: "numeric",
+  day: "numeric",
+  timeZone: "UTC",
+});
+
+/** A column's heading: "Tue 10/6". */
+export function dayHeaderText(date: Date): string {
+  return HEADER_FORMAT.format(date).replace(",", "");
 }
 
 /** Where a day is normally read from, when nothing earlier demands otherwise. */
@@ -207,7 +222,7 @@ export function toSunsetEvents(sunsets: string[]) {
     end: Temporal.PlainDateTime.from(sunset).add({ minutes: 1 }).toString(),
     allDay: false,
     display: "background" as const,
-    classNames: ["cal-sunset"],
+    className: "cal-sunset",
     extendedProps: {},
   }));
 }
@@ -231,7 +246,7 @@ export default function WeekCalendar({
     () => slotWindow(events, { boundaryHour, now: showNow ? now : undefined }),
     [events, boundaryHour, showNow, now]
   );
-  const calendarRef = useRef<FullCalendar | null>(null);
+  const calendarRef = useRef<CalendarRef | null>(null);
 
   /**
    * Move the grid when the period moves.
@@ -264,10 +279,8 @@ export default function WeekCalendar({
 
   return (
     /* `is-readonly` where there's nothing to click. The daily grid is for
-       reading — it has no `onCycle` — but FullCalendar still gave every event a
-       pointer cursor and painted its selected-overlay on click, so the events
-       looked like controls and appeared to respond to being pressed. Neither is
-       true there. */
+       reading — it has no `onCycle` — so its events must not look like
+       controls; only the review page's get a pointer. */
     <div
       className={`text-tiny review-calendar${arriving ? " is-arriving" : ""}${
         onCycle ? "" : " is-readonly"
@@ -275,7 +288,29 @@ export default function WeekCalendar({
     >
       <FullCalendar
         ref={calendarRef}
-        plugins={[timeGridPlugin]}
+        plugins={[timeGridPlugin, classicTheme]}
+        // FullCalendar 7 puts no stable class on anything (its own are hashed),
+        // so these name the parts `review-calendar.css` and the tests reach for.
+        dayHeaderClass={(info) => (info.isToday ? "cal-day-header is-today" : "cal-day-header")}
+        // Our own text, at every width. FullCalendar cuts a header to one letter
+        // in a column under 60px (T W T F S S, no dates), which is every column
+        // of a week on a phone, and "Tue 10/6" wraps onto two lines fine there.
+        dayHeaderContent={(info) => dayHeaderText(info.date)}
+        // Nor the narrow form of the rest (smaller event text, under 80px).
+        dayNarrowWidth={0}
+        dayLaneClass={(info) => (info.isToday ? "cal-day-lane is-today" : "cal-day-lane")}
+        dayCellClass={(info) => (info.isToday ? "cal-all-day-cell is-today" : "cal-all-day-cell")}
+        slotHeaderClass="cal-slot-header"
+        slotHeaderInnerClass="cal-slot-label"
+        allDayHeaderInnerClass="cal-slot-label"
+        // Lowercase, as every label in the app is; v7 capitalizes its own.
+        allDayText="all-day"
+        backgroundEventTitleClass="cal-background-title"
+        eventClass={(info) => (info.event.allDay ? "cal-event is-all-day" : "cal-event")}
+        eventTimeClass="cal-event-time"
+        eventTitleClass="cal-event-title"
+        // The daily page measures this to line its list up with the time.
+        nowIndicatorLineClass="cal-now-line"
         initialView="timeGrid"
         timeZone="UTC"
         /**
@@ -300,12 +335,17 @@ export default function WeekCalendar({
         expandRows
         slotMinTime={slots.min}
         slotMaxTime={slots.max}
-        eventClick={(info) => {
-          const instance = info.event.extendedProps.instance as ResolvedInstance | undefined;
-          // Background events (the sunset line) carry no instance, and a grid
-          // with no `onCycle` is for reading.
-          if (instance) onCycle?.(instance, info.el);
-        }}
+        // Only where a click decides something: given an `eventClick`,
+        // FullCalendar makes every event a button, which the daily grid's aren't.
+        eventClick={
+          onCycle
+            ? (info) => {
+                const instance = info.event.extendedProps.instance as ResolvedInstance | undefined;
+                // Background events (the sunset line) carry no instance.
+                if (instance) onCycle(instance, info.el);
+              }
+            : undefined
+        }
       />
     </div>
   );

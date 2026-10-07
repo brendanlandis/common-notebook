@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import WeekCalendar, {
+  dayHeaderText,
   slotWindow,
   toFullCalendarEvents,
   toSunsetEvents,
@@ -55,7 +56,7 @@ describe("toFullCalendarEvents", () => {
     const states = ["show", "hide", "unset"] as const;
     const mapped = toFullCalendarEvents(states.map((state) => instance({ state })));
 
-    expect(mapped.map((m) => m.classNames[0])).toEqual([
+    expect(mapped.map((m) => m.className)).toEqual([
       "cal-event-show",
       "cal-event-hide",
       "cal-event-unset",
@@ -200,7 +201,7 @@ describe("WeekCalendar", () => {
       <WeekCalendar events={[instance()]} {...PERIOD} now={NOW} boundaryHour={4} onCycle={vi.fn()} />
     );
 
-    const headers = [...container.querySelectorAll(".fc-col-header-cell")].map(
+    const headers = [...container.querySelectorAll(".cal-day-header")].map(
       (cell) => cell.textContent
     );
     expect(headers).toHaveLength(7);
@@ -222,7 +223,7 @@ describe("WeekCalendar", () => {
       <WeekCalendar events={[]} periodStart="2026-01-19" periodEnd="2026-01-25" now={NOW} boundaryHour={4} onCycle={vi.fn()} />
     );
 
-    const headers = [...container.querySelectorAll(".fc-col-header-cell")].map(
+    const headers = [...container.querySelectorAll(".cal-day-header")].map(
       (cell) => cell.textContent
     );
     expect(headers).toHaveLength(7);
@@ -243,7 +244,7 @@ describe("WeekCalendar", () => {
       />
     );
 
-    expect(container.querySelectorAll(".fc-col-header-cell")).toHaveLength(4);
+    expect(container.querySelectorAll(".cal-day-header")).toHaveLength(4);
   });
 
   it("renders an early event rather than clipping it off the top", () => {
@@ -263,7 +264,7 @@ describe("WeekCalendar", () => {
     );
 
     expect(screen.getByText("Early flight")).toBeTruthy();
-    expect(container.querySelector(".fc-timegrid-body .fc-event")).toBeTruthy();
+    expect(container.querySelector(".cal-day-lane .cal-event")).toBeTruthy();
   });
 
   it("tightens the window when the early event is ignored", () => {
@@ -281,7 +282,7 @@ describe("WeekCalendar", () => {
     // Trimmed and compared whole: a bare /^6/ also matches 6pm, which is inside
     // the default window and would make this pass either way.
     const showsSixAm = () =>
-      [...container.querySelectorAll(".fc-timegrid-slot-label")].some(
+      [...container.querySelectorAll(".cal-slot-label")].some(
         (slot) => slot.textContent?.trim().toLowerCase() === "6am"
       );
     expect(showsSixAm()).toBe(true);
@@ -304,7 +305,7 @@ describe("WeekCalendar", () => {
       <WeekCalendar events={[]} {...PERIOD} now="2026-01-14T20:00:00" boundaryHour={4} onCycle={vi.fn()} />
     );
 
-    const today = container.querySelector(".fc-col-header-cell.fc-day-today");
+    const today = container.querySelector(".cal-day-header.is-today");
     expect(today?.textContent).toContain("1/14");
   });
 
@@ -324,12 +325,12 @@ describe("WeekCalendar", () => {
       />
     );
 
-    const nightBefore = container.querySelector('[data-date="2026-01-12"] .fc-event');
-    const ownDate = container.querySelector('[data-date="2026-01-13"] .fc-event');
+    const nightBefore = container.querySelector('.cal-day-lane[data-date="2026-01-12"] .cal-event');
+    const ownDate = container.querySelector('.cal-day-lane[data-date="2026-01-13"] .cal-event');
     expect(nightBefore).toBeTruthy();
     // And exactly once: a window wider than 24 hours would draw it twice.
     expect(ownDate).toBeNull();
-    expect(container.querySelectorAll(".fc-timegrid-body .fc-event")).toHaveLength(1);
+    expect(container.querySelectorAll(".cal-day-lane .cal-event")).toHaveLength(1);
   });
 
   it("keeps an all-day event out of the timed grid", () => {
@@ -346,7 +347,8 @@ describe("WeekCalendar", () => {
     );
 
     expect(screen.getByText("Whole day")).toBeTruthy();
-    expect(container.querySelector(".fc-daygrid-body .fc-event")).toBeTruthy();
+    expect(container.querySelector(".cal-event.is-all-day")).toBeTruthy();
+    expect(container.querySelector(".cal-day-lane .cal-event")).toBeNull();
   });
 
   it("hands the clicked instance back to the caller, with its element", () => {
@@ -357,13 +359,34 @@ describe("WeekCalendar", () => {
       <WeekCalendar events={[instance()]} {...PERIOD} now={NOW} boundaryHour={4} onCycle={onCycle} />
     );
 
-    const element = container.querySelector(".fc-event") as HTMLElement | null;
+    const element = container.querySelector(".cal-event") as HTMLElement | null;
     element?.click();
 
     expect(onCycle).toHaveBeenCalledWith(
       expect.objectContaining({ uid: "evt@test" }),
       element
     );
+  });
+
+  it("makes events buttons only where a click decides something", () => {
+    // The daily grid is for reading. Given an eventClick, FullCalendar would make
+    // its events buttons too, and they'd read as controls that do nothing.
+    const reading = render(<WeekCalendar events={[instance()]} {...PERIOD} now={NOW} boundaryHour={4} />);
+    expect(reading.container.querySelector(".cal-event")?.getAttribute("role")).not.toBe("button");
+    reading.unmount();
+
+    const deciding = render(
+      <WeekCalendar events={[instance()]} {...PERIOD} now={NOW} boundaryHour={4} onCycle={vi.fn()} />
+    );
+    expect(deciding.container.querySelector(".cal-event")?.getAttribute("role")).toBe("button");
+  });
+});
+
+describe("dayHeaderText", () => {
+  it("reads the date in UTC, as the grid hands it over", () => {
+    // Midnight UTC is the evening before in New York; read in the machine's zone,
+    // every column would be labeled a day early there.
+    expect(dayHeaderText(new Date("2026-01-13T00:00:00Z"))).toBe("Tue 1/13");
   });
 });
 
@@ -376,7 +399,7 @@ describe("toSunsetEvents", () => {
     expect(sunset.start).toBe("2026-08-13T20:15:30");
     expect(sunset.end).toBe("2026-08-13T20:16:30");
     expect(sunset.display).toBe("background");
-    expect(sunset.classNames).toEqual(["cal-sunset"]);
+    expect(sunset.className).toBe("cal-sunset");
   });
 
   it("rolls the hour rather than inventing a 60th minute", () => {

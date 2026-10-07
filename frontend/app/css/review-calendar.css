@@ -1,6 +1,13 @@
 /* The review pages' calendar: FullCalendar's DOM, in this app's colors, and
  * the animations no element can carry as a class.
  *
+ * FullCalendar 7 puts no stable class names on its DOM (its own are hashed), so
+ * `WeekCalendar` names the parts through its class settings: `cal-event`,
+ * `cal-event-time`, `cal-event-title`, `cal-day-header`, `cal-day-lane`,
+ * `cal-all-day-cell`, `cal-slot-header`, `cal-slot-label`, `cal-now-line`,
+ * plus `is-today` on today's. Its stylesheets sit a layer below this one (`fullcalendar.css`), so
+ * nothing here needs `!important`.
+ *
  * Everything else on those pages is on the markup; see
  * `(main)/review/components/ReviewParts.tsx`. Colors are daisyUI's tokens:
  * base-content for ink, base-100 for paper, success for "yes, this one" — the
@@ -22,34 +29,67 @@
 
 /* FullCalendar, in this app's colors.
  *
- * Its defaults are hard-coded light-mode values — `#ddd` grid lines, a `#fff`
- * page background, a yellow today tint — and they are *values*, not tokens
- * pointing at anything, so a dark theme leaves them exactly where they were. In
- * `dim` that meant near-white gridlines ruling a near-black page (the harshest
- * thing on the screen by some distance) and a white header strip carrying pale
- * blue text, which was simply illegible.
+ * Its classic theme's palette is hard-coded light-mode values — `#ddd` grid
+ * lines, a `#fff` page background, a yellow today tint — and they are *values*,
+ * not tokens pointing at anything, so a dark theme leaves them exactly where
+ * they were. In `dim` that meant near-white gridlines ruling a near-black page
+ * (the harshest thing on the screen by some distance) and a white header strip
+ * carrying pale text, which was simply illegible.
  *
- * Set through FullCalendar's own custom properties rather than by overriding its
- * rules: the variables are the documented seam, they apply everywhere the value
- * is used rather than everywhere we remembered to look, and they need none of
- * the `!important` the rest of this file carries — a variable set on an ancestor
- * beats one set on `.fc` by the library, whatever the specificity of the rule
- * that reads it.
+ * Set through the theme's own custom properties rather than by overriding its
+ * rules: the variables are the documented seam, and they apply everywhere the
+ * value is used rather than everywhere we remembered to look. A variable set on
+ * this ancestor beats the palette's `:root` for everything inside it.
  *
  * Everything derives from daisyUI's theme tokens, so light and dark both follow
  * and neither needs its own block. */
-.review-calendar .fc {
+.review-calendar {
   /* The header strip and any sticky section behind it. */
-  --fc-page-bg-color: var(--color-base-100);
+  --fc-classic-background: var(--color-base-100);
+  --fc-classic-foreground: var(--color-base-content);
   /* Lines that structure the grid without being read as content. */
-  --fc-border-color: color-mix(in oklab, var(--color-base-content) 20%, transparent);
-  --fc-neutral-bg-color: color-mix(in oklab, var(--color-base-content) 8%, transparent);
-  --fc-neutral-text-color: color-mix(in oklab, var(--color-base-content) 65%, transparent);
+  --fc-classic-border: color-mix(in oklab, var(--color-base-content) 20%, transparent);
+  --fc-classic-strong-border: color-mix(in oklab, var(--color-base-content) 35%, transparent);
+  --fc-classic-faint: color-mix(in oklab, var(--color-base-content) 4%, transparent);
+  --fc-classic-muted: color-mix(in oklab, var(--color-base-content) 8%, transparent);
+  --fc-classic-strong: color-mix(in oklab, var(--color-base-content) 14%, transparent);
+  --fc-classic-faint-foreground: color-mix(in oklab, var(--color-base-content) 45%, transparent);
+  --fc-classic-muted-foreground: color-mix(in oklab, var(--color-base-content) 65%, transparent);
+  --fc-classic-highlight: color-mix(in oklab, var(--color-base-content) 8%, transparent);
   /* Today, marked but not shouted. The default is a warm yellow that suits the
    * light theme and turns to olive mud on a dark one. */
-  --fc-today-bg-color: color-mix(in oklab, var(--color-base-content) 11%, transparent);
-  --fc-more-link-bg-color: var(--color-base-200);
-  --fc-more-link-text-color: var(--color-base-content);
+  --fc-classic-today: color-mix(in oklab, var(--color-base-content) 11%, transparent);
+}
+
+/* The type scale's tiny step for everything in the grid, which the container
+ * sets (`text-tiny` in WeekCalendar). The classic theme sizes its root at 1rem
+ * and its labels and event text itself, 11 to 14px. The root is the one
+ * element FullCalendar renders into the container. */
+.review-calendar > *,
+.review-calendar :is(.cal-day-header, .cal-slot-label, .cal-event),
+.review-calendar :is(.cal-day-header, .cal-slot-label, .cal-event) * {
+  font-size: inherit;
+}
+
+.cal-day-header {
+  font-weight: bold;
+}
+
+/* A title wraps, where the theme cuts it to one line: an evening event is tall
+ * enough to show "Collective Effort Fest Night 2 @ Meadows" whole, and on a
+ * phone's narrow columns one line is a word or two. So does a day's header. */
+.cal-event-title,
+.cal-day-header * {
+  white-space: normal;
+}
+
+/* The hour labels, and the all-day label beside them. A slot's height follows
+ * its label's line, and the theme's 1.43 made each hour 42px, a ninth taller
+ * than the grid was before FullCalendar 7, which pushed the week's evenings
+ * further down the page. A 14px line (whole pixels, so the rows don't land on
+ * fractions) makes it 38px again. */
+.cal-slot-label {
+  line-height: 0.875rem;
 }
 
 /* Switching cycles slides the grid out and the next one in.
@@ -163,8 +203,7 @@
   }
 }
 
-.review-calendar.is-arriving .fc-timegrid-event-harness,
-.review-calendar.is-arriving .fc-daygrid-event-harness {
+.review-calendar.is-arriving .cal-event {
   animation: cal-event-in var(--transition-time) ease-out both;
 }
 
@@ -172,8 +211,7 @@
  * (see `canViewTransition`); there's no equivalent hook for a CSS animation, so
  * it's turned off here. */
 @media (prefers-reduced-motion: reduce) {
-  .review-calendar.is-arriving .fc-timegrid-event-harness,
-  .review-calendar.is-arriving .fc-daygrid-event-harness {
+  .review-calendar.is-arriving .cal-event {
     animation: none;
   }
 }
@@ -211,21 +249,18 @@
  * *events*, and the dashes already carry that; dimness on top only made it hard
  * to find. */
 .cal-sunset {
-  background: none !important;
-  border-top: 2px dashed var(--color-base-content) !important;
-  opacity: 1 !important;
+  background: none;
+  border-top: 2px dashed var(--color-base-content);
+  opacity: 1;
 }
 
-/* `!important` throughout, as everywhere else in this file: FullCalendar v6
- * injects its stylesheet at runtime, so it lands *after* this one and wins every
- * tie on specificity. Its `.fc-bg-event` is `opacity: 0.3`, which is what left
- * the label a grey smudge while the border — already `!important` — came through
- * fine. */
-.cal-sunset .fc-event-title {
-  color: var(--color-base-content) !important;
-  font-style: italic !important;
-  padding-left: 0.3rem !important;
-  opacity: 1 !important;
+/* The theme mutes a background event's title, which is what left the label a
+ * grey smudge under a border that came through fine. */
+.cal-sunset .cal-background-title {
+  color: var(--color-base-content);
+  font-style: italic;
+  padding-left: 0.3rem;
+  opacity: 1;
 }
 
 /* The three states have to be unmistakable at a glance, because clicking to
@@ -253,63 +288,44 @@
  * opposite of seeing what the week actually is. The legend's checkbox brings
  * them back. The daily page never shows them; that's the reading surface. */
 
-.fc-event {
+/* A pointer only where a click decides something. The daily grid is a reading
+ * surface, handed no `onCycle`, so `WeekCalendar` gives it no `eventClick` and
+ * its events aren't controls at all (no pointer, no `role="button"`). */
+.review-calendar:not(.is-readonly) .cal-event {
   cursor: pointer;
 }
 
-/* …except where clicking one does nothing.
- *
- * The daily grid is a reading surface: decisions are made on the review page, so
- * it's handed no `onCycle`. FullCalendar doesn't know that — it gives every
- * event a pointer cursor and paints `--fc-event-selected-overlay-color` over one
- * that's been pressed, so the events read as controls and appeared to respond to
- * a click that did nothing at all. The overlay is turned off through
- * FullCalendar's own variable rather than by chasing the `::after` that draws
- * it. */
-.review-calendar.is-readonly {
-  --fc-event-selected-overlay-color: transparent;
-
-  .fc-event {
-    cursor: default;
-  }
-}
-
-/* FullCalendar colors the time and the title separately, and its default for
- * the time is a near-white tuned for a filled event. Setting `color` on the
- * event container alone left "9:00 - 10:00" white-on-cream and unreadable on
- * both hollow states — legible only on the one state that happens to be filled.
- * So every state names both. */
-.cal-event-unset .fc-event-time,
-.cal-event-unset .fc-event-title,
-.cal-event-hide .fc-event-time,
-.cal-event-hide .fc-event-title {
+/* The theme colors the time and the title with the event's contrast color, a
+ * near-white tuned for a filled event, which left "9:00 – 10:00" white-on-cream
+ * and unreadable on both hollow states. So every state names both. */
+.cal-event-unset :is(.cal-event-time, .cal-event-title),
+.cal-event-hide :is(.cal-event-time, .cal-event-title) {
   color: var(--color-base-content);
 }
 
-.cal-event-show .fc-event-time,
-.cal-event-show .fc-event-title {
+.cal-event-show :is(.cal-event-time, .cal-event-title) {
   color: var(--color-base-100);
 }
 
 /* Undecided: hollow and dashed. Unfinished without reading as wrong — "you
  * haven't looked at this yet" is not a warning. */
 .cal-event-unset {
-  background-color: transparent !important;
-  border: 2px dashed var(--color-base-content) !important;
+  background-color: transparent;
+  border: 2px dashed var(--color-base-content);
 }
 
-.cal-event-unset .fc-event-title::before {
+.cal-event-unset .cal-event-title::before {
   content: "? ";
   font-weight: bold;
 }
 
 /* Kept: solid, the only filled state on the grid. */
 .cal-event-show {
-  background-color: var(--color-success) !important;
-  border: 2px solid var(--color-success) !important;
+  background-color: var(--color-success);
+  border: 2px solid var(--color-success);
 }
 
-.cal-event-show .fc-event-title::before {
+.cal-event-show .cal-event-title::before {
   content: "✓ ";
   font-weight: bold;
 }
@@ -322,12 +338,12 @@
  * you can change your mind about them, they have to stay legible. Muted via a
  * lighter border and a strikethrough instead. */
 .cal-event-hide {
-  background-color: transparent !important;
-  border: 1px solid var(--color-base-content) !important;
+  background-color: transparent;
+  border: 1px solid var(--color-base-content);
   opacity: 0.75;
 }
 
-.cal-event-hide .fc-event-title {
+.cal-event-hide .cal-event-title {
   text-decoration: line-through;
 }
 
@@ -335,14 +351,7 @@
  * propagates to descendants and cannot be turned off from inside. It still reads
  * clearly, so it stays as one struck-through phrase rather than growing an extra
  * wrapper element to escape the line. */
-.cal-event-hide .fc-event-title::before {
+.cal-event-hide .cal-event-title::before {
   content: "✕ ";
   font-weight: bold;
-}
-
-/* Every piece of event text on the type scale's tiny step, which the calendar
- * container sets (`text-tiny` in WeekCalendar). FullCalendar shrinks event text
- * by 0.85em, and event times by 0.85em again, which put them at 10 and 9px. */
-.review-calendar :is(.fc-event, .fc-event-main, .fc-event-time, .fc-event-title, .fc-timegrid-event, .fc-daygrid-event) {
-  font-size: inherit !important;
 }

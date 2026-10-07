@@ -217,7 +217,7 @@ export default function DailyReviewPage() {
 
     const measure = () => {
       const line = container.querySelector<HTMLElement>(
-        ".fc-timegrid-now-indicator-line"
+        ".cal-now-line"
       );
       if (!line) {
         setNowOffset(null);

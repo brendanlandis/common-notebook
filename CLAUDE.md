@@ -81,12 +81,14 @@ License: AGPL v3.
   - **`screen.css` also holds** the `--transition-time` every animation uses (450ms), and two custom
     variants: `dim:` for the dark theme, and `touch:` for `(hover: none) and (pointer: coarse)`,
     which is how a control revealed on hover stays put on a phone.
-  - **The sheets, and why each is a sheet:** `review-calendar.css` (FullCalendar's DOM, event
+  - **The sheets, and why each is a sheet:** `review-calendar.css` (FullCalendar's palette, event
     states, keyframes and view-transition rules), `SlateEditor.css` and `rich-text.css` (editor and
     rendered rich text), `print.css`, and `type.css`.
   - **They sit in `@layer utilities.legacy`**, declared in `screen.css`: above daisyUI's own
     sublayers, below Tailwind's utility classes. So a utility on an element beats them.
-    `SlateEditor.css` is imported by its component and is unlayered.
+    `SlateEditor.css` is imported by its component and is unlayered. `fullcalendar.css`, imported by
+    `WeekCalendar`, puts FullCalendar's own sheets in `components.fullcalendar`, below them all, so
+    `review-calendar.css` overrides them without `!important`.
   - **Within a sheet, rank rules by order, not specificity: prod's CSS is not dev's.** `next build`
     minifies and `next dev` doesn't. Tailwind merges neighboring rules with the same declarations
     into one list, and Next's minifier (targets include Firefox 111, which lacks `:has()`) wraps a
@@ -98,8 +100,10 @@ License: AGPL v3.
     `tasks-container`, `group-section`, `tasks-list`, `completed`, `worked-on` and the
     `layout-<slug>` names are read by browser specs, unit tests, or the `[.layout-done_&]:`
     variants; so are the review pages' `review-section`, `review-pick-list` and `is-selected`.
-    `review-calendar`, `review-calendar-frame`, `is-arriving`, `is-leaving` and the `cal-*` event
-    classes are what `review-calendar.css` hangs on. Renaming one breaks tests, not styling,
+    `review-calendar`, `review-calendar-frame`, `is-arriving`, `is-leaving` and the `cal-*`
+    classes are what `review-calendar.css` hangs on; FullCalendar 7 hashes its own class names, so
+    `WeekCalendar` puts the `cal-*` ones on its parts through its class settings, and the daily
+    page measures `cal-now-line`. Renaming one breaks tests, not styling,
     except `single-column`: `<main>` reads it (`has-[.single-column]:`) to let a one-column view
     center in the window past 1600px.
   - **Don't mix a named breakpoint with `min-[…px]:` on one property.** Tailwind can't order
@@ -112,11 +116,14 @@ License: AGPL v3.
     restart** — and so does anything that swaps `screen.css` under a running server (a `git stash`
     round trip dropped the `text-h*` tokens until restart). Turbopack keeps serving the old CSS
     otherwise, which looks exactly like a change that didn't work.
-- Editor: TipTap 3 (`@tiptap/*` all `^3.27.1`) + `@strapi/blocks-react-renderer`.
+- Editor: Slate (`slate`, `slate-react`) in `components/ui/SlateEditor.tsx`, speaking Strapi Blocks
+  JSON; `@strapi/blocks-react-renderer` renders it.
 - Forms: react-hook-form 7 + zod 4. Charts: recharts 3. Icons: `@phosphor-icons/react`.
-- Calendar: **FullCalendar 6** (`@fullcalendar/{core,react,timegrid,daygrid}`) renders the review grid;
+- Calendar: **FullCalendar 7** (`@fullcalendar/react`, its `timegrid` entry and classic theme) renders
+  the review grid;
   **`ical.js` 2** parses subscribed ICS feeds. Both are review-only — nothing in `(todo)/` touches them.
-- Dates: **`temporal-polyfill`** (the TC39 Temporal API; Node/browsers don't ship it natively yet) — all
+- Dates: **`temporal-polyfill`** (the TC39 Temporal API), which hands back the runtime's own Temporal
+  where there is one (Node 26, current Chrome and Firefox) and its own where not (Safari) — all
   zone- and calendar-aware date logic goes through it. `date-fns`/`date-fns-tz` were removed. Also
   `astronomy-engine` (moon-phase / solstice recurrence, and sunset in `lib/sunset.ts`).
 - **Server state lives in TanStack Query** (`@tanstack/react-query` 5): `useQuery` for reads,
