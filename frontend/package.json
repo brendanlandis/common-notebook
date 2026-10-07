@@ -39,10 +39,10 @@
     "react-dom": "^19.3.0",
     "react-hook-form": "^7.89.0",
     "recharts": "^3.10.1",
-    "slate": "^0.126.2",
+    "slate": "^0.128.0",
     "slate-dom": "^0.126.0",
     "slate-history": "^0.113.1",
-    "slate-react": "^0.127.1",
+    "slate-react": "^0.128.0",
     "temporal-polyfill": "^1.0.5",
     "zod": "^4.6.5"
   },
