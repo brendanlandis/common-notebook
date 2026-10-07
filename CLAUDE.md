@@ -599,9 +599,10 @@ every piece back into an ordinary task.
   in `catch`, so a Playwright test using `route.abort()` can pass against code that mishandles a real
   server error. Use `route.fulfill({ status: 500 })` to test a rejected write, and `route.abort()` only
   where a network failure is the actual case (see `e2e/task-lifecycle.spec.ts` vs `e2e/view-reorder.spec.ts`).
-- **Prod and all four CI jobs run Node 26 / npm 11**; this Mac's default is still Node 25 until
-  Brendan moves it (26 is installed beside it: `nvm use 26`). The backend's `engines` allows 20
-  through 26. Don't "fix" a CI job back to Node 22: Node 22 ships npm 10, which rejects an
+- **Everything runs Node 26 / npm 11** — prod, this Mac (since 2026-10-07) and all four CI jobs;
+  the backend's `engines` allows 20 through 26. A Node major means `npm rebuild better-sqlite3` in
+  the backend: 12 downloads a binary for one Node version (13 would compile on headless, which
+  has no compiler). Don't "fix" a CI job back to Node 22: Node 22 ships npm 10, which rejects an
   npm 11 lockfile with `Missing: yaml@2.9.0 from lock file` (npm 11 omits optional peer deps such as
   `vite`'s `yaml`).
 - **`npm install` will not catch a broken lockfile; only `npm ci` will.** After changing backend deps,
