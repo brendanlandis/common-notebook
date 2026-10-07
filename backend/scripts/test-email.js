@@ -25,6 +25,8 @@ const path = require('path');
 // variable, so an explicit `EMAIL_ENABLED=false node scripts/test-email.js` wins.
 require('dotenv').config({
   path: process.env.ENV_PATH || path.resolve(__dirname, '..', '.env'),
+  // dotenv 17 and later log a line on every load; these scripts print their own report.
+  quiet: true,
 });
 
 const args = process.argv.slice(2);

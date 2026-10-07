@@ -29,6 +29,8 @@ process.env.EMAIL_ENABLED = 'false';
 // Before the guard below, which reads DATABASE_CLIENT — see seed-dev.js.
 require('dotenv').config({
   path: process.env.ENV_PATH || path.resolve(__dirname, '..', '.env'),
+  // dotenv 17 and later log a line on every load; these scripts print their own report.
+  quiet: true,
 });
 
 const SAMPLE_TAG = '[sample]';

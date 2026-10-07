@@ -30,6 +30,8 @@ const path = require('path');
 // and let the script seed prod.
 require('dotenv').config({
   path: process.env.ENV_PATH || path.resolve(__dirname, '..', '.env'),
+  // dotenv 17 and later log a line on every load; these scripts print their own report.
+  quiet: true,
 });
 
 const SEED_TAG = '[seed]';

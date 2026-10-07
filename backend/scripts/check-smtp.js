@@ -33,6 +33,8 @@ const nodemailer = require('nodemailer');
 // wins, exactly as it does for Strapi.
 require('dotenv').config({
   path: process.env.ENV_PATH || path.resolve(__dirname, '..', '.env'),
+  // dotenv 17 and later log a line on every load; these scripts print their own report.
+  quiet: true,
 });
 
 const HOST = process.env.SMTP_HOST;
