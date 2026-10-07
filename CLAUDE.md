@@ -114,7 +114,9 @@ License: AGPL v3.
     is fine). Put the arbitrary class first, or a space after it.
   - **Deleting a sheet, or adding to an `@theme` block, needs `rm -rf .next/dev` and a dev-server
     restart** — and so does anything that swaps `screen.css` under a running server (a `git stash`
-    round trip dropped the `text-h*` tokens until restart). Turbopack keeps serving the old CSS
+    round trip dropped the `text-h*` tokens until restart), and an `npm install` that swaps
+    packages under it: on 2026-10-07 every page then reloaded itself in a loop (`✓ Compiled in
+    1ms`, `[Fast Refresh] rebuilding`, reload), and a restart alone didn't stop it. Turbopack keeps serving the old CSS
     otherwise, which looks exactly like a change that didn't work.
 - Editor: Slate (`slate`, `slate-react`) in `components/ui/SlateEditor.tsx`, speaking Strapi Blocks
   JSON; `@strapi/blocks-react-renderer` renders it.
