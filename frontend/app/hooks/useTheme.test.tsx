@@ -38,7 +38,9 @@ function installMatchMedia(initialDark: boolean) {
 
 beforeEach(() => {
   store = {};
-  global.localStorage = {
+  // Stubbed, not assigned: jsdom's localStorage is a getter, and from vitest 5 an
+  // assignment reaches it and throws.
+  vi.stubGlobal('localStorage', {
     getItem: (k: string) => (k in store ? store[k] : null),
     setItem: (k: string, v: string) => {
       store[k] = String(v);
@@ -51,10 +53,11 @@ beforeEach(() => {
     },
     key: () => null,
     length: 0,
-  } as Storage;
+  } as Storage);
 });
 
 afterEach(() => {
+  vi.unstubAllGlobals();
   document.documentElement.removeAttribute('data-theme');
   document.documentElement.className = '';
 });
