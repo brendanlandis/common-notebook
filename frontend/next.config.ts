@@ -25,6 +25,9 @@ const SECURITY_HEADERS = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  // `next dev` writes an AGENTS.md here otherwise. This repo's agent notes are
+  // CLAUDE.md, at the root.
+  agentRules: false,
   async headers() {
     return [{ source: '/:path*', headers: SECURITY_HEADERS }];
   },
