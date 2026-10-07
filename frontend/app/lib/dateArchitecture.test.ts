@@ -73,6 +73,14 @@ describe('date layer architecture', () => {
     expect(offenders, 'getNow was deleted — do not reintroduce it').toEqual([]);
   });
 
+  it('nothing reads the clock through Temporal.Now', () => {
+    // A native Temporal (Node 26, current browsers) reads the system clock itself,
+    // where vi.setSystemTime can't reach it. The clock is Date.now(), via
+    // dateUtils' zonedNow.
+    const offenders = FILES.filter(({ code }) => /\bTemporal\.Now\b/.test(code)).map(({ rel }) => rel);
+    expect(offenders, 'Temporal.Now found — read now through dateUtils (zonedNow, getToday, wallClockNow)').toEqual([]);
+  });
+
   it('no getUTC* getter is read anywhere in the date code', () => {
     // Reading getUTCHours()/getUTCDate() off a value is the tell of the old bug:
     // a zoned Date carries the wall clock in its *local* components, so the UTC

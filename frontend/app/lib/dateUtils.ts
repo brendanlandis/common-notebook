@@ -46,10 +46,23 @@ function zonedOf(date: Date, timezone: string): Temporal.ZonedDateTime {
 }
 
 /**
+ * Now, as wall-clock fields in the given zone, read from `Date.now()`.
+ *
+ * Never `Temporal.Now`. temporal-polyfill hands back the runtime's own Temporal
+ * where there is one (Node 26, current browsers), and a native `Temporal.Now`
+ * reads the system clock itself, so a test's `vi.setSystemTime` doesn't reach it
+ * (vitest 5's fake swaps `globalThis.Temporal`, which the polyfill captured at
+ * import). `Date.now()` is the one clock every runtime and every fake agrees on.
+ */
+function zonedNow(timezone: string): Temporal.ZonedDateTime {
+  return zonedOf(new Date(), timezone);
+}
+
+/**
  * Get today's date at midnight in the configured timezone, as a real instant.
  */
 export function getToday(settings: TimeZoneSettings): Date {
-  const today = Temporal.Now.plainDateISO(settings.timezone);
+  const today = zonedNow(settings.timezone).toPlainDate();
   return new Date(today.toZonedDateTime(settings.timezone).epochMilliseconds);
 }
 
@@ -70,8 +83,8 @@ export function getToday(settings: TimeZoneSettings): Date {
  */
 export function wallClockNow({ timezone }: TimeZoneSettings): string {
   // `toPlainDateTime` drops the zone and the offset, keeping the fields — which
-  // is exactly the "numbers on a clock face" this returns.
-  return Temporal.Now.zonedDateTimeISO(timezone).toPlainDateTime().toString();
+  // is exactly the "numbers on a clock face" this returns, to the second.
+  return zonedNow(timezone).toPlainDateTime().toString({ smallestUnit: 'second' });
 }
 
 /**
@@ -178,7 +191,7 @@ export function isoDayDiff(a: string, b: string): number {
  */
 export function getTodayForRecurrence(settings: TimeZoneSettings): Date {
   const { timezone, dayBoundaryHour } = settings;
-  const now = Temporal.Now.zonedDateTimeISO(timezone);
+  const now = zonedNow(timezone);
   const effectiveDate =
     now.hour < dayBoundaryHour ? now.toPlainDate().subtract({ days: 1 }) : now.toPlainDate();
 

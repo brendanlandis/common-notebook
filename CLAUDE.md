@@ -495,9 +495,12 @@ every piece back into an ordinary task.
   expressed**: `date-fns-tz`'s `toZonedTime` returned a `Date` whose epoch was deliberately shifted so its
   *local* getters read the zone, and reading it with the wrong getter (or zoning it twice) silently
   returned a plausible wrong answer. `date-fns` and `date-fns-tz` are **gone from the codebase**; `getNow`
-  is deleted. A **CI-gated architecture test**, `app/lib/dateArchitecture.test.ts`, enforces this: no
+  is deleted. **"Now" comes from `Date.now()`, never `Temporal.Now`** (`zonedNow` in `dateUtils.ts`):
+  temporal-polyfill hands back the runtime's own Temporal where there is one (Node 26, current
+  browsers), and a native `Temporal.Now` ignores `vi.setSystemTime`, which failed 59 tests on Node 26. A **CI-gated architecture test**, `app/lib/dateArchitecture.test.ts`, enforces this: no
   source file may import `date-fns` or `date-fns-tz`, the `toZonedTime`/`fromZonedTime`/`getNow`
-  identifiers may not reappear, and no `getUTC*` getter may be read anywhere. The whole class was
+  identifiers may not reappear, no `getUTC*` getter may be read anywhere, and nothing reads
+  `Temporal.Now`. The whole class was
   invisible on a machine whose OS zone equals the user's setting (Brendan's laptop) while CI ran only UTC —
   so **the vitest suite runs a `TZ` matrix** (`UTC`, `America/New_York`, `Asia/Kolkata`;
   `npm run test:zones`, and the CI job's `strategy.matrix.tz`) and Playwright pins
@@ -589,8 +592,9 @@ every piece back into an ordinary task.
   in `catch`, so a Playwright test using `route.abort()` can pass against code that mishandles a real
   server error. Use `route.fulfill({ status: 500 })` to test a rejected write, and `route.abort()` only
   where a network failure is the actual case (see `e2e/task-lifecycle.spec.ts` vs `e2e/view-reorder.spec.ts`).
-- **Everything runs Node 25 / npm 11** — prod, local, and all four CI jobs; the backend's `engines`
-  allows 20 through 26. Don't "fix" a CI job back to Node 22: Node 22 ships npm 10, which rejects an
+- **Prod and all four CI jobs run Node 26 / npm 11**; this Mac's default is still Node 25 until
+  Brendan moves it (26 is installed beside it: `nvm use 26`). The backend's `engines` allows 20
+  through 26. Don't "fix" a CI job back to Node 22: Node 22 ships npm 10, which rejects an
   npm 11 lockfile with `Missing: yaml@2.9.0 from lock file` (npm 11 omits optional peer deps such as
   `vite`'s `yaml`).
 - **`npm install` will not catch a broken lockfile; only `npm ci` will.** After changing backend deps,
