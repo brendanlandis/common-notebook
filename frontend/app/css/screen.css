@@ -105,7 +105,7 @@
  * override theirs as they did unlayered) and below Tailwind's own utility
  * classes, so a utility on the markup wins. Unlayered, they beat every utility
  * whatever its specificity. Only what markup can't carry lives in them; see
- * the styling section of CLAUDE.md for why each one is a sheet. */
+ * the styling section of AGENTS.md for why each one is a sheet. */
 @import "./type.css" layer(utilities.legacy);
 @import "./rich-text.css" layer(utilities.legacy);
 

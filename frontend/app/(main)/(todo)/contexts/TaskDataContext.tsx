@@ -105,7 +105,7 @@ const isStuffProject = (p: Project) => p.world?.systemKey === "stuff";
 //
 // It no longer *owns* any data: every read is a query (useTasks/useTaskLists) and
 // every write a mutation, so the cache — not this file — is the shared state, and
-// CLAUDE.md's "no fetching Context" rule is satisfied. What it still does earn its
+// AGENTS.md's "no fetching Context" rule is satisfied. What it still does earn its
 // place for is composition: it applies the stuff-projects gate exactly once (five
 // consumers each remembering to re-apply "the sole gate" is a leak waiting to
 // happen), derives the grouping once rather than per consumer, and holds the

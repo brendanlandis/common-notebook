@@ -4,7 +4,7 @@ import { join, resolve, relative } from 'path';
 
 /**
  * Architecture guard for the date layer. This is the enforcement point the timing
- * audit was missing: a paragraph in CLAUDE.md is not one, which is exactly how the
+ * audit was missing: a paragraph in AGENTS.md is not one, which is exactly how the
  * same class of bug shipped three times. Lint can't do this job here — eslint isn't
  * CI-gated and tsc isn't either — but the vitest suite *is* gated, so the rules live
  * as assertions that name the offending file when they trip.

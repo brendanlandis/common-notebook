@@ -10,7 +10,7 @@
  * NULL rows, so without this backfill the whole existing project set (and its
  * tasks) would drop out of views the moment the `complete=false` filter ships.
  * Setting NULL → false makes `complete` never-null, so the filter stays a simple
- * two-branch form. (Same null-enum class as the projectType bug — CLAUDE.md.)
+ * two-branch form. (Same null-enum class as the projectType bug — AGENTS.md.)
  *
  * `completedAt` is intentionally left untouched: an incomplete project has no
  * completion time. It is stamped server-side only when `complete` flips to true.
